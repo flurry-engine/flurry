@@ -1,0 +1,25 @@
+{
+    project : {
+        name    : 'sample',
+        version : '1.0.0',
+        author  : 'Aidan Lee',
+
+        app : {
+            name      : 'sample',
+            main      : 'Main',
+            output    : 'bin',
+            codepaths : [ '../src' ]
+        },
+
+        build : {
+            dependencies : {
+                "snow"         : '*',
+            },
+            defines : [ ]
+        },
+
+        files : {
+            assets : 'assets/'
+        }
+    }
+}
