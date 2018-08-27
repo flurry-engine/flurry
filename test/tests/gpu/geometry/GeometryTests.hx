@@ -128,6 +128,56 @@ class GeometryTests extends BuddySuite
                 geomDefault.transformation.scale.y.should.be(3.4);
                 geomDefault.transformation.scale.z.should.be(1.0);
             });
+
+            describe('Geometries have an events emitter which can be listened to', {
+                it ('Fires an OrderProperyChanged event when the depth is changed', {
+                    var timesCalled = 0;
+                    var funcChanged = function(_) { timesCalled++; };
+
+                    geomDefault.events.on(OrderProperyChanged, funcChanged);
+                    geomDefault.depth = 7;
+                    geomDefault.events.off(OrderProperyChanged, funcChanged);
+                    geomDefault.depth = 42;
+
+                    timesCalled.should.be(1);
+                });
+
+                it ('Fires an OrderProperyChanged event when the clip is changed', {
+                    var timesCalled = 0;
+                    var funcChanged = function(_) { timesCalled++; };
+
+                    geomDefault.events.on(OrderProperyChanged, funcChanged);
+                    geomDefault.clip = new Rectangle();
+                    geomDefault.events.off(OrderProperyChanged, funcChanged);
+                    geomDefault.clip = null;
+
+                    timesCalled.should.be(1);
+                });
+
+                it ('Fires an OrderProperyChanged event when the shader is changed', {
+                    var timesCalled = 0;
+                    var funcChanged = function(_) { timesCalled++; };
+
+                    geomDefault.events.on(OrderProperyChanged, funcChanged);
+                    geomDefault.shader = null;
+                    geomDefault.events.off(OrderProperyChanged, funcChanged);
+                    geomDefault.shader = null;
+
+                    timesCalled.should.be(1);
+                });
+
+                it ('Fires an OrderProperyChanged event when the primitive is changed', {
+                    var timesCalled = 0;
+                    var funcChanged = function(_) { timesCalled++; };
+
+                    geomDefault.events.on(OrderProperyChanged, funcChanged);
+                    geomDefault.primitive = Triangles;
+                    geomDefault.events.off(OrderProperyChanged, funcChanged);
+                    geomDefault.primitive = LineStrip;
+
+                    timesCalled.should.be(1);
+                });
+            });
         });
     }
 }

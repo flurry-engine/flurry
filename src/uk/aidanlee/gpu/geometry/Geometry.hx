@@ -89,12 +89,46 @@ class Geometry
      * The specific shader for the geometry.
      * If null the batchers shader is used.
      */
-    public var shader : Shader;
+    public var shader (default, set) : Shader;
+
+    inline public function set_shader(_shader : Shader) : Shader {
+        events.emit(OrderProperyChanged);
+
+        return shader = _shader;
+    }
 
     /**
      * The depth of this mesh within the batcher.
      */
-    public var depth : Float;
+    public var depth (default, set) : Float;
+
+    inline public function set_depth(_depth : Float) : Float {
+        events.emit(OrderProperyChanged);
+
+        return depth = _depth;
+    }
+
+    /**
+     * Clipping rectangle for this geometry. Null if none.
+     */
+    public var clip (default, set) : Rectangle;
+
+    inline public function set_clip(_clip : Rectangle) : Rectangle {
+        events.emit(OrderProperyChanged);
+
+        return clip = _clip;
+    }
+
+    /**
+     * The primitive type of this geometry.
+     */
+    public var primitive (default, set) : PrimitiveType;
+
+    inline public function set_primitive(_primitive : PrimitiveType) : PrimitiveType {
+        events.emit(OrderProperyChanged);
+
+        return primitive = _primitive;
+    }
 
     /**
      * If immediate this geometry will only be drawn once.
@@ -107,19 +141,9 @@ class Geometry
     public var unchanging : Bool;
 
     /**
-     * Clipping rectangle for this geometry. Null if none.
-     */
-    public var clip : Rectangle;
-
-    /**
      * Default colour of this geometry.
      */
     public var color : Color;
-
-    /**
-     * The primitive type of this geometry.
-     */
-    public var primitive : PrimitiveType;
 
     /**
      * If blending is enabled for this geometry.
