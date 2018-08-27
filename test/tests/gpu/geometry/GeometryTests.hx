@@ -131,51 +131,51 @@ class GeometryTests extends BuddySuite
 
             describe('Geometries have an events emitter which can be listened to', {
                 it ('Fires an OrderProperyChanged event when the depth is changed', {
-                    var timesCalled = 0;
-                    var funcChanged = function(_) { timesCalled++; };
+                    var callCount = 0;
+                    var onChanged = function(_event : EvGeometry) {
+                        callCount++;
+                    };
 
-                    geomDefault.events.on(OrderProperyChanged, funcChanged);
+                    geomDefault.events.on(OrderProperyChanged, onChanged);
                     geomDefault.depth = 7;
-                    geomDefault.events.off(OrderProperyChanged, funcChanged);
-                    geomDefault.depth = 42;
 
-                    timesCalled.should.be(1);
+                    callCount.should.be(1);
                 });
 
                 it ('Fires an OrderProperyChanged event when the clip is changed', {
-                    var timesCalled = 0;
-                    var funcChanged = function(_) { timesCalled++; };
+                    var callCount = 0;
+                    var onChanged = function(_event : EvGeometry) {
+                        callCount++;
+                    };
 
-                    geomDefault.events.on(OrderProperyChanged, funcChanged);
+                    geomDefault.events.on(OrderProperyChanged, onChanged);
                     geomDefault.clip = new Rectangle();
-                    geomDefault.events.off(OrderProperyChanged, funcChanged);
-                    geomDefault.clip = null;
 
-                    timesCalled.should.be(1);
+                    callCount.should.be(1);
                 });
 
                 it ('Fires an OrderProperyChanged event when the shader is changed', {
-                    var timesCalled = 0;
-                    var funcChanged = function(_) { timesCalled++; };
+                    var callCount = 0;
+                    var onChanged = function(_event : EvGeometry) {
+                        callCount++;
+                    };
 
-                    geomDefault.events.on(OrderProperyChanged, funcChanged);
-                    geomDefault.shader = null;
-                    geomDefault.events.off(OrderProperyChanged, funcChanged);
+                    geomDefault.events.on(OrderProperyChanged, onChanged);
                     geomDefault.shader = null;
 
-                    timesCalled.should.be(1);
+                    callCount.should.be(1);
                 });
 
                 it ('Fires an OrderProperyChanged event when the primitive is changed', {
-                    var timesCalled = 0;
-                    var funcChanged = function(_) { timesCalled++; };
+                    var callCount = 0;
+                    var onChanged = function(_event : EvGeometry) {
+                        callCount++;
+                    };
 
-                    geomDefault.events.on(OrderProperyChanged, funcChanged);
+                    geomDefault.events.on(OrderProperyChanged, onChanged);
                     geomDefault.primitive = Triangles;
-                    geomDefault.events.off(OrderProperyChanged, funcChanged);
-                    geomDefault.primitive = LineStrip;
 
-                    timesCalled.should.be(1);
+                    callCount.should.be(1);
                 });
             });
         });
