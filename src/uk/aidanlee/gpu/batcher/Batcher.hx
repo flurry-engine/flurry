@@ -67,6 +67,16 @@ class Batcher
     public var depth : Float;
 
     /**
+     * If the geometries need to be re-ordered next time they're batched.
+     */
+    var orderGeometry : Bool;
+
+    /**
+     * Function which sets the orderGeometry flag.
+     */
+    var onGeometryChanged : EvGeometry->Void;
+
+    /**
      * Creates an empty batcher.
      * @param _options All of the options for this batcher.
      */
@@ -80,6 +90,12 @@ class Batcher
         
         vertexBuffer = new Float32Array(def(_options.maxVerts, 10000) * 9);
         state        = new BatcherState(this);
+
+        orderGeometry = true;
+
+        onGeometryChanged = function(_event : EvGeometry) {
+            orderGeometry = true;
+        }
     }
 
     /**
@@ -89,6 +105,10 @@ class Batcher
     inline public function addGeometry(_geom : Geometry)
     {
         geometry.push(_geom);
+
+        _geom.events.on(OrderProperyChanged, onGeometryChanged);
+
+        orderGeometry = true;
     }
 
     /**
@@ -98,6 +118,10 @@ class Batcher
     inline public function removeGeometry(_geom : Geometry)
     {
         geometry.remove(_geom);
+
+        _geom.events.off(OrderProperyChanged, onGeometryChanged);
+
+        orderGeometry = true;
     }
 
     /**
@@ -120,7 +144,11 @@ class Batcher
 
         // Sort all of the geometry held in this batcher.
         // Sorted in order of most expensive state changes to least expensive.
-        ArraySort.sort(geometry, sortGeometry);
+        if (orderGeometry)
+        {
+            ArraySort.sort(geometry, sortGeometry);
+            orderGeometry = false;
+        }
 
         // Set the intial state to the first bit of geometry.
         // This prevents a state change when checking the very first bit of geometry in the iteration.

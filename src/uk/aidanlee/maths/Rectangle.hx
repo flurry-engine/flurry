@@ -1,26 +1,71 @@
 package uk.aidanlee.maths;
 
+import snow.api.Emitter;
+
+enum abstract EvRectangle(Int) from Int to Int
+{
+    /**
+     * This event is emitted whenever the size of the rectangle changes.
+     */
+    var ChangedSize;
+}
+
 class Rectangle
 {
     /**
+     * Event emitter for this rectangle.
+     */
+    public final events : Emitter<EvRectangle>;
+
+    /**
      * The top left x position of this rectangle.
      */
-    public var x : Float;
+    public var x (default, set) : Float;
+
+    inline function set_x(_x : Float) : Float {
+        emitChange();
+
+        return x = _x;
+    }
 
     /**
      * The top left y position of this rectangle.
      */
-    public var y : Float;
+    public var y (default, set) : Float;
+
+    inline function set_y(_y : Float) : Float {
+        emitChange();
+
+        return y = _y;
+    }
 
     /**
      * The width of this rectangle.
      */
-    public var w : Float;
+    public var w (default, set) : Float;
+
+    inline function set_w(_w : Float) : Float {
+        emitChange();
+
+        return w = _w;
+    }
 
     /**
      * The height of this rectangle.
      */
-    public var h : Float;
+    public var h (default, set) : Float;
+
+    inline function set_h(_h : Float) : Float {
+        emitChange();
+
+        return h = _h;
+    }
+
+    /**
+     * If set to true events will not be fired from setter functions.
+     * This is useful for the non setter functions as we can send one event instead of several.
+     */
+    var ignoreListeners : Bool;
 
     /**
      * Create a new rectangle instance.
@@ -31,10 +76,14 @@ class Rectangle
      */
     inline public function new(_x : Float = 0, _y : Float = 0, _w : Float = 0, _h : Float = 0)
     {
+        events = new Emitter();
+
         x = _x;
         y = _y;
         w = _w;
         h = _h;
+
+        ignoreListeners = false;
     }
 
     // #region general
@@ -49,10 +98,16 @@ class Rectangle
      */
     inline public function set(_x : Float, _y : Float, _w : Float, _h : Float) : Rectangle
     {
+        ignoreListeners = true;
+
         x = _x;
         y = _y;
         w = _w;
         h = _h;
+
+        ignoreListeners = false;
+
+        emitChange();
 
         return this;
     }
@@ -64,10 +119,16 @@ class Rectangle
      */
     inline public function copyFrom(_other : Rectangle) : Rectangle
     {
+        ignoreListeners = true;
+
         x = _other.x;
         y = _other.y;
         w = _other.w;
         h = _other.h;
+
+        ignoreListeners = false;
+
+        emitChange();
 
         return this;
     }
@@ -135,4 +196,14 @@ class Rectangle
     }
 
     // #endregion
+
+    /**
+     * Convenience inlined function to emit a size changed event.
+     */
+    inline function emitChange()
+    {
+        if (ignoreListeners) return;
+
+        events.emit(ChangedSize);
+    }
 }

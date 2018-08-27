@@ -128,6 +128,59 @@ class GeometryTests extends BuddySuite
                 geomDefault.transformation.scale.y.should.be(3.4);
                 geomDefault.transformation.scale.z.should.be(1.0);
             });
+
+            describe('Geometries have an events emitter which can be listened to', {
+                it ('Fires an OrderProperyChanged event when the depth is changed', {
+                    var callCount = 0;
+                    var onChanged = function(_event : EvGeometry) {
+                        callCount++;
+                    };
+
+                    geomDefault.events.on(OrderProperyChanged, onChanged);
+                    geomDefault.depth = 7;
+
+                    callCount.should.be(1);
+                });
+
+                it ('Fires an OrderProperyChanged event when the clip is changed', {
+                    var callCount = 0;
+                    var onChanged = function(_event : EvGeometry) {
+                        callCount++;
+                    };
+
+                    geomDefault.events.on(OrderProperyChanged, onChanged);
+                    geomDefault.clip = new Rectangle();
+
+                    callCount.should.be(1);
+
+                    geomDefault.clip.x = 12;
+                    callCount.should.be(2);
+                });
+
+                it ('Fires an OrderProperyChanged event when the shader is changed', {
+                    var callCount = 0;
+                    var onChanged = function(_event : EvGeometry) {
+                        callCount++;
+                    };
+
+                    geomDefault.events.on(OrderProperyChanged, onChanged);
+                    geomDefault.shader = null;
+
+                    callCount.should.be(1);
+                });
+
+                it ('Fires an OrderProperyChanged event when the primitive is changed', {
+                    var callCount = 0;
+                    var onChanged = function(_event : EvGeometry) {
+                        callCount++;
+                    };
+
+                    geomDefault.events.on(OrderProperyChanged, onChanged);
+                    geomDefault.primitive = Triangles;
+
+                    callCount.should.be(1);
+                });
+            });
         });
     }
 }
