@@ -27,8 +27,8 @@ class BatcherTests extends BuddySuite
                     shader : mock(Shader)
                 });
 
-                batcher.addGeometry(mock(Geometry));
-                batcher.addGeometry(mock(Geometry));
+                batcher.addGeometry(new Geometry({}));
+                batcher.addGeometry(new Geometry({}));
 
                 batcher.geometry.length.should.be(2);
             });
@@ -38,8 +38,8 @@ class BatcherTests extends BuddySuite
                     shader : mock(Shader)
                 });
 
-                var g1 = mock(Geometry);
-                var g2 = mock(Geometry);
+                var g1 = new Geometry({});
+                var g2 = new Geometry({});
 
                 batcher.addGeometry(g1);
                 batcher.addGeometry(g2);

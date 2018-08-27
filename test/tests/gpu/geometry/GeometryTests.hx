@@ -152,6 +152,9 @@ class GeometryTests extends BuddySuite
                     geomDefault.clip = new Rectangle();
 
                     callCount.should.be(1);
+
+                    geomDefault.clip.x = 12;
+                    callCount.should.be(2);
                 });
 
                 it ('Fires an OrderProperyChanged event when the shader is changed', {

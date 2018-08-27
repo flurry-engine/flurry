@@ -83,7 +83,13 @@ class Geometry
     /**
      * ID of the texture this mesh uses.
      */
-    public final textures : Array<Texture>;
+    public var textures (default, set) : Array<Texture>;
+
+    inline function set_textures(_textures : Array<Texture>) : Array<Texture> {
+        events.emit(OrderProperyChanged);
+
+        return textures = _textures;
+    }
 
     /**
      * The specific shader for the geometry.
@@ -91,7 +97,7 @@ class Geometry
      */
     public var shader (default, set) : Shader;
 
-    inline public function set_shader(_shader : Shader) : Shader {
+    inline function set_shader(_shader : Shader) : Shader {
         events.emit(OrderProperyChanged);
 
         return shader = _shader;
@@ -102,7 +108,7 @@ class Geometry
      */
     public var depth (default, set) : Float;
 
-    inline public function set_depth(_depth : Float) : Float {
+    inline function set_depth(_depth : Float) : Float {
         events.emit(OrderProperyChanged);
 
         return depth = _depth;
@@ -113,10 +119,21 @@ class Geometry
      */
     public var clip (default, set) : Rectangle;
 
-    inline public function set_clip(_clip : Rectangle) : Rectangle {
-        events.emit(OrderProperyChanged);
+    inline function set_clip(_clip : Rectangle) : Rectangle {
+        if (clip != null)
+        {
+            clip.events.off(ChangedSize, listenerClip);
+        }
 
-        return clip = _clip;
+        events.emit(OrderProperyChanged);
+        clip = _clip;
+
+        if (clip != null)
+        {
+            clip.events.on(ChangedSize, listenerClip);
+        }
+
+        return clip;
     }
 
     /**
@@ -124,7 +141,7 @@ class Geometry
      */
     public var primitive (default, set) : PrimitiveType;
 
-    inline public function set_primitive(_primitive : PrimitiveType) : PrimitiveType {
+    inline function set_primitive(_primitive : PrimitiveType) : PrimitiveType {
         events.emit(OrderProperyChanged);
 
         return primitive = _primitive;
@@ -171,11 +188,20 @@ class Geometry
     public var dstAlpha : BlendMode;
 
     /**
+     * Called when this geometries clip rectangle changes size.
+     */
+    var listenerClip : EvRectangle->Void;
+
+    /**
      * Create a new mesh, contains no vertices and no transformation.
      */
     public function new(_options : GeometryOptions)
     {
         events = new Emitter();
+
+        listenerClip = function(_event : EvRectangle) {
+            events.emit(OrderProperyChanged);
+        }
 
         vertices       = [];
         transformation = new Transformation();
