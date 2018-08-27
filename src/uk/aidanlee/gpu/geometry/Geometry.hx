@@ -1,5 +1,6 @@
 package uk.aidanlee.gpu.geometry;
 
+import snow.api.Emitter;
 import snow.api.Debug.def;
 import uk.aidanlee.gpu.Shader;
 import uk.aidanlee.gpu.batcher.Batcher;
@@ -29,6 +30,10 @@ enum BlendMode {
     OneMinusDstColor;
 }
 
+enum abstract EvGeometry(Int) from Int to Int {
+    var OrderProperyChanged;
+}
+
 typedef GeometryOptions = {
     var ?name       : String;
     var ?shader     : Shader;
@@ -53,7 +58,17 @@ typedef GeometryOptions = {
  */
 class Geometry
 {
+    /**
+     * Name of this geometry.
+     * This name is used as part of a hash key for batching unchanging geometry.
+     * If this geometry is unchanging its name should be unique.
+     */
     public final name : String;
+
+    /**
+     * Fires various events about the geometry.
+     */
+    public final events : Emitter<EvGeometry>;
 
     /**
      * This meshes vertices.
@@ -64,6 +79,17 @@ class Geometry
      * Transformation of this geometry.
      */
     public final transformation : Transformation;
+
+    /**
+     * ID of the texture this mesh uses.
+     */
+    public final textures : Array<Texture>;
+
+    /**
+     * The specific shader for the geometry.
+     * If null the batchers shader is used.
+     */
+    public var shader : Shader;
 
     /**
      * The depth of this mesh within the batcher.
@@ -79,17 +105,6 @@ class Geometry
      * If this geometry will not be changing. Provides a hint to the backend on how to optimise this geometry.
      */
     public var unchanging : Bool;
-
-    /**
-     * The specific shader for the geometry.
-     * If null the batchers shader is used.
-     */
-    public var shader : Shader;
-
-    /**
-     * ID of the texture this mesh uses.
-     */
-    public var textures : Array<Texture>;
 
     /**
      * Clipping rectangle for this geometry. Null if none.
@@ -136,6 +151,8 @@ class Geometry
      */
     public function new(_options : GeometryOptions)
     {
+        events = new Emitter();
+
         vertices       = [];
         transformation = new Transformation();
 
