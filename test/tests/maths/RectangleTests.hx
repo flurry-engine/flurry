@@ -133,6 +133,47 @@ class RectangleTests extends BuddySuite
                     r1.contains(r2).should.be(true);
                 });
             });
+
+            describe('Emitters', {
+                it('Should emit size changed events when setting the individual properties', {
+                    var callCount = 0;
+                    var onChanged = function(_event : EvRectangle) {
+                        callCount++;
+                    }
+
+                    var r = new Rectangle();
+                    r.events.on(ChangedSize, onChanged);
+
+                    r.x = 1;
+                    callCount.should.be(1);
+
+                    r.y = 1;
+                    callCount.should.be(2);
+
+                    r.w = 1;
+                    callCount.should.be(3);
+
+                    r.h = 1;
+                    callCount.should.be(4);
+                });
+
+                it('Should emit size changed events when calling resize functions', {
+                    var callCount = 0;
+                    var onChanged = function(_event : EvRectangle) {
+                        callCount++;
+                    }
+
+                    var r1 = new Rectangle();
+                    var r2 = new Rectangle(1, 1, 1, 1);
+                    r1.events.on(ChangedSize, onChanged);
+
+                    r1.set(1, 1, 1, 1);
+                    callCount.should.be(1);
+
+                    r1.copyFrom(r2);
+                    callCount.should.be(2);
+                });
+            });
         });
     }
 }
