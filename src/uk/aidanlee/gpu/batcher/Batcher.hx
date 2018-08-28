@@ -1,6 +1,5 @@
 package uk.aidanlee.gpu.batcher;
 
-import uk.aidanlee.utils.Hash;
 import haxe.ds.ArraySort;
 import snow.api.buffers.Float32Array;
 import snow.api.Debug.def;
@@ -8,6 +7,7 @@ import uk.aidanlee.gpu.Shader;
 import uk.aidanlee.gpu.camera.Camera;
 import uk.aidanlee.gpu.geometry.Geometry;
 import uk.aidanlee.maths.Vector;
+import uk.aidanlee.utils.Hash;
 
 typedef BatcherOptions = {
     var camera : Camera;
@@ -144,11 +144,13 @@ class Batcher
         // Exit early if there is no geometry to batch.
         if (geometry.length == 0) return [];
 
-        var commands    = new Array<DrawCommand>();
-        var commandName = new StringBuf();
         var startIndex  = 0;
         var endIndex    = 0;
         var vertices    = 0;
+        var commands    = new Array<DrawCommand>();
+        var commandName = new StringBuf();
+
+        commandName.add(Std.string(id));
 
         // Sort all of the geometry held in this batcher.
         // Sorted in order of most expensive state changes to least expensive.
@@ -168,15 +170,17 @@ class Batcher
             // Line lists and triangle lists cannot (yet).
             if (!batchablePrimitive(geom) || state.requiresChange(geom))
             {
-                commands.push(new DrawCommand(commandName.toString(), state.unchanging, startIndex, endIndex, vertices, camera.projection, camera.viewInverted, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.srcRGB, state.dstRGB, state.srcAlpha, state.dstAlpha));
+                commands.push(new DrawCommand(Hash.hash(commandName.toString()), state.unchanging, startIndex, endIndex, vertices, camera.projection, camera.viewInverted, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.srcRGB, state.dstRGB, state.srcAlpha, state.dstAlpha));
                 startIndex  = endIndex;
                 vertices    = 0;
+
                 commandName = new StringBuf();
+                commandName.add(Std.string(id));
 
                 state.change(geom);
             }
 
-            commandName.add(geom.name);
+            commandName.add(Std.string(geom.id));
 
             // Transform each vertex in the geometry and add that transformed vertex into our buffer.
             var offset = startIndex + (vertices * 9);
@@ -211,7 +215,7 @@ class Batcher
         // Push any remaining verticies.
         if (vertices > 0)
         {
-            commands.push(new DrawCommand(commandName.toString(), state.unchanging, startIndex, endIndex, vertices, camera.projection, camera.viewInverted, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.srcRGB, state.dstRGB, state.srcAlpha, state.dstAlpha));
+            commands.push(new DrawCommand(Hash.hash(commandName.toString()), state.unchanging, startIndex, endIndex, vertices, camera.projection, camera.viewInverted, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.srcRGB, state.dstRGB, state.srcAlpha, state.dstAlpha));
         }
 
         // Filter out any immediate geometry.

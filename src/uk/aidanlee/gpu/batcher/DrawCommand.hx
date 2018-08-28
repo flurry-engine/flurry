@@ -95,7 +95,7 @@ class DrawCommand
     public final dstAlpha : BlendMode;
 
     inline public function new(
-        _name       : String,
+        _id         : Int,
         _unchanging : Bool,
         _startIdx   : Int,
         _endIdx     : Int,
@@ -115,7 +115,7 @@ class DrawCommand
         _dstAlpha   : BlendMode = null
     )
     {
-        id = Hash.hash(_name);
+        id = _id;
 
         unchanging       = _unchanging;
         bufferStartIndex = _startIdx;
