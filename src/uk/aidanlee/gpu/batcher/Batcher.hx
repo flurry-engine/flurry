@@ -1,5 +1,6 @@
 package uk.aidanlee.gpu.batcher;
 
+import uk.aidanlee.utils.Hash;
 import haxe.ds.ArraySort;
 import snow.api.buffers.Float32Array;
 import snow.api.Debug.def;
@@ -27,6 +28,11 @@ typedef BatcherOptions = {
  */
 class Batcher
 {
+    /**
+     * UUID for this batcher.
+     */
+    public final id : Int;
+
     /**
      * Target this batcher will be drawn to.
      * 
@@ -82,6 +88,8 @@ class Batcher
      */
     public function new(_options : BatcherOptions)
     {
+        id = Hash.uniqueHash();
+        
         geometry = [];
         shader   = _options.shader;
         camera   = _options.camera;
