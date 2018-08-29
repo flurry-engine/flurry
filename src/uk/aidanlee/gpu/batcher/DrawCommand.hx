@@ -6,7 +6,6 @@ import uk.aidanlee.gpu.geometry.Geometry;
 import uk.aidanlee.maths.Matrix;
 import uk.aidanlee.maths.Rectangle;
 import uk.aidanlee.maths.Matrix;
-import uk.aidanlee.utils.Hash;
 
 /**
  * A draw command describes how to draw a set amount of data within a vertex buffer.

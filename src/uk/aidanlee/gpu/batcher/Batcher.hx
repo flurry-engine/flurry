@@ -137,20 +137,26 @@ class Batcher
      * 
      * Returns an array of draw commands describing batches within the buffer and the state required to draw them.
      * 
-     * @return Array<DrawCommand>
+     * @return Array<GeometryDrawCommand>
      */
-    public function batch() : Array<DrawCommand>
+    public function batch(_output : Array<GeometryDrawCommand> = null) : Array<GeometryDrawCommand>
     {
+        if (_output == null)
+        {
+            _output = [];
+        }
+
         // Exit early if there is no geometry to batch.
-        if (geometry.length == 0) return [];
+        if (geometry.length == 0)
+        {
+            return _output;
+        }
 
         var startIndex  = 0;
         var endIndex    = 0;
         var vertices    = 0;
-        var commands    = new Array<DrawCommand>();
-        var commandName = new StringBuf();
-
-        commandName.add(Std.string(id));
+        var commandGeom = new Array<Geometry>();
+        var commandName = id;
 
         // Sort all of the geometry held in this batcher.
         // Sorted in order of most expensive state changes to least expensive.
@@ -170,19 +176,22 @@ class Batcher
             // Line lists and triangle lists cannot (yet).
             if (!batchablePrimitive(geom) || state.requiresChange(geom))
             {
-                commands.push(new DrawCommand(Hash.hash(commandName.toString()), state.unchanging, startIndex, endIndex, vertices, camera.projection, camera.viewInverted, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.srcRGB, state.dstRGB, state.srcAlpha, state.dstAlpha));
+                _output.push(new GeometryDrawCommand(commandGeom, commandName, state.unchanging, startIndex, endIndex, vertices, camera.projection, camera.viewInverted, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.srcRGB, state.dstRGB, state.srcAlpha, state.dstAlpha));
                 startIndex  = endIndex;
                 vertices    = 0;
 
-                commandName = new StringBuf();
-                commandName.add(Std.string(id));
+                commandGeom = new Array<Geometry>();
+                commandName = id;
 
                 state.change(geom);
             }
 
-            commandName.add(Std.string(geom.id));
+            vertices    += geom.vertices.length;
+            commandName += geom.id;
+            commandGeom.push(geom);
 
             // Transform each vertex in the geometry and add that transformed vertex into our buffer.
+            /*
             var offset = startIndex + (vertices * 9);
             var transv = new Vector();
             var matrix = geom.transformation.transformation;
@@ -210,20 +219,23 @@ class Batcher
             }
 
             endIndex += geom.vertices.length * 9;
+            */
         }
 
         // Push any remaining verticies.
         if (vertices > 0)
         {
-            commands.push(new DrawCommand(Hash.hash(commandName.toString()), state.unchanging, startIndex, endIndex, vertices, camera.projection, camera.viewInverted, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.srcRGB, state.dstRGB, state.srcAlpha, state.dstAlpha));
+            _output.push(new GeometryDrawCommand(commandGeom, commandName, state.unchanging, startIndex, endIndex, vertices, camera.projection, camera.viewInverted, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.srcRGB, state.dstRGB, state.srcAlpha, state.dstAlpha));
         }
 
         // Filter out any immediate geometry.
+        /*
         geometry = geometry.filter(function(_g : Geometry) : Bool {
             return _g.immediate == false;
         });
+        */
 
-        return commands;
+        return _output;
     }
 
     /**

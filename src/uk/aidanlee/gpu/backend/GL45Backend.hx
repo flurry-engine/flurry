@@ -1,5 +1,6 @@
 package uk.aidanlee.gpu.backend;
 
+import uk.aidanlee.gpu.batcher.GeometryDrawCommand;
 import haxe.io.Bytes;
 import haxe.ds.Map;
 import cpp.Float32;
@@ -149,6 +150,10 @@ class GL45Backend implements IRendererBackend
     var target   : IRenderTarget;
     var shader   : Shader;
 
+    // WIP
+
+    final dynamicCommandRanges : Map<Int, DrawCommandRange>;
+
     /**
      * Creates a new openGL 4.5 renderer.
      * @param _renderer           Access to the renderer which owns this backend.
@@ -224,6 +229,7 @@ class GL45Backend implements IRendererBackend
 
         // create a new storage container for holding unchaning commands.
         unchangingStorage = new UnchangingBuffer(_options.maxUnchangingVertices);
+        dynamicCommandRanges = new Map();
 
         // Map the buffer into an unmanaged array.
         var ptr : Pointer<Float32> = Pointer.fromRaw(glMapNamedBufferRange(glVbo, 0, totalBufferBytes, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
@@ -255,6 +261,71 @@ class GL45Backend implements IRendererBackend
         target   = backbuffer;
         shader   = null;
     }
+
+    // #region WIP
+
+    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>)
+    {
+        var transv = new Vector();
+
+        for (command in _commands)
+        {
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+
+            for (geom in command.geometry)
+            {
+                for (vertex in geom.vertices)
+                {
+                    // Copy the vertex into another vertex.
+                    // This allows us to apply the transformation without permanently modifying the original geometry.
+                    transv.copyFrom(vertex.position);
+                    transv.transform(geom.transformation.transformation);
+
+                    vertexBuffer[floatOffset++] = transv.x;
+                    vertexBuffer[floatOffset++] = transv.y;
+                    vertexBuffer[floatOffset++] = transv.z;
+                    vertexBuffer[floatOffset++] = vertex.color.r;
+                    vertexBuffer[floatOffset++] = vertex.color.g;
+                    vertexBuffer[floatOffset++] = vertex.color.b;
+                    vertexBuffer[floatOffset++] = vertex.color.a;
+                    vertexBuffer[floatOffset++] = vertex.texCoord.x;
+                    vertexBuffer[floatOffset++] = vertex.texCoord.y;
+
+                    vertexOffset++;
+                }
+            }
+        }
+    }
+
+    public function submitGeometryCommands(_commands : Array<GeometryDrawCommand>, _recordStats : Bool = true)
+    {
+        for (command in _commands)
+        {
+            var range = dynamicCommandRanges.get(command.id);
+
+            // Change the state so the vertices are drawn correctly.
+            setState(command, !_recordStats);
+
+            // Draw the actual vertices
+            switch (command.primitive)
+            {
+                case Points        : glDrawArrays(GL_POINTS        , range.vertexOffset, range.vertices);
+                case Lines         : glDrawArrays(GL_LINES         , range.vertexOffset, range.vertices);
+                case LineStrip     : glDrawArrays(GL_LINE_STRIP    , range.vertexOffset, range.vertices);
+                case Triangles     : glDrawArrays(GL_TRIANGLES     , range.vertexOffset, range.vertices);
+                case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, range.vertexOffset, range.vertices);
+            }
+
+            // Record stats about this draw call.
+            if (_recordStats)
+            {
+                renderer.stats.dynamicDraws++;
+                renderer.stats.totalVertices += range.vertices;
+            }
+        }
+    }
+
+    // #endregion
 
     /**
      * Clears the display with the colour bit.
@@ -1082,5 +1153,18 @@ private class UnchangingBuffer
         {
             currentRanges.remove(key);
         }
+    }
+}
+
+private class DrawCommandRange
+{
+    public final vertices : Int;
+
+    public final vertexOffset : Int;
+
+    inline public function new(_vertices : Int, _vertexOffset : Int)
+    {
+        vertices     = _vertices;
+        vertexOffset = _vertexOffset;
     }
 }
