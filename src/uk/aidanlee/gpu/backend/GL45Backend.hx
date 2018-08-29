@@ -274,12 +274,14 @@ class GL45Backend implements IRendererBackend
 
             for (geom in command.geometry)
             {
+                var matrix = geom.transformation.transformation;
+
                 for (vertex in geom.vertices)
                 {
                     // Copy the vertex into another vertex.
                     // This allows us to apply the transformation without permanently modifying the original geometry.
                     transv.copyFrom(vertex.position);
-                    transv.transform(geom.transformation.transformation);
+                    transv.transform(matrix);
 
                     vertexBuffer[floatOffset++] = transv.x;
                     vertexBuffer[floatOffset++] = transv.y;

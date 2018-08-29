@@ -78,8 +78,11 @@ class Renderer
      */
     public final stats : RendererStats;
 
+    final queuedCommands : Array<DrawCommand>;
+
     inline public function new(_options : RendererOptions)
     {
+        queuedCommands = [];
         batchers = [];
         stats    = new RendererStats();
 
@@ -115,17 +118,17 @@ class Renderer
 
         stats.totalBatchers += batchers.length;
 
-        var queuedCommands = new Array<GeometryDrawCommand>();
+        queuedCommands.resize(0);
 
         var gl = cast(backend, GL45Backend);
 
         for (batcher in batchers)
         {
-            batcher.batch(queuedCommands);
+            batcher.batch(cast queuedCommands);
         }
 
-        gl.uploadGeometryCommands(queuedCommands);
-        gl.submitGeometryCommands(queuedCommands);
+        gl.uploadGeometryCommands(cast queuedCommands);
+        gl.submitGeometryCommands(cast queuedCommands);
     }
 
     inline public function postRender()
