@@ -230,12 +230,6 @@ class Geometry
         dstRGB   = def(_options.dstRGB  , OneMinusSrcAlpha);
         dstAlpha = def(_options.dstAlpha, Zero);
 
-        // If the geometry is unchanging its name cannot be an empty string
-        if (unchanging && name == '')
-        {
-            throw 'Geometry Exception : Unchanging geometry cannot have an empty string as a name';
-        }
-
         // Add to batchers.
         for (batcher in def(_options.batchers, []))
         {

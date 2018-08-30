@@ -270,6 +270,46 @@ class GL45Backend implements IRendererBackend
 
         for (command in _commands)
         {
+            if (command.unchanging)
+            {
+                var unchangingOffset = unchangingStorage.currentVertices * 9;
+
+                if (unchangingStorage.exists(command.id))
+                {
+                    continue;
+                }
+
+                if (unchangingStorage.add(command))
+                {
+                    for (geom in command.geometry)
+                    {
+                        var matrix = geom.transformation.transformation;
+
+                        for (vertex in geom.vertices)
+                        {
+                            // Copy the vertex into another vertex.
+                            // This allows us to apply the transformation without permanently modifying the original geometry.
+                            transv.copyFrom(vertex.position);
+                            transv.transform(matrix);
+
+                            vertexBuffer[unchangingOffset++] = transv.x;
+                            vertexBuffer[unchangingOffset++] = transv.y;
+                            vertexBuffer[unchangingOffset++] = transv.z;
+                            vertexBuffer[unchangingOffset++] = vertex.color.r;
+                            vertexBuffer[unchangingOffset++] = vertex.color.g;
+                            vertexBuffer[unchangingOffset++] = vertex.color.b;
+                            vertexBuffer[unchangingOffset++] = vertex.color.a;
+                            vertexBuffer[unchangingOffset++] = vertex.texCoord.x;
+                            vertexBuffer[unchangingOffset++] = vertex.texCoord.y;
+
+                            vertexOffset++;
+                        }
+                    }
+
+                    continue;
+                }
+            }
+
             dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
 
             for (geom in command.geometry)
@@ -303,6 +343,35 @@ class GL45Backend implements IRendererBackend
     {
         for (command in _commands)
         {
+            if (command.unchanging)
+            {
+                if (unchangingStorage.exists(command.id))
+                {
+                    var offset = unchangingStorage.get(command.id);
+
+                    setState(command, !_recordStats);
+
+                    // Draw the actual vertices
+                    switch (command.primitive)
+                    {
+                        case Points        : glDrawArrays(GL_POINTS        , offset, command.vertices);
+                        case Lines         : glDrawArrays(GL_LINES         , offset, command.vertices);
+                        case LineStrip     : glDrawArrays(GL_LINE_STRIP    , offset, command.vertices);
+                        case Triangles     : glDrawArrays(GL_TRIANGLES     , offset, command.vertices);
+                        case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, offset, command.vertices);
+                    }
+
+                    // Record stats about this draw call.
+                    if (_recordStats)
+                    {
+                        renderer.stats.dynamicDraws++;
+                        renderer.stats.totalVertices += command.vertices;
+                    }
+
+                    continue;
+                }
+            }
+
             var range = dynamicCommandRanges.get(command.id);
 
             // Change the state so the vertices are drawn correctly.
