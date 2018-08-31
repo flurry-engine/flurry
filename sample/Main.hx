@@ -73,7 +73,7 @@ class Main extends App
 
             // The api you choose changes what shaders you need to provide
             // Possible APIs are WEBGL, GL45, DX11, and NULL
-            api    : WEBGL,
+            api    : GL45,
             width  : app.runtime.window_width(),
             height : app.runtime.window_height(),
             dpi    : app.runtime.window_device_pixel_ratio(),
@@ -91,12 +91,12 @@ class Main extends App
 
         resources = [
             // GL45 Shaders
-            // app.assets.text('assets/shaders/gl45/textured.vert'),
-            // app.assets.text('assets/shaders/gl45/textured.frag'),
+            app.assets.text('assets/shaders/gl45/textured.vert'),
+            app.assets.text('assets/shaders/gl45/textured.frag'),
 
             // WEBGL Shaders
-            app.assets.text('assets/shaders/webgl/textured.vert'),
-            app.assets.text('assets/shaders/webgl/textured.frag'),
+            // app.assets.text('assets/shaders/webgl/textured.vert'),
+            // app.assets.text('assets/shaders/webgl/textured.frag'),
 
             // DX11 Shaders
             // HLSL shaders can have the vertex and pixel in the same if you wish.

@@ -217,7 +217,7 @@ class Batcher
      * Batchable geometry is of the 'Triangles', 'Lines', or 'Points' geometric primitive.
      * @param _geom Geometry to check.
      */
-    function batchablePrimitive(_geom : Geometry) : Bool
+    inline function batchablePrimitive(_geom : Geometry) : Bool
     {
         return _geom.primitive == Triangles || _geom.primitive == Lines || _geom.primitive == Points;
     }
@@ -228,7 +228,7 @@ class Batcher
      * @param _b Geometry b.
      * @return Int
      */
-    function sortGeometry(_a : Geometry, _b : Geometry) : Int
+    inline function sortGeometry(_a : Geometry, _b : Geometry) : Int
     {
         // Sort by depth.
         if (_a.depth < _b.depth) return -1;
