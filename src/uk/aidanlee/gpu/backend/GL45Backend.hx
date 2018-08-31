@@ -336,8 +336,6 @@ class GL45Backend implements IRendererBackend
                             vertexBuffer[unchangingOffset++] = vertex.color.a;
                             vertexBuffer[unchangingOffset++] = vertex.texCoord.x;
                             vertexBuffer[unchangingOffset++] = vertex.texCoord.y;
-
-                            vertexOffset++;
                         }
                     }
 
@@ -376,7 +374,37 @@ class GL45Backend implements IRendererBackend
 
     public function uploadBufferCommands(_commands : Array<BufferDrawCommand>)
     {
-        //
+        for (command in _commands)
+        {
+            if (command.unchanging)
+            {
+                var unchangingOffset = unchangingStorage.currentVertices * 9;
+
+                if (unchangingStorage.exists(command.id))
+                {
+                    continue;
+                }
+
+                if (unchangingStorage.add(command))
+                {
+                    for (i in command.startIndex...command.endIndex)
+                    {
+                        vertexBuffer[unchangingOffset++] = command.buffer[i];
+                    }
+
+                    continue;
+                }
+            }
+
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+
+            for (i in command.startIndex...command.endIndex)
+            {
+                vertexBuffer[floatOffset++] = command.buffer[i];
+            }
+
+            vertexOffset += command.vertices;
+        }
     }
 
     public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true)

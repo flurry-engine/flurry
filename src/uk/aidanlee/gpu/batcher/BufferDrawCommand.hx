@@ -4,7 +4,7 @@ import uk.aidanlee.gpu.geometry.Geometry.BlendMode;
 import uk.aidanlee.gpu.geometry.Geometry.PrimitiveType;
 import uk.aidanlee.maths.Rectangle;
 import uk.aidanlee.maths.Matrix;
-import haxe.io.Float32Array;
+import snow.api.buffers.Float32Array;
 
 class BufferDrawCommand extends DrawCommand
 {
