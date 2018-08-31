@@ -112,6 +112,11 @@ class GL45Backend implements IRendererBackend
     final vertexBuffer : Array<Float32>;
 
     /**
+     * Constant vector instance which is used to transform vertices when copying into the vertex buffer.
+     */
+    final transformationVector : Vector;
+
+    /**
      * Index pointing to the current writable buffer range.
      */
     var bufferRangeIndex : Int;
@@ -232,6 +237,7 @@ class GL45Backend implements IRendererBackend
         // create a new storage container for holding unchaning commands.
         unchangingStorage    = new UnchangingBuffer(_options.maxUnchangingVertices);
         dynamicCommandRanges = new Map();
+        transformationVector = new Vector();
 
         // Map the buffer into an unmanaged array.
         var ptr : Pointer<Float32> = Pointer.fromRaw(glMapNamedBufferRange(glVbo, 0, totalBufferBytes, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
@@ -297,8 +303,6 @@ class GL45Backend implements IRendererBackend
 
     public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>)
     {
-        var transv = new Vector();
-
         for (command in _commands)
         {
             if (command.unchanging)
@@ -320,12 +324,12 @@ class GL45Backend implements IRendererBackend
                         {
                             // Copy the vertex into another vertex.
                             // This allows us to apply the transformation without permanently modifying the original geometry.
-                            transv.copyFrom(vertex.position);
-                            transv.transform(matrix);
+                            transformationVector.copyFrom(vertex.position);
+                            transformationVector.transform(matrix);
 
-                            vertexBuffer[unchangingOffset++] = transv.x;
-                            vertexBuffer[unchangingOffset++] = transv.y;
-                            vertexBuffer[unchangingOffset++] = transv.z;
+                            vertexBuffer[unchangingOffset++] = transformationVector.x;
+                            vertexBuffer[unchangingOffset++] = transformationVector.y;
+                            vertexBuffer[unchangingOffset++] = transformationVector.z;
                             vertexBuffer[unchangingOffset++] = vertex.color.r;
                             vertexBuffer[unchangingOffset++] = vertex.color.g;
                             vertexBuffer[unchangingOffset++] = vertex.color.b;
@@ -351,12 +355,12 @@ class GL45Backend implements IRendererBackend
                 {
                     // Copy the vertex into another vertex.
                     // This allows us to apply the transformation without permanently modifying the original geometry.
-                    transv.copyFrom(vertex.position);
-                    transv.transform(matrix);
+                    transformationVector.copyFrom(vertex.position);
+                    transformationVector.transform(matrix);
 
-                    vertexBuffer[floatOffset++] = transv.x;
-                    vertexBuffer[floatOffset++] = transv.y;
-                    vertexBuffer[floatOffset++] = transv.z;
+                    vertexBuffer[floatOffset++] = transformationVector.x;
+                    vertexBuffer[floatOffset++] = transformationVector.y;
+                    vertexBuffer[floatOffset++] = transformationVector.z;
                     vertexBuffer[floatOffset++] = vertex.color.r;
                     vertexBuffer[floatOffset++] = vertex.color.g;
                     vertexBuffer[floatOffset++] = vertex.color.b;
