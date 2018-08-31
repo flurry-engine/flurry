@@ -1,7 +1,8 @@
 {
-    "name" : "gpu",
-    "license": "MIT",
-    "version": "1.0.0",
+    "name"      : "gpu",
+    "license"   : "MIT",
+    "version"   : "1.0.0",
+    "classPath" : "src",
     "contributors": [
         "Aidan"
     ],
