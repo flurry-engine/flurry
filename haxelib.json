@@ -6,10 +6,6 @@
         "Aidan"
     ],
     "dependencies": {
-        "hxcpp"        : "",
-        "snow"         : "",
-        "linc_imgui"   : "",
-        "linc_opengl"  : "",
-        "linc_directx" : ""
+        "hxcpp" : ""
     }
 }
