@@ -1,6 +1,5 @@
 package uk.aidanlee.gpu.backend;
 
-import uk.aidanlee.gpu.batcher.GeometryDrawCommand;
 import haxe.io.Bytes;
 import haxe.ds.Map;
 import cpp.Float32;
@@ -16,6 +15,8 @@ import uk.aidanlee.gpu.backend.IRendererBackend.ShaderType;
 import uk.aidanlee.gpu.backend.IRendererBackend.ShaderLayout;
 import uk.aidanlee.gpu.geometry.Geometry.BlendMode;
 import uk.aidanlee.gpu.batcher.DrawCommand;
+import uk.aidanlee.gpu.batcher.GeometryDrawCommand;
+import uk.aidanlee.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.gpu.IRenderTarget;
 import uk.aidanlee.gpu.Shader;
 import uk.aidanlee.gpu.Texture;
@@ -94,6 +95,11 @@ class GL45Backend implements IRendererBackend
     final unchangingStorage : UnchangingBuffer;
 
     /**
+     * Tracks the position and number of vertices for draw commands uploaded into the dynamic buffer.
+     */
+    final dynamicCommandRanges : Map<Int, DrawCommandRange>;
+
+    /**
      * These ranges describe writable chunks of the vertex buffer.
      * This is used for triple buffering with mapped buffers where only one chunk can be written to at a time.
      */
@@ -149,10 +155,6 @@ class GL45Backend implements IRendererBackend
     var clip     : Rectangle;
     var target   : IRenderTarget;
     var shader   : Shader;
-
-    // WIP
-
-    final dynamicCommandRanges : Map<Int, DrawCommandRange>;
 
     /**
      * Creates a new openGL 4.5 renderer.
@@ -228,7 +230,7 @@ class GL45Backend implements IRendererBackend
         ];
 
         // create a new storage container for holding unchaning commands.
-        unchangingStorage = new UnchangingBuffer(_options.maxUnchangingVertices);
+        unchangingStorage    = new UnchangingBuffer(_options.maxUnchangingVertices);
         dynamicCommandRanges = new Map();
 
         // Map the buffer into an unmanaged array.
@@ -262,7 +264,36 @@ class GL45Backend implements IRendererBackend
         shader   = null;
     }
 
-    // #region WIP
+    /**
+     * Clears the display with the colour bit.
+     */
+    public function clear()
+    {
+        // Disable the clip to clear the entire target.
+        clip.set(0, 0, backbuffer.width, backbuffer.height);
+        glScissor(0, 0, backbuffer.width, backbuffer.height);
+
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
+
+    /**
+     * Clears all unchanging sub range definitions.
+     */
+    public function clearUnchanging()
+    {
+        unchangingStorage.empty();
+    }
+
+    /**
+     * Unlock the range we will be writing into and set the offsets to that of the range.
+     */
+    public function preDraw()
+    {
+        unlockBuffer(bufferRanges[bufferRangeIndex]);
+
+        floatOffset  = bufferRanges[bufferRangeIndex].fltOffset;
+        vertexOffset = bufferRanges[bufferRangeIndex].vtxOffset;
+    }
 
     public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>)
     {
@@ -339,7 +370,12 @@ class GL45Backend implements IRendererBackend
         }
     }
 
-    public function submitGeometryCommands(_commands : Array<GeometryDrawCommand>, _recordStats : Bool = true)
+    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>)
+    {
+        //
+    }
+
+    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true)
     {
         for (command in _commands)
         {
@@ -392,92 +428,6 @@ class GL45Backend implements IRendererBackend
             {
                 renderer.stats.dynamicDraws++;
                 renderer.stats.totalVertices += range.vertices;
-            }
-        }
-    }
-
-    // #endregion
-
-    /**
-     * Clears the display with the colour bit.
-     */
-    public function clear()
-    {
-        // Disable the clip to clear the entire target.
-        clip.set(0, 0, backbuffer.width, backbuffer.height);
-        glScissor(0, 0, backbuffer.width, backbuffer.height);
-
-        glClear(GL_COLOR_BUFFER_BIT);
-    }
-
-    /**
-     * Clears all unchanging sub range definitions.
-     */
-    public function clearUnchanging()
-    {
-        unchangingStorage.empty();
-    }
-
-    /**
-     * Unlock the range we will be writing into and set the offsets to that of the range.
-     */
-    public function preDraw()
-    {
-        unlockBuffer(bufferRanges[bufferRangeIndex]);
-
-        floatOffset  = bufferRanges[bufferRangeIndex].fltOffset;
-        vertexOffset = bufferRanges[bufferRangeIndex].vtxOffset;
-    }
-
-    /**
-     * Given a buffer of vertex data and a set of commands draw the data described by the commands.
-     * @param _buffer       Buffer containing vertex data.
-     * @param _commands     Commands describing drawing.
-     * @param _disableStats If stats will not be counted for this draw. Useful for imgui stuff.
-     */
-    public function draw(_buffer : Float32Array, _commands : Array<DrawCommand>, _disableStats : Bool)
-    {
-        if (_commands.length <= 0) return;
-
-        // Draw each command.
-        // The vertex offset is used instead of the buffer start index since draw arrays offset is vertices not floats.
-        for (command in _commands)
-        {
-            if (command.unchanging)
-            {
-                // Check if the unchanging draw has already been uploaded once.
-                if (unchangingStorage.exists(command.id))
-                {
-                    // do unchanging draw
-                    unchangingDraw(unchangingStorage.get(command.id), command, _disableStats);
-                }
-                else
-                {
-                    // If it hasn't attempt to upload it and draw.
-                    // If we cant upload it (not enough space) then dynamically draw it.
-                    if (unchangingStorage.add(command))
-                    {
-                        // upload the vertices to the unchanging range.
-                        var currentFloats    = unchangingStorage.currentVertices * 9;
-                        var unchangingOffset = currentFloats - (command.bufferEndIndex - command.bufferStartIndex);
-
-                        for (i in command.bufferStartIndex...command.bufferEndIndex)
-                        {
-                            vertexBuffer[unchangingOffset++] = _buffer[i];
-                        }
-
-                        // do unchanging draw.
-                        unchangingDraw(unchangingStorage.get(command.id), command, _disableStats);
-                    }
-                    else
-                    {
-                        dynamicDraw(_buffer, command, _disableStats);
-                    }
-                }
-            }
-            else
-            {
-                dynamicDraw(_buffer, command, _disableStats);
             }
         }
     }
@@ -751,76 +701,11 @@ class GL45Backend implements IRendererBackend
     // #endregion
 
     /**
-     * Draws a uploaded, unchanging range.
-     * @param _vertexOffset The range to draw.
-     * @param _command      The command to draw.
-     * @param _disableStats If stats will not be tracked for this draw.
-     */
-    function unchangingDraw(_vertexOffset : Int, _command : DrawCommand, _disableStats : Bool)
-    {
-        setState(_command, _disableStats);
-
-        // Draw the actual vertices
-        switch (_command.primitive)
-        {
-            case Points        : glDrawArrays(GL_POINTS        , _vertexOffset, _command.vertices);
-            case Lines         : glDrawArrays(GL_LINES         , _vertexOffset, _command.vertices);
-            case LineStrip     : glDrawArrays(GL_LINE_STRIP    , _vertexOffset, _command.vertices);
-            case Triangles     : glDrawArrays(GL_TRIANGLES     , _vertexOffset, _command.vertices);
-            case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, _vertexOffset, _command.vertices);
-        }
-
-        // Record stats about this draw call.
-        if (!_disableStats)
-        {
-            renderer.stats.unchangingDraws++;
-            renderer.stats.totalVertices += _command.vertices;
-        }
-    }
-
-    /**
-     * Upload and draw a dynamic draw command.
-     * @param _buffer       The buffer containing the data to upload.
-     * @param _command      The draw command describing the state and vertex data range within the buffer.
-     * @param _disableStats If stats are to be recorded.
-     */
-    function dynamicDraw(_buffer : Float32Array, _command : DrawCommand, _disableStats : Bool)
-    {
-        // Upload the vertex data into the vertex buffer.
-        for (i in _command.bufferStartIndex..._command.bufferEndIndex)
-        {
-            vertexBuffer[floatOffset++] = _buffer[i];
-        }
-
-        // Change the state so the vertices are drawn correctly.
-        setState(_command, _disableStats);
-
-        // Draw the actual vertices
-        switch (_command.primitive)
-        {
-            case Points        : glDrawArrays(GL_POINTS        , vertexOffset, _command.vertices);
-            case Lines         : glDrawArrays(GL_LINES         , vertexOffset, _command.vertices);
-            case LineStrip     : glDrawArrays(GL_LINE_STRIP    , vertexOffset, _command.vertices);
-            case Triangles     : glDrawArrays(GL_TRIANGLES     , vertexOffset, _command.vertices);
-            case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, vertexOffset, _command.vertices);
-        }
-
-        vertexOffset += _command.vertices;
-
-        // Record stats about this draw call.
-        if (!_disableStats)
-        {
-            renderer.stats.dynamicDraws++;
-            renderer.stats.totalVertices += _command.vertices;
-        }
-    }
-
-    /**
      * Update the openGL state so it can draw the provided command.
      * @param _command      Command to set the state for.
      * @param _disableStats If stats are to be recorded.
      */
-    function setState(_command : DrawCommand, _disableStats : Bool)
+    inline function setState(_command : DrawCommand, _disableStats : Bool)
     {
         // Set the viewport.
         // If the viewport of the command is null then the backbuffer size is used (size of the window).

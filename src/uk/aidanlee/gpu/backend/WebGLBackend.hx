@@ -1,5 +1,7 @@
 package uk.aidanlee.gpu.backend;
 
+import uk.aidanlee.gpu.batcher.BufferDrawCommand;
+import uk.aidanlee.gpu.batcher.GeometryDrawCommand;
 import haxe.ds.Map;
 import snow.modules.opengl.GL;
 import snow.api.buffers.Uint8Array;
@@ -157,45 +159,23 @@ class WebGLBackend implements IRendererBackend
     }
 
     /**
-     * Draw vertex information contained within a buffer.
-     * @param _buffer       32 bit float buffer containing vertex data.
-     * @param _commands     Array of commands describing how the draw data into the buffer.
-     * @param _disableStats If stats will not be tracked for this draw.
+     * Upload geometries to the gpu VRAM.
+     * @param _commands Array of commands to upload.
      */
-    public function draw(_buffer : Float32Array, _commands : Array<DrawCommand>, _disableStats : Bool)
-    {
-        if (_commands.length <= 0) return;
+    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void {}
 
-        // Upload the entire active range of the batchers buffer to the GPU.
-        var rangeStart   = _commands[0].bufferStartIndex;
-        var rangeEnd     = _commands[_commands.length - 1].bufferEndIndex;
-        var activeBuffer = _buffer.subarray(rangeStart, rangeEnd);
-        GL.bufferSubData(GL.ARRAY_BUFFER, 0, activeBuffer);
+    /**
+     * Upload buffer data to the gpu VRAM.
+     * @param _commands Array of commands to upload.
+     */
+    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void {}
 
-        // Draw each command.
-        // The vertex offset is used instead of the buffer start index since draw arrays offset is vertices not floats.
-        var vertexOffset = 0;
-        for (command in _commands)
-        {
-            setState(command, _disableStats);
-
-            switch (command.primitive)
-            {
-                case Points        : GL.drawArrays(GL.POINTS        , vertexOffset, command.vertices);
-                case Lines         : GL.drawArrays(GL.LINES         , vertexOffset, command.vertices);
-                case LineStrip     : GL.drawArrays(GL.LINE_STRIP    , vertexOffset, command.vertices);
-                case Triangles     : GL.drawArrays(GL.TRIANGLES     , vertexOffset, command.vertices);
-                case TriangleStrip : GL.drawArrays(GL.TRIANGLE_STRIP, vertexOffset, command.vertices);
-            }
-            vertexOffset += command.vertices;
-
-            if (!_disableStats)
-            {
-                renderer.stats.dynamicDraws++;
-                renderer.stats.totalVertices += command.vertices;
-            }
-        }
-    }
+    /**
+     * Draw an array of commands. Command data must be uploaded to the GPU before being used.
+     * @param _commands    Commands to draw.
+     * @param _recordStats Record stats for this submit.
+     */
+    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void {}
 
     public function postDraw()
     {

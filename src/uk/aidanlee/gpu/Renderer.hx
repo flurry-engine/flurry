@@ -119,16 +119,13 @@ class Renderer
         stats.totalBatchers += batchers.length;
 
         queuedCommands.resize(0);
-
-        var gl = cast(backend, GL45Backend);
-
         for (batcher in batchers)
         {
             batcher.batch(cast queuedCommands);
         }
 
-        gl.uploadGeometryCommands(cast queuedCommands);
-        gl.submitGeometryCommands(cast queuedCommands);
+        backend.uploadGeometryCommands(cast queuedCommands);
+        backend.submitCommands(queuedCommands);
     }
 
     inline public function postRender()
