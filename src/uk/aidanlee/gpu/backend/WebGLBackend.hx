@@ -32,6 +32,11 @@ class WebGLBackend implements IRendererBackend
     final glVbo : GLBuffer;
 
     /**
+     * Vertex buffer used by this backend.
+     */
+    final vertexBuffer : Float32Array;
+
+    /**
      * Backbuffer display, default target if none is specified.
      */
     final backbuffer : IRenderTarget;
@@ -55,6 +60,22 @@ class WebGLBackend implements IRendererBackend
      * Mapping of render texture names to their GL framebuffer ID.
      */
     final renderTargets : Map<Int, { fbo : Int, texture : Int }>;
+
+    /**
+     * Transformation vector used for transforming geometry vertices by a matrix.
+     */
+    final transformationVector : Vector;
+
+    /**
+     * Tracks the position and number of vertices for draw commands uploaded into the dynamic buffer.
+     */
+    final dynamicCommandRanges : Map<Int, DrawCommandRange>;
+
+    var vertexOffset : Int;
+
+    var floatOffset : Int;
+
+    var byteOffset : Int;
 
     /**
      * Sequence number texture IDs.
@@ -96,13 +117,19 @@ class WebGLBackend implements IRendererBackend
         textureSequence      = 0;
         renderTargetSequence = 0;
 
+        transformationVector = new Vector();
+        dynamicCommandRanges = new Map();
+        vertexOffset = 0;
+        floatOffset  = 0;
+        byteOffset   = 0;
+
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
+        vertexBuffer = new Float32Array((_options.maxDynamicVertices + _options.maxUnchangingVertices) * 9);
 
-        // TODO : Allow specifying a max vertex buffer size.
         glVbo = GL.createBuffer();
         GL.bindBuffer(GL.ARRAY_BUFFER, glVbo);
-        GL.bufferData(GL.ARRAY_BUFFER, new Float32Array((_options.maxDynamicVertices + _options.maxUnchangingVertices) * 9), GL.DYNAMIC_DRAW);
+        GL.bufferData(GL.ARRAY_BUFFER, vertexBuffer, GL.DYNAMIC_DRAW);
 
         GL.enableVertexAttribArray(0);
         GL.enableVertexAttribArray(1);
@@ -155,27 +182,104 @@ class WebGLBackend implements IRendererBackend
 
     public function preDraw()
     {
-        //
+        vertexOffset = 0;
+        floatOffset  = 0;
+        byteOffset   = 0;
     }
 
     /**
      * Upload geometries to the gpu VRAM.
      * @param _commands Array of commands to upload.
      */
-    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void {}
+    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void
+    {
+        var startByteOffset  = byteOffset;
+        var startFloatOffset = floatOffset;
+
+        for (command in _commands)
+        {
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+
+            for (geom in command.geometry)
+            {
+                var matrix = geom.transformation.transformation;
+
+                for (vertex in geom.vertices)
+                {
+                    // Copy the vertex into another vertex.
+                    // This allows us to apply the transformation without permanently modifying the original geometry.
+                    transformationVector.copyFrom(vertex.position);
+                    transformationVector.transform(matrix);
+
+                    vertexBuffer[floatOffset++] = transformationVector.x;
+                    vertexBuffer[floatOffset++] = transformationVector.y;
+                    vertexBuffer[floatOffset++] = transformationVector.z;
+                    vertexBuffer[floatOffset++] = vertex.color.r;
+                    vertexBuffer[floatOffset++] = vertex.color.g;
+                    vertexBuffer[floatOffset++] = vertex.color.b;
+                    vertexBuffer[floatOffset++] = vertex.color.a;
+                    vertexBuffer[floatOffset++] = vertex.texCoord.x;
+                    vertexBuffer[floatOffset++] = vertex.texCoord.y;
+
+                    vertexOffset += 1;
+                    byteOffset   += (9 * 4);
+                }
+            }
+        }
+
+        GL.bufferSubData(GL.ARRAY_BUFFER, startByteOffset, vertexBuffer.subarray(startFloatOffset, floatOffset));
+    }
 
     /**
      * Upload buffer data to the gpu VRAM.
      * @param _commands Array of commands to upload.
      */
-    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void {}
+    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void
+    {
+        for (command in _commands)
+        {
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+
+            GL.bufferSubData(GL.ARRAY_BUFFER, byteOffset, command.buffer.subarray(command.startIndex, command.endIndex));
+
+            vertexOffset += command.vertices;
+            floatOffset  += command.vertices * 9;
+            byteOffset   += command.vertices * 9 * 4;
+        }
+    }
 
     /**
      * Draw an array of commands. Command data must be uploaded to the GPU before being used.
      * @param _commands    Commands to draw.
      * @param _recordStats Record stats for this submit.
      */
-    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void {}
+    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void
+    {
+        for (command in _commands)
+        {
+            var range = dynamicCommandRanges.get(command.id);
+
+            // Change the state so the vertices are drawn correctly.
+            setState(command, !_recordStats);
+
+            // Draw the actual vertices
+            switch (command.primitive)
+            {
+                case Points        : GL.drawArrays(GL.POINTS        , range.vertexOffset, range.vertices);
+                case Lines         : GL.drawArrays(GL.LINES         , range.vertexOffset, range.vertices);
+                case LineStrip     : GL.drawArrays(GL.LINE_STRIP    , range.vertexOffset, range.vertices);
+                case Triangles     : GL.drawArrays(GL.TRIANGLES     , range.vertexOffset, range.vertices);
+                case TriangleStrip : GL.drawArrays(GL.TRIANGLE_STRIP, range.vertexOffset, range.vertices);
+            }
+
+            // Record stats about this draw call.
+            if (_recordStats)
+            {
+                renderer.stats.dynamicDraws++;
+                renderer.stats.totalVertices += range.vertices;
+            }
+        }
+    }
 
     public function postDraw()
     {
@@ -578,5 +682,18 @@ private class ShaderLocations
         layout           = _layout;
         textureLocations = _textureLocations;
         uniformLocations = _uniformLocations;
+    }
+}
+
+private class DrawCommandRange
+{
+    public final vertices : Int;
+
+    public final vertexOffset : Int;
+
+    inline public function new(_vertices : Int, _vertexOffset : Int)
+    {
+        vertices     = _vertices;
+        vertexOffset = _vertexOffset;
     }
 }
