@@ -28,24 +28,17 @@ Mainly created for my own personal use and learning experience, but others might
     - This repos sample directory contains a basic little snow based program showing you how to get stuff on the screen. The API is heavily inspired by luxe so anyone familiar with that should have no problem getting started.
     - More documentation, tests, and samples will be added over time.
 
+* Currently Depends on Snow
+    - The project currently depends on snow, this is mainly due to the typed buffers, emitters, and the WebGL class. It should be fairly easy to remove this dependency though.
+
 ## General Renderer TODO:
 
-* Batcher sorting.
+* Batcher Sorting.
     - Each batcher stores all its geometries in an array and before drawing the batcher will do a merge sort on the array. This is very expensive with lots of geometry and usually unneeded. The geometry list should only be sorted when the geometries properties change.
     - A self balancing BST could be utilised in the same way luxe does. When a geometry wants to change a property it is removed from its batchers, the properties are set, then its re-inserted.
 
-* Batcher Vertex Buffers
-    - Currently each batcher has its own vertex buffer which geometry data is transformed and stored into. This buffer is then passed to the backend where it is copied into the backends own vertex buffer.
-    - This extra copying can be skipped by having the batcher be provided a vertex buffer to write into. In the GL45 and DX11 backend case this would be its mapped buffers, and in WebGL just a client side buffer.
-
 * Anti-Aliasing
     - Options should be provided to set how much MSAA to apply to the renderer
-
-* Remove Snow Dependency
-    - Currently relies on snow for Float32Array and getting the current display size. Haxe provides its own Float32Array and options should be created to allow specifying the display size.
-    - WebGL backend possible issue. By using snow and its typed arrays we get a native and a web backend in a single file through WebGL.hx. When targeting the web snow buffers become native js types allowing for perfect interop with webgl. Haxe typed arrays differ from js and are not externs on web targets.
-    - Possible option is to take snow buffers and put them into their own repo.
-    - Buddy tests would no longer need to run under snow due to the buffer requirements.
 
 * Separation of Shaders and their Uniforms
     - Separating shaders and their uniform values would allow the backends to update the shaders and uniforms separately when possible.

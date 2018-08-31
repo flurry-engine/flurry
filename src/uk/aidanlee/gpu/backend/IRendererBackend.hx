@@ -1,5 +1,7 @@
 package uk.aidanlee.gpu.backend;
 
+import uk.aidanlee.gpu.batcher.BufferDrawCommand;
+import uk.aidanlee.gpu.batcher.GeometryDrawCommand;
 import snow.api.buffers.Float32Array;
 import snow.api.buffers.Uint8Array;
 import uk.aidanlee.gpu.batcher.DrawCommand;
@@ -43,12 +45,23 @@ interface IRendererBackend
     public function preDraw() : Void;
 
     /**
-     * Draw vertex information contained within a buffer.
-     * @param _buffer       32 bit float buffer containing vertex data.
-     * @param _commands     Array of commands describing how the draw data into the buffer.
-     * @param _disableStats If stats will not be counted for this draw. Useful for imgui stuff.
+     * Upload geometries to the gpu VRAM.
+     * @param _commands Array of commands to upload.
      */
-    public function draw(_buffer : Float32Array, _commands : Array<DrawCommand>, _disableStats : Bool) : Void;
+    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void;
+
+    /**
+     * Upload buffer data to the gpu VRAM.
+     * @param _commands Array of commands to upload.
+     */
+    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void;
+
+    /**
+     * Draw an array of commands. Command data must be uploaded to the GPU before being used.
+     * @param _commands    Commands to draw.
+     * @param _recordStats Record stats for this submit.
+     */
+    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void;
 
     /**
      * Called after all draw() functions.

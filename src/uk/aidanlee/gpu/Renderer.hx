@@ -1,5 +1,7 @@
 package uk.aidanlee.gpu;
 
+import uk.aidanlee.gpu.batcher.GeometryDrawCommand;
+import uk.aidanlee.gpu.batcher.DrawCommand;
 import haxe.ds.ArraySort;
 import uk.aidanlee.gpu.batcher.Batcher;
 import uk.aidanlee.gpu.backend.IRendererBackend;
@@ -76,8 +78,11 @@ class Renderer
      */
     public final stats : RendererStats;
 
+    final queuedCommands : Array<DrawCommand>;
+
     inline public function new(_options : RendererOptions)
     {
+        queuedCommands = [];
         batchers = [];
         stats    = new RendererStats();
 
@@ -113,13 +118,14 @@ class Renderer
 
         stats.totalBatchers += batchers.length;
 
+        queuedCommands.resize(0);
         for (batcher in batchers)
         {
-            stats.totalGeometry += batcher.geometry.length;
-
-            // Batch the geometry and send it to the backend for drawing.
-            backend.draw(batcher.vertexBuffer, batcher.batch(), false);
+            batcher.batch(cast queuedCommands);
         }
+
+        backend.uploadGeometryCommands(cast queuedCommands);
+        backend.submitCommands(queuedCommands);
     }
 
     inline public function postRender()

@@ -1,5 +1,7 @@
 package uk.aidanlee.gpu.geometry;
 
+import uk.aidanlee.utils.Hash;
+import snow.api.Emitter;
 import snow.api.Debug.def;
 import uk.aidanlee.gpu.Shader;
 import uk.aidanlee.gpu.batcher.Batcher;
@@ -29,6 +31,10 @@ enum BlendMode {
     OneMinusDstColor;
 }
 
+enum abstract EvGeometry(Int) from Int to Int {
+    var OrderProperyChanged;
+}
+
 typedef GeometryOptions = {
     var ?name       : String;
     var ?shader     : Shader;
@@ -53,7 +59,22 @@ typedef GeometryOptions = {
  */
 class Geometry
 {
+    /**
+     * UUID of this geometry.
+     */
+    public final id : Int;
+
+    /**
+     * Name of this geometry.
+     * This name is used as part of a hash key for batching unchanging geometry.
+     * If this geometry is unchanging its name should be unique.
+     */
     public final name : String;
+
+    /**
+     * Fires various events about the geometry.
+     */
+    public final events : Emitter<EvGeometry>;
 
     /**
      * This meshes vertices.
@@ -66,9 +87,71 @@ class Geometry
     public final transformation : Transformation;
 
     /**
+     * ID of the texture this mesh uses.
+     */
+    public var textures (default, set) : Array<Texture>;
+
+    inline function set_textures(_textures : Array<Texture>) : Array<Texture> {
+        events.emit(OrderProperyChanged);
+
+        return textures = _textures;
+    }
+
+    /**
+     * The specific shader for the geometry.
+     * If null the batchers shader is used.
+     */
+    public var shader (default, set) : Shader;
+
+    inline function set_shader(_shader : Shader) : Shader {
+        events.emit(OrderProperyChanged);
+
+        return shader = _shader;
+    }
+
+    /**
      * The depth of this mesh within the batcher.
      */
-    public var depth : Float;
+    public var depth (default, set) : Float;
+
+    inline function set_depth(_depth : Float) : Float {
+        events.emit(OrderProperyChanged);
+
+        return depth = _depth;
+    }
+
+    /**
+     * Clipping rectangle for this geometry. Null if none.
+     */
+    public var clip (default, set) : Rectangle;
+
+    inline function set_clip(_clip : Rectangle) : Rectangle {
+        if (clip != null)
+        {
+            clip.events.off(ChangedSize, listenerClip);
+        }
+
+        events.emit(OrderProperyChanged);
+        clip = _clip;
+
+        if (clip != null)
+        {
+            clip.events.on(ChangedSize, listenerClip);
+        }
+
+        return clip;
+    }
+
+    /**
+     * The primitive type of this geometry.
+     */
+    public var primitive (default, set) : PrimitiveType;
+
+    inline function set_primitive(_primitive : PrimitiveType) : PrimitiveType {
+        events.emit(OrderProperyChanged);
+
+        return primitive = _primitive;
+    }
 
     /**
      * If immediate this geometry will only be drawn once.
@@ -81,30 +164,9 @@ class Geometry
     public var unchanging : Bool;
 
     /**
-     * The specific shader for the geometry.
-     * If null the batchers shader is used.
-     */
-    public var shader : Shader;
-
-    /**
-     * ID of the texture this mesh uses.
-     */
-    public var textures : Array<Texture>;
-
-    /**
-     * Clipping rectangle for this geometry. Null if none.
-     */
-    public var clip : Rectangle;
-
-    /**
      * Default colour of this geometry.
      */
     public var color : Color;
-
-    /**
-     * The primitive type of this geometry.
-     */
-    public var primitive : PrimitiveType;
 
     /**
      * If blending is enabled for this geometry.
@@ -132,10 +194,22 @@ class Geometry
     public var dstAlpha : BlendMode;
 
     /**
+     * Called when this geometries clip rectangle changes size.
+     */
+    var listenerClip : EvRectangle->Void;
+
+    /**
      * Create a new mesh, contains no vertices and no transformation.
      */
     public function new(_options : GeometryOptions)
     {
+        id     = Hash.uniqueHash();
+        events = new Emitter();
+
+        listenerClip = function(_event : EvRectangle) {
+            events.emit(OrderProperyChanged);
+        }
+
         vertices       = [];
         transformation = new Transformation();
 
@@ -155,12 +229,6 @@ class Geometry
         srcAlpha = def(_options.srcAlpha, One);
         dstRGB   = def(_options.dstRGB  , OneMinusSrcAlpha);
         dstAlpha = def(_options.dstAlpha, Zero);
-
-        // If the geometry is unchanging its name cannot be an empty string
-        if (unchanging && name == '')
-        {
-            throw 'Geometry Exception : Unchanging geometry cannot have an empty string as a name';
-        }
 
         // Add to batchers.
         for (batcher in def(_options.batchers, []))

@@ -6,7 +6,6 @@ import uk.aidanlee.gpu.geometry.Geometry;
 import uk.aidanlee.maths.Matrix;
 import uk.aidanlee.maths.Rectangle;
 import uk.aidanlee.maths.Matrix;
-import uk.aidanlee.utils.Hash;
 
 /**
  * A draw command describes how to draw a set amount of data within a vertex buffer.
@@ -27,21 +26,6 @@ class DrawCommand
     public final unchanging : Bool;
 
     /**
-     * The start index of the data drawn by this command.
-     */
-    public final bufferStartIndex : Int;
-
-    /**
-     * The end index of the data drawn by this command.
-     */
-    public final bufferEndIndex : Int;
-
-    /**
-     * Number of vertices within this buffer range.
-     */
-    public final vertices : Int;
-
-    /**
      * Projection matrix to draw this command with.
      */
     public final projection : Matrix;
@@ -50,6 +34,11 @@ class DrawCommand
      * View matrix to draw this command with.
      */
     public final view : Matrix;
+
+    /**
+     * Number of vertices in this draw command.
+     */
+    public final vertices : Int;
 
     /**
      * Viewport for this draw command.
@@ -95,13 +84,11 @@ class DrawCommand
     public final dstAlpha : BlendMode;
 
     inline public function new(
-        _name       : String,
+        _id         : Int,
         _unchanging : Bool,
-        _startIdx   : Int,
-        _endIdx     : Int,
-        _vertices   : Int,
         _projection : Matrix,
         _view       : Matrix,
+        _vertices   : Int,
         _viewport   : Rectangle,
         _primitive  : PrimitiveType,
         _target     : IRenderTarget,
@@ -115,15 +102,12 @@ class DrawCommand
         _dstAlpha   : BlendMode = null
     )
     {
-        id = Hash.hash(_name);
+        id = _id;
 
-        unchanging       = _unchanging;
-        bufferStartIndex = _startIdx;
-        bufferEndIndex   = _endIdx;
-        vertices         = _vertices;
-
+        unchanging = _unchanging;
         projection = _projection;
         view       = _view;
+        vertices   = _vertices;
 
         viewport  = _viewport;
         primitive = _primitive;
