@@ -13,9 +13,11 @@
 
         build : {
             dependencies : {
-                "snow"         : '*',
+                "snow"        : '*',
+                "linc_imgui"  : '*',
+                "hxtelemetry" : '*'
             },
-            defines : [ ]
+            defines : [ 'HXCPP_STACK_TRACE', 'HXCPP_TELEMETRY' ]
         },
 
         files : {

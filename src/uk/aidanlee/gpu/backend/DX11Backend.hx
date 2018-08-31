@@ -36,13 +36,14 @@ import d3d11.BlendState;
 import d3d11.SamplerState;
 import d3d11.SamplerDescription;
 import d3d11.Rect;
-import snow.api.buffers.Float32Array;
 import snow.api.buffers.Uint8Array;
 import snow.api.Debug.def;
 import uk.aidanlee.gpu.Renderer.RendererOptions;
 import uk.aidanlee.gpu.backend.IRendererBackend.ShaderType;
 import uk.aidanlee.gpu.backend.IRendererBackend.ShaderLayout;
 import uk.aidanlee.gpu.batcher.DrawCommand;
+import uk.aidanlee.gpu.batcher.BufferDrawCommand;
+import uk.aidanlee.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.gpu.geometry.Geometry.PrimitiveType;
 import uk.aidanlee.gpu.geometry.Geometry.BlendMode;
 import uk.aidanlee.gpu.IRenderTarget;
@@ -62,6 +63,16 @@ class DX11Backend implements IRendererBackend
      * Access to the renderer which owns this backend.
      */
     final renderer : Renderer;
+
+    /**
+     * Constant vector instance which is used to transform vertices when copying into the vertex buffer.
+     */
+    final transformationVector : Vector;
+
+    /**
+     * Tracks the position and number of vertices for draw commands uploaded into the dynamic buffer.
+     */
+    final dynamicCommandRanges : Map<Int, DrawCommandRange>;
 
     /**
      * D3D11 device for this window.
@@ -159,6 +170,16 @@ class DX11Backend implements IRendererBackend
      * Allows batchers to sort render textures.
      */
     var targetSequence : Int;
+
+    /**
+     * Current float offset for writing into the vertex buffer.
+     */
+    var floatOffset : Int;
+
+    /**
+     * Current vertex offset for writing into the vertex buffer.
+     */
+    var vertexOffset : Int;
 
     // State trackers
     var viewport : Rectangle;
@@ -339,6 +360,11 @@ class DX11Backend implements IRendererBackend
         context.rsSetScissorRects([ nativeClip ]);
         context.rsSetState(rasterState);
 
+        floatOffset  = 0;
+        vertexOffset = 0;
+        transformationVector = new Vector();
+        dynamicCommandRanges = new Map();
+
         // Setup initial state tracker
         viewport = new Rectangle(0, 0, _options.width, _options.height);
         scissor  = new Rectangle(0, 0, _options.width, _options.height);
@@ -360,21 +386,16 @@ class DX11Backend implements IRendererBackend
 
     public function preDraw()
     {
-        //
+        floatOffset  = 0;
+        vertexOffset = 0;
     }
 
     /**
-     * Given a buffer of vertex data and a set of commands draw the data described by the commands.
-     * @param _buffer       Buffer containing vertex data.
-     * @param _commands     Commands describing drawing.
-     * @param _disableStats If stats will not be counted for this draw. Useful for imgui stuff.
+     * Upload geometries to the gpu VRAM.
+     * @param _commands Array of commands to upload.
      */
-    public function draw(_buffer : Float32Array, _commands : Array<DrawCommand>, _disableStats : Bool)
+    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void
     {
-        if (_commands.length == 0) return;
-
-        // First loop, write into the buffer.
-
         // Map the buffer.
         var mappedBuffer = MappedSubResource.create();
         if (context.map(vertexBuffer, 0, WRITE_DISCARD, 0, cast mappedBuffer.addressOf()) != 0)
@@ -385,30 +406,89 @@ class DX11Backend implements IRendererBackend
         // Get a buffer to float32s so we can copy our float32array over.
         var ptr : Pointer<cpp.Float32> = Pointer.fromRaw(mappedBuffer.sysMem).reinterpret();
 
-        // Write each commands vertex data into the mapped sub resource.
         for (command in _commands)
         {
-            for (i in command.bufferStartIndex...command.bufferEndIndex)
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+
+            for (geom in command.geometry)
             {
-                ptr[i] = _buffer[i];
+                var matrix = geom.transformation.transformation;
+
+                for (vertex in geom.vertices)
+                {
+                    // Copy the vertex into another vertex.
+                    // This allows us to apply the transformation without permanently modifying the original geometry.
+                    transformationVector.copyFrom(vertex.position);
+                    transformationVector.transform(matrix);
+
+                    ptr[floatOffset++] = transformationVector.x;
+                    ptr[floatOffset++] = transformationVector.y;
+                    ptr[floatOffset++] = transformationVector.z;
+                    ptr[floatOffset++] = vertex.color.r;
+                    ptr[floatOffset++] = vertex.color.g;
+                    ptr[floatOffset++] = vertex.color.b;
+                    ptr[floatOffset++] = vertex.color.a;
+                    ptr[floatOffset++] = vertex.texCoord.x;
+                    ptr[floatOffset++] = vertex.texCoord.y;
+
+                    vertexOffset++;
+                }
             }
         }
 
         context.unmap(vertexBuffer, 0);
+    }
 
-        // Second loop, set state and draw.
-        var vertexStart = 0;
+    /**
+     * Upload buffer data to the gpu VRAM.
+     * @param _commands Array of commands to upload.
+     */
+    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void
+    {
+        // Map the buffer.
+        var mappedBuffer = MappedSubResource.create();
+        if (context.map(vertexBuffer, 0, WRITE_DISCARD, 0, cast mappedBuffer.addressOf()) != 0)
+        {
+            throw 'Failed to map vertex buffer';
+        }
+
+        // Get a buffer to float32s so we can copy our float32array over.
+        var ptr : Pointer<cpp.Float32> = Pointer.fromRaw(mappedBuffer.sysMem).reinterpret();
+
         for (command in _commands)
         {
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+
+            for (i in command.startIndex...command.endIndex)
+            {
+                ptr[floatOffset++] = command.buffer[i];
+            }
+
+            vertexOffset += command.vertices;
+        }
+
+        context.unmap(vertexBuffer, 0);
+    }
+
+    /**
+     * Draw an array of commands. Command data must be uploaded to the GPU before being used.
+     * @param _commands    Commands to draw.
+     * @param _recordStats Record stats for this submit.
+     */
+    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void
+    {
+        for (command in _commands)
+        {
+            var range = dynamicCommandRanges.get(command.id);
+
             // Set context state
             setState(command);
 
             // Draw
-            context.draw(command.vertices, vertexStart);
-            vertexStart += command.vertices;
+            context.draw(range.vertices, range.vertexOffset);
 
             // Record stats
-            if (!_disableStats)
+            if (_recordStats)
             {
                 renderer.stats.dynamicDraws++;
                 renderer.stats.totalVertices += command.vertices;
@@ -1179,5 +1259,18 @@ private class DXTargetInformation
     public function new()
     {
         //
+    }
+}
+
+private class DrawCommandRange
+{
+    public final vertices : Int;
+
+    public final vertexOffset : Int;
+
+    inline public function new(_vertices : Int, _vertexOffset : Int)
+    {
+        vertices     = _vertices;
+        vertexOffset = _vertexOffset;
     }
 }

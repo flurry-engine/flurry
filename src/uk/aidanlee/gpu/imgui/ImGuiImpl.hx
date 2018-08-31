@@ -10,11 +10,12 @@ import snow.Snow;
 import snow.api.buffers.Uint8Array;
 import snow.api.buffers.Float32Array;
 import snow.systems.input.Keycodes;
-import uk.aidanlee.speed.common.modules.gpu.Texture;
-import uk.aidanlee.speed.common.modules.gpu.batcher.DrawCommand;
-import uk.aidanlee.speed.common.modules.gpu.camera.OrthographicCamera;
-import uk.aidanlee.speed.common.maths.Vector;
-import uk.aidanlee.speed.common.maths.Rectangle;
+import uk.aidanlee.gpu.Texture;
+import uk.aidanlee.gpu.batcher.BufferDrawCommand;
+import uk.aidanlee.gpu.camera.OrthographicCamera;
+import uk.aidanlee.maths.Vector;
+import uk.aidanlee.maths.Rectangle;
+import uk.aidanlee.utils.Hash;
 
 class ImGuiImpl
 {
@@ -254,14 +255,15 @@ class ImGuiImpl
                     vtxOffset += 9;
                 }
 
-                commands.push(new DrawCommand('', false, start, vtxOffset, cmd.elemCount, camera.projection, camera.viewInverted, camera.viewport, Triangles, null, shader, [ t.ref ], clip, true, SrcAlpha, OneMinusSrcAlpha, One, Zero));
+                commands.push(new BufferDrawCommand(buffer, start, vtxOffset, Hash.uniqueHash(), false, camera.projection, camera.viewInverted, cmd.elemCount, camera.viewport, Triangles, null, shader, [ t.ref ], clip, true, SrcAlpha, OneMinusSrcAlpha, One, Zero));
 
                 idxOffset += cmd.elemCount;
             }
         }
         
         // Send commands to renderer backend.
-        renderer.backend.draw(buffer, commands, true);
+        renderer.backend.uploadBufferCommands(commands);
+        renderer.backend.submitCommands(cast commands, true);
     }
 
     // Callbacks

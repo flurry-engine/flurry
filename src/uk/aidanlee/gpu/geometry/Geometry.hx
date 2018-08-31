@@ -1,5 +1,6 @@
 package uk.aidanlee.gpu.geometry;
 
+import uk.aidanlee.utils.Hash;
 import snow.api.Emitter;
 import snow.api.Debug.def;
 import uk.aidanlee.gpu.Shader;
@@ -58,6 +59,11 @@ typedef GeometryOptions = {
  */
 class Geometry
 {
+    /**
+     * UUID of this geometry.
+     */
+    public final id : Int;
+
     /**
      * Name of this geometry.
      * This name is used as part of a hash key for batching unchanging geometry.
@@ -197,6 +203,7 @@ class Geometry
      */
     public function new(_options : GeometryOptions)
     {
+        id     = Hash.uniqueHash();
         events = new Emitter();
 
         listenerClip = function(_event : EvRectangle) {
@@ -222,12 +229,6 @@ class Geometry
         srcAlpha = def(_options.srcAlpha, One);
         dstRGB   = def(_options.dstRGB  , OneMinusSrcAlpha);
         dstAlpha = def(_options.dstAlpha, Zero);
-
-        // If the geometry is unchanging its name cannot be an empty string
-        if (unchanging && name == '')
-        {
-            throw 'Geometry Exception : Unchanging geometry cannot have an empty string as a name';
-        }
 
         // Add to batchers.
         for (batcher in def(_options.batchers, []))
