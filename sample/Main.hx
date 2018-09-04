@@ -1,6 +1,5 @@
 package;
 
-import haxe.Json;
 import snow.App;
 import snow.api.Promise;
 import snow.types.Types;
@@ -13,6 +12,8 @@ import uk.aidanlee.gpu.camera.OrthographicCamera;
 import uk.aidanlee.gpu.geometry.shapes.QuadGeometry;
 import uk.aidanlee.gpu.imgui.ImGuiImpl;
 import uk.aidanlee.maths.Vector;
+import uk.aidanlee.resources.ResourceSystem;
+import uk.aidanlee.resources.Resource;
 import imgui.ImGui;
 import imgui.util.ImVec2;
 
@@ -23,6 +24,7 @@ class Main extends App
     var hxt : HxTelemetry;
 
     var renderer : Renderer;
+    var resourceSystem : ResourceSystem;
     var imgui    : ImGuiImpl;
     var loaded : Bool;
     var resources : Array<Promise>;
@@ -89,57 +91,56 @@ class Main extends App
             }
         });
 
-        resources = [
-            // GL45 Shaders
-            app.assets.text('assets/shaders/gl45/textured.vert'),
-            app.assets.text('assets/shaders/gl45/textured.frag'),
-
-            // WEBGL Shaders
-            // app.assets.text('assets/shaders/webgl/textured.vert'),
-            // app.assets.text('assets/shaders/webgl/textured.frag'),
-
-            // DX11 Shaders
-            // HLSL shaders can have the vertex and pixel in the same if you wish.
-            // In which case pass the same string to both the vert and frag arguments.
-            // app.assets.text('assets/shaders/hlsl/textured.hlsl'),
-            // app.assets.text('assets/shaders/hlsl/textured.hlsl'),
-
-            // This JSON files describes the layout of the shader
-            app.assets.json('assets/shaders/textured.json'),
-
-            app.assets.image('assets/images/haxe.png'),
-            app.assets.image('assets/images/logo.png')
-        ];
-
-        Promise.all(resources).then(onLoaded).error(onError);
+        resourceSystem = new ResourceSystem();
+        resourceSystem.createParcel('default', {
+            shaders : [
+                {
+                    id : 'assets/shaders/textured.json',
+                    webgl : { vertex : 'assets/shaders/webgl/textured.vert', fragment : 'assets/shaders/webgl/textured.frag' },
+                    gl45  : { vertex : 'assets/shaders/gl45/textured.vert' , fragment : 'assets/shaders/gl45/textured.frag'  },
+                    hlsl  : { vertex : 'assets/shaders/hlsl/textured.hlsl' , fragment : 'assets/shaders/hlsl/textured.hlsl'  }
+                }
+            ],
+            images: [
+                { id : 'assets/images/haxe.png' },
+                { id : 'assets/images/logo.png' }
+            ]
+        }, onLoaded).load();
     }
 
     override function update(_dt : Float)
     {
-        if (!loaded) return;
+        resourceSystem.update();
 
         // Pre-draw
         renderer.clear();
         renderer.preRender();
-        imgui.newFrame();
 
-        // Make all of our haxe logos bounce around the screen.
-        for (i in 0...numLogos)
+        if (loaded)
         {
-            sprites[i].transformation.position.x += (vectors[i].x * 1000) * _dt;
-            sprites[i].transformation.position.y += (vectors[i].y * 1000) * _dt;
-            
-            if (sprites[i].transformation.position.x > 1600 + sprites[i].transformation.origin.x) vectors[i].x = -vectors[i].x;
-            if (sprites[i].transformation.position.x <     0) vectors[i].x = -vectors[i].x;
-            if (sprites[i].transformation.position.y >  900 + sprites[i].transformation.origin.y) vectors[i].y = -vectors[i].y;
-            if (sprites[i].transformation.position.y <    0)  vectors[i].y = -vectors[i].y;
+            imgui.newFrame();
+
+            // Make all of our haxe logos bounce around the screen.
+            for (i in 0...numLogos)
+            {
+                sprites[i].transformation.position.x += (vectors[i].x * 1000) * _dt;
+                sprites[i].transformation.position.y += (vectors[i].y * 1000) * _dt;
+                
+                if (sprites[i].transformation.position.x > 1600 + sprites[i].transformation.origin.x) vectors[i].x = -vectors[i].x;
+                if (sprites[i].transformation.position.x <     0) vectors[i].x = -vectors[i].x;
+                if (sprites[i].transformation.position.y >  900 + sprites[i].transformation.origin.y) vectors[i].y = -vectors[i].y;
+                if (sprites[i].transformation.position.y <    0)  vectors[i].y = -vectors[i].y;
+            }
         }
 
         // Render and present
         renderer.render();
 
-        uiShowRenderStats();
-        imgui.render();
+        if (loaded)
+        {
+            uiShowRenderStats();
+            imgui.render();
+        }
 
         // Post-draw
         // The window_swap is only needed for GL renderers with snow.
@@ -158,20 +159,18 @@ class Main extends App
         }
     }
 
-    function onLoaded(_resources : Array<Asset>)
+    function onLoaded(_resources : Array<Resource>)
     {
         // Create the textured shader
-        var vertAsset : AssetText = cast _resources[0];
-        var fragAsset : AssetText = cast _resources[1];
-        var jsonAsset : AssetJSON = cast _resources[2];
-        shdrHaxe = renderer.backend.createShader(vertAsset.text, fragAsset.text, jsonAsset.json);
+        var shader = resourceSystem.get('assets/shaders/textured.json', ShaderResource);
+        shdrHaxe = renderer.backend.createShader(shader.gl45.vertex, shader.gl45.fragment, shader.layout);
 
         // Create the haxe texture
-        var imgAsset : AssetImage = cast _resources[3];
-        txtrHaxe = renderer.backend.createTexture(imgAsset.image.pixels, imgAsset.image.width, imgAsset.image.height);
+        var image = resourceSystem.get('assets/images/haxe.png', ImageResource);
+        txtrHaxe = renderer.backend.createTexture(image.pixels, image.width, image.height);
 
-        var imgAsset : AssetImage = cast _resources[4];
-        txtrLogo = renderer.backend.createTexture(imgAsset.image.pixels, imgAsset.image.width, imgAsset.image.height);
+        var image = resourceSystem.get('assets/images/logo.png', ImageResource);
+        txtrLogo = renderer.backend.createTexture(image.pixels, image.width, image.height);
 
         camera  = new OrthographicCamera(1600, 900);
         batcher = new Batcher({ shader : shdrHaxe, camera : camera });
@@ -199,11 +198,6 @@ class Main extends App
         imgui = new ImGuiImpl(app, renderer, shdrHaxe);
 
         loaded = true;
-    }
-
-    function onError(_error : String)
-    {
-        trace('Error loading assets : $_error');
     }
 
     function random_point_in_unit_circle() : Vector
