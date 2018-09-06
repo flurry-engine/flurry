@@ -1,0 +1,10 @@
+-main Main
+
+-cp src
+
+-lib tink_cli
+-lib linc_stb
+
+-cpp bin
+
+#-cmd ./parcel-tool create -from-json assets.json -output assets.parcel --compress
