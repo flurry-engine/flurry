@@ -13,8 +13,8 @@ class Main
     {
         json         = '';
         directory    = '';
-        compress     = true;
-        ignoreHidden = true;
+        compress     = false;
+        ignoreHidden = false;
         verbose      = false;
         output       = 'output.parcel';
     }
@@ -38,12 +38,6 @@ class Main
     public var verbose : Bool;
 
     @:defaultCommand
-    public function help()
-    {
-        trace('help');
-    }
-
-    @:command
     public function create()
     {
         if (json != '')
@@ -55,11 +49,5 @@ class Main
         {
             Parcel.createFromDirectory(directory, output, compress, ignoreHidden, verbose);
         }
-    }
-
-    @:command
-    public function unpack()
-    {
-        Parcel.unpack(directory);
     }
 }
