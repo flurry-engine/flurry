@@ -7,4 +7,4 @@
 
 -cpp bin
 
-#-cmd ./parcel-tool create -from-json assets.json -output assets.parcel --compress
+#-cmd ./parcel-tool -from-json assets.json -output assets.parcel --compress

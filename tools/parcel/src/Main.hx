@@ -12,7 +12,6 @@ class Main
     public function new()
     {
         json         = '';
-        directory    = '';
         compress     = false;
         ignoreHidden = false;
         verbose      = false;
@@ -21,9 +20,6 @@ class Main
 
     @:flag('-from-json')
     public var json : String;
-
-    @:flag('-from-directory')
-    public var directory : String;
 
     @:flag('-output')
     public var output : String;
@@ -42,12 +38,7 @@ class Main
     {
         if (json != '')
         {
-            Parcel.createFromJson(json, output, compress, verbose);
-        }
-
-        if (directory != '')
-        {
-            Parcel.createFromDirectory(directory, output, compress, ignoreHidden, verbose);
+            ParcelTool.createFromJson(json, output, compress, verbose);
         }
     }
 }

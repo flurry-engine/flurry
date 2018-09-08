@@ -2,15 +2,11 @@ package;
 
 import haxe.Json;
 import haxe.Serializer;
-import haxe.Unserializer;
-import haxe.io.Path;
 import haxe.io.Bytes;
-import sys.FileSystem;
-import haxe.macro.Context;
-import haxe.macro.Expr;
 import Resource;
 
 typedef ResourceInfo   = { id : String }
+typedef ParcelInfo     = String;
 typedef BytesInfo      = ResourceInfo;
 typedef TextInfo       = ResourceInfo;
 typedef JSONInfo       = ResourceInfo;
@@ -18,52 +14,38 @@ typedef ImageInfo      = ResourceInfo;
 typedef ShaderInfo     = {
     >ResourceInfo,
 
-    var ?webgl : {
+    ?webgl : {
         vertex   : String,
         fragment : String
-    };
+    },
 
-    var ?gl45 : {
+    ?gl45 : {
         vertex   : String,
         fragment : String
-    };
+    },
 
-    var ?hlsl : {
+    ?hlsl : {
         vertex   : String,
         fragment : String
-    };
-};
+    }
+}
 
 typedef ParcelList = {
-    var ?bytes   : Array<BytesInfo>;
-    var ?texts   : Array<TextInfo>;
-    var ?jsons   : Array<JSONInfo>;
-    var ?images  : Array<ImageInfo>;
-    var ?shaders : Array<ShaderInfo>;
+    ?bytes   : Array<BytesInfo>,
+    ?texts   : Array<TextInfo>,
+    ?jsons   : Array<JSONInfo>,
+    ?images  : Array<ImageInfo>,
+    ?shaders : Array<ShaderInfo>,
+    ?parcels : Array<ParcelInfo>
 }
 
 typedef ParcelData = {
-    var compressed : Bool;
-    var serializedArray : Bytes;
+    compressed : Bool,
+    serializedArray : Bytes
 }
 
-class Parcel
+class ParcelTool
 {
-    public static function createFromDirectory(_directory : String, _output : String, _compress : Bool, _ignoreHidden : Bool, _verbose : Bool) : Bool
-    {
-        for (item in FileSystem.readDirectory(_directory))
-        {
-            // If a file system item begins with a . then it is hidden e.g. .gitignore.
-            // Ignore these items if the user has specified.
-            if (_ignoreHidden && item.charAt(0) == '.')
-            {
-                continue;
-            }
-        }
-
-        return false;
-    }
-
     /**
      * Creates a binary packed parcel containing the assets found in a json file.
      * The json file contains the ID of the asset and the path to file the bytes data.
@@ -170,11 +152,22 @@ class Parcel
         log('Parcel written to $_output', _verbose);
     }
 
+    /**
+     * Returns either the provided value or a default value if its null.
+     * @param _value The value to check.
+     * @param _def   The value to return if its null.
+     * @return Dynamic
+     */
     static inline function def(_value : Dynamic, _def : Dynamic) : Dynamic
     {
         return _value == null ? _def : _value;
     }
 
+    /**
+     * Print text if the verbose mode is enabled.
+     * @param _message Message to print.
+     * @param _verbose If the verbose flag is set.
+     */
     static inline function log(_message : String, _verbose : Bool)
     {
         if (_verbose)
