@@ -1,9 +1,9 @@
 package uk.aidanlee.resources;
 
-import hx.concurrent.event.SyncEventDispatcher;
+import haxe.io.Bytes;
+import haxe.Unserializer;
 import haxe.Json;
 import snow.api.Debug.def;
-import snow.api.buffers.Uint8Array;
 import hx.concurrent.collection.Queue;
 import hx.concurrent.executor.Executor;
 import uk.aidanlee.resources.Parcel.ParcelList;
@@ -12,6 +12,8 @@ import uk.aidanlee.resources.Parcel.ImageInfo;
 import uk.aidanlee.resources.Parcel.JSONInfo;
 import uk.aidanlee.resources.Parcel.TextInfo;
 import uk.aidanlee.resources.Parcel.BytesInfo;
+import uk.aidanlee.resources.Parcel.ParcelInfo;
+import uk.aidanlee.resources.Parcel.ParcelData;
 import uk.aidanlee.resources.Resource.ShaderResource;
 import uk.aidanlee.resources.Resource.ImageResource;
 import uk.aidanlee.resources.Resource.JSONResource;
@@ -68,7 +70,7 @@ class ResourceSystem
      */
     public function createParcel(_name : String, _list : ParcelList, _onLoaded : Array<Resource>->Void) : Parcel
     {
-        return new Parcel(this, _name, _list, _onLoaded);
+        return new Parcel(this, _onLoaded, _name, _list);
     }
 
     /**
@@ -111,7 +113,7 @@ class ResourceSystem
                 var bytes = sys.io.File.getBytes(asset.id);
                 var info  = stb.Image.load_from_memory(bytes.getData(), bytes.length, 4);
 
-                resources.push(new ImageResource(asset.id, info.w, info.h, Uint8Array.fromBuffer(info.bytes, 0, info.bytes.length)));
+                resources.push(new ImageResource(asset.id, info.w, info.h, info.bytes));
             }
 
             var assets : Array<ShaderInfo> = def(parcel.list.shaders, []);
@@ -123,6 +125,33 @@ class ResourceSystem
                 var sourceHLSL  = asset.hlsl  == null ? null : { vertex : sys.io.File.getContent(asset.hlsl.vertex) , fragment : sys.io.File.getContent(asset.hlsl.fragment) };
 
                 resources.push(new ShaderResource(asset.id, layout, sourceWebGL, sourceGL45, sourceHLSL));
+            }
+
+            // Parcels contain serialized pre-existing resources.
+
+            var assets : Array<ParcelInfo> = def(parcel.list.parcels, []);
+            for (asset in assets)
+            {
+                // Get the serialized resource array from the parcel bytes.
+                var unserializer = new Unserializer(sys.io.File.getBytes(asset).toString());
+                var parcelData : ParcelData = unserializer.unserialize();
+
+                if (parcelData.compressed)
+                {
+                    parcelData.serializedArray = haxe.zip.Uncompress.run(parcelData.serializedArray);
+                }
+
+                // Unserialize the resource array and copy it over.
+                // Our custom resolver uses a fully qualified package name for resources since they come from another project.
+
+                var unserializer = new Unserializer(parcelData.serializedArray.toString());
+                unserializer.setResolver(new ResourceResolver());
+
+                var parcelResources : Array<Resource> = unserializer.unserialize();
+                for (parcelResource in parcelResources)
+                {
+                    resources.push(parcelResource);
+                }
             }
 
             queue.push({ id : _parcel, resources : resources });
@@ -169,5 +198,17 @@ class ResourceSystem
 
             event = queue.pop();
         }
+    }
+}
+
+private class ResourceResolver {
+	public function new() {}
+	@:final public inline function resolveClass(name:String):Class<Dynamic>
+    {
+        return Type.resolveClass('uk.aidanlee.resources.$name');
+    }
+	@:final public inline function resolveEnum(name:String):Enum<Dynamic>
+    {
+        return Type.resolveEnum(name);
     }
 }

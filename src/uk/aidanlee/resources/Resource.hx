@@ -1,8 +1,8 @@
 package uk.aidanlee.resources;
 
+import haxe.io.BytesData;
 import haxe.Json;
 import haxe.io.Bytes;
-import snow.api.buffers.Uint8Array;
 import uk.aidanlee.gpu.backend.IRendererBackend.ShaderLayout;
 
 typedef ShaderBackend = { vertex : String, fragment : String };
@@ -59,9 +59,9 @@ class ImageResource extends Resource
 
     public final height : Int;
 
-    public final pixels : Uint8Array;
+    public final pixels : BytesData;
 
-    public function new(_id : String, _width : Int, _height : Int, _pixels : Uint8Array)
+    public function new(_id : String, _width : Int, _height : Int, _pixels : BytesData)
     {
         super(_id);
 
