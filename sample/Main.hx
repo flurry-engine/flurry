@@ -24,10 +24,9 @@ class Main extends App
     var hxt : HxTelemetry;
 
     var renderer : Renderer;
-    var resourceSystem : ResourceSystem;
-    var imgui    : ImGuiImpl;
+    var resources : ResourceSystem;
+    var imgui : ImGuiImpl;
     var loaded : Bool;
-    var resources : Array<Promise>;
 
     var shdrHaxe : Shader;
     var txtrHaxe : Texture;
@@ -71,7 +70,8 @@ class Main extends App
         app.runtime.auto_swap = false;
         
         // Setup the renderer.
-        renderer = new Renderer({
+        resources = new ResourceSystem();
+        renderer  = new Renderer({
 
             // The api you choose changes what shaders you need to provide
             // Possible APIs are WEBGL, GL45, DX11, and NULL
@@ -91,26 +91,12 @@ class Main extends App
             }
         });
 
-        resourceSystem = new ResourceSystem();
-        resourceSystem.createParcel('default', {
-            shaders : [
-                {
-                    id : 'assets/shaders/textured.json',
-                    webgl : { vertex : 'assets/shaders/webgl/textured.vert', fragment : 'assets/shaders/webgl/textured.frag' },
-                    gl45  : { vertex : 'assets/shaders/gl45/textured.vert' , fragment : 'assets/shaders/gl45/textured.frag'  },
-                    hlsl  : { vertex : 'assets/shaders/hlsl/textured.hlsl' , fragment : 'assets/shaders/hlsl/textured.hlsl'  }
-                }
-            ],
-            images: [
-                { id : 'assets/images/haxe.png' },
-                { id : 'assets/images/logo.png' }
-            ]
-        }, onLoaded).load();
+        resources.createParcel('default', { parcels : [ 'assets/parcels/sample.parcel' ] }, onLoaded).load();
     }
 
     override function update(_dt : Float)
     {
-        resourceSystem.update();
+        resources.update();
 
         // Pre-draw
         renderer.clear();
@@ -161,16 +147,9 @@ class Main extends App
 
     function onLoaded(_resources : Array<Resource>)
     {
-        // Create the textured shader
-        var shader = resourceSystem.get('assets/shaders/textured.json', ShaderResource);
-        shdrHaxe = renderer.backend.createShader(shader.gl45.vertex, shader.gl45.fragment, shader.layout);
-
-        // Create the haxe texture
-        var image = resourceSystem.get('assets/images/haxe.png', ImageResource);
-        txtrHaxe = renderer.backend.createTexture(image.pixels, image.width, image.height);
-
-        var image = resourceSystem.get('assets/images/logo.png', ImageResource);
-        txtrLogo = renderer.backend.createTexture(image.pixels, image.width, image.height);
+        shdrHaxe = renderer.createShader(resources.get('assets/shaders/textured.json', ShaderResource));
+        txtrHaxe = renderer.createTexture(resources.get('assets/images/haxe.png', ImageResource));
+        txtrLogo = renderer.createTexture(resources.get('assets/images/logo.png', ImageResource));
 
         camera  = new OrthographicCamera(1600, 900);
         batcher = new Batcher({ shader : shdrHaxe, camera : camera });
