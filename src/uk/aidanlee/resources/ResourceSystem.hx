@@ -92,6 +92,12 @@ class ResourceSystem
      */
     public function load(_parcel : String)
     {
+        if (resources.exists(_parcel))
+        {
+            trace('Attempting to load parcel which is already loaded.');
+            return;
+        }
+
         var parcel = parcels.get(_parcel);
 
         /**
@@ -180,13 +186,34 @@ class ResourceSystem
      */
     public function free(_parcel : String)
     {
-        if (!parcels.exists(_parcel))
+        if (!resources.exists(_parcel))
         {
             trace('Attempting to remove a parcel which is not in this system');
             return;
         }
 
-        //
+        var toRemove = resources.get(_parcel);
+        for (resource in toRemove)
+        {
+            // If there is only 1 reference to this resource we can remove it out right.
+            // This is because only the parcel we are freeing references it.
+            // Otherwise we deincrement the resources reference and leave it in the system.
+            if (references.get(resource) == 1)
+            {
+                references.remove(resource);
+                cache.remove(resource);
+
+                trace('removing resource');
+            }
+            else
+            {
+                references.set(resource, references.get(resource) - 1);
+
+                trace('deincrementing resource');
+            }
+        }
+
+        resources.remove(_parcel);
     }
 
     /**
@@ -210,30 +237,34 @@ class ResourceSystem
         var event = queue.pop();
         while (event != null)
         {
-            //var parcelResources = [];
+            var parcelResources = [];
 
             for (resource in event.resources)
             {
-                //parcelResources.push(resource.id);
+                parcelResources.push(resource.id);
 
                 // Set or increment the resources reference counter.
                 if (references.exists(resource.id))
                 {
+                    trace('Incrementing reference');
                     references.set(resource.id, references.get(resource.id) + 1);
                 }
                 else
                 {
+                    trace('new reference');
                     references.set(resource.id, 1);
                 }
 
                 // Add the resource to the cache if it doesn't alread exist
                 if (!cache.exists(resource.id))
                 {
+                    trace('resource not cached, adding');
                     cache.set(resource.id, resource);
                 }
             }
 
-            //resources.set(event.id, parcelResources);
+            resources.set(event.id, parcelResources);
+
             parcels.get(event.id).onLoaded(event.resources);
 
             event = queue.pop();
