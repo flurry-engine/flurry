@@ -1,8 +1,7 @@
 package uk.aidanlee.resources;
 
-import haxe.io.Bytes;
-import haxe.Unserializer;
 import haxe.Json;
+import haxe.Unserializer;
 import snow.api.Debug.def;
 import hx.concurrent.collection.Queue;
 import hx.concurrent.executor.Executor;
@@ -38,6 +37,18 @@ class ResourceSystem
     final cache : Map<String, Resource>;
 
     /**
+     * Map of how many times a specific resource has been referenced.
+     * Prevents storing multiple of the same resource and ensures they aren't removed when still in use.
+     */
+    final references : Map<String, Int>;
+
+    /**
+     * Map of a parcels ID to all the resources IDs contained within it.
+     * Stored since the parcel could be modified by the user and theres no way to know whats inside a pre-packed parcel until its unpacked.
+     */
+    final resources : Map<String, Array<String>>;
+
+    /**
      * Thread pool to load parcels without blocking the main thread.
      */
     final executor : Executor;
@@ -56,10 +67,12 @@ class ResourceSystem
      */
     public function new(_threads : Int = 1)
     {
-        parcels  = new Map();
-        cache    = new Map();
-        executor = Executor.create(_threads);
-        queue    = new Queue();
+        parcels    = new Map();
+        cache      = new Map();
+        references = new Map();
+        resources  = new Map();
+        queue      = new Queue();
+        executor   = Executor.create(_threads);
     }
 
     /**
@@ -167,6 +180,12 @@ class ResourceSystem
      */
     public function free(_parcel : String)
     {
+        if (!parcels.exists(_parcel))
+        {
+            trace('Attempting to remove a parcel which is not in this system');
+            return;
+        }
+
         //
     }
 
@@ -182,18 +201,39 @@ class ResourceSystem
     }
 
     /**
-     * [Description]
+     * Processes the resource system.
+     * This should be called at regular intervals to retrieve parcel loading status from the separate threads.
+     * If this is not frequently called then resource won't appear in the system and parcel loading information won't be available.
      */
     public function update()
     {
         var event = queue.pop();
         while (event != null)
         {
+            //var parcelResources = [];
+
             for (resource in event.resources)
             {
-                cache.set(resource.id, resource);
+                //parcelResources.push(resource.id);
+
+                // Set or increment the resources reference counter.
+                if (references.exists(resource.id))
+                {
+                    references.set(resource.id, references.get(resource.id) + 1);
+                }
+                else
+                {
+                    references.set(resource.id, 1);
+                }
+
+                // Add the resource to the cache if it doesn't alread exist
+                if (!cache.exists(resource.id))
+                {
+                    cache.set(resource.id, resource);
+                }
             }
 
+            //resources.set(event.id, parcelResources);
             parcels.get(event.id).onLoaded(event.resources);
 
             event = queue.pop();
@@ -201,14 +241,24 @@ class ResourceSystem
     }
 }
 
-private class ResourceResolver {
+/**
+ * Custom resource resolver.
+ * Classes are resouce classes so are resolve by specifying the full resource package name.
+ * This is needed for the pre-compile parcels since those resource classes are in a separate project.
+ */
+private class ResourceResolver
+{
 	public function new() {}
-	@:final public inline function resolveClass(name:String):Class<Dynamic>
+
+	@:final
+    public inline function resolveClass(_name : String) : Class<Dynamic>
     {
-        return Type.resolveClass('uk.aidanlee.resources.$name');
+        return Type.resolveClass('uk.aidanlee.resources.$_name');
     }
-	@:final public inline function resolveEnum(name:String):Enum<Dynamic>
+
+	@:final
+    public inline function resolveEnum(_name : String) : Enum<Dynamic>
     {
-        return Type.resolveEnum(name);
+        return Type.resolveEnum(_name);
     }
 }
