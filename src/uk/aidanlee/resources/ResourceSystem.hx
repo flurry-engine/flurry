@@ -1,8 +1,7 @@
 package uk.aidanlee.resources;
 
-import haxe.io.Bytes;
-import haxe.Unserializer;
 import haxe.Json;
+import haxe.Unserializer;
 import snow.api.Debug.def;
 import hx.concurrent.collection.Queue;
 import hx.concurrent.executor.Executor;
@@ -33,9 +32,21 @@ class ResourceSystem
     public final parcels : Map<String, Parcel>;
 
     /**
+     * Map of a parcels ID to all the resources IDs contained within it.
+     * Stored since the parcel could be modified by the user and theres no way to know whats inside a pre-packed parcel until its unpacked.
+     */
+    final parcelResources : Map<String, Array<String>>;
+
+    /**
      * Map of all loaded resources by their ID.
      */
-    final cache : Map<String, Resource>;
+    final resourceCache : Map<String, Resource>;
+
+    /**
+     * Map of how many times a specific resource has been referenced.
+     * Prevents storing multiple of the same resource and ensures they aren't removed when still in use.
+     */
+    final resourceReferences : Map<String, Int>;
 
     /**
      * Thread pool to load parcels without blocking the main thread.
@@ -56,10 +67,12 @@ class ResourceSystem
      */
     public function new(_threads : Int = 1)
     {
-        parcels  = new Map();
-        cache    = new Map();
-        executor = Executor.create(_threads);
+        parcels            = new Map();
+        parcelResources    = new Map();
+        resourceCache      = new Map();
+        resourceReferences = new Map();
         queue    = new Queue();
+        executor = Executor.create(_threads);
     }
 
     /**
@@ -79,6 +92,12 @@ class ResourceSystem
      */
     public function load(_parcel : String)
     {
+        if (parcelResources.exists(_parcel))
+        {
+            trace('Attempting to load parcel which is already loaded.');
+            return;
+        }
+
         var parcel = parcels.get(_parcel);
 
         /**
@@ -167,7 +186,30 @@ class ResourceSystem
      */
     public function free(_parcel : String)
     {
-        //
+        if (!parcelResources.exists(_parcel))
+        {
+            trace('Attempting to remove a parcel which is not in this system');
+            return;
+        }
+
+        var toRemove = parcelResources.get(_parcel);
+        for (resource in toRemove)
+        {
+            // If there is only 1 reference to this resource we can remove it out right.
+            // This is because only the parcel we are freeing references it.
+            // Otherwise we deincrement the resources reference and leave it in the system.
+            if (resourceReferences.get(resource) == 1)
+            {
+                resourceReferences.remove(resource);
+                resourceCache.remove(resource);
+            }
+            else
+            {
+                resourceReferences.set(resource, resourceReferences.get(resource) - 1);
+            }
+        }
+
+        parcelResources.remove(_parcel);
     }
 
     /**
@@ -178,21 +220,43 @@ class ResourceSystem
      */
     public function get<T>(_id : String, _type : Class<T>) : T
     {
-        return cast cache.get(_id);
+        return cast resourceCache.get(_id);
     }
 
     /**
-     * [Description]
+     * Processes the resource system.
+     * This should be called at regular intervals to retrieve parcel loading status from the separate threads.
+     * If this is not frequently called then resource won't appear in the system and parcel loading information won't be available.
      */
     public function update()
     {
         var event = queue.pop();
         while (event != null)
         {
+            var newResources = [];
+
             for (resource in event.resources)
             {
-                cache.set(resource.id, resource);
+                newResources.push(resource.id);
+
+                // Set or increment the resources reference counter.
+                if (resourceReferences.exists(resource.id))
+                {
+                    resourceReferences.set(resource.id, resourceReferences.get(resource.id) + 1);
+                }
+                else
+                {
+                    resourceReferences.set(resource.id, 1);
+                }
+
+                // Add the resource to the cache if it doesn't alread exist
+                if (!resourceCache.exists(resource.id))
+                {
+                    resourceCache.set(resource.id, resource);
+                }
             }
+
+            parcelResources.set(event.id, newResources);
 
             parcels.get(event.id).onLoaded(event.resources);
 
@@ -201,14 +265,24 @@ class ResourceSystem
     }
 }
 
-private class ResourceResolver {
+/**
+ * Custom resource resolver.
+ * Classes are resouce classes so are resolve by specifying the full resource package name.
+ * This is needed for the pre-compile parcels since those resource classes are in a separate project.
+ */
+private class ResourceResolver
+{
 	public function new() {}
-	@:final public inline function resolveClass(name:String):Class<Dynamic>
+
+	@:final
+    public inline function resolveClass(_name : String) : Class<Dynamic>
     {
-        return Type.resolveClass('uk.aidanlee.resources.$name');
+        return Type.resolveClass('uk.aidanlee.resources.$_name');
     }
-	@:final public inline function resolveEnum(name:String):Enum<Dynamic>
+
+	@:final
+    public inline function resolveEnum(_name : String) : Enum<Dynamic>
     {
-        return Type.resolveEnum(name);
+        return Type.resolveEnum(_name);
     }
 }
