@@ -32,21 +32,21 @@ class ResourceSystem
     public final parcels : Map<String, Parcel>;
 
     /**
+     * Map of a parcels ID to all the resources IDs contained within it.
+     * Stored since the parcel could be modified by the user and theres no way to know whats inside a pre-packed parcel until its unpacked.
+     */
+    final parcelResources : Map<String, Array<String>>;
+
+    /**
      * Map of all loaded resources by their ID.
      */
-    final cache : Map<String, Resource>;
+    final resourceCache : Map<String, Resource>;
 
     /**
      * Map of how many times a specific resource has been referenced.
      * Prevents storing multiple of the same resource and ensures they aren't removed when still in use.
      */
-    final references : Map<String, Int>;
-
-    /**
-     * Map of a parcels ID to all the resources IDs contained within it.
-     * Stored since the parcel could be modified by the user and theres no way to know whats inside a pre-packed parcel until its unpacked.
-     */
-    final resources : Map<String, Array<String>>;
+    final resourceReferences : Map<String, Int>;
 
     /**
      * Thread pool to load parcels without blocking the main thread.
@@ -67,12 +67,12 @@ class ResourceSystem
      */
     public function new(_threads : Int = 1)
     {
-        parcels    = new Map();
-        cache      = new Map();
-        references = new Map();
-        resources  = new Map();
-        queue      = new Queue();
-        executor   = Executor.create(_threads);
+        parcels            = new Map();
+        parcelResources    = new Map();
+        resourceCache      = new Map();
+        resourceReferences = new Map();
+        queue    = new Queue();
+        executor = Executor.create(_threads);
     }
 
     /**
@@ -92,7 +92,7 @@ class ResourceSystem
      */
     public function load(_parcel : String)
     {
-        if (resources.exists(_parcel))
+        if (parcelResources.exists(_parcel))
         {
             trace('Attempting to load parcel which is already loaded.');
             return;
@@ -186,34 +186,30 @@ class ResourceSystem
      */
     public function free(_parcel : String)
     {
-        if (!resources.exists(_parcel))
+        if (!parcelResources.exists(_parcel))
         {
             trace('Attempting to remove a parcel which is not in this system');
             return;
         }
 
-        var toRemove = resources.get(_parcel);
+        var toRemove = parcelResources.get(_parcel);
         for (resource in toRemove)
         {
             // If there is only 1 reference to this resource we can remove it out right.
             // This is because only the parcel we are freeing references it.
             // Otherwise we deincrement the resources reference and leave it in the system.
-            if (references.get(resource) == 1)
+            if (resourceReferences.get(resource) == 1)
             {
-                references.remove(resource);
-                cache.remove(resource);
-
-                trace('removing resource');
+                resourceReferences.remove(resource);
+                resourceCache.remove(resource);
             }
             else
             {
-                references.set(resource, references.get(resource) - 1);
-
-                trace('deincrementing resource');
+                resourceReferences.set(resource, resourceReferences.get(resource) - 1);
             }
         }
 
-        resources.remove(_parcel);
+        parcelResources.remove(_parcel);
     }
 
     /**
@@ -224,7 +220,7 @@ class ResourceSystem
      */
     public function get<T>(_id : String, _type : Class<T>) : T
     {
-        return cast cache.get(_id);
+        return cast resourceCache.get(_id);
     }
 
     /**
@@ -237,33 +233,30 @@ class ResourceSystem
         var event = queue.pop();
         while (event != null)
         {
-            var parcelResources = [];
+            var newResources = [];
 
             for (resource in event.resources)
             {
-                parcelResources.push(resource.id);
+                newResources.push(resource.id);
 
                 // Set or increment the resources reference counter.
-                if (references.exists(resource.id))
+                if (resourceReferences.exists(resource.id))
                 {
-                    trace('Incrementing reference');
-                    references.set(resource.id, references.get(resource.id) + 1);
+                    resourceReferences.set(resource.id, resourceReferences.get(resource.id) + 1);
                 }
                 else
                 {
-                    trace('new reference');
-                    references.set(resource.id, 1);
+                    resourceReferences.set(resource.id, 1);
                 }
 
                 // Add the resource to the cache if it doesn't alread exist
-                if (!cache.exists(resource.id))
+                if (!resourceCache.exists(resource.id))
                 {
-                    trace('resource not cached, adding');
-                    cache.set(resource.id, resource);
+                    resourceCache.set(resource.id, resource);
                 }
             }
 
-            resources.set(event.id, parcelResources);
+            parcelResources.set(event.id, newResources);
 
             parcels.get(event.id).onLoaded(event.resources);
 
