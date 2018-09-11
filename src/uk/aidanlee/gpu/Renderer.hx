@@ -1,8 +1,10 @@
 package uk.aidanlee.gpu;
 
-import uk.aidanlee.gpu.batcher.GeometryDrawCommand;
-import uk.aidanlee.gpu.batcher.DrawCommand;
 import haxe.ds.ArraySort;
+import snow.api.buffers.Uint8Array;
+import uk.aidanlee.resources.Resource.ShaderResource;
+import uk.aidanlee.resources.Resource.ImageResource;
+import uk.aidanlee.gpu.batcher.DrawCommand;
 import uk.aidanlee.gpu.batcher.Batcher;
 import uk.aidanlee.gpu.backend.IRendererBackend;
 import uk.aidanlee.gpu.backend.WebGLBackend;
@@ -78,7 +80,15 @@ class Renderer
      */
     public final stats : RendererStats;
 
+    /**
+     * Queue of all draw commands for this frame.
+     */
     final queuedCommands : Array<DrawCommand>;
+
+    /**
+     * API backend used by the renderer.
+     */
+    final api : RequestedBackend;
 
     inline public function new(_options : RendererOptions)
     {
@@ -88,15 +98,24 @@ class Renderer
 
         switch (_options.api) {
             #if cpp
-            case GL45 : backend = new GL45Backend(this, _options);
+            case GL45:
+                backend = new GL45Backend(this, _options);
+                api     = GL45;
             #end
 
             #if windows
-            case DX11 : backend = new DX11Backend(this, _options);
+            case DX11:
+                backend = new DX11Backend(this, _options);
+                api     = DX11;
             #end
 
-            case WEBGL : backend = new WebGLBackend(this, _options);
-            default    : backend = new NullBackend();
+            case WEBGL:
+                backend = new WebGLBackend(this, _options);
+                api     = WEBGL;
+
+            default:
+                backend = new NullBackend();
+                api     = NULL;
         }
     }
 
@@ -149,6 +168,58 @@ class Renderer
     inline public function resize(_width : Int, _height : Int)
     {
         backend.resize(_width, _height);
+    }
+
+    /**
+     * Create a texture.
+     * @param _resource Image resource to create a texture from.
+     * @return Texture
+     */
+    public function createTexture(_resource : ImageResource) : Texture
+    {
+        return backend.createTexture(Uint8Array.fromBuffer(_resource.pixels, 0, _resource.pixels.length), _resource.width, _resource.height);
+    }
+
+    /**
+     * Create a empty render target.
+     * @param _width  Width of the render target.
+     * @param _height Height of the render target.
+     * @return RenderTexture
+     */
+    public function createRenderTarget(_width : Int, _height : Int) : RenderTexture
+    {
+        return backend.createRenderTarget(_width, _height);
+    }
+
+    /**
+     * Create a shader.
+     * @param _resource Shader resource to create the shader from.
+     * @return Shader
+     */
+    public function createShader(_resource : ShaderResource) : Shader
+    {
+        switch (api) {
+            case WEBGL:
+                if (_resource.webgl == null)
+                {
+                    throw '${_resource.id} does not contain a webgl shader';
+                }
+                return backend.createShader(_resource.webgl.vertex, _resource.webgl.fragment, _resource.layout);
+            case GL45:
+                if (_resource.gl45 == null)
+                {
+                    throw '${_resource.id} does not contain a gl45 shader';
+                }
+                return backend.createShader(_resource.gl45.vertex, _resource.gl45.fragment, _resource.layout);
+            case DX11:
+                if (_resource.hlsl == null)
+                {
+                    throw '${_resource.id} does not contain a hlsl shader';
+                }
+                return backend.createShader(_resource.hlsl.vertex, _resource.hlsl.fragment, _resource.layout);
+            case NULL:
+                return backend.createShader('', '', { textures : [], blocks : [] });
+        }
     }
 
     /**

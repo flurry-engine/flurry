@@ -13,11 +13,12 @@
 
         build : {
             dependencies : {
-                "snow"        : '*',
-                "linc_imgui"  : '*',
-                "hxtelemetry" : '*'
+                "snow"            : '*',
+                "linc_imgui"      : '*',
+                "hxtelemetry"     : '*',
+                "haxe-concurrent" : '*'
             },
-            defines : [ 'HXCPP_STACK_TRACE', 'HXCPP_TELEMETRY' ]
+            defines : [ 'HXCPP_STACK_TRACE', 'HXCPP_TELEMETRY', 'threads' ]
         },
 
         files : {
