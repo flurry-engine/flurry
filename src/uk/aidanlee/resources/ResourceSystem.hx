@@ -117,6 +117,11 @@ class ResourceSystem
                 var assets : Array<BytesInfo> = def(parcel.list.bytes, []);
                 for (asset in assets)
                 {
+                    if (!sys.FileSystem.exists(asset.id))
+                    {
+                        throw 'Loading ${asset.id} failed : File not found';
+                    }
+
                     resources.push(new BytesResource(asset.id, sys.io.File.getBytes(asset.id)));
 
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
@@ -125,6 +130,11 @@ class ResourceSystem
                 var assets : Array<TextInfo> = def(parcel.list.texts, []);
                 for (asset in assets)
                 {
+                    if (!sys.FileSystem.exists(asset.id))
+                    {
+                        throw 'Loading ${asset.id} failed : File not found';
+                    }
+
                     resources.push(new TextResource(asset.id, sys.io.File.getContent(asset.id)));
 
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
@@ -133,6 +143,11 @@ class ResourceSystem
                 var assets : Array<JSONInfo> = def(parcel.list.jsons, []);
                 for (asset in assets)
                 {
+                    if (!sys.FileSystem.exists(asset.id))
+                    {
+                        throw 'Loading ${asset.id} failed : File not found';
+                    }
+
                     resources.push(new JSONResource(asset.id, Json.parse(sys.io.File.getContent(asset.id))));
 
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
@@ -141,6 +156,11 @@ class ResourceSystem
                 var assets : Array<ImageInfo> = def(parcel.list.images, []);
                 for (asset in assets)
                 {
+                    if (!sys.FileSystem.exists(asset.id))
+                    {
+                        throw 'Loading ${asset.id} failed : File not found';
+                    }
+
                     var bytes = sys.io.File.getBytes(asset.id);
                     var info  = stb.Image.load_from_memory(bytes.getData(), bytes.length, 4);
 
@@ -152,6 +172,11 @@ class ResourceSystem
                 var assets : Array<ShaderInfo> = def(parcel.list.shaders, []);
                 for (asset in assets)
                 {
+                    if (!sys.FileSystem.exists(asset.id))
+                    {
+                        throw 'Loading ${asset.id} failed : File not found';
+                    }
+
                     var layout = Json.parse(sys.io.File.getContent(asset.id));
                     var sourceWebGL = asset.webgl == null ? null : { vertex : sys.io.File.getContent(asset.webgl.vertex), fragment : sys.io.File.getContent(asset.webgl.fragment) };
                     var sourceGL45  = asset.gl45  == null ? null : { vertex : sys.io.File.getContent(asset.gl45.vertex) , fragment : sys.io.File.getContent(asset.gl45.fragment) };
@@ -167,6 +192,11 @@ class ResourceSystem
                 var assets : Array<ParcelInfo> = def(parcel.list.parcels, []);
                 for (asset in assets)
                 {
+                    if (!sys.FileSystem.exists(asset))
+                    {
+                        throw 'Loading ${asset} failed : File not found';
+                    }
+
                     // Get the serialized resource array from the parcel bytes.
                     var unserializer = new Unserializer(sys.io.File.getBytes(asset).toString());
                     var parcelData : ParcelData = unserializer.unserialize();
@@ -195,7 +225,7 @@ class ResourceSystem
             }
             catch (_exception : String)
             {
-                queue.push(new ParcelFailedEvent(_parcel, Succeeded, _exception));
+                queue.push(new ParcelFailedEvent(_parcel, Failed, _exception));
             }
         }
 
