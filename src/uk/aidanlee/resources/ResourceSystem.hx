@@ -26,15 +26,6 @@ enum ParcelEventType
     Failed;
 }
 
-typedef ParcelEvent = {
-    var type : ParcelEventType;
-    var parcel : String;
-
-    var ?resources : Array<Resource>;
-    var ?progress : Float;
-    var ?message : String;
-}
-
 class ResourceSystem
 {
     /**
@@ -128,7 +119,7 @@ class ResourceSystem
                 {
                     resources.push(new BytesResource(asset.id, sys.io.File.getBytes(asset.id)));
 
-                    queue.push({ type : Progress, parcel : _parcel, progress : ++loadedIndices / totalResources });
+                    queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
 
                 var assets : Array<TextInfo> = def(parcel.list.texts, []);
@@ -136,7 +127,7 @@ class ResourceSystem
                 {
                     resources.push(new TextResource(asset.id, sys.io.File.getContent(asset.id)));
 
-                    queue.push({ type : Progress, parcel : _parcel, progress : ++loadedIndices / totalResources });
+                    queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
 
                 var assets : Array<JSONInfo> = def(parcel.list.jsons, []);
@@ -144,7 +135,7 @@ class ResourceSystem
                 {
                     resources.push(new JSONResource(asset.id, Json.parse(sys.io.File.getContent(asset.id))));
 
-                    queue.push({ type : Progress, parcel : _parcel, progress : ++loadedIndices / totalResources });
+                    queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
 
                 var assets : Array<ImageInfo> = def(parcel.list.images, []);
@@ -155,7 +146,7 @@ class ResourceSystem
 
                     resources.push(new ImageResource(asset.id, info.w, info.h, info.bytes));
 
-                    queue.push({ type : Progress, parcel : _parcel, progress : ++loadedIndices / totalResources });
+                    queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
 
                 var assets : Array<ShaderInfo> = def(parcel.list.shaders, []);
@@ -168,7 +159,7 @@ class ResourceSystem
 
                     resources.push(new ShaderResource(asset.id, layout, sourceWebGL, sourceGL45, sourceHLSL));
 
-                    queue.push({ type : Progress, parcel : _parcel, progress : ++loadedIndices / totalResources });
+                    queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
 
                 // Parcels contain serialized pre-existing resources.
@@ -197,14 +188,14 @@ class ResourceSystem
                         resources.push(parcelResource);
                     }
 
-                    queue.push({ type : Progress, parcel : _parcel, progress : ++loadedIndices / totalResources });
+                    queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
 
-                queue.push({ type : Succeeded, parcel : _parcel, resources : resources });
+                queue.push(new ParcelSucceededEvent(_parcel, Succeeded, resources));
             }
             catch (_exception : String)
             {
-                queue.push({ type : Failed, parcel : _parcel, message : _exception });
+                queue.push(new ParcelFailedEvent(_parcel, Succeeded, _exception));
             }
         }
 
@@ -267,15 +258,20 @@ class ResourceSystem
         {
             switch (event.type)
             {
-                case Succeeded: onParcelSucceeded(event);
-                case Progress : onParcelProgress(event);
-                case Failed   : onParcelFailed(event);
+                case Succeeded: onParcelSucceeded(cast event);
+                case Progress : onParcelProgress(cast event);
+                case Failed   : onParcelFailed(cast event);
             }
 
             event = queue.pop();
         }
     }
 
+    /**
+     * Sums up to number of resources included in a parcel list.
+     * @param _list Parcel list to sum.
+     * @return Total number of resources.
+     */
     function calculateTotalResources(_list : ParcelList) : Int
     {
         var total = 0;
@@ -301,7 +297,12 @@ class ResourceSystem
         return total;
     }
 
-    function onParcelSucceeded(_event : ParcelEvent)
+    /**
+     * When a parcel is loaded this functions is called which adds or increments the reference count on resources in the cache.
+     * If a user callback has been specified, it will be called.
+     * @param _event Parcel event.
+     */
+    function onParcelSucceeded(_event : ParcelSucceededEvent)
     {
         var newResources = [];
 
@@ -335,7 +336,11 @@ class ResourceSystem
         }
     }
 
-    function onParcelProgress(_event : ParcelEvent)
+    /**
+     * Once a parcel loader thread has loaded an asset the user defined progress event is called (if defined).
+     * @param _event Parcel event.
+     */
+    function onParcelProgress(_event : ParcelProgressEvent)
     {
         var parcel = parcels.get(_event.parcel);
         if (parcel.onProgress != null)
@@ -344,7 +349,11 @@ class ResourceSystem
         }
     }
 
-    function onParcelFailed(_event : ParcelEvent)
+    /**
+     * If a parcel fails to load the user defined failure event is called (if defined).
+     * @param _event 
+     */
+    function onParcelFailed(_event : ParcelFailedEvent)
     {
         var parcel = parcels.get(_event.parcel);
         if (parcel.onFailed != null)
@@ -373,5 +382,74 @@ private class ResourceResolver
     public inline function resolveEnum(_name : String) : Enum<Dynamic>
     {
         return Type.resolveEnum(_name);
+    }
+}
+
+/**
+ * Base parcel event class. Parcel events emitted to the thread safe queue should inherit this type.
+ */
+private class ParcelEvent
+{
+    /**
+     * Unique parcel ID.
+     */
+    public final parcel : String;
+
+    /**
+     * The type of event this will be.
+     * Event type should correspond to a class inheriting this type.
+     */
+    public final type : ParcelEventType;
+
+    public function new(_parcel : String, _type : ParcelEventType)
+    {
+        parcel = _parcel;
+        type   = _type;
+    }
+}
+
+private class ParcelSucceededEvent extends ParcelEvent
+{
+    /**
+     * All the resources which were loaded and added to the system by this parcel.
+     */
+    public final resources : Array<Resource>;
+
+    public function new(_parcel : String, _type : ParcelEventType, _resources : Array<Resource>)
+    {
+        super(_parcel, _type);
+
+        resources = _resources;
+    }
+}
+
+private class ParcelProgressEvent extends ParcelEvent
+{
+    /**
+     * Normalized value for how many items have been loaded from the parcel.
+     * Pre-packed parcels count as a single item since there is no way to tell their contents before deserializing them.
+     */
+    public final progress : Float;
+
+    public function new(_parcel : String, _type : ParcelEventType, _progress : Float)
+    {
+        super(_parcel, _type);
+
+        progress = _progress;
+    }
+}
+
+private class ParcelFailedEvent extends ParcelEvent
+{
+    /**
+     * The exception message thrown which caused the parcel to fail loading.
+     */
+    public final message : String;
+
+    public function new(_parcel : String, _type : ParcelEventType, _message : String)
+    {
+        super(_parcel, _type);
+
+        message = _message;
     }
 }
