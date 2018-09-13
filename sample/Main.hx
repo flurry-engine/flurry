@@ -1,7 +1,6 @@
 package;
 
 import snow.App;
-import snow.api.Promise;
 import snow.types.Types;
 import hxtelemetry.HxTelemetry;
 import uk.aidanlee.gpu.Renderer;

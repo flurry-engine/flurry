@@ -61,6 +61,10 @@ class Parcel
      */
     public final onLoaded : Array<Resource>->Void;
 
+    public final onProgress : Float->Void;
+
+    public final onFailed : String->Void;
+
     /**
      * The system this parcel belongs to.
      */
@@ -73,12 +77,15 @@ class Parcel
      * @param _name     Unique name for this parcel (defaults to a unique hash).
      * @param _list     List of resources to load with this parcel (defaults to empty parcel list).
      */
-    public function new(_system : ResourceSystem, _onLoaded : Array<Resource>->Void, ?_name : String, ?_list : ParcelList)
+    public function new(_system : ResourceSystem, ?_name : String, ?_list : ParcelList, ?_onLoaded : Array<Resource>->Void, ?_onProgress : Float->Void, ?_onFailed : String->Void)
     {
-        system   = _system;
-        onLoaded = _onLoaded;
-        id       = def(_name, Hash.uniqueID());
-        list     = def(_list, {});
+        system = _system;
+        id     = def(_name, Hash.uniqueID());
+        list   = def(_list, {});
+
+        onLoaded   = _onLoaded;
+        onProgress = _onProgress;
+        onFailed   = _onFailed;
 
         system.parcels.set(id, this);
     }
