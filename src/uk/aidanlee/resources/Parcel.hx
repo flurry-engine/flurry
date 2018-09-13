@@ -57,9 +57,22 @@ class Parcel
     public final list : ParcelList;
 
     /**
-     * The function to call once the parcel has been loaded.
+     * Callback to be called once the parcel has been loaded.
+     * Resource array is all of the resources loaded by this parcel into the system.
      */
-    public final onLoaded : Array<Resource>->Void;
+    public final onLoaded : (_resources : Array<Resource>)->Void;
+
+    /**
+     * Callback to be called when progress has been made loading this parcel.
+     * Progress is a normalized value for how many of the parcels resources have been loaded.
+     */
+    public final onProgress : (_progress : Float)->Void;
+
+    /**
+     * Callback to be called if loading the parcel fails.
+     * Message is the exception message thrown causing the parcel to fail loading.
+     */
+    public final onFailed : (_message : String)->Void;
 
     /**
      * The system this parcel belongs to.
@@ -73,12 +86,15 @@ class Parcel
      * @param _name     Unique name for this parcel (defaults to a unique hash).
      * @param _list     List of resources to load with this parcel (defaults to empty parcel list).
      */
-    public function new(_system : ResourceSystem, _onLoaded : Array<Resource>->Void, ?_name : String, ?_list : ParcelList)
+    public function new(_system : ResourceSystem, ?_name : String, ?_list : ParcelList, ?_onLoaded : Array<Resource>->Void, ?_onProgress : Float->Void, ?_onFailed : String->Void)
     {
-        system   = _system;
-        onLoaded = _onLoaded;
-        id       = def(_name, Hash.uniqueID());
-        list     = def(_list, {});
+        system = _system;
+        id     = def(_name, Hash.uniqueID());
+        list   = def(_list, {});
+
+        onLoaded   = _onLoaded;
+        onProgress = _onProgress;
+        onFailed   = _onFailed;
 
         system.parcels.set(id, this);
     }

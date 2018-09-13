@@ -19,9 +19,11 @@ import uk.aidanlee.resources.Resource.JSONResource;
 import uk.aidanlee.resources.Resource.TextResource;
 import uk.aidanlee.resources.Resource.BytesResource;
 
-typedef ParcelResult = {
-    var id : String;
-    var resources : Array<Resource>;
+enum ParcelEventType
+{
+    Succeeded;
+    Progress;
+    Failed;
 }
 
 class ResourceSystem
@@ -57,7 +59,7 @@ class ResourceSystem
      * Async event queue so the main thread can be notified when a parcel has been loaded.
      * Main thread then adds the loaded resources to the cache. Removes the need for any manual locking on the cache map.
      */
-    final queue : Queue<ParcelResult>;
+    final queue : Queue<ParcelEvent>;
 
     /**
      * Creates a new resources system.
@@ -81,9 +83,9 @@ class ResourceSystem
      * @param _list List of all of this parcels resources.
      * @return Parcel
      */
-    public function createParcel(_name : String, _list : ParcelList, _onLoaded : Array<Resource>->Void) : Parcel
+    public function createParcel(_name : String, _list : ParcelList, ?_onLoaded : Array<Resource>->Void, ?_onProgress : Float->Void, ?_onFailed : String->Void) : Parcel
     {
-        return new Parcel(this, _onLoaded, _name, _list);
+        return new Parcel(this, _name, _list, _onLoaded, _onProgress, _onFailed);
     }
 
     /**
@@ -105,75 +107,126 @@ class ResourceSystem
          * An event is fired with the loaded resources and parcel ID so the main thread can add them.
          */
         var parcelLoader = function() {
-
-            var resources = new Array<Resource>();
             
-            var assets : Array<BytesInfo> = def(parcel.list.bytes, []);
-            for (asset in assets)
-            {
-                resources.push(new BytesResource(asset.id, sys.io.File.getBytes(asset.id)));
-            }
+            try {
+                var resources = new Array<Resource>();
+                
+                var totalResources = calculateTotalResources(parcel.list);
+                var loadedIndices  = 0;
 
-            var assets : Array<TextInfo> = def(parcel.list.texts, []);
-            for (asset in assets)
-            {
-                resources.push(new TextResource(asset.id, sys.io.File.getContent(asset.id)));
-            }
-
-            var assets : Array<JSONInfo> = def(parcel.list.jsons, []);
-            for (asset in assets)
-            {
-                resources.push(new JSONResource(asset.id, Json.parse(sys.io.File.getContent(asset.id))));
-            }
-
-            var assets : Array<ImageInfo> = def(parcel.list.images, []);
-            for (asset in assets)
-            {
-                var bytes = sys.io.File.getBytes(asset.id);
-                var info  = stb.Image.load_from_memory(bytes.getData(), bytes.length, 4);
-
-                resources.push(new ImageResource(asset.id, info.w, info.h, info.bytes));
-            }
-
-            var assets : Array<ShaderInfo> = def(parcel.list.shaders, []);
-            for (asset in assets)
-            {
-                var layout = Json.parse(sys.io.File.getContent(asset.id));
-                var sourceWebGL = asset.webgl == null ? null : { vertex : sys.io.File.getContent(asset.webgl.vertex), fragment : sys.io.File.getContent(asset.webgl.fragment) };
-                var sourceGL45  = asset.gl45  == null ? null : { vertex : sys.io.File.getContent(asset.gl45.vertex) , fragment : sys.io.File.getContent(asset.gl45.fragment) };
-                var sourceHLSL  = asset.hlsl  == null ? null : { vertex : sys.io.File.getContent(asset.hlsl.vertex) , fragment : sys.io.File.getContent(asset.hlsl.fragment) };
-
-                resources.push(new ShaderResource(asset.id, layout, sourceWebGL, sourceGL45, sourceHLSL));
-            }
-
-            // Parcels contain serialized pre-existing resources.
-
-            var assets : Array<ParcelInfo> = def(parcel.list.parcels, []);
-            for (asset in assets)
-            {
-                // Get the serialized resource array from the parcel bytes.
-                var unserializer = new Unserializer(sys.io.File.getBytes(asset).toString());
-                var parcelData : ParcelData = unserializer.unserialize();
-
-                if (parcelData.compressed)
+                var assets : Array<BytesInfo> = def(parcel.list.bytes, []);
+                for (asset in assets)
                 {
-                    parcelData.serializedArray = haxe.zip.Uncompress.run(parcelData.serializedArray);
+                    if (!sys.FileSystem.exists(asset.id))
+                    {
+                        throw 'Loading ${asset.id} failed : File not found';
+                    }
+
+                    resources.push(new BytesResource(asset.id, sys.io.File.getBytes(asset.id)));
+
+                    queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
 
-                // Unserialize the resource array and copy it over.
-                // Our custom resolver uses a fully qualified package name for resources since they come from another project.
-
-                var unserializer = new Unserializer(parcelData.serializedArray.toString());
-                unserializer.setResolver(new ResourceResolver());
-
-                var parcelResources : Array<Resource> = unserializer.unserialize();
-                for (parcelResource in parcelResources)
+                var assets : Array<TextInfo> = def(parcel.list.texts, []);
+                for (asset in assets)
                 {
-                    resources.push(parcelResource);
-                }
-            }
+                    if (!sys.FileSystem.exists(asset.id))
+                    {
+                        throw 'Loading ${asset.id} failed : File not found';
+                    }
 
-            queue.push({ id : _parcel, resources : resources });
+                    resources.push(new TextResource(asset.id, sys.io.File.getContent(asset.id)));
+
+                    queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
+                }
+
+                var assets : Array<JSONInfo> = def(parcel.list.jsons, []);
+                for (asset in assets)
+                {
+                    if (!sys.FileSystem.exists(asset.id))
+                    {
+                        throw 'Loading ${asset.id} failed : File not found';
+                    }
+
+                    resources.push(new JSONResource(asset.id, Json.parse(sys.io.File.getContent(asset.id))));
+
+                    queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
+                }
+
+                var assets : Array<ImageInfo> = def(parcel.list.images, []);
+                for (asset in assets)
+                {
+                    if (!sys.FileSystem.exists(asset.id))
+                    {
+                        throw 'Loading ${asset.id} failed : File not found';
+                    }
+
+                    var bytes = sys.io.File.getBytes(asset.id);
+                    var info  = stb.Image.load_from_memory(bytes.getData(), bytes.length, 4);
+
+                    resources.push(new ImageResource(asset.id, info.w, info.h, info.bytes));
+
+                    queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
+                }
+
+                var assets : Array<ShaderInfo> = def(parcel.list.shaders, []);
+                for (asset in assets)
+                {
+                    if (!sys.FileSystem.exists(asset.id))
+                    {
+                        throw 'Loading ${asset.id} failed : File not found';
+                    }
+
+                    var layout = Json.parse(sys.io.File.getContent(asset.id));
+                    var sourceWebGL = asset.webgl == null ? null : { vertex : sys.io.File.getContent(asset.webgl.vertex), fragment : sys.io.File.getContent(asset.webgl.fragment) };
+                    var sourceGL45  = asset.gl45  == null ? null : { vertex : sys.io.File.getContent(asset.gl45.vertex) , fragment : sys.io.File.getContent(asset.gl45.fragment) };
+                    var sourceHLSL  = asset.hlsl  == null ? null : { vertex : sys.io.File.getContent(asset.hlsl.vertex) , fragment : sys.io.File.getContent(asset.hlsl.fragment) };
+
+                    resources.push(new ShaderResource(asset.id, layout, sourceWebGL, sourceGL45, sourceHLSL));
+
+                    queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
+                }
+
+                // Parcels contain serialized pre-existing resources.
+
+                var assets : Array<ParcelInfo> = def(parcel.list.parcels, []);
+                for (asset in assets)
+                {
+                    if (!sys.FileSystem.exists(asset))
+                    {
+                        throw 'Loading ${asset} failed : File not found';
+                    }
+
+                    // Get the serialized resource array from the parcel bytes.
+                    var unserializer = new Unserializer(sys.io.File.getBytes(asset).toString());
+                    var parcelData : ParcelData = unserializer.unserialize();
+
+                    if (parcelData.compressed)
+                    {
+                        parcelData.serializedArray = haxe.zip.Uncompress.run(parcelData.serializedArray);
+                    }
+
+                    // Unserialize the resource array and copy it over.
+                    // Our custom resolver uses a fully qualified package name for resources since they come from another project.
+
+                    var unserializer = new Unserializer(parcelData.serializedArray.toString());
+                    unserializer.setResolver(new ResourceResolver());
+
+                    var parcelResources : Array<Resource> = unserializer.unserialize();
+                    for (parcelResource in parcelResources)
+                    {
+                        resources.push(parcelResource);
+                    }
+
+                    queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
+                }
+
+                queue.push(new ParcelSucceededEvent(_parcel, Succeeded, resources));
+            }
+            catch (_exception : String)
+            {
+                queue.push(new ParcelFailedEvent(_parcel, Failed, _exception));
+            }
         }
 
         executor.submit(parcelLoader);
@@ -233,34 +286,109 @@ class ResourceSystem
         var event = queue.pop();
         while (event != null)
         {
-            var newResources = [];
-
-            for (resource in event.resources)
+            switch (event.type)
             {
-                newResources.push(resource.id);
-
-                // Set or increment the resources reference counter.
-                if (resourceReferences.exists(resource.id))
-                {
-                    resourceReferences.set(resource.id, resourceReferences.get(resource.id) + 1);
-                }
-                else
-                {
-                    resourceReferences.set(resource.id, 1);
-                }
-
-                // Add the resource to the cache if it doesn't alread exist
-                if (!resourceCache.exists(resource.id))
-                {
-                    resourceCache.set(resource.id, resource);
-                }
+                case Succeeded: onParcelSucceeded(cast event);
+                case Progress : onParcelProgress(cast event);
+                case Failed   : onParcelFailed(cast event);
             }
 
-            parcelResources.set(event.id, newResources);
-
-            parcels.get(event.id).onLoaded(event.resources);
-
             event = queue.pop();
+        }
+    }
+
+    /**
+     * Sums up to number of resources included in a parcel list.
+     * @param _list Parcel list to sum.
+     * @return Total number of resources.
+     */
+    function calculateTotalResources(_list : ParcelList) : Int
+    {
+        var total = 0;
+        
+        var array : Array<Dynamic> = def(_list.bytes, []);
+        total += array.length;
+
+        var array : Array<Dynamic> = def(_list.texts, []);
+        total += array.length;
+
+        var array : Array<Dynamic> = def(_list.jsons, []);
+        total += array.length;
+
+        var array : Array<Dynamic> = def(_list.images, []);
+        total += array.length;
+
+        var array : Array<Dynamic> = def(_list.shaders, []);
+        total += array.length;
+
+        var array : Array<Dynamic> = def(_list.parcels, []);
+        total += array.length;
+
+        return total;
+    }
+
+    /**
+     * When a parcel is loaded this functions is called which adds or increments the reference count on resources in the cache.
+     * If a user callback has been specified, it will be called.
+     * @param _event Parcel event.
+     */
+    function onParcelSucceeded(_event : ParcelSucceededEvent)
+    {
+        var newResources = [];
+
+        for (resource in _event.resources)
+        {
+            newResources.push(resource.id);
+
+            // Set or increment the resources reference counter.
+            if (resourceReferences.exists(resource.id))
+            {
+                resourceReferences.set(resource.id, resourceReferences.get(resource.id) + 1);
+            }
+            else
+            {
+                resourceReferences.set(resource.id, 1);
+            }
+
+            // Add the resource to the cache if it doesn't alread exist
+            if (!resourceCache.exists(resource.id))
+            {
+                resourceCache.set(resource.id, resource);
+            }
+        }
+
+        parcelResources.set(_event.parcel, newResources);
+
+        var parcel = parcels.get(_event.parcel);
+        if (parcel.onLoaded != null)
+        {
+            parcel.onLoaded(_event.resources);
+        }
+    }
+
+    /**
+     * Once a parcel loader thread has loaded an asset the user defined progress event is called (if defined).
+     * @param _event Parcel event.
+     */
+    function onParcelProgress(_event : ParcelProgressEvent)
+    {
+        var parcel = parcels.get(_event.parcel);
+        if (parcel.onProgress != null)
+        {
+            parcel.onProgress(_event.progress);
+        }
+    }
+
+    /**
+     * If a parcel fails to load the user defined failure event is called (if defined).
+     * @param _event 
+     */
+    function onParcelFailed(_event : ParcelFailedEvent)
+    {
+        var parcel = parcels.get(_event.parcel);
+        if (parcel.onFailed != null)
+        {
+            parcel.onFailed(_event.message);
         }
     }
 }
@@ -284,5 +412,74 @@ private class ResourceResolver
     public inline function resolveEnum(_name : String) : Enum<Dynamic>
     {
         return Type.resolveEnum(_name);
+    }
+}
+
+/**
+ * Base parcel event class. Parcel events emitted to the thread safe queue should inherit this type.
+ */
+private class ParcelEvent
+{
+    /**
+     * Unique parcel ID.
+     */
+    public final parcel : String;
+
+    /**
+     * The type of event this will be.
+     * Event type should correspond to a class inheriting this type.
+     */
+    public final type : ParcelEventType;
+
+    public function new(_parcel : String, _type : ParcelEventType)
+    {
+        parcel = _parcel;
+        type   = _type;
+    }
+}
+
+private class ParcelSucceededEvent extends ParcelEvent
+{
+    /**
+     * All the resources which were loaded and added to the system by this parcel.
+     */
+    public final resources : Array<Resource>;
+
+    public function new(_parcel : String, _type : ParcelEventType, _resources : Array<Resource>)
+    {
+        super(_parcel, _type);
+
+        resources = _resources;
+    }
+}
+
+private class ParcelProgressEvent extends ParcelEvent
+{
+    /**
+     * Normalized value for how many items have been loaded from the parcel.
+     * Pre-packed parcels count as a single item since there is no way to tell their contents before deserializing them.
+     */
+    public final progress : Float;
+
+    public function new(_parcel : String, _type : ParcelEventType, _progress : Float)
+    {
+        super(_parcel, _type);
+
+        progress = _progress;
+    }
+}
+
+private class ParcelFailedEvent extends ParcelEvent
+{
+    /**
+     * The exception message thrown which caused the parcel to fail loading.
+     */
+    public final message : String;
+
+    public function new(_parcel : String, _type : ParcelEventType, _message : String)
+    {
+        super(_parcel, _type);
+
+        message = _message;
     }
 }
