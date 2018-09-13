@@ -57,13 +57,22 @@ class Parcel
     public final list : ParcelList;
 
     /**
-     * The function to call once the parcel has been loaded.
+     * Callback to be called once the parcel has been loaded.
+     * Resource array is all of the resources loaded by this parcel into the system.
      */
-    public final onLoaded : Array<Resource>->Void;
+    public final onLoaded : (_resources : Array<Resource>)->Void;
 
-    public final onProgress : Float->Void;
+    /**
+     * Callback to be called when progress has been made loading this parcel.
+     * Progress is a normalized value for how many of the parcels resources have been loaded.
+     */
+    public final onProgress : (_progress : Float)->Void;
 
-    public final onFailed : String->Void;
+    /**
+     * Callback to be called if loading the parcel fails.
+     * Message is the exception message thrown causing the parcel to fail loading.
+     */
+    public final onFailed : (_message : String)->Void;
 
     /**
      * The system this parcel belongs to.
