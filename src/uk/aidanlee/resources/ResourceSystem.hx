@@ -19,11 +19,11 @@ import uk.aidanlee.resources.Resource.JSONResource;
 import uk.aidanlee.resources.Resource.TextResource;
 import uk.aidanlee.resources.Resource.BytesResource;
 
-enum abstract ParcelEventType(Int) from Int to Int
+enum ParcelEventType
 {
-    var Succeeded;
-    var Progress;
-    var Failed;
+    Succeeded;
+    Progress;
+    Failed;
 }
 
 typedef ParcelEvent = {
