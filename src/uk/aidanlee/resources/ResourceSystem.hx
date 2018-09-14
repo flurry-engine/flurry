@@ -31,7 +31,7 @@ class ResourceSystem
     /**
      * All parcels loaded in this resource system.
      */
-    public final parcels : Map<String, Parcel>;
+    final parcels : Map<String, Parcel>;
 
     /**
      * Map of a parcels ID to all the resources IDs contained within it.
@@ -86,6 +86,20 @@ class ResourceSystem
     public function createParcel(_name : String, _list : ParcelList, ?_onLoaded : Array<Resource>->Void, ?_onProgress : Float->Void, ?_onFailed : String->Void) : Parcel
     {
         return new Parcel(this, _name, _list, _onLoaded, _onProgress, _onFailed);
+    }
+
+    /**
+     * Add a parcel to this system.
+     * @param _parcel Parcel to add.
+     */
+    public function add(_parcel : Parcel)
+    {
+        if (parcels.exists(_parcel.id))
+        {
+            throw 'Parcel with the ${_parcel.id} already exists within this resource system';
+        }
+
+        parcels.set(_parcel.id, _parcel);
     }
 
     /**
