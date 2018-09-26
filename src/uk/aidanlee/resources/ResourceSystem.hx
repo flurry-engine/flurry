@@ -1,5 +1,6 @@
 package uk.aidanlee.resources;
 
+import uk.aidanlee.gpu.backend.GL45Backend;
 import haxe.Json;
 import haxe.Unserializer;
 import snow.api.Debug.def;
@@ -287,7 +288,8 @@ class ResourceSystem
                     }
                     if (Std.is(resource, ShaderResource))
                     {
-                        trace('TODO : Auto remove shader');
+                        var gl = cast (backend, GL45Backend);
+                        gl.createShaderResource(cast resource);
                     }
                 }
             }
@@ -399,7 +401,8 @@ class ResourceSystem
                     }
                     if (Std.is(resource, ShaderResource))
                     {
-                        trace('TODO : Auto create shader');
+                        var gl = cast (backend, GL45Backend);
+                        gl.createShaderResource(cast resource);
                     }
                 }
             }

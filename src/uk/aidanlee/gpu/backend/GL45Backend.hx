@@ -23,6 +23,8 @@ import uk.aidanlee.gpu.Texture;
 import uk.aidanlee.maths.Rectangle;
 import uk.aidanlee.maths.Vector;
 import uk.aidanlee.maths.Matrix;
+import uk.aidanlee.resources.Resource.ImageResource;
+import uk.aidanlee.resources.Resource.ShaderResource;
 
 /**
  * OpenGL 4.5 renderer. Makes use of DSA, named buffers, persistent mapping, and (hopefully) eventually stuff like SSBOs and bindless textures.
@@ -161,6 +163,11 @@ class GL45Backend implements IRendererBackend
     var target   : IRenderTarget;
     var shader   : Shader;
 
+    // wip
+
+    final shaderPrograms : Map<String, Int>;
+    final shaderUniforms : Map<String, ShaderLocations>;
+
     /**
      * Creates a new openGL 4.5 renderer.
      * @param _renderer           Access to the renderer which owns this backend.
@@ -268,6 +275,9 @@ class GL45Backend implements IRendererBackend
         clip     = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
         target   = backbuffer;
         shader   = null;
+
+        shaderPrograms = new Map();
+        shaderUniforms = new Map();
     }
 
     /**
@@ -508,6 +518,128 @@ class GL45Backend implements IRendererBackend
     }
 
     // #region Resource management.
+
+    /**
+     * Create a shader from a resource.
+     * @param _resource Resource to create a shader of.
+     */
+    public function createShaderResource(_resource : ShaderResource)
+    {
+        if (_resource.gl45 == null)
+        {
+            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Attempting to create a shader from a resource which has no gl45 shader source';
+        }
+
+        if (shaderPrograms.exists(_resource.id))
+        {
+            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Attempting to create a shader which already exists';
+        }
+
+        // Create vertex shader.
+        var vertex = glCreateShader(GL_VERTEX_SHADER);
+        WebGL.shaderSource(vertex, _resource.gl45.vertex);
+        glCompileShader(vertex);
+
+        if (WebGL.getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
+        {
+            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Error compiling vertex shader : ${WebGL.getShaderInfoLog(vertex)}';
+        }
+
+        // Create fragment shader.
+        var fragment = glCreateShader(GL_FRAGMENT_SHADER);
+        WebGL.shaderSource(fragment, _resource.gl45.fragment);
+        glCompileShader(fragment);
+
+        if (WebGL.getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
+        {
+            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Error compiling fragment shader : ${WebGL.getShaderInfoLog(fragment)}';
+        }
+
+        // Link the shaders into a program.
+        var program = glCreateProgram();
+        glAttachShader(program, vertex);
+        glAttachShader(program, fragment);
+        glLinkProgram(program);
+
+        if (WebGL.getProgramParameter(program, GL_LINK_STATUS) == 0)
+        {
+            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Error linking program : ${WebGL.getProgramInfoLog(program)}';
+        }
+
+        // Delete the shaders now that they're linked
+        glDeleteShader(vertex);
+        glDeleteShader(fragment);
+
+        // Get the location of all textures and storage blocks in the gl program.
+        var textureLocations = [];
+        var blockLocations   = [ glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, "defaultMatrices") ];
+        for (texture in _resource.layout.textures)
+        {
+            textureLocations.push(glGetUniformLocation(program, texture));
+        }
+        for (block in _resource.layout.blocks)
+        {
+            blockLocations.push(glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, block.name));
+        }
+
+        // Setup haxe bytes and gl buffers for all storage blocks.
+        var blockBytes   = new Array<Bytes>();
+        var blockBuffers = new Array<Int>();
+
+        // Allocate for the default matrices block.
+        var data = Bytes.alloc(128);
+        var ssbo = [ 0 ];
+        glCreateBuffers(1, ssbo);
+
+        blockBuffers.push(ssbo[0]);
+        blockBytes.push(data);
+
+        // Create a GL buffer and allocate bytes for each user defined bytes.
+        for (block in _resource.layout.blocks)
+        {
+            var bytesSize = 0;
+            for (val in block.vals)
+            {
+                switch (ShaderType.createByName(val.type))
+                {
+                    case Matrix4: bytesSize += 64;
+                    case Vector4: bytesSize += 16;
+                    case Int    : bytesSize +=  4;
+                }
+            }
+            var bytesData = Bytes.alloc(bytesSize);
+            var ssbo      = [ 0 ];
+            glCreateBuffers(1, ssbo);
+
+            blockBuffers.push(ssbo[0]);
+            blockBytes.push(bytesData);
+        }
+
+        shaderPrograms.set(_resource.id, program);
+        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockLocations, blockBuffers, blockBytes));
+    }
+
+    /**
+     * Free the GPU resources used by a shader program.
+     * @param _resource Shader resource to remove.
+     */
+    public function removeShaderResource(_resource : ShaderResource)
+    {
+        glDeleteProgram(shaderPrograms.get(_resource.id));
+
+        shaderPrograms.remove(_resource.id);
+        shaderUniforms.remove(_resource.id);
+    }
+
+    public function createImageResource(_resource : ImageResource)
+    {
+        //
+    }
+
+    public function removeImageResource(_resource : ImageResource)
+    {
+        //
+    }
 
     /**
      * Compiles and links together a shader program from the provided vertex and fragment shader.
