@@ -69,7 +69,6 @@ class Main extends App
         app.runtime.auto_swap = false;
         
         // Setup the renderer.
-        resources = new ResourceSystem();
         renderer  = new Renderer({
 
             // The api you choose changes what shaders you need to provide
@@ -89,6 +88,7 @@ class Main extends App
                 window : app.runtime.window
             }
         });
+        resources = new ResourceSystem(renderer.backend);
 
         resources.createParcel('default', { parcels : [ 'assets/parcels/sample.parcel' ] }, onLoaded).load();
     }

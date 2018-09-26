@@ -5,6 +5,7 @@ import haxe.Unserializer;
 import snow.api.Debug.def;
 import hx.concurrent.collection.Queue;
 import hx.concurrent.executor.Executor;
+import uk.aidanlee.gpu.backend.IRendererBackend;
 import uk.aidanlee.resources.Parcel.ParcelList;
 import uk.aidanlee.resources.Parcel.ShaderInfo;
 import uk.aidanlee.resources.Parcel.ImageInfo;
@@ -28,6 +29,12 @@ enum ParcelEventType
 
 class ResourceSystem
 {
+    /**
+     * Rendering backend this resource system will use to automatically manage gpu resources.
+     * If not specified gpu resources will not be automatically created and destroyed.
+     */
+    final backend : IRendererBackend;
+
     /**
      * All parcels loaded in this resource system.
      */
@@ -67,8 +74,9 @@ class ResourceSystem
      * 
      * @param _threads Number of active threads for loading parcels (defaults 1).
      */
-    public function new(_threads : Int = 1)
+    public function new(_backend : IRendererBackend = null, _threads : Int = 1)
     {
+        backend            = _backend;
         parcels            = new Map();
         parcelResources    = new Map();
         resourceCache      = new Map();
