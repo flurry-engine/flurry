@@ -277,6 +277,19 @@ class ResourceSystem
             {
                 resourceReferences.remove(resource);
                 resourceCache.remove(resource);
+
+                // Optionally auto remove resource once it is not referenced by any parcels.
+                if (backend != null)
+                {
+                    if (Std.is(resource, ImageResource))
+                    {
+                        trace('TODO : Auto remove texture');
+                    }
+                    if (Std.is(resource, ShaderResource))
+                    {
+                        trace('TODO : Auto remove shader');
+                    }
+                }
             }
             else
             {
@@ -376,6 +389,19 @@ class ResourceSystem
             if (!resourceCache.exists(resource.id))
             {
                 resourceCache.set(resource.id, resource);
+
+                // Optionally create the gpu resources
+                if (backend != null)
+                {
+                    if (Std.is(resource, ImageResource))
+                    {
+                        trace('TODO : Auto create texture');
+                    }
+                    if (Std.is(resource, ShaderResource))
+                    {
+                        trace('TODO : Auto create shader');
+                    }
+                }
             }
         }
 
