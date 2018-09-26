@@ -79,7 +79,7 @@ class GL45Backend implements IRendererBackend
      * All of the created textures handles.
      * This would be a map but for some reason hxcpp doesn't like cpp.UInt64 values.
      */
-    final textureHandles : Array<cpp.UInt64>;
+    final textureHandles : Array<haxe.Int64>;
 
     /**
      * Mapping of render texture names to their GL framebuffer ID.
@@ -167,6 +167,9 @@ class GL45Backend implements IRendererBackend
 
     final shaderPrograms : Map<String, Int>;
     final shaderUniforms : Map<String, ShaderLocations>;
+
+    final textureObjects : Map<String, Int>;
+    final texHandles : Map<String, haxe.Int64>;
 
     /**
      * Creates a new openGL 4.5 renderer.
@@ -278,6 +281,9 @@ class GL45Backend implements IRendererBackend
 
         shaderPrograms = new Map();
         shaderUniforms = new Map();
+
+        textureObjects = new Map();
+        texHandles = new Map();
     }
 
     /**
@@ -633,12 +639,38 @@ class GL45Backend implements IRendererBackend
 
     public function createImageResource(_resource : ImageResource)
     {
-        //
+        var ids = [ 0 ];
+        glCreateTextures(GL_TEXTURE_2D, 1, ids);
+
+        glTextureParameteri(ids[0], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(ids[0], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(ids[0], GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTextureParameteri(ids[0], GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+        glTextureStorage2D(ids[0], 1, GL_RGBA8, _resource.width, _resource.height);
+        glTextureSubImage2D(ids[0], 0, 0, 0, _resource.width, _resource.height, GL_RGBA, GL_UNSIGNED_BYTE, _resource.pixels);
+
+        textureObjects.set(_resource.id, ids[0]);
+
+        if (bindless)
+        {
+            var handle = glGetTextureHandleARB(ids[0]);
+            glMakeTextureHandleResidentARB(handle);
+
+            texHandles.set(_resource.id, handle);
+        }
     }
 
     public function removeImageResource(_resource : ImageResource)
     {
-        //
+        if (bindless)
+        {
+            glMakeTextureHandleNonResidentARB(cast texHandles.get(_resource.id));
+            texHandles.remove(_resource.id);
+        }
+
+        glDeleteTextures(0, [ textureObjects.get(_resource.id) ]);
+        textureObjects.remove(_resource.id);
     }
 
     /**
@@ -790,7 +822,7 @@ class GL45Backend implements IRendererBackend
     {
         if (bindless)
         {
-            glMakeTextureHandleNonResidentARB(textureHandles[_id]);
+            glMakeTextureHandleNonResidentARB(cast textureHandles[_id]);
         }
 
         glDeleteTextures(0, [ textures.get(_id) ]);
@@ -852,7 +884,7 @@ class GL45Backend implements IRendererBackend
 
         if (bindless)
         {
-            glMakeImageHandleNonResidentARB(textureHandles[targetData.texture]);
+            glMakeImageHandleNonResidentARB(cast textureHandles[targetData.texture]);
         }
 
         glDeleteFramebuffers(1, [ targetData.fbo ]);
@@ -985,7 +1017,7 @@ class GL45Backend implements IRendererBackend
         {
             if (bindless)
             {
-                var handlesToBind = [ for (id in _command.textures) textureHandles[id.textureID] ];
+                var handlesToBind : Array<cpp.UInt64> = [ for (id in _command.textures) cast textureHandles[id.textureID] ];
                 glUniformHandleui64vARB(0, handlesToBind.length, handlesToBind);
             }
             else

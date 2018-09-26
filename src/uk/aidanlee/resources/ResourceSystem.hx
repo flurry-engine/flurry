@@ -268,30 +268,36 @@ class ResourceSystem
             return;
         }
 
-        var toRemove = parcelResources.get(_parcel);
-        for (resource in toRemove)
+        for (resource in parcelResources.get(_parcel))
         {
             // If there is only 1 reference to this resource we can remove it out right.
             // This is because only the parcel we are freeing references it.
             // Otherwise we deincrement the resources reference and leave it in the system.
             if (resourceReferences.get(resource) == 1)
             {
-                resourceReferences.remove(resource);
-                resourceCache.remove(resource);
-
                 // Optionally auto remove resource once it is not referenced by any parcels.
                 if (backend != null)
                 {
-                    if (Std.is(resource, ImageResource))
+                    trace('Auto deleting');
+
+                    if (Std.is(resourceCache.get(resource), ImageResource))
                     {
-                        trace('TODO : Auto remove texture');
-                    }
-                    if (Std.is(resource, ShaderResource))
-                    {
+                        trace('is image');
+
                         var gl = cast (backend, GL45Backend);
-                        gl.createShaderResource(cast resource);
+                        gl.removeImageResource(cast resourceCache.get(resource));
+                    }
+                    if (Std.is(resourceCache.get(resource), ShaderResource))
+                    {
+                        trace('is shader');
+
+                        var gl = cast (backend, GL45Backend);
+                        gl.removeShaderResource(cast resourceCache.get(resource));
                     }
                 }
+
+                resourceReferences.remove(resource);
+                resourceCache.remove(resource);
             }
             else
             {
@@ -397,7 +403,8 @@ class ResourceSystem
                 {
                     if (Std.is(resource, ImageResource))
                     {
-                        trace('TODO : Auto create texture');
+                        var gl = cast (backend, GL45Backend);
+                        gl.createImageResource(cast resource);
                     }
                     if (Std.is(resource, ShaderResource))
                     {
