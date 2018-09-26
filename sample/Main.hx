@@ -88,19 +88,26 @@ class Main extends App
                 window : app.runtime.window
             }
         });
+        // Pass the renderer backend to the resource system so GPU resources (textures, shaders) can be automatically managed.
+        // When loading and freeing parcels the needed GPU resources can then be created and destroyed as and when needed.
         resources = new ResourceSystem(renderer.backend);
 
+        // Load a pre-packed parcel containing our shader and two images.
+        // See the parcel tool for creating pre-packed parcels.
         resources.createParcel('default', { parcels : [ 'assets/parcels/sample.parcel' ] }, onLoaded).load();
     }
 
     override function update(_dt : Float)
     {
+        // The resource system needs to be called periodically to process thread events.
+        // If this is not called the resources loaded on separate threads won't be registered and parcel callbacks won't be invoked.
         resources.update();
 
         // Pre-draw
         renderer.clear();
         renderer.preRender();
 
+        // Our game specific logic, only do it if our default parcel has loaded.
         if (loaded)
         {
             imgui.newFrame();

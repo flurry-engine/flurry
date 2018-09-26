@@ -637,6 +637,10 @@ class GL45Backend implements IRendererBackend
         shaderUniforms.remove(_resource.id);
     }
 
+    /**
+     * Create a texture from a resource.
+     * @param _resource Image resource to create the texture from.
+     */
     public function createImageResource(_resource : ImageResource)
     {
         var ids = [ 0 ];
@@ -661,6 +665,10 @@ class GL45Backend implements IRendererBackend
         }
     }
 
+    /**
+     * Free the GPU resources used by a texture.
+     * @param _resource Image resource to remove.
+     */
     public function removeImageResource(_resource : ImageResource)
     {
         if (bindless)
