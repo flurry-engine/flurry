@@ -1,0 +1,29 @@
+{
+    snow : {
+        runtime : 'CLIRuntime',
+        audio   : 'snow.core.Audio',
+        config  : { log : 1 }
+    },
+
+    project : {
+        name    : 'parcel-tool',
+        version : '0.0.1',
+        author  : 'Aidan Lee',
+
+        app : {
+            name      : 'parcel-tool',
+            codepaths : [
+                'src',
+                '../../src'
+            ]
+        },
+
+        build : {
+            dependencies : {
+                "snow"            : '*',
+                "haxe-concurrent" : '*',
+                "tink_cli"        : '*'
+            }
+        },
+    }
+}
