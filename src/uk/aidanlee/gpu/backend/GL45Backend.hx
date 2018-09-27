@@ -105,22 +105,55 @@ class GL45Backend implements IRendererBackend
      */
     var vertexOffset : Int;
 
-    // GL state variables
-
-    var viewport : Rectangle;
-    var clip     : Rectangle;
-    var target   : ImageResource;
-    var shader   : ShaderResource;
-
-    // wip
-
+    /**
+     * Shader programs keyed by their associated shader resource IDs.
+     */
     final shaderPrograms : Map<String, Int>;
+
+    /**
+     * Shader uniform locations keyed by their associated shader resource IDs.
+     */
     final shaderUniforms : Map<String, ShaderLocations>;
 
+    /**
+     * Texture objects keyed by their associated image resource IDs.
+     */
     final textureObjects : Map<String, Int>;
+
+    /**
+     * 64bit texture handles keyed by their associated image resource IDs.
+     * This will not be used if bindless is false.
+     */
     final textureHandles : Map<String, haxe.Int64>;
 
+    /**
+     * Framebuffer objects keyed by their associated image resource IDs.
+     * Framebuffers will only be generated when an image resource is used as a target.
+     * Will be destroyed when the associated image resource is destroyed.
+     */
     final framebufferObjects : Map<String, Int>;
+
+    // GL state variables
+
+    /**
+     * The current viewport size.
+     */
+    var viewport : Rectangle;
+
+    /**
+     * The current scissor region size.
+     */
+    var clip : Rectangle;
+
+    /**
+     * The target to use. If null the backbuffer is used.
+     */
+    var target : ImageResource;
+
+    /**
+     * Shader to use.
+     */
+    var shader : ShaderResource;
 
     /**
      * Creates a new openGL 4.5 renderer.
@@ -260,6 +293,10 @@ class GL45Backend implements IRendererBackend
         vertexOffset = bufferRanges[bufferRangeIndex].vtxOffset;
     }
 
+    /**
+     * Upload a series of geometry commands into the current buffer range.
+     * @param _commands Commands to upload.
+     */
     public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>)
     {
         for (command in _commands)
@@ -331,6 +368,10 @@ class GL45Backend implements IRendererBackend
         }
     }
 
+    /**
+     * Upload a series of buffer commands into the current buffer range.
+     * @param _commands Buffer commands.
+     */
     public function uploadBufferCommands(_commands : Array<BufferDrawCommand>)
     {
         for (command in _commands)
@@ -366,6 +407,11 @@ class GL45Backend implements IRendererBackend
         }
     }
 
+    /**
+     * Submit a series of uploaded commands to be drawn.
+     * @param _commands    Commands to draw.
+     * @param _recordStats If stats are to be recorded.
+     */
     public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true)
     {
         for (command in _commands)
@@ -991,14 +1037,29 @@ class GL45Backend implements IRendererBackend
     }
 }
 
+/**
+ * Representation of the backbuffer.
+ */
 private class BackBuffer
 {
+    /**
+     * Width of the backbuffer.
+     */
     public var width : Int;
 
+    /**
+     * Height of the backbuffer.
+     */
     public var height : Int;
 
+    /**
+     * View scale of the backbuffer.
+     */
     public var viewportScale : Float;
 
+    /**
+     * Framebuffer object for the backbuffer.
+     */
     public var framebufferObject : Int;
 
     public function new(_width : Int, _height : Int, _viewportScale : Float, _framebuffer : Int)
@@ -1010,16 +1071,34 @@ private class BackBuffer
     }
 }
 
+/**
+ * Stores the location of all a shaders uniforms
+ */
 private class ShaderLocations
 {
+    /**
+     * Layout of the shader.
+     */
     public final layout : ShaderLayout;
 
+    /**
+     * Location of all texture uniforms.
+     */
     public final textureLocations : Array<Int>;
 
+    /**
+     * Location of all shader blocks.
+     */
     public final blockLocations : Array<Int>;
 
+    /**
+     * SSBO buffer objects.
+     */
     public final blockBuffers : Array<Int>;
 
+    /**
+     * Bytes for each SSBO buffer.
+     */
     public final blockBytes : Array<Bytes>;
 
     public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockLocations : Array<Int>, _blockBuffers : Array<Int>, _blockBytes : Array<Bytes>)
@@ -1137,10 +1216,19 @@ private class UnchangingBuffer
     }
 }
 
+/**
+ * Stores the range of a draw command.
+ */
 private class DrawCommandRange
 {
+    /**
+     * The number of vertices in this draw command.
+     */
     public final vertices : Int;
 
+    /**
+     * The number of vertices this command is offset into the current range.
+     */
     public final vertexOffset : Int;
 
     inline public function new(_vertices : Int, _vertexOffset : Int)
