@@ -4,8 +4,6 @@ import snow.App;
 import snow.types.Types;
 import hxtelemetry.HxTelemetry;
 import uk.aidanlee.gpu.Renderer;
-import uk.aidanlee.gpu.Shader;
-import uk.aidanlee.gpu.Texture;
 import uk.aidanlee.gpu.batcher.Batcher;
 import uk.aidanlee.gpu.camera.OrthographicCamera;
 import uk.aidanlee.gpu.geometry.shapes.QuadGeometry;
@@ -70,7 +68,7 @@ class Main extends App
 
             // The api you choose changes what shaders you need to provide
             // Possible APIs are WEBGL, GL45, DX11, and NULL
-            api    : GL45,
+            api    : WEBGL,
             width  : app.runtime.window_width(),
             height : app.runtime.window_height(),
             dpi    : app.runtime.window_device_pixel_ratio(),
@@ -150,12 +148,9 @@ class Main extends App
 
     function onLoaded(_resources : Array<Resource>)
     {
-        //shdrHaxe = renderer.createShader(resources.get('assets/shaders/textured.json', ShaderResource));
-        //txtrHaxe = renderer.createTexture(resources.get('assets/images/haxe.png', ImageResource));
-        //txtrLogo = renderer.createTexture(resources.get('assets/images/logo.png', ImageResource));
-
         camera  = new OrthographicCamera(1600, 900);
         batcher = new Batcher({ shader : resources.get('assets/shaders/textured.json', ShaderResource), camera : camera });
+        imgui   = new ImGuiImpl(app, cast renderer.backend, resources.get('assets/shaders/textured.json', ShaderResource));
 
         renderer.batchers.push(batcher);
 
@@ -176,8 +171,6 @@ class Main extends App
         var logo = new QuadGeometry({ textures : [ resources.get('assets/images/logo.png', ImageResource) ], batchers : [ batcher ], depth : 2, unchanging : true });
         logo.transformation.origin.set_xy(resources.get('assets/images/logo.png', ImageResource).width / 2, resources.get('assets/images/logo.png', ImageResource).height / 2);
         logo.transformation.position.set_xy(1600 / 2, 900 / 2);
-
-        imgui = new ImGuiImpl(app, cast renderer.backend, resources.get('assets/shaders/textured.json', ShaderResource));
 
         loaded = true;
     }
