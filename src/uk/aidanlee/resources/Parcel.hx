@@ -1,9 +1,7 @@
 package uk.aidanlee.resources;
 
 import haxe.io.Bytes;
-import snow.api.Debug.def;
 import uk.aidanlee.resources.ResourceSystem;
-import uk.aidanlee.utils.Hash;
 
 typedef ResourceInfo   = { id : String }
 typedef ParcelInfo     = String;

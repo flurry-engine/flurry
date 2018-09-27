@@ -221,9 +221,7 @@ class ResourceSystem
                     }
 
                     // Get the serialized resource array from the parcel bytes.
-                    var unserializer = new Unserializer(sys.io.File.getBytes(asset).toString());
-                    var parcelData : ParcelData = unserializer.unserialize();
-
+                    var parcelData : ParcelData = Unserializer.run(sys.io.File.getBytes(asset).toString());
                     if (parcelData.compressed)
                     {
                         parcelData.serializedArray = haxe.zip.Uncompress.run(parcelData.serializedArray);
@@ -231,11 +229,8 @@ class ResourceSystem
 
                     // Unserialize the resource array and copy it over.
                     // Our custom resolver uses a fully qualified package name for resources since they come from another project.
-
-                    var unserializer = new Unserializer(parcelData.serializedArray.toString());
-                    unserializer.setResolver(new ResourceResolver());
-
-                    var parcelResources : Array<Resource> = unserializer.unserialize();
+                  
+                    var parcelResources : Array<Resource> = Unserializer.run(parcelData.serializedArray.toString());
                     for (parcelResource in parcelResources)
                     {
                         resources.push(parcelResource);
@@ -448,28 +443,6 @@ class ResourceSystem
         {
             parcel.onFailed(_event.message);
         }
-    }
-}
-
-/**
- * Custom resource resolver.
- * Classes are resouce classes so are resolve by specifying the full resource package name.
- * This is needed for the pre-compile parcels since those resource classes are in a separate project.
- */
-private class ResourceResolver
-{
-	public function new() {}
-
-	@:final
-    public inline function resolveClass(_name : String) : Class<Dynamic>
-    {
-        return Type.resolveClass('uk.aidanlee.resources.$_name');
-    }
-
-	@:final
-    public inline function resolveEnum(_name : String) : Enum<Dynamic>
-    {
-        return Type.resolveEnum(_name);
     }
 }
 
