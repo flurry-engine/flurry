@@ -61,27 +61,6 @@ class GL45Backend implements IRendererBackend
     final glVao : Int;
 
     /**
-     * Mapping of shader names to their GL program ID.
-     */
-    final shaders : Map<Int, Int>;
-
-    /**
-     * Cache of shader uniform locations to avoid lots of glGet calls.
-     */
-    final shaderCache : Map<Int, ShaderLocations>;
-
-    /**
-     * Mapping of texture IDs to their GL texture ID.
-     */
-    final textures : Map<Int, Int>;
-
-    /**
-     * All of the created textures handles.
-     * This would be a map but for some reason hxcpp doesn't like cpp.UInt64 values.
-     */
-    final textureHandles : Array<haxe.Int64>;
-
-    /**
      * Mapping of render texture names to their GL framebuffer ID.
      */
     final renderTargets : Map<Int, { fbo : Int, texture : Int }>;
@@ -161,7 +140,7 @@ class GL45Backend implements IRendererBackend
     var viewport : Rectangle;
     var clip     : Rectangle;
     var target   : IRenderTarget;
-    var shader   : Shader;
+    var shader   : ShaderResource;
 
     // wip
 
@@ -182,11 +161,7 @@ class GL45Backend implements IRendererBackend
         _options.backend = def(_options.backend, {});
 
         renderer       = _renderer;
-        shaders        = new Map();
-        shaderCache    = new Map();
-        textures       = new Map();
         renderTargets  = new Map();
-        textureHandles = [ for (i in 0...256) 0 ];
         shaderSequence       = 0;
         textureSequence      = 0;
         renderTargetSequence = 0;
@@ -507,7 +482,8 @@ class GL45Backend implements IRendererBackend
     {
         glUnmapNamedBuffer(glVbo);
 
-        for (shader in shaders.keys())
+        /*
+        for (shader in shaderPrograms.keys())
         {
             removeShader(shader);
         }
@@ -521,6 +497,7 @@ class GL45Backend implements IRendererBackend
         {
             removeRenderTarget(target);
         }
+        */
     }
 
     // #region Resource management.
@@ -773,8 +750,8 @@ class GL45Backend implements IRendererBackend
         }
 
         // Cache the layout, locations, buffer IDs, and bytes information
-        shaders.set(shaderSequence, program);
-        shaderCache.set(shaderSequence, new ShaderLocations(_layout, textureLocations, blockLocations, blockBuffers, blockBytes));
+        //shaders.set(shaderSequence, program);
+        //shaderCache.set(shaderSequence, new ShaderLocations(_layout, textureLocations, blockLocations, blockBuffers, blockBytes));
 
         return new Shader(shaderSequence++);
     }
@@ -785,8 +762,8 @@ class GL45Backend implements IRendererBackend
      */
     public function removeShader(_id : Int)
     {
-        glDeleteProgram(shaders.get(_id));
-        shaders.remove(_id);
+        //glDeleteProgram(shaders.get(_id));
+        //shaders.remove(_id);
     }
 
     /**
@@ -809,14 +786,14 @@ class GL45Backend implements IRendererBackend
         glTextureStorage2D(ids[0], 1, GL_RGBA8, _width, _height);
         glTextureSubImage2D(ids[0], 0, 0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, _pixels.toBytes().getData());
 
-        textures.set(textureSequence, ids[0]);
+        //textures.set(textureSequence, ids[0]);
 
         if (bindless)
         {
             var handle = glGetTextureHandleARB(ids[0]);
             glMakeTextureHandleResidentARB(handle);
 
-            textureHandles[textureSequence] = handle;
+            //textureHandles[textureSequence] = handle;
         }
         
         return new Texture(textureSequence++, _width, _height);
@@ -830,11 +807,11 @@ class GL45Backend implements IRendererBackend
     {
         if (bindless)
         {
-            glMakeTextureHandleNonResidentARB(cast textureHandles[_id]);
+            //glMakeTextureHandleNonResidentARB(cast textureHandles[_id]);
         }
 
-        glDeleteTextures(0, [ textures.get(_id) ]);
-        textures.remove(_id);
+        //glDeleteTextures(0, [ textures.get(_id) ]);
+        //textures.remove(_id);
     }
 
     /**
@@ -866,7 +843,7 @@ class GL45Backend implements IRendererBackend
             throw 'Framebuffer Exception : Framebuffer not complete';
         }
 
-        textures.set(textureSequence, tex[0]);
+        //textures.set(textureSequence, tex[0]);
         renderTargets.set(renderTargetSequence, { fbo : fbo[0], texture : textureSequence });
 
         if (bindless)
@@ -874,7 +851,7 @@ class GL45Backend implements IRendererBackend
             var handle = glGetTextureHandleARB(tex[0]);
             glMakeTextureHandleResidentARB(handle);
 
-            textureHandles[textureSequence] = handle;
+            //textureHandles[textureSequence] = handle;
         }
 
         return new RenderTexture(renderTargetSequence++, textureSequence++, _width, _height, 1);
@@ -888,18 +865,18 @@ class GL45Backend implements IRendererBackend
     public function removeRenderTarget(_targetID : Int)
     {
         var targetData = renderTargets.get(_targetID);
-        var textureID  = textures.get(targetData.texture);
+        //var textureID  = textures.get(targetData.texture);
 
         if (bindless)
         {
-            glMakeImageHandleNonResidentARB(cast textureHandles[targetData.texture]);
+            //glMakeImageHandleNonResidentARB(cast textureHandles[targetData.texture]);
         }
 
         glDeleteFramebuffers(1, [ targetData.fbo ]);
-        glDeleteTextures(1, [ textureID ]);
+        //glDeleteTextures(1, [ textureID ]);
 
         renderTargets.remove(targetData.fbo);
-        textures.remove(targetData.texture);
+        //textures.remove(targetData.texture);
     }
 
     // #endregion
@@ -972,7 +949,7 @@ class GL45Backend implements IRendererBackend
         if (shader != _command.shader)
         {
             shader = _command.shader;
-            glUseProgram(shaders.get(shader.shaderID));
+            glUseProgram(shaderPrograms.get(shader.id));
             
             if (!_disableStats)
             {
@@ -1012,7 +989,7 @@ class GL45Backend implements IRendererBackend
      */
     inline function setUniforms(_command : DrawCommand, _disableStats : Bool)
     {
-        var cache = shaderCache.get(_command.shader.shaderID);
+        var cache = shaderUniforms.get(_command.shader.id);
 
         // TEMP : Set all textures all the time.
         // TODO : Store all bound texture IDs and check before binding textures.
@@ -1025,13 +1002,13 @@ class GL45Backend implements IRendererBackend
         {
             if (bindless)
             {
-                var handlesToBind : Array<cpp.UInt64> = [ for (id in _command.textures) cast textureHandles[id.textureID] ];
+                var handlesToBind : Array<cpp.UInt64> = [ for (texture in _command.textures) cast texHandles.get(texture.id) ];
                 glUniformHandleui64vARB(0, handlesToBind.length, handlesToBind);
             }
             else
             {
                 // then go through each texture and bind it if it isn't already.
-                var texturesToBind : Array<Int> = [ for (id in _command.textures) textures.get(id.textureID) ];
+                var texturesToBind : Array<Int> = [ for (texture in _command.textures) textureObjects.get(texture.id) ];
                 glBindTextures(0, texturesToBind.length, texturesToBind);
 
                 if (!_disableStats)
@@ -1069,9 +1046,9 @@ class GL45Backend implements IRendererBackend
             for (val in cache.layout.blocks[i].vals)
             {
                 switch (ShaderType.createByName(val.type)) {
-                    case Matrix4: bytePosition += writeMatrix4(cache.blockBytes[i + 1], bytePosition, _command.shader.matrix4.get(val.name));
-                    case Vector4: bytePosition += writeVector4(cache.blockBytes[i + 1], bytePosition, _command.shader.vector4.get(val.name));
-                    case Int    : bytePosition +=     writeInt(cache.blockBytes[i + 1], bytePosition, _command.shader.int.get(val.name));
+                    case Matrix4: bytePosition += writeMatrix4(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.matrix4.get(val.name));
+                    case Vector4: bytePosition += writeVector4(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.vector4.get(val.name));
+                    case Int    : bytePosition +=     writeInt(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.int.get(val.name));
                 }
             }
 

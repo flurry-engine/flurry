@@ -1,5 +1,7 @@
 package uk.aidanlee.gpu.batcher;
 
+import uk.aidanlee.resources.Resource.ShaderResource;
+import uk.aidanlee.resources.Resource.ImageResource;
 import uk.aidanlee.maths.Rectangle;
 import uk.aidanlee.maths.Matrix;
 import uk.aidanlee.gpu.geometry.Geometry;
@@ -22,8 +24,8 @@ class GeometryDrawCommand extends DrawCommand
         _viewport   : Rectangle,
         _primitive  : PrimitiveType,
         _target     : IRenderTarget,
-        _shader     : Shader,
-        _textures   : Array<Texture>,
+        _shader     : ShaderResource,
+        _textures   : Array<ImageResource>,
         _clip       : Rectangle,
         _blending   : Bool,
         _srcRGB     : BlendMode = null,

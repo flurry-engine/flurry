@@ -27,9 +27,6 @@ class Main extends App
     var imgui : ImGuiImpl;
     var loaded : Bool;
 
-    var shdrHaxe : Shader;
-    var txtrHaxe : Texture;
-    var txtrLogo : Texture;
     var batcher  : Batcher;
     var camera   : OrthographicCamera;
 
@@ -153,12 +150,12 @@ class Main extends App
 
     function onLoaded(_resources : Array<Resource>)
     {
-        shdrHaxe = renderer.createShader(resources.get('assets/shaders/textured.json', ShaderResource));
-        txtrHaxe = renderer.createTexture(resources.get('assets/images/haxe.png', ImageResource));
-        txtrLogo = renderer.createTexture(resources.get('assets/images/logo.png', ImageResource));
+        //shdrHaxe = renderer.createShader(resources.get('assets/shaders/textured.json', ShaderResource));
+        //txtrHaxe = renderer.createTexture(resources.get('assets/images/haxe.png', ImageResource));
+        //txtrLogo = renderer.createTexture(resources.get('assets/images/logo.png', ImageResource));
 
         camera  = new OrthographicCamera(1600, 900);
-        batcher = new Batcher({ shader : shdrHaxe, camera : camera });
+        batcher = new Batcher({ shader : resources.get('assets/shaders/textured.json', ShaderResource), camera : camera });
 
         renderer.batchers.push(batcher);
 
@@ -168,7 +165,7 @@ class Main extends App
         numLogos = 10000;
         for (i in 0...numLogos)
         {
-            var sprite = new QuadGeometry({ textures : [ txtrHaxe ], batchers : [ batcher ] });
+            var sprite = new QuadGeometry({ textures : [ resources.get('assets/images/haxe.png', ImageResource) ], batchers : [ batcher ] });
             sprite.transformation.origin  .set_xy(75, 75);
             sprite.transformation.position.set_xy(1600 / 2, 900 / 2);
 
@@ -176,11 +173,11 @@ class Main extends App
             vectors.push(random_point_in_unit_circle());
         }
 
-        var logo = new QuadGeometry({ textures : [ txtrLogo ], batchers : [ batcher ], depth : 2, unchanging : true });
-        logo.transformation.origin.set_xy(txtrLogo.width / 2, txtrLogo.height / 2);
+        var logo = new QuadGeometry({ textures : [ resources.get('assets/images/logo.png', ImageResource) ], batchers : [ batcher ], depth : 2, unchanging : true });
+        logo.transformation.origin.set_xy(resources.get('assets/images/logo.png', ImageResource).width / 2, resources.get('assets/images/logo.png', ImageResource).height / 2);
         logo.transformation.position.set_xy(1600 / 2, 900 / 2);
 
-        imgui = new ImGuiImpl(app, renderer, shdrHaxe);
+        imgui = new ImGuiImpl(app, cast renderer.backend, resources.get('assets/shaders/textured.json', ShaderResource));
 
         loaded = true;
     }

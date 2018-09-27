@@ -246,8 +246,8 @@ class Renderer
         if (_a.depth > _b.depth) return  1;
 
         // Lastly shader
-        if (_a.shader.shaderID < _b.shader.shaderID) return -1;
-        if (_a.shader.shaderID > _b.shader.shaderID) return  1;
+        if (_a.shader.id < _b.shader.id) return -1;
+        if (_a.shader.id > _b.shader.id) return  1;
 
         return 0;
     }

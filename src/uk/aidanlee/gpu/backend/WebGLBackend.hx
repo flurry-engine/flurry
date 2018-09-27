@@ -536,6 +536,7 @@ class WebGLBackend implements IRendererBackend
             }
         }
 
+        /*
         // Apply shader changes.
         if (shader != _command.shader)
         {
@@ -547,6 +548,7 @@ class WebGLBackend implements IRendererBackend
                 renderer.stats.shaderSwaps++;
             }
         }
+        */
         
         // Apply the shaders uniforms
         // TODO : Only set uniforms if the value has changed.
@@ -581,6 +583,7 @@ class WebGLBackend implements IRendererBackend
      */
     inline function setUniforms(_command : DrawCommand, _disableStats : Bool)
     {
+        /*
         // Find this shaders location cache.
         var cache = shaderCache.get(_command.shader.shaderID);
 
@@ -636,6 +639,7 @@ class WebGLBackend implements IRendererBackend
                 }
             }
         }
+        */
     }
 
     inline function vectorToFloatArray(_vector : Vector) : Float32Array
