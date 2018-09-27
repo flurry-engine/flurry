@@ -496,22 +496,31 @@ class GL45Backend implements IRendererBackend
     {
         glUnmapNamedBuffer(glVbo);
 
-        /*
-        for (shader in shaderPrograms.keys())
+        for (shaderID in shaderPrograms.keys())
         {
-            removeShader(shader);
+            glDeleteProgram(shaderPrograms.get(shaderID));
+
+            shaderPrograms.remove(shaderID);
+            shaderUniforms.remove(shaderID);
         }
 
-        for (texture in textures.keys())
+        for (textureID in textureObjects.keys())
         {
-            removeTexture(texture);
-        }
+            if (bindless)
+            {
+                glMakeTextureHandleNonResidentARB(cast textureHandles.get(textureID));
+                textureHandles.remove(textureID);
+            }
 
-        for (target in renderTargets.keys())
-        {
-            removeRenderTarget(target);
+            glDeleteTextures(1, [ textureObjects.get(textureID) ]);
+            textureObjects.remove(textureID);
+
+            if (framebufferObjects.exists(textureID))
+            {
+                glDeleteFramebuffers(1, [ framebufferObjects.get(textureID) ]);
+                framebufferObjects.remove(textureID);
+            }
         }
-        */
     }
 
     // #region Resource management.
@@ -668,67 +677,9 @@ class GL45Backend implements IRendererBackend
             textureHandles.remove(_resource.id);
         }
 
-        glDeleteTextures(0, [ textureObjects.get(_resource.id) ]);
+        glDeleteTextures(1, [ textureObjects.get(_resource.id) ]);
         textureObjects.remove(_resource.id);
     }
-
-    /*
-
-    public function createRenderTarget(_width : Int, _height : Int) : RenderTexture
-    {
-        // Create the texture
-        var tex = [ 0 ];
-        glCreateTextures(GL_TEXTURE_2D, 1, tex);
-
-        glTextureParameteri(tex[0], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(tex[0], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(tex[0], GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTextureParameteri(tex[0], GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-        glTextureStorage2D(tex[0], 1, GL_RGBA8, _width, _height);
-
-        // Create the framebuffer
-        var fbo = [ 0 ];
-        glCreateFramebuffers(1, fbo);
-        glNamedFramebufferTexture(fbo[0], GL_COLOR_ATTACHMENT0, tex[0], 0);
-
-        if (glCheckNamedFramebufferStatus(fbo[0], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        {
-            throw 'Framebuffer Exception : Framebuffer not complete';
-        }
-
-        //textures.set(textureSequence, tex[0]);
-        renderTargets.set(renderTargetSequence, { fbo : fbo[0], texture : textureSequence });
-
-        if (bindless)
-        {
-            var handle = glGetTextureHandleARB(tex[0]);
-            glMakeTextureHandleResidentARB(handle);
-
-            //textureHandles[textureSequence] = handle;
-        }
-
-        return new RenderTexture(renderTargetSequence++, textureSequence++, _width, _height, 1);
-    }
-
-    public function removeRenderTarget(_targetID : Int)
-    {
-        var targetData = renderTargets.get(_targetID);
-        //var textureID  = textures.get(targetData.texture);
-
-        if (bindless)
-        {
-            //glMakeImageHandleNonResidentARB(cast textureHandles[targetData.texture]);
-        }
-
-        glDeleteFramebuffers(1, [ targetData.fbo ]);
-        //glDeleteTextures(1, [ textureID ]);
-
-        renderTargets.remove(targetData.fbo);
-        //textures.remove(targetData.texture);
-    }
-
-    */
 
     // #endregion
 
@@ -791,7 +742,17 @@ class GL45Backend implements IRendererBackend
 
             if (target != null && framebufferObjects.exists(target.id))
             {
-                trace('TODO : Create the framebuffer');
+                // Create the framebuffer
+                var fbo = [ 0 ];
+                glCreateFramebuffers(1, fbo);
+                glNamedFramebufferTexture(fbo[0], GL_COLOR_ATTACHMENT0, textureObjects.get(target.id), 0);
+
+                if (glCheckNamedFramebufferStatus(fbo[0], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                {
+                    throw 'OpenGL 4.5 Backend Exception : ${target.id} : Framebuffer not complete';
+                }
+
+                framebufferObjects.set(target.id, fbo[0]);
             }
 
             glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebufferObject);
@@ -801,20 +762,6 @@ class GL45Backend implements IRendererBackend
                 renderer.stats.targetSwaps++;
             }
         }
-
-        /*
-        var cmdTarget = _command.target != null ? _command.target : backbuffer;
-        if (target.targetID != cmdTarget.targetID)
-        {
-            target = cmdTarget;
-            glBindFramebuffer(GL_FRAMEBUFFER, renderTargets.get(target.targetID).fbo);
-
-            if (!_disableStats)
-            {
-                renderer.stats.targetSwaps++;
-            }
-        }
-        */
 
         // Apply shader changes.
         if (shader != _command.shader)
@@ -867,7 +814,7 @@ class GL45Backend implements IRendererBackend
 
         if (cache.layout.textures.length > _command.textures.length)
         {
-            throw 'Error : More textures required by the shader than are provided by the draw command';
+            throw 'OpenGL 4.5 Backend Exception : ${_command.shader.id} : More textures required by the shader than are provided by the draw command';
         }
         else
         {
