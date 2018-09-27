@@ -2,7 +2,6 @@ package uk.aidanlee.gpu.geometry;
 
 import snow.api.Emitter;
 import snow.api.Debug.def;
-import uk.aidanlee.gpu.Shader;
 import uk.aidanlee.gpu.batcher.Batcher;
 import uk.aidanlee.maths.Vector;
 import uk.aidanlee.maths.Rectangle;

@@ -15,20 +15,20 @@ import uk.aidanlee.maths.Vector;
 import uk.aidanlee.maths.Rectangle;
 import uk.aidanlee.resources.Resource.ShaderResource;
 import uk.aidanlee.resources.Resource.ImageResource;
-import uk.aidanlee.gpu.backend.GL45Backend;
+import uk.aidanlee.gpu.backend.IRendererBackend;
 import uk.aidanlee.utils.Hash;
 
 class ImGuiImpl
 {
     final app      : Snow;
-    final renderer : GL45Backend;
+    final renderer : IRendererBackend;
     final texture  : ImageResource;
     final shader   : ShaderResource;
     final mousePos : Vector;
     final buffer   : Float32Array;
     final camera   : OrthographicCamera;
 
-    public function new(_app : Snow, _renderer : GL45Backend, _shader : ShaderResource)
+    public function new(_app : Snow, _renderer : IRendererBackend, _shader : ShaderResource)
     {
         app      = _app;
         renderer = _renderer;
@@ -71,7 +71,7 @@ class ImGuiImpl
         buffer   = new Float32Array(1000000);
 
         texture = new ImageResource('imgui_texture', width, height, cast pixels);
-        renderer.createImageResource(texture);
+        renderer.createTexture(texture);
 
         atlas.texID = Pointer.addressOf(texture).rawCast();
 
@@ -144,7 +144,7 @@ class ImGuiImpl
      */
     public function dispose()
     {
-        renderer.removeImageResource(texture);
+        renderer.removeTexture(texture);
     }
 
     /**

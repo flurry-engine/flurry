@@ -23,7 +23,7 @@ class GeometryDrawCommand extends DrawCommand
         _vertices   : Int,
         _viewport   : Rectangle,
         _primitive  : PrimitiveType,
-        _target     : IRenderTarget,
+        _target     : ImageResource,
         _shader     : ShaderResource,
         _textures   : Array<ImageResource>,
         _clip       : Rectangle,

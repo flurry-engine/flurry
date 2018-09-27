@@ -5,12 +5,13 @@ import snow.api.Debug.def;
 import uk.aidanlee.gpu.camera.Camera;
 import uk.aidanlee.gpu.geometry.Geometry;
 import uk.aidanlee.resources.Resource.ShaderResource;
+import uk.aidanlee.resources.Resource.ImageResource;
 import uk.aidanlee.utils.Hash;
 
 typedef BatcherOptions = {
     var camera : Camera;
     var shader : ShaderResource;
-    @:optional var target : IRenderTarget;
+    @:optional var target : ImageResource;
     @:optional var depth : Float;
     @:optional var maxVerts : Int;
 }
@@ -51,7 +52,7 @@ class Batcher
      * 
      * If null the default target of the renderer will be used (probably the backbuffer).
      */
-    public var target : IRenderTarget;
+    public var target : ImageResource;
 
     /**
      * Camera for this batcher to use.

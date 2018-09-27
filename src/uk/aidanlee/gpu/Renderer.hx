@@ -1,9 +1,6 @@
 package uk.aidanlee.gpu;
 
 import haxe.ds.ArraySort;
-import snow.api.buffers.Uint8Array;
-import uk.aidanlee.resources.Resource.ShaderResource;
-import uk.aidanlee.resources.Resource.ImageResource;
 import uk.aidanlee.gpu.batcher.DrawCommand;
 import uk.aidanlee.gpu.batcher.Batcher;
 import uk.aidanlee.gpu.backend.IRendererBackend;
@@ -90,7 +87,7 @@ class Renderer
      */
     final api : RequestedBackend;
 
-    inline public function new(_options : RendererOptions)
+    public function new(_options : RendererOptions)
     {
         queuedCommands = [];
         batchers = [];
@@ -119,7 +116,7 @@ class Renderer
         }
     }
 
-    inline public function preRender()
+    public function preRender()
     {
         backend.preDraw();
 
@@ -129,7 +126,7 @@ class Renderer
     /**
      * Sort and draw all the batchers.
      */
-    inline public function render()
+    public function render()
     {
         if (batchers.length <= 0) return;
 
@@ -147,7 +144,7 @@ class Renderer
         backend.submitCommands(queuedCommands);
     }
 
-    inline public function postRender()
+    public function postRender()
     {
         backend.postDraw();
     }
@@ -155,7 +152,7 @@ class Renderer
     /**
      * Clears the display.
      */
-    inline public function clear()
+    public function clear()
     {
         backend.clear();
     }
@@ -165,61 +162,9 @@ class Renderer
      * @param _width  Renderer new width.
      * @param _height Renderer new height.
      */
-    inline public function resize(_width : Int, _height : Int)
+    public function resize(_width : Int, _height : Int)
     {
         backend.resize(_width, _height);
-    }
-
-    /**
-     * Create a texture.
-     * @param _resource Image resource to create a texture from.
-     * @return Texture
-     */
-    public function createTexture(_resource : ImageResource) : Texture
-    {
-        return backend.createTexture(Uint8Array.fromBuffer(_resource.pixels, 0, _resource.pixels.length), _resource.width, _resource.height);
-    }
-
-    /**
-     * Create a empty render target.
-     * @param _width  Width of the render target.
-     * @param _height Height of the render target.
-     * @return RenderTexture
-     */
-    public function createRenderTarget(_width : Int, _height : Int) : RenderTexture
-    {
-        return backend.createRenderTarget(_width, _height);
-    }
-
-    /**
-     * Create a shader.
-     * @param _resource Shader resource to create the shader from.
-     * @return Shader
-     */
-    public function createShader(_resource : ShaderResource) : Shader
-    {
-        switch (api) {
-            case WEBGL:
-                if (_resource.webgl == null)
-                {
-                    throw '${_resource.id} does not contain a webgl shader';
-                }
-                return backend.createShader(_resource.webgl.vertex, _resource.webgl.fragment, _resource.layout);
-            case GL45:
-                if (_resource.gl45 == null)
-                {
-                    throw '${_resource.id} does not contain a gl45 shader';
-                }
-                return backend.createShader(_resource.gl45.vertex, _resource.gl45.fragment, _resource.layout);
-            case DX11:
-                if (_resource.hlsl == null)
-                {
-                    throw '${_resource.id} does not contain a hlsl shader';
-                }
-                return backend.createShader(_resource.hlsl.vertex, _resource.hlsl.fragment, _resource.layout);
-            case NULL:
-                return backend.createShader('', '', { textures : [], blocks : [] });
-        }
     }
 
     /**
@@ -233,9 +178,10 @@ class Renderer
         // Sort by framebuffer
         if (_a.target != null && _b.target != null)
         {
-            if (_a.target.targetID < _b.target.targetID) return -1;
-            if (_a.target.targetID > _b.target.targetID) return  1;
+            if (_a.target.id < _b.target.id) return -1;
+            if (_a.target.id > _b.target.id) return  1;
         }
+        else
         {
             if (_a.target != null && _b.target == null) return  1;
             if (_a.target == null && _b.target != null) return -1;

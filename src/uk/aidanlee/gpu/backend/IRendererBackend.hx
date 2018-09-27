@@ -1,9 +1,9 @@
 package uk.aidanlee.gpu.backend;
 
+import uk.aidanlee.resources.Resource.ImageResource;
+import uk.aidanlee.resources.Resource.ShaderResource;
 import uk.aidanlee.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.gpu.batcher.GeometryDrawCommand;
-import snow.api.buffers.Float32Array;
-import snow.api.buffers.Uint8Array;
 import uk.aidanlee.gpu.batcher.DrawCommand;
 
 /**
@@ -81,13 +81,13 @@ interface IRendererBackend
      * @param _frag Fragment shader source.
      * @return Shader
      */
-    public function createShader(_vert : String, _frag : String, _layout : ShaderLayout) : Shader;
+    public function createShader(_resource : ShaderResource) : Void;
 
     /**
      * Removes and frees the resources used by a shader.
      * @param _id Unique ID of the shader.
      */
-    public function removeShader(_id : Int) : Void;
+    public function removeShader(_resource : ShaderResource) : Void;
 
     /**
      * Creates a new texture given an array of pixel data.
@@ -96,27 +96,13 @@ interface IRendererBackend
      * @param _height Height of the texture.
      * @return Texture
      */
-    public function createTexture(_pixels : Uint8Array, _width : Int, _height : Int) : Texture;
+    public function createTexture(_resource : ImageResource) : Void;
 
     /**
      * Removes and frees the resources used by a texture.
      * @param _id Unique ID of the texture.
      */
-    public function removeTexture(_id : Int) : Void;
-
-    /**
-     * Creates a render target which can be drawn to and used as a texture.
-     * @param _width  Width of the target.
-     * @param _height Height of the target.
-     * @return RenderTexture
-     */
-    public function createRenderTarget(_width : Int, _height : Int) : RenderTexture;
-
-    /**
-     * Frees the openGL resources used by a render target.
-     * @param _target Unique ID of the target.
-     */
-    public function removeRenderTarget(_id : Int) : Void;
+    public function removeTexture(_resource : ImageResource) : Void;
 
     /**
      * Call when destroying the renderer. Will cleanup any resources used by the backend.

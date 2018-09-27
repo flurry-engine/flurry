@@ -1,12 +1,10 @@
 package uk.aidanlee.gpu.batcher;
 
-import uk.aidanlee.resources.Resource.ShaderResource;
-import uk.aidanlee.resources.Resource.ImageResource;
 import snow.api.Debug.def;
 import uk.aidanlee.maths.Rectangle;
-import uk.aidanlee.gpu.Texture;
-import uk.aidanlee.gpu.Shader;
 import uk.aidanlee.gpu.geometry.Geometry;
+import uk.aidanlee.resources.Resource.ShaderResource;
+import uk.aidanlee.resources.Resource.ImageResource;
 
 /**
  * 

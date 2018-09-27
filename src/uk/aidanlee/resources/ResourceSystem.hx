@@ -273,21 +273,13 @@ class ResourceSystem
                 // Optionally auto remove resource once it is not referenced by any parcels.
                 if (backend != null)
                 {
-                    trace('Auto deleting');
-
                     if (Std.is(resourceCache.get(resource), ImageResource))
                     {
-                        trace('is image');
-
-                        var gl = cast (backend, GL45Backend);
-                        gl.removeImageResource(cast resourceCache.get(resource));
+                        backend.removeTexture(cast resourceCache.get(resource));
                     }
                     if (Std.is(resourceCache.get(resource), ShaderResource))
                     {
-                        trace('is shader');
-
-                        var gl = cast (backend, GL45Backend);
-                        gl.removeShaderResource(cast resourceCache.get(resource));
+                        backend.removeShader(cast resourceCache.get(resource));
                     }
                 }
 
@@ -398,13 +390,11 @@ class ResourceSystem
                 {
                     if (Std.is(resource, ImageResource))
                     {
-                        var gl = cast (backend, GL45Backend);
-                        gl.createImageResource(cast resource);
+                        backend.createTexture(cast resource);
                     }
                     if (Std.is(resource, ShaderResource))
                     {
-                        var gl = cast (backend, GL45Backend);
-                        gl.createShaderResource(cast resource);
+                        backend.createShader(cast resource);
                     }
                 }
             }
