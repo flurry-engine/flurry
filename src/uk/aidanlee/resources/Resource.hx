@@ -3,6 +3,8 @@ package uk.aidanlee.resources;
 import haxe.io.BytesData;
 import haxe.Json;
 import haxe.io.Bytes;
+import uk.aidanlee.maths.Vector;
+import uk.aidanlee.maths.Matrix;
 import uk.aidanlee.gpu.backend.IRendererBackend.ShaderLayout;
 
 typedef ShaderBackend = { vertex : String, fragment : String };
@@ -81,13 +83,32 @@ class ShaderResource extends Resource
 
     public final hlsl : ShaderBackend;
 
+    public final uniforms : Uniforms;
+
     public function new(_id : String, _layout : ShaderLayout, _webgl : ShaderBackend = null, _gl45 : ShaderBackend = null, _hlsl : ShaderBackend = null)
     {
         super(_id);
 
-        layout = _layout;
-        webgl  = _webgl;
-        gl45   = _gl45;
-        hlsl   = _hlsl;
+        layout   = _layout;
+        webgl    = _webgl;
+        gl45     = _gl45;
+        hlsl     = _hlsl;
+        uniforms = new Uniforms();
+    }
+}
+
+private class Uniforms
+{
+    public final int : Map<String, Int>;
+
+    public final vector4 : Map<String, Vector>;
+
+    public final matrix4 : Map<String, Matrix>;
+
+    public function new()
+    {
+        int     = new Map();
+        vector4 = new Map();
+        matrix4 = new Map();
     }
 }
