@@ -13,6 +13,10 @@
             "webgl" : {
                 "vertex"   : "assets/shaders/webgl/textured.vert",
                 "fragment" : "assets/shaders/webgl/textured.frag"
+            },
+            "hlsl" : {
+                "vertex"   : "assets/shaders/hlsl/textured.hlsl",
+                "fragment" : "assets/shaders/hlsl/textured.hlsl"
             }
         }
     ]

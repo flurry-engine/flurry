@@ -22,7 +22,8 @@
             dependencies : {
                 "snow"            : '*',
                 "haxe-concurrent" : '*',
-                "tink_cli"        : '*'
+                "tink_cli"        : '*',
+                "linc_directx"    : '*'
             }
         },
     }
