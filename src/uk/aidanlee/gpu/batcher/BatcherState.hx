@@ -2,9 +2,9 @@ package uk.aidanlee.gpu.batcher;
 
 import snow.api.Debug.def;
 import uk.aidanlee.maths.Rectangle;
-import uk.aidanlee.gpu.Texture;
-import uk.aidanlee.gpu.Shader;
 import uk.aidanlee.gpu.geometry.Geometry;
+import uk.aidanlee.resources.Resource.ShaderResource;
+import uk.aidanlee.resources.Resource.ImageResource;
 
 /**
  * 
@@ -30,12 +30,12 @@ class BatcherState
     /**
      * The shader currently active in this batcher.
      */
-    public var shader (default, null) : Shader;
+    public var shader (default, null) : ShaderResource;
 
     /**
      * The textures currently active in this batcher.
      */
-    public var textures (default, null) : Array<Texture>;
+    public var textures (default, null) : Array<ImageResource>;
 
     /**
      * The clipping box currently active in this batcher.
@@ -74,7 +74,7 @@ class BatcherState
         if (_geom.textures.length != textures.length) return true;
         for (i in 0...textures.length)
         {
-            if (textures[i].textureID != _geom.textures[i].textureID) return true;
+            if (textures[i].id != _geom.textures[i].id) return true;
         }
 
         if (_geom.unchanging != unchanging) return true;

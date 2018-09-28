@@ -1,10 +1,12 @@
 package uk.aidanlee.resources;
 
+import uk.aidanlee.gpu.backend.GL45Backend;
 import haxe.Json;
 import haxe.Unserializer;
 import snow.api.Debug.def;
 import hx.concurrent.collection.Queue;
 import hx.concurrent.executor.Executor;
+import uk.aidanlee.gpu.backend.IRendererBackend;
 import uk.aidanlee.resources.Parcel.ParcelList;
 import uk.aidanlee.resources.Parcel.ShaderInfo;
 import uk.aidanlee.resources.Parcel.ImageInfo;
@@ -29,9 +31,15 @@ enum ParcelEventType
 class ResourceSystem
 {
     /**
+     * Rendering backend this resource system will use to automatically manage gpu resources.
+     * If not specified gpu resources will not be automatically created and destroyed.
+     */
+    final backend : IRendererBackend;
+
+    /**
      * All parcels loaded in this resource system.
      */
-    public final parcels : Map<String, Parcel>;
+    final parcels : Map<String, Parcel>;
 
     /**
      * Map of a parcels ID to all the resources IDs contained within it.
@@ -67,8 +75,9 @@ class ResourceSystem
      * 
      * @param _threads Number of active threads for loading parcels (defaults 1).
      */
-    public function new(_threads : Int = 1)
+    public function new(_backend : IRendererBackend = null, _threads : Int = 1)
     {
+        backend            = _backend;
         parcels            = new Map();
         parcelResources    = new Map();
         resourceCache      = new Map();
@@ -86,6 +95,20 @@ class ResourceSystem
     public function createParcel(_name : String, _list : ParcelList, ?_onLoaded : Array<Resource>->Void, ?_onProgress : Float->Void, ?_onFailed : String->Void) : Parcel
     {
         return new Parcel(this, _name, _list, _onLoaded, _onProgress, _onFailed);
+    }
+
+    /**
+     * Add a parcel to this system.
+     * @param _parcel Parcel to add.
+     */
+    public function add(_parcel : Parcel)
+    {
+        if (parcels.exists(_parcel.id))
+        {
+            throw 'Parcel with the ${_parcel.id} already exists within this resource system';
+        }
+
+        parcels.set(_parcel.id, _parcel);
     }
 
     /**
@@ -198,9 +221,7 @@ class ResourceSystem
                     }
 
                     // Get the serialized resource array from the parcel bytes.
-                    var unserializer = new Unserializer(sys.io.File.getBytes(asset).toString());
-                    var parcelData : ParcelData = unserializer.unserialize();
-
+                    var parcelData : ParcelData = Unserializer.run(sys.io.File.getBytes(asset).toString());
                     if (parcelData.compressed)
                     {
                         parcelData.serializedArray = haxe.zip.Uncompress.run(parcelData.serializedArray);
@@ -208,11 +229,8 @@ class ResourceSystem
 
                     // Unserialize the resource array and copy it over.
                     // Our custom resolver uses a fully qualified package name for resources since they come from another project.
-
-                    var unserializer = new Unserializer(parcelData.serializedArray.toString());
-                    unserializer.setResolver(new ResourceResolver());
-
-                    var parcelResources : Array<Resource> = unserializer.unserialize();
+                  
+                    var parcelResources : Array<Resource> = Unserializer.run(parcelData.serializedArray.toString());
                     for (parcelResource in parcelResources)
                     {
                         resources.push(parcelResource);
@@ -245,14 +263,26 @@ class ResourceSystem
             return;
         }
 
-        var toRemove = parcelResources.get(_parcel);
-        for (resource in toRemove)
+        for (resource in parcelResources.get(_parcel))
         {
             // If there is only 1 reference to this resource we can remove it out right.
             // This is because only the parcel we are freeing references it.
             // Otherwise we deincrement the resources reference and leave it in the system.
             if (resourceReferences.get(resource) == 1)
             {
+                // Optionally auto remove resource once it is not referenced by any parcels.
+                if (backend != null)
+                {
+                    if (Std.is(resourceCache.get(resource), ImageResource))
+                    {
+                        backend.removeTexture(cast resourceCache.get(resource));
+                    }
+                    if (Std.is(resourceCache.get(resource), ShaderResource))
+                    {
+                        backend.removeShader(cast resourceCache.get(resource));
+                    }
+                }
+
                 resourceReferences.remove(resource);
                 resourceCache.remove(resource);
             }
@@ -354,6 +384,19 @@ class ResourceSystem
             if (!resourceCache.exists(resource.id))
             {
                 resourceCache.set(resource.id, resource);
+
+                // Optionally create the gpu resources
+                if (backend != null)
+                {
+                    if (Std.is(resource, ImageResource))
+                    {
+                        backend.createTexture(cast resource);
+                    }
+                    if (Std.is(resource, ShaderResource))
+                    {
+                        backend.createShader(cast resource);
+                    }
+                }
             }
         }
 
@@ -390,28 +433,6 @@ class ResourceSystem
         {
             parcel.onFailed(_event.message);
         }
-    }
-}
-
-/**
- * Custom resource resolver.
- * Classes are resouce classes so are resolve by specifying the full resource package name.
- * This is needed for the pre-compile parcels since those resource classes are in a separate project.
- */
-private class ResourceResolver
-{
-	public function new() {}
-
-	@:final
-    public inline function resolveClass(_name : String) : Class<Dynamic>
-    {
-        return Type.resolveClass('uk.aidanlee.resources.$_name');
-    }
-
-	@:final
-    public inline function resolveEnum(_name : String) : Enum<Dynamic>
-    {
-        return Type.resolveEnum(_name);
     }
 }
 

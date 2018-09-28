@@ -7,27 +7,28 @@ import imgui.draw.ImDrawData;
 import imgui.util.ImVec2;
 import imgui.util.ImVec4;
 import snow.Snow;
-import snow.api.buffers.Uint8Array;
 import snow.api.buffers.Float32Array;
 import snow.systems.input.Keycodes;
-import uk.aidanlee.gpu.Texture;
 import uk.aidanlee.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.gpu.camera.OrthographicCamera;
 import uk.aidanlee.maths.Vector;
 import uk.aidanlee.maths.Rectangle;
+import uk.aidanlee.resources.Resource.ShaderResource;
+import uk.aidanlee.resources.Resource.ImageResource;
+import uk.aidanlee.gpu.backend.IRendererBackend;
 import uk.aidanlee.utils.Hash;
 
 class ImGuiImpl
 {
     final app      : Snow;
-    final renderer : Renderer;
-    final texture  : Texture;
-    final shader   : Shader;
+    final renderer : IRendererBackend;
+    final texture  : ImageResource;
+    final shader   : ShaderResource;
     final mousePos : Vector;
     final buffer   : Float32Array;
     final camera   : OrthographicCamera;
 
-    public function new(_app : Snow, _renderer : Renderer, _shader : Shader)
+    public function new(_app : Snow, _renderer : IRendererBackend, _shader : ShaderResource)
     {
         app      = _app;
         renderer = _renderer;
@@ -66,9 +67,12 @@ class ImGuiImpl
         var pixels : Array<Int> = null;
         atlas.getTexDataAsRGBA32(pixels, width, height);
 
-        mousePos    = new Vector();
-        buffer      = new Float32Array(1000000);
-        texture     = renderer.backend.createTexture(Uint8Array.fromArray(pixels), width, height);
+        mousePos = new Vector();
+        buffer   = new Float32Array(1000000);
+
+        texture = new ImageResource('imgui_texture', width, height, cast pixels);
+        renderer.createTexture(texture);
+
         atlas.texID = Pointer.addressOf(texture).rawCast();
 
         // Change the imgui style.
@@ -140,7 +144,7 @@ class ImGuiImpl
      */
     public function dispose()
     {
-        renderer.backend.removeTexture(texture.textureID);
+        renderer.removeTexture(texture);
     }
 
     /**
@@ -209,7 +213,7 @@ class ImGuiImpl
                 var start = vtxOffset;
                 var clip  = new Rectangle(cmd.clipRect.x, cmd.clipRect.y, cmd.clipRect.z - cmd.clipRect.x, cmd.clipRect.w - cmd.clipRect.y);
 
-                var t  : Pointer<Texture> = Pointer.fromRaw(cmd.textureID).reinterpret();
+                var t  : Pointer<ImageResource> = Pointer.fromRaw(cmd.textureID).reinterpret();
                 var it : Int = cast cmd.elemCount / 3;
                 for (tri in 0...it)
                 {
@@ -262,8 +266,8 @@ class ImGuiImpl
         }
         
         // Send commands to renderer backend.
-        renderer.backend.uploadBufferCommands(commands);
-        renderer.backend.submitCommands(cast commands, true);
+        renderer.uploadBufferCommands(commands);
+        renderer.submitCommands(cast commands, true);
     }
 
     // Callbacks

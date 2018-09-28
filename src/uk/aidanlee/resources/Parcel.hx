@@ -1,9 +1,7 @@
 package uk.aidanlee.resources;
 
 import haxe.io.Bytes;
-import snow.api.Debug.def;
 import uk.aidanlee.resources.ResourceSystem;
-import uk.aidanlee.utils.Hash;
 
 typedef ResourceInfo   = { id : String }
 typedef ParcelInfo     = String;
@@ -86,17 +84,17 @@ class Parcel
      * @param _name     Unique name for this parcel (defaults to a unique hash).
      * @param _list     List of resources to load with this parcel (defaults to empty parcel list).
      */
-    public function new(_system : ResourceSystem, ?_name : String, ?_list : ParcelList, ?_onLoaded : Array<Resource>->Void, ?_onProgress : Float->Void, ?_onFailed : String->Void)
+    public function new(_system : ResourceSystem, _name : String, _list : ParcelList, ?_onLoaded : Array<Resource>->Void, ?_onProgress : Float->Void, ?_onFailed : String->Void)
     {
         system = _system;
-        id     = def(_name, Hash.uniqueID());
-        list   = def(_list, {});
+        id     = _name;
+        list   = _list;
 
         onLoaded   = _onLoaded;
         onProgress = _onProgress;
         onFailed   = _onFailed;
 
-        system.parcels.set(id, this);
+        system.add(this);
     }
 
     /**

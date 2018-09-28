@@ -1,12 +1,13 @@
 package uk.aidanlee.gpu.geometry;
 
-import uk.aidanlee.utils.Hash;
 import snow.api.Emitter;
 import snow.api.Debug.def;
-import uk.aidanlee.gpu.Shader;
 import uk.aidanlee.gpu.batcher.Batcher;
 import uk.aidanlee.maths.Vector;
 import uk.aidanlee.maths.Rectangle;
+import uk.aidanlee.resources.Resource.ShaderResource;
+import uk.aidanlee.resources.Resource.ImageResource;
+import uk.aidanlee.utils.Hash;
 
 enum PrimitiveType {
     Points;
@@ -37,8 +38,8 @@ enum abstract EvGeometry(Int) from Int to Int {
 
 typedef GeometryOptions = {
     var ?name       : String;
-    var ?shader     : Shader;
-    var ?textures   : Array<Texture>;
+    var ?shader     : ShaderResource;
+    var ?textures   : Array<ImageResource>;
     var ?depth      : Int;
     var ?immediate  : Bool;
     var ?unchanging : Bool;
@@ -89,9 +90,9 @@ class Geometry
     /**
      * ID of the texture this mesh uses.
      */
-    public var textures (default, set) : Array<Texture>;
+    public var textures (default, set) : Array<ImageResource>;
 
-    inline function set_textures(_textures : Array<Texture>) : Array<Texture> {
+    inline function set_textures(_textures : Array<ImageResource>) : Array<ImageResource> {
         events.emit(OrderProperyChanged);
 
         return textures = _textures;
@@ -101,9 +102,9 @@ class Geometry
      * The specific shader for the geometry.
      * If null the batchers shader is used.
      */
-    public var shader (default, set) : Shader;
+    public var shader (default, set) : ShaderResource;
 
-    inline function set_shader(_shader : Shader) : Shader {
+    inline function set_shader(_shader : ShaderResource) : ShaderResource {
         events.emit(OrderProperyChanged);
 
         return shader = _shader;

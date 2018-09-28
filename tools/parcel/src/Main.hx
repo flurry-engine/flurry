@@ -2,13 +2,10 @@ package;
 
 import tink.Cli;
 
-class Main
-{
-    public static function main()
-    {
-        Cli.process(Sys.args(), new Main()).handle(Cli.exit);
-    }
+typedef UserConfig = {};
 
+class Main extends snow.App
+{
     public function new()
     {
         json         = '';
@@ -16,6 +13,11 @@ class Main
         ignoreHidden = false;
         verbose      = false;
         output       = 'output.parcel';
+    }
+
+    override function ready()
+    {
+        Cli.process(Sys.args(), new Main()).handle(Cli.exit);
     }
 
     @:flag('-from-json')

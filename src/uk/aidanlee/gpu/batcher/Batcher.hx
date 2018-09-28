@@ -2,15 +2,16 @@ package uk.aidanlee.gpu.batcher;
 
 import haxe.ds.ArraySort;
 import snow.api.Debug.def;
-import uk.aidanlee.gpu.Shader;
 import uk.aidanlee.gpu.camera.Camera;
 import uk.aidanlee.gpu.geometry.Geometry;
+import uk.aidanlee.resources.Resource.ShaderResource;
+import uk.aidanlee.resources.Resource.ImageResource;
 import uk.aidanlee.utils.Hash;
 
 typedef BatcherOptions = {
     var camera : Camera;
-    var shader : Shader;
-    @:optional var target : IRenderTarget;
+    var shader : ShaderResource;
+    @:optional var target : ImageResource;
     @:optional var depth : Float;
     @:optional var maxVerts : Int;
 }
@@ -51,7 +52,7 @@ class Batcher
      * 
      * If null the default target of the renderer will be used (probably the backbuffer).
      */
-    public var target : IRenderTarget;
+    public var target : ImageResource;
 
     /**
      * Camera for this batcher to use.
@@ -61,7 +62,7 @@ class Batcher
     /**
      * Shader for this batcher to use.
      */
-    public var shader : Shader;
+    public var shader : ShaderResource;
 
     /**
      * The float of this batcher.
@@ -237,8 +238,8 @@ class Batcher
         // Sort by texture.
         if (_a.shader != null && _b.shader != null)
         {
-            if (_a.shader.shaderID < _b.shader.shaderID) return -1;
-            if (_a.shader.shaderID > _b.shader.shaderID) return  1;
+            if (_a.shader.id < _b.shader.id) return -1;
+            if (_a.shader.id > _b.shader.id) return  1;
         }
         {
             if (_a.shader != null && _b.shader == null) return  1;
@@ -248,8 +249,8 @@ class Batcher
         // Sort by texture.
         if (_a.textures.length != 0 && _b.textures.length != 0)
         {
-            if (_a.textures[0].textureID < _b.textures[0].textureID) return -1;
-            if (_a.textures[0].textureID > _b.textures[0].textureID) return  1;
+            if (_a.textures[0].id < _b.textures[0].id) return -1;
+            if (_a.textures[0].id > _b.textures[0].id) return  1;
         }
         {
             if (_a.textures.length != 0 && _b.textures.length == 0) return  1;

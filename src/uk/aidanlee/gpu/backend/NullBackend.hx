@@ -1,10 +1,11 @@
 package uk.aidanlee.gpu.backend;
 
-import snow.api.buffers.Uint8Array;
 import uk.aidanlee.gpu.batcher.DrawCommand;
 import uk.aidanlee.gpu.backend.IRendererBackend.ShaderLayout;
 import uk.aidanlee.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.gpu.batcher.GeometryDrawCommand;
+import uk.aidanlee.resources.Resource.ImageResource;
+import uk.aidanlee.resources.Resource.ShaderResource;
 
 class NullBackend implements IRendererBackend
 {
@@ -105,16 +106,16 @@ class NullBackend implements IRendererBackend
      * @param _frag Fragment shader source.
      * @return Shader
      */
-    public function createShader(_vert : String, _frag : String, _layout : ShaderLayout) : Shader
+    public function createShader(_resource : ShaderResource)
     {
-        return new Shader(shaderSequence++);
+        //
     }
 
     /**
      * Removes and frees the resources used by a shader.
      * @param _id Unique ID of the shader.
      */
-    public function removeShader(_id : Int)
+    public function removeShader(_resource : ShaderResource)
     {
         //
     }
@@ -126,36 +127,16 @@ class NullBackend implements IRendererBackend
      * @param _height Height of the texture.
      * @return Texture
      */
-    public function createTexture(_pixels : Uint8Array, _width : Int, _height : Int) : Texture
+    public function createTexture(_resource : ImageResource)
     {
-        return new Texture(textureSequence++, _width, _height);
+        //
     }
 
     /**
      * Removes and frees the resources used by a texture.
      * @param _id Unique ID of the texture.
      */
-    public function removeTexture(_id : Int)
-    {
-        //
-    }
-
-    /**
-     * Creates a render target which can be drawn to and used as a texture.
-     * @param _width  Width of the target.
-     * @param _height Height of the target.
-     * @return RenderTexture
-     */
-    public function createRenderTarget(_width : Int, _height : Int) : RenderTexture
-    {
-        return new RenderTexture(targetSequence++, textureSequence++, _width, _height, 1);
-    }
-
-    /**
-     * Frees the openGL resources used by a render target.
-     * @param _target Unique ID of the target.
-     */
-    public function removeRenderTarget(_id : Int)
+    public function removeTexture(_resource : ImageResource)
     {
         //
     }

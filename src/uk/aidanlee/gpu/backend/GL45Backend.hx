@@ -8,21 +8,19 @@ import opengl.GL.*;
 import opengl.GL.GLSync;
 import opengl.WebGL;
 import snow.api.buffers.Float32Array;
-import snow.api.buffers.Uint8Array;
 import snow.api.Debug.def;
 import uk.aidanlee.gpu.Renderer.RendererOptions;
+import uk.aidanlee.gpu.geometry.Geometry.BlendMode;
 import uk.aidanlee.gpu.backend.IRendererBackend.ShaderType;
 import uk.aidanlee.gpu.backend.IRendererBackend.ShaderLayout;
-import uk.aidanlee.gpu.geometry.Geometry.BlendMode;
 import uk.aidanlee.gpu.batcher.DrawCommand;
 import uk.aidanlee.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.gpu.batcher.BufferDrawCommand;
-import uk.aidanlee.gpu.IRenderTarget;
-import uk.aidanlee.gpu.Shader;
-import uk.aidanlee.gpu.Texture;
 import uk.aidanlee.maths.Rectangle;
 import uk.aidanlee.maths.Vector;
 import uk.aidanlee.maths.Matrix;
+import uk.aidanlee.resources.Resource.ImageResource;
+import uk.aidanlee.resources.Resource.ShaderResource;
 
 /**
  * OpenGL 4.5 renderer. Makes use of DSA, named buffers, persistent mapping, and (hopefully) eventually stuff like SSBOs and bindless textures.
@@ -59,35 +57,9 @@ class GL45Backend implements IRendererBackend
     final glVao : Int;
 
     /**
-     * Mapping of shader names to their GL program ID.
-     */
-    final shaders : Map<Int, Int>;
-
-    /**
-     * Cache of shader uniform locations to avoid lots of glGet calls.
-     */
-    final shaderCache : Map<Int, ShaderLocations>;
-
-    /**
-     * Mapping of texture IDs to their GL texture ID.
-     */
-    final textures : Map<Int, Int>;
-
-    /**
-     * All of the created textures handles.
-     * This would be a map but for some reason hxcpp doesn't like cpp.UInt64 values.
-     */
-    final textureHandles : Array<cpp.UInt64>;
-
-    /**
-     * Mapping of render texture names to their GL framebuffer ID.
-     */
-    final renderTargets : Map<Int, { fbo : Int, texture : Int }>;
-
-    /**
      * Backbuffer display, default target if none is specified.
      */
-    final backbuffer : IRenderTarget;
+    final backbuffer : BackBuffer;
 
     /**
      * Tracks, stores, and uploads unchaning buffer data and its required state.
@@ -134,32 +106,54 @@ class GL45Backend implements IRendererBackend
     var vertexOffset : Int;
 
     /**
-     * Sequence number texture IDs.
-     * For each generated texture this number is incremented and given to the texture as a unique ID.
-     * Allows batchers to sort textures.
+     * Shader programs keyed by their associated shader resource IDs.
      */
-    var textureSequence : Int;
+    final shaderPrograms : Map<String, Int>;
 
     /**
-     * Sequence number shader IDs.
-     * For each generated shader this number is incremented and given to the shader as a unique ID.
-     * Allows batchers to sort shaders.
+     * Shader uniform locations keyed by their associated shader resource IDs.
      */
-    var shaderSequence : Int;
+    final shaderUniforms : Map<String, ShaderLocations>;
 
     /**
-     * Sequence number render texture IDs.
-     * For each generated render texture this number is incremented and given to the render texture as a unique ID.
-     * Allows batchers to sort render textures.
+     * Texture objects keyed by their associated image resource IDs.
      */
-    var renderTargetSequence : Int;
+    final textureObjects : Map<String, Int>;
+
+    /**
+     * 64bit texture handles keyed by their associated image resource IDs.
+     * This will not be used if bindless is false.
+     */
+    final textureHandles : Map<String, haxe.Int64>;
+
+    /**
+     * Framebuffer objects keyed by their associated image resource IDs.
+     * Framebuffers will only be generated when an image resource is used as a target.
+     * Will be destroyed when the associated image resource is destroyed.
+     */
+    final framebufferObjects : Map<String, Int>;
 
     // GL state variables
 
+    /**
+     * The current viewport size.
+     */
     var viewport : Rectangle;
-    var clip     : Rectangle;
-    var target   : IRenderTarget;
-    var shader   : Shader;
+
+    /**
+     * The current scissor region size.
+     */
+    var clip : Rectangle;
+
+    /**
+     * The target to use. If null the backbuffer is used.
+     */
+    var target : ImageResource;
+
+    /**
+     * Shader to use.
+     */
+    var shader : ShaderResource;
 
     /**
      * Creates a new openGL 4.5 renderer.
@@ -171,15 +165,7 @@ class GL45Backend implements IRendererBackend
     {
         _options.backend = def(_options.backend, {});
 
-        renderer       = _renderer;
-        shaders        = new Map();
-        shaderCache    = new Map();
-        textures       = new Map();
-        renderTargets  = new Map();
-        textureHandles = [ for (i in 0...256) 0 ];
-        shaderSequence       = 0;
-        textureSequence      = 0;
-        renderTargetSequence = 0;
+        renderer = _renderer;
 
         // Check for ARB_bindless_texture support
         bindless = def(_options.backend.bindless, false);
@@ -247,9 +233,7 @@ class GL45Backend implements IRendererBackend
         var backbufferID = [ 0 ];
         glGetIntegerv(GL_FRAMEBUFFER, backbufferID);
 
-        backbuffer = new BackBuffer(renderTargetSequence, _options.width, _options.height, _options.dpi);
-
-        renderTargets.set(renderTargetSequence++, { fbo : backbufferID[0], texture : 0});
+        backbuffer = new BackBuffer(_options.width, _options.height, _options.dpi, backbufferID[0]);
 
         // Default blend mode
         // TODO : Move this to be a settable property in the geometry or renderer or something
@@ -266,8 +250,16 @@ class GL45Backend implements IRendererBackend
         // default state
         viewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
         clip     = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-        target   = backbuffer;
+        target   = null;
         shader   = null;
+
+        shaderPrograms = new Map();
+        shaderUniforms = new Map();
+
+        textureObjects = new Map();
+        textureHandles = new Map();
+
+        framebufferObjects = new Map();
     }
 
     /**
@@ -301,6 +293,10 @@ class GL45Backend implements IRendererBackend
         vertexOffset = bufferRanges[bufferRangeIndex].vtxOffset;
     }
 
+    /**
+     * Upload a series of geometry commands into the current buffer range.
+     * @param _commands Commands to upload.
+     */
     public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>)
     {
         for (command in _commands)
@@ -372,6 +368,10 @@ class GL45Backend implements IRendererBackend
         }
     }
 
+    /**
+     * Upload a series of buffer commands into the current buffer range.
+     * @param _commands Buffer commands.
+     */
     public function uploadBufferCommands(_commands : Array<BufferDrawCommand>)
     {
         for (command in _commands)
@@ -407,6 +407,11 @@ class GL45Backend implements IRendererBackend
         }
     }
 
+    /**
+     * Submit a series of uploaded commands to be drawn.
+     * @param _commands    Commands to draw.
+     * @param _recordStats If stats are to be recorded.
+     */
     public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true)
     {
         for (command in _commands)
@@ -491,53 +496,69 @@ class GL45Backend implements IRendererBackend
     {
         glUnmapNamedBuffer(glVbo);
 
-        for (shader in shaders.keys())
+        for (shaderID in shaderPrograms.keys())
         {
-            removeShader(shader);
+            glDeleteProgram(shaderPrograms.get(shaderID));
+
+            shaderPrograms.remove(shaderID);
+            shaderUniforms.remove(shaderID);
         }
 
-        for (texture in textures.keys())
+        for (textureID in textureObjects.keys())
         {
-            removeTexture(texture);
-        }
+            if (bindless)
+            {
+                glMakeTextureHandleNonResidentARB(cast textureHandles.get(textureID));
+                textureHandles.remove(textureID);
+            }
 
-        for (target in renderTargets.keys())
-        {
-            removeRenderTarget(target);
+            glDeleteTextures(1, [ textureObjects.get(textureID) ]);
+            textureObjects.remove(textureID);
+
+            if (framebufferObjects.exists(textureID))
+            {
+                glDeleteFramebuffers(1, [ framebufferObjects.get(textureID) ]);
+                framebufferObjects.remove(textureID);
+            }
         }
     }
 
     // #region Resource management.
 
     /**
-     * Compiles and links together a shader program from the provided vertex and fragment shader.
-     * 
-     * TODO : decide upon using WebGL class or not. Mixing between the two looks rather ugly.
-     * @param _vert   Vertex source.
-     * @param _frag   Fragment source.
-     * @param _layout Shader layout JSON description.
-     * @return Shader
+     * Create a shader from a resource.
+     * @param _resource Resource to create a shader of.
      */
-    public function createShader(_vert : String, _frag : String, _layout : ShaderLayout) : Shader
+    public function createShader(_resource : ShaderResource)
     {
+        if (_resource.gl45 == null)
+        {
+            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Attempting to create a shader from a resource which has no gl45 shader source';
+        }
+
+        if (shaderPrograms.exists(_resource.id))
+        {
+            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Attempting to create a shader which already exists';
+        }
+
         // Create vertex shader.
         var vertex = glCreateShader(GL_VERTEX_SHADER);
-        WebGL.shaderSource(vertex, _vert);
+        WebGL.shaderSource(vertex, _resource.gl45.vertex);
         glCompileShader(vertex);
 
         if (WebGL.getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
         {
-            throw 'Error Compiling Vertex Shader : ' + WebGL.getShaderInfoLog(vertex);
+            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Error compiling vertex shader : ${WebGL.getShaderInfoLog(vertex)}';
         }
 
         // Create fragment shader.
         var fragment = glCreateShader(GL_FRAGMENT_SHADER);
-        WebGL.shaderSource(fragment, _frag);
+        WebGL.shaderSource(fragment, _resource.gl45.fragment);
         glCompileShader(fragment);
 
         if (WebGL.getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
         {
-            throw 'Error Compiling Fragment Shader : ' + WebGL.getShaderInfoLog(fragment);
+            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Error compiling fragment shader : ${WebGL.getShaderInfoLog(fragment)}';
         }
 
         // Link the shaders into a program.
@@ -548,7 +569,7 @@ class GL45Backend implements IRendererBackend
 
         if (WebGL.getProgramParameter(program, GL_LINK_STATUS) == 0)
         {
-            throw 'Error Linking Shader Program : ' + WebGL.getProgramInfoLog(program);
+            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Error linking program : ${WebGL.getProgramInfoLog(program)}';
         }
 
         // Delete the shaders now that they're linked
@@ -558,11 +579,11 @@ class GL45Backend implements IRendererBackend
         // Get the location of all textures and storage blocks in the gl program.
         var textureLocations = [];
         var blockLocations   = [ glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, "defaultMatrices") ];
-        for (texture in _layout.textures)
+        for (texture in _resource.layout.textures)
         {
             textureLocations.push(glGetUniformLocation(program, texture));
         }
-        for (block in _layout.blocks)
+        for (block in _resource.layout.blocks)
         {
             blockLocations.push(glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, block.name));
         }
@@ -580,7 +601,7 @@ class GL45Backend implements IRendererBackend
         blockBytes.push(data);
 
         // Create a GL buffer and allocate bytes for each user defined bytes.
-        for (block in _layout.blocks)
+        for (block in _resource.layout.blocks)
         {
             var bytesSize = 0;
             for (val in block.vals)
@@ -600,31 +621,27 @@ class GL45Backend implements IRendererBackend
             blockBytes.push(bytesData);
         }
 
-        // Cache the layout, locations, buffer IDs, and bytes information
-        shaders.set(shaderSequence, program);
-        shaderCache.set(shaderSequence, new ShaderLocations(_layout, textureLocations, blockLocations, blockBuffers, blockBytes));
-
-        return new Shader(shaderSequence++);
+        shaderPrograms.set(_resource.id, program);
+        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockLocations, blockBuffers, blockBytes));
     }
 
     /**
-     * Deletes a GL program and removes it from the shader storage.
-     * @param _id Unique shader ID.
+     * Free the GPU resources used by a shader program.
+     * @param _resource Shader resource to remove.
      */
-    public function removeShader(_id : Int)
+    public function removeShader(_resource : ShaderResource)
     {
-        glDeleteProgram(shaders.get(_id));
-        shaders.remove(_id);
+        glDeleteProgram(shaderPrograms.get(_resource.id));
+
+        shaderPrograms.remove(_resource.id);
+        shaderUniforms.remove(_resource.id);
     }
 
     /**
-     * Create a new texture.
-     * @param _pixels R8G8B8A8 pixel data.
-     * @param _width  Width of the texture.
-     * @param _height Height of the texture.
-     * @return Texture
+     * Create a texture from a resource.
+     * @param _resource Image resource to create the texture from.
      */
-    public function createTexture(_pixels : Uint8Array, _width : Int, _height : Int) : Texture
+    public function createTexture(_resource : ImageResource)
     {
         var ids = [ 0 ];
         glCreateTextures(GL_TEXTURE_2D, 1, ids);
@@ -634,100 +651,34 @@ class GL45Backend implements IRendererBackend
         glTextureParameteri(ids[0], GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTextureParameteri(ids[0], GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-        glTextureStorage2D(ids[0], 1, GL_RGBA8, _width, _height);
-        glTextureSubImage2D(ids[0], 0, 0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, _pixels.toBytes().getData());
+        glTextureStorage2D(ids[0], 1, GL_RGBA8, _resource.width, _resource.height);
+        glTextureSubImage2D(ids[0], 0, 0, 0, _resource.width, _resource.height, GL_RGBA, GL_UNSIGNED_BYTE, _resource.pixels);
 
-        textures.set(textureSequence, ids[0]);
+        textureObjects.set(_resource.id, ids[0]);
 
         if (bindless)
         {
             var handle = glGetTextureHandleARB(ids[0]);
             glMakeTextureHandleResidentARB(handle);
 
-            textureHandles[textureSequence] = handle;
+            textureHandles.set(_resource.id, handle);
         }
-        
-        return new Texture(textureSequence++, _width, _height);
     }
 
     /**
-     * Remove the resources used by a texture.
-     * @param _id Unique texture ID.
+     * Free the GPU resources used by a texture.
+     * @param _resource Image resource to remove.
      */
-    public function removeTexture(_id : Int)
+    public function removeTexture(_resource : ImageResource)
     {
         if (bindless)
         {
-            glMakeTextureHandleNonResidentARB(textureHandles[_id]);
+            glMakeTextureHandleNonResidentARB(cast textureHandles.get(_resource.id));
+            textureHandles.remove(_resource.id);
         }
 
-        glDeleteTextures(0, [ textures.get(_id) ]);
-        textures.remove(_id);
-    }
-
-    /**
-     * Create a new render target.
-     * @param _width  Width of the target.
-     * @param _height Height of the target.
-     * @return RenderTexture
-     */
-    public function createRenderTarget(_width : Int, _height : Int) : RenderTexture
-    {
-        // Create the texture
-        var tex = [ 0 ];
-        glCreateTextures(GL_TEXTURE_2D, 1, tex);
-
-        glTextureParameteri(tex[0], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(tex[0], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(tex[0], GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTextureParameteri(tex[0], GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-        glTextureStorage2D(tex[0], 1, GL_RGBA8, _width, _height);
-
-        // Create the framebuffer
-        var fbo = [ 0 ];
-        glCreateFramebuffers(1, fbo);
-        glNamedFramebufferTexture(fbo[0], GL_COLOR_ATTACHMENT0, tex[0], 0);
-
-        if (glCheckNamedFramebufferStatus(fbo[0], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        {
-            throw 'Framebuffer Exception : Framebuffer not complete';
-        }
-
-        textures.set(textureSequence, tex[0]);
-        renderTargets.set(renderTargetSequence, { fbo : fbo[0], texture : textureSequence });
-
-        if (bindless)
-        {
-            var handle = glGetTextureHandleARB(tex[0]);
-            glMakeTextureHandleResidentARB(handle);
-
-            textureHandles[textureSequence] = handle;
-        }
-
-        return new RenderTexture(renderTargetSequence++, textureSequence++, _width, _height, 1);
-    }
-
-    /**
-     * Remove the resources used by a render target.
-     * @param _targetID  Unique render target ID.
-     * @param _textureID Unique texture ID.
-     */
-    public function removeRenderTarget(_targetID : Int)
-    {
-        var targetData = renderTargets.get(_targetID);
-        var textureID  = textures.get(targetData.texture);
-
-        if (bindless)
-        {
-            glMakeImageHandleNonResidentARB(textureHandles[targetData.texture]);
-        }
-
-        glDeleteFramebuffers(1, [ targetData.fbo ]);
-        glDeleteTextures(1, [ textureID ]);
-
-        renderTargets.remove(targetData.fbo);
-        textures.remove(targetData.texture);
+        glDeleteTextures(1, [ textureObjects.get(_resource.id) ]);
+        textureObjects.remove(_resource.id);
     }
 
     // #endregion
@@ -746,13 +697,13 @@ class GL45Backend implements IRendererBackend
         {
             viewport.set(cmdViewport.x, cmdViewport.y, cmdViewport.w, cmdViewport.h);
 
-            var x = viewport.x *= target.viewportScale;
-            var y = viewport.y *= target.viewportScale;
-            var w = viewport.w *= target.viewportScale;
-            var h = viewport.h *= target.viewportScale;
+            var x = viewport.x *= target == null ? backbuffer.viewportScale : 1;
+            var y = viewport.y *= target == null ? backbuffer.viewportScale : 1;
+            var w = viewport.w *= target == null ? backbuffer.viewportScale : 1;
+            var h = viewport.h *= target == null ? backbuffer.viewportScale : 1;
 
             // OpenGL works 0x0 is bottom left so we need to flip the y.
-            y = target.height - (y + h);
+            y = (target == null ? backbuffer.height : target.height) - (y + h);
             glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
 
             if (!_disableStats)
@@ -767,13 +718,13 @@ class GL45Backend implements IRendererBackend
         {
             clip.copyFrom(cmdClip);
 
-            var x = clip.x *= target.viewportScale;
-            var y = clip.y *= target.viewportScale;
-            var w = clip.w *= target.viewportScale;
-            var h = clip.h *= target.viewportScale;
+            var x = clip.x *= target == null ? backbuffer.viewportScale : 1;
+            var y = clip.y *= target == null ? backbuffer.viewportScale : 1;
+            var w = clip.w *= target == null ? backbuffer.viewportScale : 1;
+            var h = clip.h *= target == null ? backbuffer.viewportScale : 1;
 
             // OpenGL works 0x0 is bottom left so we need to flip the y.
-            y = target.height - (y + h);
+            y = (target == null ? backbuffer.height : target.height) - (y + h);
             glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
 
             if (!_disableStats)
@@ -784,11 +735,27 @@ class GL45Backend implements IRendererBackend
 
         // Set the render target.
         // If the target is null then the backbuffer is used.
-        var cmdTarget = _command.target != null ? _command.target : backbuffer;
-        if (target.targetID != cmdTarget.targetID)
+        // Render targets are created on the fly as and when needed since most textures probably won't be used as targets.
+        if (_command.target != target)
         {
-            target = cmdTarget;
-            glBindFramebuffer(GL_FRAMEBUFFER, renderTargets.get(target.targetID).fbo);
+            target = _command.target;
+
+            if (target != null && !framebufferObjects.exists(target.id))
+            {
+                // Create the framebuffer
+                var fbo = [ 0 ];
+                glCreateFramebuffers(1, fbo);
+                glNamedFramebufferTexture(fbo[0], GL_COLOR_ATTACHMENT0, textureObjects.get(target.id), 0);
+
+                if (glCheckNamedFramebufferStatus(fbo[0], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                {
+                    throw 'OpenGL 4.5 Backend Exception : ${target.id} : Framebuffer not complete';
+                }
+
+                framebufferObjects.set(target.id, fbo[0]);
+            }
+
+            glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebufferObject);
 
             if (!_disableStats)
             {
@@ -800,7 +767,7 @@ class GL45Backend implements IRendererBackend
         if (shader != _command.shader)
         {
             shader = _command.shader;
-            glUseProgram(shaders.get(shader.shaderID));
+            glUseProgram(shaderPrograms.get(shader.id));
             
             if (!_disableStats)
             {
@@ -840,26 +807,26 @@ class GL45Backend implements IRendererBackend
      */
     inline function setUniforms(_command : DrawCommand, _disableStats : Bool)
     {
-        var cache = shaderCache.get(_command.shader.shaderID);
+        var cache = shaderUniforms.get(_command.shader.id);
 
         // TEMP : Set all textures all the time.
         // TODO : Store all bound texture IDs and check before binding textures.
 
         if (cache.layout.textures.length > _command.textures.length)
         {
-            throw 'Error : More textures required by the shader than are provided by the draw command';
+            throw 'OpenGL 4.5 Backend Exception : ${_command.shader.id} : More textures required by the shader than are provided by the draw command';
         }
         else
         {
             if (bindless)
             {
-                var handlesToBind = [ for (id in _command.textures) textureHandles[id.textureID] ];
+                var handlesToBind : Array<cpp.UInt64> = [ for (texture in _command.textures) cast textureHandles.get(texture.id) ];
                 glUniformHandleui64vARB(0, handlesToBind.length, handlesToBind);
             }
             else
             {
                 // then go through each texture and bind it if it isn't already.
-                var texturesToBind : Array<Int> = [ for (id in _command.textures) textures.get(id.textureID) ];
+                var texturesToBind : Array<Int> = [ for (texture in _command.textures) textureObjects.get(texture.id) ];
                 glBindTextures(0, texturesToBind.length, texturesToBind);
 
                 if (!_disableStats)
@@ -897,9 +864,9 @@ class GL45Backend implements IRendererBackend
             for (val in cache.layout.blocks[i].vals)
             {
                 switch (ShaderType.createByName(val.type)) {
-                    case Matrix4: bytePosition += writeMatrix4(cache.blockBytes[i + 1], bytePosition, _command.shader.matrix4.get(val.name));
-                    case Vector4: bytePosition += writeVector4(cache.blockBytes[i + 1], bytePosition, _command.shader.vector4.get(val.name));
-                    case Int    : bytePosition +=     writeInt(cache.blockBytes[i + 1], bytePosition, _command.shader.int.get(val.name));
+                    case Matrix4: bytePosition += writeMatrix4(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.matrix4.get(val.name));
+                    case Vector4: bytePosition += writeVector4(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.vector4.get(val.name));
+                    case Int    : bytePosition +=     writeInt(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.int.get(val.name));
                 }
             }
 
@@ -1017,16 +984,68 @@ class GL45Backend implements IRendererBackend
     }
 }
 
+/**
+ * Representation of the backbuffer.
+ */
+private class BackBuffer
+{
+    /**
+     * Width of the backbuffer.
+     */
+    public var width : Int;
+
+    /**
+     * Height of the backbuffer.
+     */
+    public var height : Int;
+
+    /**
+     * View scale of the backbuffer.
+     */
+    public var viewportScale : Float;
+
+    /**
+     * Framebuffer object for the backbuffer.
+     */
+    public var framebufferObject : Int;
+
+    public function new(_width : Int, _height : Int, _viewportScale : Float, _framebuffer : Int)
+    {
+        width             = _width;
+        height            = _height;
+        viewportScale     = _viewportScale;
+        framebufferObject = _framebuffer;
+    }
+}
+
+/**
+ * Stores the location of all a shaders uniforms
+ */
 private class ShaderLocations
 {
+    /**
+     * Layout of the shader.
+     */
     public final layout : ShaderLayout;
 
+    /**
+     * Location of all texture uniforms.
+     */
     public final textureLocations : Array<Int>;
 
+    /**
+     * Location of all shader blocks.
+     */
     public final blockLocations : Array<Int>;
 
+    /**
+     * SSBO buffer objects.
+     */
     public final blockBuffers : Array<Int>;
 
+    /**
+     * Bytes for each SSBO buffer.
+     */
     public final blockBytes : Array<Bytes>;
 
     public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockLocations : Array<Int>, _blockBuffers : Array<Int>, _blockBytes : Array<Bytes>)
@@ -1144,10 +1163,19 @@ private class UnchangingBuffer
     }
 }
 
+/**
+ * Stores the range of a draw command.
+ */
 private class DrawCommandRange
 {
+    /**
+     * The number of vertices in this draw command.
+     */
     public final vertices : Int;
 
+    /**
+     * The number of vertices this command is offset into the current range.
+     */
     public final vertexOffset : Int;
 
     inline public function new(_vertices : Int, _vertexOffset : Int)
