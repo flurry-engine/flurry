@@ -1,12 +1,9 @@
 package;
 
 import snow.App;
-import snow.api.Promise;
 import snow.types.Types;
 import hxtelemetry.HxTelemetry;
 import uk.aidanlee.gpu.Renderer;
-import uk.aidanlee.gpu.Shader;
-import uk.aidanlee.gpu.Texture;
 import uk.aidanlee.gpu.batcher.Batcher;
 import uk.aidanlee.gpu.camera.OrthographicCamera;
 import uk.aidanlee.gpu.geometry.shapes.QuadGeometry;
@@ -28,9 +25,6 @@ class Main extends App
     var imgui : ImGuiImpl;
     var loaded : Bool;
 
-    var shdrHaxe : Shader;
-    var txtrHaxe : Texture;
-    var txtrLogo : Texture;
     var batcher  : Batcher;
     var camera   : OrthographicCamera;
 
@@ -70,12 +64,11 @@ class Main extends App
         app.runtime.auto_swap = false;
         
         // Setup the renderer.
-        resources = new ResourceSystem();
-        renderer  = new Renderer({
+        renderer = new Renderer({
 
             // The api you choose changes what shaders you need to provide
             // Possible APIs are WEBGL, GL45, DX11, and NULL
-            api    : GL45,
+            api    : WEBGL,
             width  : app.runtime.window_width(),
             height : app.runtime.window_height(),
             dpi    : app.runtime.window_device_pixel_ratio(),
@@ -91,17 +84,26 @@ class Main extends App
             }
         });
 
+        // Pass the renderer backend to the resource system so GPU resources (textures, shaders) can be automatically managed.
+        // When loading and freeing parcels the needed GPU resources can then be created and destroyed as and when needed.
+        resources = new ResourceSystem(renderer.backend);
+
+        // Load a pre-packed parcel containing our shader and two images.
+        // See the parcel tool for creating pre-packed parcels.
         resources.createParcel('default', { parcels : [ 'assets/parcels/sample.parcel' ] }, onLoaded).load();
     }
 
     override function update(_dt : Float)
     {
+        // The resource system needs to be called periodically to process thread events.
+        // If this is not called the resources loaded on separate threads won't be registered and parcel callbacks won't be invoked.
         resources.update();
 
         // Pre-draw
         renderer.clear();
         renderer.preRender();
 
+        // Our game specific logic, only do it if our default parcel has loaded.
         if (loaded)
         {
             imgui.newFrame();
@@ -132,7 +134,10 @@ class Main extends App
         // The window_swap is only needed for GL renderers with snow.
         // If using DX11 comment out that line else GL will render over DX.
         renderer.postRender();
-        app.runtime.window_swap();
+        if (renderer.api != DX11)
+        {
+            app.runtime.window_swap();
+        }
 
         hxt.advance_frame();
     }
@@ -147,14 +152,9 @@ class Main extends App
 
     function onLoaded(_resources : Array<Resource>)
     {
-        shdrHaxe = renderer.createShader(resources.get('assets/shaders/textured.json', ShaderResource));
-        txtrHaxe = renderer.createTexture(resources.get('assets/images/haxe.png', ImageResource));
-        txtrLogo = renderer.createTexture(resources.get('assets/images/logo.png', ImageResource));
-
         camera  = new OrthographicCamera(1600, 900);
-        batcher = new Batcher({ shader : shdrHaxe, camera : camera });
-
-        renderer.batchers.push(batcher);
+        imgui   = new ImGuiImpl(app, cast renderer.backend, resources.get('assets/shaders/textured.json', ShaderResource));
+        batcher = renderer.createBatcher({ shader : resources.get('assets/shaders/textured.json', ShaderResource), camera : camera });
 
         // Add some sprites.
         sprites  = [];
@@ -162,7 +162,7 @@ class Main extends App
         numLogos = 10000;
         for (i in 0...numLogos)
         {
-            var sprite = new QuadGeometry({ textures : [ txtrHaxe ], batchers : [ batcher ] });
+            var sprite = new QuadGeometry({ textures : [ resources.get('assets/images/haxe.png', ImageResource) ], batchers : [ batcher ] });
             sprite.transformation.origin  .set_xy(75, 75);
             sprite.transformation.position.set_xy(1600 / 2, 900 / 2);
 
@@ -170,11 +170,9 @@ class Main extends App
             vectors.push(random_point_in_unit_circle());
         }
 
-        var logo = new QuadGeometry({ textures : [ txtrLogo ], batchers : [ batcher ], depth : 2, unchanging : true });
-        logo.transformation.origin.set_xy(txtrLogo.width / 2, txtrLogo.height / 2);
+        var logo = new QuadGeometry({ textures : [ resources.get('assets/images/logo.png', ImageResource) ], batchers : [ batcher ], depth : 2, unchanging : true });
+        logo.transformation.origin.set_xy(resources.get('assets/images/logo.png', ImageResource).width / 2, resources.get('assets/images/logo.png', ImageResource).height / 2);
         logo.transformation.position.set_xy(1600 / 2, 900 / 2);
-
-        imgui = new ImGuiImpl(app, renderer, shdrHaxe);
 
         loaded = true;
     }

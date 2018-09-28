@@ -1,0 +1,1 @@
+`./parcel-tool -from-json assets.json -output assets.parcel --compress --verbose`

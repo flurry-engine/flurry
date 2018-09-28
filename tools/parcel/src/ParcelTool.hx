@@ -3,46 +3,8 @@ package;
 import haxe.Json;
 import haxe.Serializer;
 import haxe.io.Bytes;
-import Resource;
-
-typedef ResourceInfo   = { id : String }
-typedef ParcelInfo     = String;
-typedef BytesInfo      = ResourceInfo;
-typedef TextInfo       = ResourceInfo;
-typedef JSONInfo       = ResourceInfo;
-typedef ImageInfo      = ResourceInfo;
-typedef ShaderInfo     = {
-    >ResourceInfo,
-
-    ?webgl : {
-        vertex   : String,
-        fragment : String
-    },
-
-    ?gl45 : {
-        vertex   : String,
-        fragment : String
-    },
-
-    ?hlsl : {
-        vertex   : String,
-        fragment : String
-    }
-}
-
-typedef ParcelList = {
-    ?bytes   : Array<BytesInfo>,
-    ?texts   : Array<TextInfo>,
-    ?jsons   : Array<JSONInfo>,
-    ?images  : Array<ImageInfo>,
-    ?shaders : Array<ShaderInfo>,
-    ?parcels : Array<ParcelInfo>
-}
-
-typedef ParcelData = {
-    compressed : Bool,
-    serializedArray : Bytes
-}
+import uk.aidanlee.resources.Resource;
+import uk.aidanlee.resources.Parcel;
 
 class ParcelTool
 {

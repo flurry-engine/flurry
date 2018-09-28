@@ -2,7 +2,7 @@
     "name"      : "gpu",
     "license"   : "MIT",
     "version"   : "1.0.0",
-    "classPath" : "src",
+    "classPath" : "engine/src",
     "contributors": [
         "Aidan"
     ],
