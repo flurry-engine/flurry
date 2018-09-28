@@ -63,11 +63,6 @@ typedef RendererOptions = {
 class Renderer
 {
     /**
-     * Batcher manager, responsible for creating, deleteing, and sorting batchers.
-     */
-    public final batchers : Array<Batcher>;
-
-    /**
      * Holds the global render state.
      */
     public final backend : IRendererBackend;
@@ -81,6 +76,11 @@ class Renderer
      * API backend used by the renderer.
      */
     public final api : RequestedBackend;
+
+    /**
+     * Batcher manager, responsible for creating, deleteing, and sorting batchers.
+     */
+    final batchers : Array<Batcher>;
 
     /**
      * Queue of all draw commands for this frame.
@@ -167,6 +167,48 @@ class Renderer
     {
         backend.resize(_width, _height);
     }
+
+    // #region Batcher Management
+
+    /**
+     * Create and return a batcher. The returned batcher is automatically added to the renderer.
+     * @param _options Batcher options.
+     * @return Batcher
+     */
+    public function createBatcher(_options : BatcherOptions) : Batcher
+    {
+        var batcher = new Batcher(_options);
+
+        batchers.push(batcher);
+
+        return batcher;
+    }
+
+    /**
+     * Add several pre-existing batchers to the renderer.
+     * @param _batchers Array of batchers to add.
+     */
+    public function addBatcher(_batchers : Array<Batcher>)
+    {
+        for (batcher in _batchers)
+        {
+            batchers.push(batcher);
+        }
+    }
+
+    /**
+     * Remove several batchers from the renderer.
+     * @param _batchers Array of batchers to remove.
+     */
+    public function removeBatcher(_batchers : Array<Batcher>)
+    {
+        for (batcher in _batchers)
+        {
+            batchers.remove(batcher);
+        }
+    }
+
+    // #endregion
 
     /**
      * Sort the batchers in depth order.

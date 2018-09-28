@@ -64,7 +64,7 @@ class Main extends App
         app.runtime.auto_swap = false;
         
         // Setup the renderer.
-        renderer  = new Renderer({
+        renderer = new Renderer({
 
             // The api you choose changes what shaders you need to provide
             // Possible APIs are WEBGL, GL45, DX11, and NULL
@@ -83,6 +83,7 @@ class Main extends App
                 window : app.runtime.window
             }
         });
+
         // Pass the renderer backend to the resource system so GPU resources (textures, shaders) can be automatically managed.
         // When loading and freeing parcels the needed GPU resources can then be created and destroyed as and when needed.
         resources = new ResourceSystem(renderer.backend);
@@ -152,10 +153,8 @@ class Main extends App
     function onLoaded(_resources : Array<Resource>)
     {
         camera  = new OrthographicCamera(1600, 900);
-        batcher = new Batcher({ shader : resources.get('assets/shaders/textured.json', ShaderResource), camera : camera });
         imgui   = new ImGuiImpl(app, cast renderer.backend, resources.get('assets/shaders/textured.json', ShaderResource));
-
-        renderer.batchers.push(batcher);
+        batcher = renderer.createBatcher({ shader : resources.get('assets/shaders/textured.json', ShaderResource), camera : camera });
 
         // Add some sprites.
         sprites  = [];
