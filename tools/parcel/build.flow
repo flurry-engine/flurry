@@ -14,7 +14,7 @@
             name      : 'parcel-tool',
             codepaths : [
                 'src',
-                '../../src'
+                '../../engine/src'
             ]
         },
 
