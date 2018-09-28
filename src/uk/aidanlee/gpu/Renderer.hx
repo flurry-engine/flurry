@@ -68,14 +68,14 @@ class Renderer
     public final backend : IRendererBackend;
 
     /**
-     * Class which will store information about the previous frame.
-     */
-    public final stats : RendererStats;
-
-    /**
      * API backend used by the renderer.
      */
     public final api : RequestedBackend;
+
+    /**
+     * Class which will store information about the previous frame.
+     */
+    public final stats : RendererStats;
 
     /**
      * Batcher manager, responsible for creating, deleteing, and sorting batchers.
@@ -97,18 +97,18 @@ class Renderer
         switch (api) {
             #if cpp
             case GL45:
-                backend = new GL45Backend(this, _options);
+                backend = new GL45Backend(stats, _options);
                 api     = GL45;
             #end
 
             #if windows
             case DX11:
-                backend = new DX11Backend(this, _options);
+                backend = new DX11Backend(stats, _options);
                 api     = DX11;
             #end
 
             case WEBGL:
-                backend = new WebGLBackend(this, _options);
+                backend = new WebGLBackend(stats, _options);
                 api     = WEBGL;
 
             default:

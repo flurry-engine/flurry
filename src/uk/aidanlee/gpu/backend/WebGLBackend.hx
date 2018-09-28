@@ -26,7 +26,7 @@ class WebGLBackend implements IRendererBackend
     /**
      * Access to the renderer who owns this backend.
      */
-    final renderer : Renderer;
+    final rendererStats : RendererStats;
 
     /**
      * The single VBO used by the backend.
@@ -89,9 +89,10 @@ class WebGLBackend implements IRendererBackend
     var viewport : Rectangle;
     var boundTextures : Array<Int>;
 
-    public function new(_renderer : Renderer, _options : RendererOptions)
+    public function new(_rendererStats : RendererStats, _options : RendererOptions)
     {
-        renderer = _renderer;
+        rendererStats = _rendererStats;
+
         shaderPrograms = new Map();
         shaderUniforms = new Map();
         textureObjects = new Map();
@@ -253,8 +254,8 @@ class WebGLBackend implements IRendererBackend
             // Record stats about this draw call.
             if (_recordStats)
             {
-                renderer.stats.dynamicDraws++;
-                renderer.stats.totalVertices += range.vertices;
+                rendererStats.dynamicDraws++;
+                rendererStats.totalVertices += range.vertices;
             }
         }
     }
@@ -445,7 +446,7 @@ class WebGLBackend implements IRendererBackend
 
             if (!_disableStats)
             {
-                renderer.stats.viewportSwaps++;
+                rendererStats.viewportSwaps++;
             }
         }
 
@@ -466,7 +467,7 @@ class WebGLBackend implements IRendererBackend
 
             if (!_disableStats)
             {
-                renderer.stats.scissorSwaps++;
+                rendererStats.scissorSwaps++;
             }
         }
 
@@ -498,7 +499,7 @@ class WebGLBackend implements IRendererBackend
 
             if (!_disableStats)
             {
-                renderer.stats.targetSwaps++;
+                rendererStats.targetSwaps++;
             }
         }
 
@@ -510,7 +511,7 @@ class WebGLBackend implements IRendererBackend
 
             if (!_disableStats)
             {
-                renderer.stats.shaderSwaps++;
+                rendererStats.shaderSwaps++;
             }
         }
         
@@ -526,7 +527,7 @@ class WebGLBackend implements IRendererBackend
 
             if (!_disableStats)
             {
-                renderer.stats.blendSwaps++;
+                rendererStats.blendSwaps++;
             }
         }
         else
@@ -535,7 +536,7 @@ class WebGLBackend implements IRendererBackend
 
             if (!_disableStats)
             {
-                renderer.stats.blendSwaps++;
+                rendererStats.blendSwaps++;
             }
         }
     }
@@ -579,7 +580,7 @@ class WebGLBackend implements IRendererBackend
 
                     if (!_disableStats)
                     {
-                        renderer.stats.textureSwaps++;
+                        rendererStats.textureSwaps++;
                     }
                 }
             }

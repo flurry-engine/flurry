@@ -39,7 +39,7 @@ class GL45Backend implements IRendererBackend
     /**
      * Access to the renderer who owns this backend.
      */
-    final renderer : Renderer;
+    final rendererStats : RendererStats;
 
     /**
      * If we will be using bindless textures.
@@ -161,11 +161,11 @@ class GL45Backend implements IRendererBackend
      * @param _dynamicVertices    The maximum number of dynamic vertices in the buffer.
      * @param _unchangingVertices The maximum number of static vertices in the buffer.
      */
-    public function new(_renderer : Renderer, _options : RendererOptions)
+    public function new(_rendererStats : RendererStats, _options : RendererOptions)
     {
         _options.backend = def(_options.backend, {});
 
-        renderer = _renderer;
+        rendererStats = _rendererStats;
 
         // Check for ARB_bindless_texture support
         bindless = def(_options.backend.bindless, false);
@@ -437,8 +437,8 @@ class GL45Backend implements IRendererBackend
                     // Record stats about this draw call.
                     if (_recordStats)
                     {
-                        renderer.stats.dynamicDraws++;
-                        renderer.stats.totalVertices += command.vertices;
+                        rendererStats.dynamicDraws++;
+                        rendererStats.totalVertices += command.vertices;
                     }
 
                     continue;
@@ -463,8 +463,8 @@ class GL45Backend implements IRendererBackend
             // Record stats about this draw call.
             if (_recordStats)
             {
-                renderer.stats.dynamicDraws++;
-                renderer.stats.totalVertices += range.vertices;
+                rendererStats.dynamicDraws++;
+                rendererStats.totalVertices += range.vertices;
             }
         }
     }
@@ -708,7 +708,7 @@ class GL45Backend implements IRendererBackend
 
             if (!_disableStats)
             {
-                renderer.stats.viewportSwaps++;
+                rendererStats.viewportSwaps++;
             }
         }
 
@@ -729,7 +729,7 @@ class GL45Backend implements IRendererBackend
 
             if (!_disableStats)
             {
-                renderer.stats.scissorSwaps++;
+                rendererStats.scissorSwaps++;
             }
         }
 
@@ -759,7 +759,7 @@ class GL45Backend implements IRendererBackend
 
             if (!_disableStats)
             {
-                renderer.stats.targetSwaps++;
+                rendererStats.targetSwaps++;
             }
         }
 
@@ -771,7 +771,7 @@ class GL45Backend implements IRendererBackend
             
             if (!_disableStats)
             {
-                renderer.stats.shaderSwaps++;
+                rendererStats.shaderSwaps++;
             }
         }
         
@@ -786,7 +786,7 @@ class GL45Backend implements IRendererBackend
 
             if (!_disableStats)
             {
-                renderer.stats.blendSwaps++;
+                rendererStats.blendSwaps++;
             }
         }
         else
@@ -795,7 +795,7 @@ class GL45Backend implements IRendererBackend
 
             if (!_disableStats)
             {
-                renderer.stats.blendSwaps++;
+                rendererStats.blendSwaps++;
             }
         }
     }
@@ -831,7 +831,7 @@ class GL45Backend implements IRendererBackend
 
                 if (!_disableStats)
                 {
-                    renderer.stats.textureSwaps++;
+                    rendererStats.textureSwaps++;
                 }
             }
         }

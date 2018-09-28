@@ -61,7 +61,7 @@ class DX11Backend implements IRendererBackend
     /**
      * Access to the renderer which owns this backend.
      */
-    final renderer : Renderer;
+    final rendererStats : RendererStats;
 
     /**
      * Constant vector instance which is used to transform vertices when copying into the vertex buffer.
@@ -174,7 +174,7 @@ class DX11Backend implements IRendererBackend
     var texture  : ImageResource;
     var target   : ImageResource;
 
-    public function new(_renderer : Renderer, _options : RendererOptions)
+    public function new(_rendererStats : RendererStats, _options : RendererOptions)
     {
         _options.backend = def(_options.backend, {});
 
@@ -195,7 +195,7 @@ class DX11Backend implements IRendererBackend
             throw 'Unable to get DXGI information for the main SDL window';
         }
 
-        renderer = _renderer;
+        rendererStats = _rendererStats;
 
         shaderResources  = new Map();
         textureResources = new Map();
@@ -466,8 +466,8 @@ class DX11Backend implements IRendererBackend
             // Record stats
             if (_recordStats)
             {
-                renderer.stats.dynamicDraws++;
-                renderer.stats.totalVertices += command.vertices;
+                rendererStats.dynamicDraws++;
+                rendererStats.totalVertices += command.vertices;
             }
         }
     }
@@ -517,7 +517,7 @@ class DX11Backend implements IRendererBackend
         context.omSetRenderTargets([ backbuffer.renderTargetView ], null);
         target = null;
 
-        renderer.stats.targetSwaps++;
+        rendererStats.targetSwaps++;
     }
 
     /**
@@ -830,7 +830,7 @@ class DX11Backend implements IRendererBackend
             nativeView.height   = viewport.h;
             context.rsSetViewports([ nativeView ]);
 
-            renderer.stats.viewportSwaps++;
+            rendererStats.viewportSwaps++;
         }
 
         // Update scissor
@@ -845,7 +845,7 @@ class DX11Backend implements IRendererBackend
             nativeClip.bottom = cast scissor.h;
             context.rsSetScissorRects([ nativeClip ]);
 
-            renderer.stats.scissorSwaps++;
+            rendererStats.scissorSwaps++;
         }
 
         // Set the render target
@@ -867,7 +867,7 @@ class DX11Backend implements IRendererBackend
             renderTarget = target == null ? backbuffer.renderTargetView : targetResources.get(target.id);
             context.omSetRenderTargets([ renderTarget ], null);
 
-            renderer.stats.targetSwaps++;
+            rendererStats.targetSwaps++;
         }
 
         // Always update the cbuffers and textures for now
@@ -885,7 +885,7 @@ class DX11Backend implements IRendererBackend
             context.vsSetShader(shaderResource.vertex, null, 0);
             context.psSetShader(shaderResource.pixel , null, 0);
 
-            renderer.stats.shaderSwaps++;
+            rendererStats.shaderSwaps++;
         }
 
         // SET BLENDING OPTIONS AND APPLY TO CONTEXT
@@ -912,7 +912,7 @@ class DX11Backend implements IRendererBackend
         }
         context.omSetBlendState(blendState, [ 1, 1, 1, 1 ], 0xffffffff);
 
-        renderer.stats.blendSwaps++;
+        rendererStats.blendSwaps++;
 
         // Set primitive topology
         if (topology != _command.primitive)
@@ -943,7 +943,7 @@ class DX11Backend implements IRendererBackend
                 context.psSetShaderResources(i, [ textureResource.srv ]);
                 context.psSetSamplers(i, [ textureResource.smp ]);
 
-                renderer.stats.textureSwaps++;
+                rendererStats.textureSwaps++;
             }
         }
 
