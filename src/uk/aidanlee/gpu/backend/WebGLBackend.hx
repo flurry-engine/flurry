@@ -312,7 +312,7 @@ class WebGLBackend implements IRendererBackend
     {
         if (_resource.webgl == null)
         {
-            throw 'WebGL Backend Exception : ${_resource.id} : Attempting to create a shader from a resource which has no gl45 shader source';
+            throw 'WebGL Backend Exception : ${_resource.id} : Attempting to create a shader from a resource which has no webgl shader source';
         }
 
         if (shaderPrograms.exists(_resource.id))
