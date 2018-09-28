@@ -133,7 +133,10 @@ class Main extends App
         // The window_swap is only needed for GL renderers with snow.
         // If using DX11 comment out that line else GL will render over DX.
         renderer.postRender();
-        app.runtime.window_swap();
+        if (renderer.api != DX11)
+        {
+            app.runtime.window_swap();
+        }
 
         hxt.advance_frame();
     }

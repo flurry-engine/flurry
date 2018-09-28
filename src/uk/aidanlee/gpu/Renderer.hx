@@ -78,22 +78,23 @@ class Renderer
     public final stats : RendererStats;
 
     /**
+     * API backend used by the renderer.
+     */
+    public final api : RequestedBackend;
+
+    /**
      * Queue of all draw commands for this frame.
      */
     final queuedCommands : Array<DrawCommand>;
 
-    /**
-     * API backend used by the renderer.
-     */
-    final api : RequestedBackend;
-
     public function new(_options : RendererOptions)
     {
         queuedCommands = [];
-        batchers = [];
-        stats    = new RendererStats();
+        batchers       = [];
+        api            = _options.api;
+        stats          = new RendererStats();
 
-        switch (_options.api) {
+        switch (api) {
             #if cpp
             case GL45:
                 backend = new GL45Backend(this, _options);
