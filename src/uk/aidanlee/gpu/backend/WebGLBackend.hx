@@ -477,7 +477,7 @@ class WebGLBackend implements IRendererBackend
         {
             target = _command.target;
 
-            if (target != null && framebufferObjects.exists(target.id))
+            if (target != null && !framebufferObjects.exists(target.id))
             {
                 // Create the framebuffer
                 var fbo = GL.createFramebuffer();
