@@ -108,6 +108,17 @@ class WebGLBackend implements IRendererBackend
         // Only needs to be bound once since it is used for all drawing.
         vertexBuffer = new Float32Array((_options.maxDynamicVertices + _options.maxUnchangingVertices) * 9);
 
+        #if cpp
+
+        // Core OpenGL profiles require atleast one VAO is bound.
+        // So if we're running on a native platform create and bind a VAO
+
+        var vao = [ 0 ];
+        opengl.GL.glGenVertexArrays(1, vao);
+        opengl.GL.glBindVertexArray(vao[0]);
+
+        #end
+
         glVbo = GL.createBuffer();
         GL.bindBuffer(GL.ARRAY_BUFFER, glVbo);
         GL.bufferData(GL.ARRAY_BUFFER, vertexBuffer, GL.DYNAMIC_DRAW);
