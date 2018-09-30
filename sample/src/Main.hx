@@ -4,13 +4,10 @@ import snow.App;
 import snow.types.Types;
 import hxtelemetry.HxTelemetry;
 import uk.aidanlee.gpu.Renderer;
-import uk.aidanlee.gpu.batcher.Batcher;
-import uk.aidanlee.gpu.camera.OrthographicCamera;
-import uk.aidanlee.gpu.geometry.shapes.QuadGeometry;
 import uk.aidanlee.gpu.imgui.ImGuiImpl;
-import uk.aidanlee.maths.Vector;
 import uk.aidanlee.resources.ResourceSystem;
 import uk.aidanlee.resources.Resource;
+import uk.aidanlee.scene.Scene;
 import imgui.ImGui;
 import imgui.util.ImVec2;
 
@@ -18,19 +15,38 @@ typedef UserConfig = {};
 
 class Main extends App
 {
-    var hxt : HxTelemetry;
+    /**
+     * Haxe telemetry instance. Useful for profiling the game.
+     * TODO : ifdef this behind some compile time flag so release builds won't include it.
+     */
+    var telemetry : HxTelemetry;
 
+    /**
+     * Games renderer.
+     */
     var renderer : Renderer;
+
+    /**
+     * Games main resource system.
+     * Users can create more of them if they wish but are responsible for managing them themselves.
+     */
     var resources : ResourceSystem;
+
+    /**
+     * ImGui implementation. Allows for quick debug menus on native targets.
+     * TODO : ifdef imgui stuff behind a cpp check, or finally get around to creating emscripten bindings for imgui and a wrangler lib.
+     */
     var imgui : ImGuiImpl;
+
+    /**
+     * If this engines default assets have loaded.
+     */
     var loaded : Bool;
 
-    var batcher  : Batcher;
-    var camera   : OrthographicCamera;
-
-    var numLogos : Int;
-    var sprites  : Array<QuadGeometry>;
-    var vectors  : Array<Vector>;
+    /**
+     * Root scene node.
+     */
+    var root : Scene;
 
     public function new() {}
 
@@ -41,19 +57,22 @@ class Main extends App
         _config.window.height           = 900;
         _config.window.background_sleep = null;
 
+        // Core 3.2 is the minimum required version.
+        // Many graphics stacks don't support compatibility profiles and core 3.2 is supported pretty much everywhere by now.
+        _config.render.opengl.major = 3;
+        _config.render.opengl.minor = 2;
+        _config.render.opengl.profile = core;
+
         return _config;
     }
 
+    /**
+     * Once snow is ready we can create our engine instances and load a parcel with some default assets.
+     */
     override function ready()
     {
-        loaded = false;
-
-        // Haxe telemetry
-        var cfg = new Config();
-        cfg.allocations = true;
-        cfg.app_name    = 'gpu';
-
-        hxt = new HxTelemetry(cfg);
+        loaded    = false;
+        telemetry = new HxTelemetry();
 
         // Setup snow timestep.
         // Fixed dt of 16.66
@@ -91,8 +110,15 @@ class Main extends App
         // Load a pre-packed parcel containing our shader and two images.
         // See the parcel tool for creating pre-packed parcels.
         resources.createParcel('default', { parcels : [ 'assets/parcels/sample.parcel' ] }, onLoaded).load();
+
+        // Setup a default root scene, in the future users will specify their root scene.
+        root = new SampleScene('root', app, null, renderer, resources, null);
     }
 
+    /**
+     * Simulate all of the engines components.
+     * @param _dt 
+     */
     override function update(_dt : Float)
     {
         // The resource system needs to be called periodically to process thread events.
@@ -108,17 +134,7 @@ class Main extends App
         {
             imgui.newFrame();
 
-            // Make all of our haxe logos bounce around the screen.
-            for (i in 0...numLogos)
-            {
-                sprites[i].transformation.position.x += (vectors[i].x * 1000) * _dt;
-                sprites[i].transformation.position.y += (vectors[i].y * 1000) * _dt;
-                
-                if (sprites[i].transformation.position.x > 1600 + sprites[i].transformation.origin.x) vectors[i].x = -vectors[i].x;
-                if (sprites[i].transformation.position.x <     0) vectors[i].x = -vectors[i].x;
-                if (sprites[i].transformation.position.y >  900 + sprites[i].transformation.origin.y) vectors[i].y = -vectors[i].y;
-                if (sprites[i].transformation.position.y <    0)  vectors[i].y = -vectors[i].y;
-            }
+            root.onUpdate(_dt);
         }
 
         // Render and present
@@ -139,52 +155,114 @@ class Main extends App
             app.runtime.window_swap();
         }
 
-        hxt.advance_frame();
+        telemetry.advance_frame();
     }
+
+    /**
+     * On shutdown remove the default parcel to free resources.
+     */
+    override function ondestroy()
+    {
+        root.onLeave(null);
+        root.onRemoved();
+
+        imgui.dispose();
+
+        resources.free('default');
+    }
+
+    // #region event functions.
 
     override function onevent(_event : SystemEvent)
     {
-        if (_event.window != null && _event.window.type == WindowEventType.we_resized)
+        if (_event.window != null)
         {
-            renderer.resize(_event.window.x, _event.window.y);
+            if (_event.window.type == WindowEventType.we_resized)
+            {
+                renderer.resize(_event.window.x, _event.window.y);
+            }
         }
     }
 
+    override function onkeyup(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState, _timestamp : Float, windowID : Int)
+    {
+        root.onKeyUp(_keycode, _scancode, _repeat, _mod);
+    }
+
+    override function onkeydown(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState, _timestamp : Float, windowID : Int)
+    {
+        root.onKeyDown(_keycode, _scancode, _repeat, _mod);
+    }
+
+    override function ontextinput(_text : String, _start : Int, _length : Int, _type : TextEventType, _timestamp : Float, _windowID : Int)
+    {
+        root.onTextInput(_text, _start, _length, _type);
+
+        imgui.onTextInput(_text);
+    }
+
+    override function onmouseup(_x : Int, _y : Int, _button : Int, _timestamp : Float, _windowID : Int)
+    {
+        root.onMouseUp(_x, _y, _button);
+    }
+
+    override function onmousedown(_x : Int, _y : Int, _button : Int, _timestamp : Float, _windowID : Int)
+    {
+        root.onMouseDown(_x, _y, _button);
+    }
+
+    override function onmousemove(_x : Int, _y : Int, _xRel : Int, _yRel : Int, _timestamp : Float, _windowID : Int)
+    {
+        root.onMouseMove(_x, _y, _xRel, _yRel);
+
+        imgui.onMouseMove(_x, _y);
+    }
+
+    override function onmousewheel(_x : Float, _y : Float, _timestamp : Float, _windowID : Int)
+    {
+        root.onMouseWheel(_x, _y);
+
+        imgui.onMouseWheel(_y);
+    }
+
+    override function ongamepadup(_gamepad : Int, _button : Int, _value : Float, _timestamp : Float)
+    {
+        root.onGamepadUp(_gamepad, _button, _value);
+    }
+
+    override function ongamepaddown(_gamepad : Int, _button : Int, _value : Float, _timestamp : Float)
+    {
+        root.onGamepadDown(_gamepad, _button, _value);
+    }
+
+    override function ongamepadaxis(_gamepad : Int, _axis : Int, _value : Float, _timestamp : Float)
+    {
+        root.onGamepadAxis(_gamepad, _axis, _value);
+    }
+
+    override function ongamepaddevice(_gamepad : Int, _id : String, _type : GamepadDeviceEventType, _timestamp : Float)
+    {
+        root.onGamepadDevice(_gamepad, _id, _type);
+    }
+
+    // #endregion
+
+    /**
+     * Once the default assets have been loaded create our imgui helper and kick start our root scene.
+     * @param _resources Resources loaded.
+     */
     function onLoaded(_resources : Array<Resource>)
     {
-        camera  = new OrthographicCamera(1600, 900);
-        imgui   = new ImGuiImpl(app, cast renderer.backend, resources.get('assets/shaders/textured.json', ShaderResource));
-        batcher = renderer.createBatcher({ shader : resources.get('assets/shaders/textured.json', ShaderResource), camera : camera });
-
-        // Add some sprites.
-        sprites  = [];
-        vectors  = [];
-        numLogos = 10000;
-        for (i in 0...numLogos)
-        {
-            var sprite = new QuadGeometry({ textures : [ resources.get('assets/images/haxe.png', ImageResource) ], batchers : [ batcher ] });
-            sprite.transformation.origin  .set_xy(75, 75);
-            sprite.transformation.position.set_xy(1600 / 2, 900 / 2);
-
-            sprites.push(sprite);
-            vectors.push(random_point_in_unit_circle());
-        }
-
-        var logo = new QuadGeometry({ textures : [ resources.get('assets/images/logo.png', ImageResource) ], batchers : [ batcher ], depth : 2, unchanging : true });
-        logo.transformation.origin.set_xy(resources.get('assets/images/logo.png', ImageResource).width / 2, resources.get('assets/images/logo.png', ImageResource).height / 2);
-        logo.transformation.position.set_xy(1600 / 2, 900 / 2);
-
+        imgui  = new ImGuiImpl(app, cast renderer.backend, resources.get('assets/shaders/textured.json', ShaderResource));
         loaded = true;
+
+        root.onCreated();
+        root.onEnter(null);
     }
 
-    function random_point_in_unit_circle() : Vector
-    {
-        var r : Float = Math.sqrt(Math.random());
-        var t : Float = (-1 + (2 * Math.random())) * (Math.PI * 2);
-
-        return new Vector(r * Math.cos(t), r * Math.sin(t));
-    }
-
+    /**
+     * Global ImGui window to display render stats.
+     */
     function uiShowRenderStats()
     {
         var distance       = 10;

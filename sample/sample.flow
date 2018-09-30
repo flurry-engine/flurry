@@ -8,7 +8,7 @@
             name      : 'sample',
             main      : 'Main',
             output    : 'bin',
-            codepaths : [ '../engine/src' ]
+            codepaths : [ '../engine/src', 'src' ]
         },
 
         build : {
