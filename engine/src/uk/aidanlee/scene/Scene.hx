@@ -2,6 +2,9 @@ package uk.aidanlee.scene;
 
 import snow.Snow;
 import snow.api.Emitter;
+import snow.types.Types.GamepadDeviceEventType;
+import snow.types.Types.TextEventType;
+import snow.types.Types.ModState;
 import uk.aidanlee.resources.ResourceSystem;
 import uk.aidanlee.gpu.Renderer;
 
@@ -124,21 +127,19 @@ class Scene
 
     // #region Functions for when engine events are fired
 
-    public function onWindowEvent() {}
+    public function onMouseUp(_x : Int, _y : Int, _button : Int) {}
+    public function onMouseDown(_x : Int, _y : Int, _button : Int) {}
+    public function onMouseMove(_x : Int, _y : Int, _xRel : Int, _yRel : Int)  {}
+    public function onMouseWheel(_x : Float, _y : Float) {}
 
-    public function onMouseDown()  {}
-    public function onMouseUp()    {}
-    public function onMouseMove()  {}
-    public function onMouseWheel() {}
+    public function onKeyUp(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState) {}
+    public function onKeyDown(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState) {}
+    public function onTextInput(_text : String, _start : Int, _length : Int, _type : TextEventType) {}
 
-    public function onKeyDown()   {}
-    public function onKeyUp()     {}
-    public function onTextInput() {}
-
-    public function onGamepadAxis()   {}
-    public function onGamepadDown()   {}
-    public function onGamepadUp()     {}
-    public function onGamepadDevice() {}
+    public function onGamepadDown(_gamepad : Int, _button : Int, _value : Float) {}
+    public function onGamepadUp(_gamepad : Int, _button : Int, _value : Float) {}
+    public function onGamepadAxis(_gamepad : Int, _axis : Int, _value : Float) {}
+    public function onGamepadDevice(_gamepad : Int, _id : String, _type : GamepadDeviceEventType) {}
 
     // #endregion
 }
