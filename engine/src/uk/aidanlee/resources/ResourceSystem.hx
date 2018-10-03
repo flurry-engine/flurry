@@ -1,6 +1,5 @@
 package uk.aidanlee.resources;
 
-import uk.aidanlee.gpu.backend.GL45Backend;
 import haxe.Json;
 import haxe.Unserializer;
 import snow.api.Debug.def;
