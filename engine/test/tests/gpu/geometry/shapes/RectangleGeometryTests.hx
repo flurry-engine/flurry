@@ -2,11 +2,10 @@ package tests.gpu.geometry.shapes;
 
 import uk.aidanlee.maths.Rectangle;
 import uk.aidanlee.maths.Vector;
-import uk.aidanlee.gpu.Texture;
-import uk.aidanlee.gpu.Shader;
 import uk.aidanlee.gpu.camera.Camera;
 import uk.aidanlee.gpu.batcher.Batcher;
 import uk.aidanlee.gpu.geometry.shapes.RectangleGeometry;
+import uk.aidanlee.resources.Resource.ShaderResource;
 import mockatoo.Mockatoo.*;
 import buddy.BuddySuite;
 
@@ -20,7 +19,7 @@ class RectangleGeometryTests extends BuddySuite
         describe('RectangleGeometry', {
             var batcher = new Batcher({
                 camera : mock(Camera),
-                shader : mock(Shader)
+                shader : mock(ShaderResource)
             });
 
             it('Can create the geometry with a default size', {

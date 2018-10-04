@@ -2,12 +2,12 @@ package tests.gpu.geometry;
 
 import uk.aidanlee.maths.Rectangle;
 import uk.aidanlee.maths.Vector;
-import uk.aidanlee.gpu.Texture;
-import uk.aidanlee.gpu.Shader;
 import uk.aidanlee.gpu.batcher.Batcher;
 import uk.aidanlee.gpu.geometry.Vertex;
 import uk.aidanlee.gpu.geometry.Geometry;
 import uk.aidanlee.gpu.geometry.Color;
+import uk.aidanlee.resources.Resource.ShaderResource;
+import uk.aidanlee.resources.Resource.ImageResource;
 import buddy.BuddySuite;
 import mockatoo.Mockatoo.*;
 
@@ -20,8 +20,8 @@ class GeometryTests extends BuddySuite
         describe('Geometry', {
             var geomDefault : Geometry;
             var geomCustom  : Geometry;
-            var shdr = mock(Shader);
-            var txtr = mock(Texture);
+            var shdr = mock(ShaderResource);
+            var txtr = mock(ImageResource);
 
             beforeEach({
                 geomDefault = new Geometry({});
