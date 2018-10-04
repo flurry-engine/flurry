@@ -227,12 +227,13 @@ class Scene
 
     /**
      * Create a child of this scene. The scenes create event is automatically called.
-     * @param _type      The scene type to add.
-     * @param _name      The name of the scene.
-     * @param _arguments The custom user defined arguments required by the scene.
+     * @param _type       The scene type to add.
+     * @param _name       The name of the scene.
+     * @param _arguments  The custom user defined arguments required by the scene.
+     * @param _autoCreate If the added child should have create() called immediately
      * @return T
      */
-    @:generic public function createChild<T : Scene>(_type : Class<T>, _name : String, _arguments : Array<Dynamic> = null) : T
+    @:generic public function addChild<T : Scene>(_type : Class<T>, _name : String, _arguments : Array<Dynamic> = null, _autoCreate = false) : T
     {
         if (_arguments == null)
         {
@@ -243,7 +244,11 @@ class Scene
         var child = Type.createInstance(_type, requiredArguments.concat(_arguments));
 
         children.push(child);
-        child.create();
+
+        if (_autoCreate)
+        {
+            child.create();
+        }
 
         return child;
     }
