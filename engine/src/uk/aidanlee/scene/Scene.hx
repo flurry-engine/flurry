@@ -26,6 +26,11 @@ class Scene
     public var paused (default, null) : Bool;
 
     /**
+     * If this scene should have resume() called when its created.
+     */
+    public var resumeOnCreation : Bool;
+
+    /**
      * Access to the underlying snow app.
      * Will eventually be removed as things will be provided by the engine instead of snow.
      * This way the engine does not become dependent on snow.
@@ -64,9 +69,10 @@ class Scene
 
     public function new(_name : String, _snow : Snow, _parent : Scene, _renderer : Renderer, _resources : ResourceSystem, _events : Emitter<Int>)
     {
-        name    = _name;
-        created = false;
-        paused  = false;
+        name             = _name;
+        paused           = true;
+        created          = false;
+        resumeOnCreation = false;
 
         children  = [];
         snow      = _snow;
@@ -80,18 +86,27 @@ class Scene
      * Issue the create event to a scene and all its children.
      * @param _data The data to be sent to each scene.
      */
-    public final function create<T>(_data : T = null)
+    public final function create<T>(_data : T = null, _resume : Null<Bool> = null)
     {
         if (created) return;
 
+        if (_resume == null)
+        {
+            _resume = resumeOnCreation;
+        }
+
         created = true;
-        paused  = false;
         onCreated(_data);
-        onResumed(_data);
+
+        if (_resume)
+        {
+            paused = false;
+            onResumed(_data);
+        }
 
         for (child in children)
         {
-            child.create(_data);
+            child.create(_data, _resume);
         }
     }
 
@@ -103,10 +118,14 @@ class Scene
     {
         if (!created) return;
 
-        onPaused(_data);
+        if (!paused)
+        {
+            paused = true;
+            onPaused(_data);
+        }
+
         onRemoved(_data);
         created = false;
-        paused  = false;
 
         for (child in children)
         {
