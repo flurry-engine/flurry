@@ -4,10 +4,8 @@ import uk.aidanlee.maths.Vector;
 import uk.aidanlee.gpu.geometry.shapes.LineGeometry;
 import uk.aidanlee.gpu.geometry.Color;
 import buddy.BuddySuite;
-import mockatoo.Mockatoo.*;
 
 using buddy.Should;
-using mockatoo.Mockatoo;
 
 class LineGeometryTests extends BuddySuite
 {

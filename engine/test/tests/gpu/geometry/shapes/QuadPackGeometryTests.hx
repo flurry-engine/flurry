@@ -2,13 +2,13 @@ package tests.gpu.geometry.shapes;
 
 import uk.aidanlee.maths.Rectangle;
 import uk.aidanlee.maths.Vector;
-import uk.aidanlee.gpu.Texture;
-import uk.aidanlee.gpu.Shader;
 import uk.aidanlee.gpu.camera.Camera;
 import uk.aidanlee.gpu.batcher.Batcher;
 import uk.aidanlee.gpu.geometry.shapes.QuadPackGeometry;
 import uk.aidanlee.gpu.geometry.Color;
 import uk.aidanlee.importers.textureatlas.TextureAtlasParser;
+import uk.aidanlee.resources.Resource.ShaderResource;
+import uk.aidanlee.resources.Resource.ImageResource;
 import mockatoo.Mockatoo.*;
 import buddy.BuddySuite;
 
@@ -24,10 +24,10 @@ class QuadPackGeometryTests extends BuddySuite
         describe('QuadPackGeometry', {
 
             var atlas   = TextureAtlasParser.parse(haxe.Resource.getString('atlasData'));
-            var texture = mock(Texture);
+            var texture = mock(ImageResource);
             var batcher = new Batcher({
                 camera : mock(Camera),
-                shader : mock(Shader)
+                shader : mock(ShaderResource)
             });
 
             texture.width .returns(atlas.size.x);
