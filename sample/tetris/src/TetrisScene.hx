@@ -64,7 +64,7 @@ class TetrisScene extends Scene
      * When the scene is entered setup the board and visual stuff.
      * Also start the timer to cause the active tetromino to automatically drop.
      */
-    override function onEnter<T>(_data : T)
+    override function onResumed<T>(_data : T = null)
     {
         board   = new Board();
         camera  = new OrthographicCamera(400, 800);

@@ -109,14 +109,10 @@ class Main extends App
 
         // Load a pre-packed parcel containing our shader and two images.
         // See the parcel tool for creating pre-packed parcels.
-        resources.createParcel('default', {
-            parcels : [ 'assets/parcels/sample.parcel' ],
-            images  : [ { id : 'assets/images/shapes.png' } ],
-            texts   : [ { id : 'assets/images/shapes.atlas' } ]
-        }, onLoaded).load();
+        resources.createParcel('default', { parcels : [ 'assets/parcels/sample.parcel' ] }, onLoaded).load();
 
         // Setup a default root scene, in the future users will specify their root scene.
-        root = new TetrisScene('root', app, null, renderer, resources, null);
+        root = createTree();
         root.resumeOnCreation = true;
     }
 
@@ -197,6 +193,12 @@ class Main extends App
     override function onkeydown(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState, _timestamp : Float, windowID : Int)
     {
         if (!loaded) return;
+
+        if (_keycode == Key.space)
+        {
+            var found = root.getChild('root/child1/child2/child1');
+            trace(found);
+        }
 
         root.keyDown(_keycode, _scancode, _repeat, _mod);
     }
@@ -316,5 +318,23 @@ class Main extends App
         }
 
         ImGui.end();
+    }
+
+    /**
+     * Create a complex scene tree to ensure everything is working as planned.
+     * @return Scene
+     */
+    function createTree() : Scene
+    {
+        var rootNode = new Scene('root', app, null, renderer, resources, null);
+        var child1   = rootNode.addChild(Scene, 'root/child1');
+        rootNode.addChild(Scene, 'root/child2');
+        rootNode.addChild(Scene, 'root/child3');
+        rootNode.addChild(Scene, 'root/child4');
+
+        child1.addChild(Scene, 'root/child1/child1');
+        child1.addChild(Scene, 'root/child1/child2').addChild(TestScene, 'root/child1/child2/child1');
+
+        return rootNode;
     }
 }

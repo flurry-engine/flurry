@@ -113,6 +113,7 @@ class Main extends App
 
         // Setup a default root scene, in the future users will specify their root scene.
         root = new SampleScene('root', app, null, renderer, resources, null);
+        root.resumeOnCreation = true;
     }
 
     /**
@@ -134,7 +135,7 @@ class Main extends App
         {
             imgui.newFrame();
 
-            root.onUpdate(_dt);
+            root.update(_dt);
         }
 
         // Render and present
@@ -162,8 +163,7 @@ class Main extends App
      */
     override function ondestroy()
     {
-        root.onLeave(null);
-        root.onRemoved();
+        root.remove();
 
         imgui.dispose();
 
@@ -187,21 +187,21 @@ class Main extends App
     {
         if (!loaded) return;
 
-        root.onKeyUp(_keycode, _scancode, _repeat, _mod);
+        root.keyUp(_keycode, _scancode, _repeat, _mod);
     }
 
     override function onkeydown(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState, _timestamp : Float, windowID : Int)
     {
         if (!loaded) return;
 
-        root.onKeyDown(_keycode, _scancode, _repeat, _mod);
+        root.keyDown(_keycode, _scancode, _repeat, _mod);
     }
 
     override function ontextinput(_text : String, _start : Int, _length : Int, _type : TextEventType, _timestamp : Float, _windowID : Int)
     {
         if (!loaded) return;
 
-        root.onTextInput(_text, _start, _length, _type);
+        root.textInput(_text, _start, _length, _type);
 
         imgui.onTextInput(_text);
     }
@@ -210,21 +210,21 @@ class Main extends App
     {
         if (!loaded) return;
 
-        root.onMouseUp(_x, _y, _button);
+        root.mouseUp(_x, _y, _button);
     }
 
     override function onmousedown(_x : Int, _y : Int, _button : Int, _timestamp : Float, _windowID : Int)
     {
         if (!loaded) return;
 
-        root.onMouseDown(_x, _y, _button);
+        root.mouseDown(_x, _y, _button);
     }
 
     override function onmousemove(_x : Int, _y : Int, _xRel : Int, _yRel : Int, _timestamp : Float, _windowID : Int)
     {
         if (!loaded) return;
 
-        root.onMouseMove(_x, _y, _xRel, _yRel);
+        root.mouseMove(_x, _y, _xRel, _yRel);
 
         imgui.onMouseMove(_x, _y);
     }
@@ -233,7 +233,7 @@ class Main extends App
     {
         if (!loaded) return;
 
-        root.onMouseWheel(_x, _y);
+        root.mouseWheel(_x, _y);
 
         imgui.onMouseWheel(_y);
     }
@@ -242,28 +242,28 @@ class Main extends App
     {
         if (!loaded) return;
 
-        root.onGamepadUp(_gamepad, _button, _value);
+        root.gamepadUp(_gamepad, _button, _value);
     }
 
     override function ongamepaddown(_gamepad : Int, _button : Int, _value : Float, _timestamp : Float)
     {
         if (!loaded) return;
 
-        root.onGamepadDown(_gamepad, _button, _value);
+        root.gamepadDown(_gamepad, _button, _value);
     }
 
     override function ongamepadaxis(_gamepad : Int, _axis : Int, _value : Float, _timestamp : Float)
     {
         if (!loaded) return;
 
-        root.onGamepadAxis(_gamepad, _axis, _value);
+        root.gamepadAxis(_gamepad, _axis, _value);
     }
 
     override function ongamepaddevice(_gamepad : Int, _id : String, _type : GamepadDeviceEventType, _timestamp : Float)
     {
         if (!loaded) return;
         
-        root.onGamepadDevice(_gamepad, _id, _type);
+        root.gamepadDevice(_gamepad, _id, _type);
     }
 
     // #endregion
@@ -277,8 +277,7 @@ class Main extends App
         imgui  = new ImGuiImpl(app, cast renderer.backend, resources.get('assets/shaders/textured.json', ShaderResource));
         loaded = true;
 
-        root.onCreated();
-        root.onEnter(null);
+        root.create();
     }
 
     /**

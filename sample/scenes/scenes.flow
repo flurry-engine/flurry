@@ -1,0 +1,29 @@
+{
+    project : {
+        name    : 'Scenes',
+        version : '1.0.0',
+        author  : 'Aidan Lee',
+
+        app : {
+            name      : 'Scenes',
+            main      : 'Main',
+            output    : 'bin',
+            codepaths : [ '../../engine/src', 'src' ]
+        },
+
+        build : {
+            dependencies : {
+                "snow"            : '*',
+                "linc_directx"    : '*',
+                "linc_imgui"      : '*',
+                "hxtelemetry"     : '*',
+                "haxe-concurrent" : '*'
+            },
+            defines : [ 'HXCPP_STACK_TRACE', 'HXCPP_TELEMETRY' ]
+        },
+
+        files : {
+            assets : 'assets/'
+        }
+    }
+}

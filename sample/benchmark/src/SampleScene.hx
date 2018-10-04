@@ -44,7 +44,7 @@ class SampleScene extends Scene
         super(_name, _snow, _parent, _renderer, _resources, _events);
     }
 
-    override function onEnter<T>(_data : T)
+    override function onResumed<T>(_data : T = null)
     {
         camera  = new OrthographicCamera(1600, 900);
         batcher = renderer.createBatcher({ shader : resources.get('assets/shaders/textured.json', ShaderResource), camera : camera });
@@ -55,15 +55,23 @@ class SampleScene extends Scene
         numLogos = 10000;
         for (i in 0...numLogos)
         {
-            var sprite = new QuadGeometry({ textures : [ resources.get('assets/images/haxe.png', ImageResource) ], batchers : [ batcher ] });
-            sprite.transformation.origin  .set_xy(75, 75);
+            var sprite = new QuadGeometry({
+                textures : [ resources.get('assets/images/haxe.png', ImageResource) ],
+                batchers : [ batcher ]
+            });
+            sprite.transformation.origin.set_xy(75, 75);
             sprite.transformation.position.set_xy(1600 / 2, 900 / 2);
 
             sprites.push(sprite);
             vectors.push(random_point_in_unit_circle());
         }
 
-        var logo = new QuadGeometry({ textures : [ resources.get('assets/images/logo.png', ImageResource) ], batchers : [ batcher ], depth : 2, unchanging : true });
+        var logo = new QuadGeometry({
+            textures   : [ resources.get('assets/images/logo.png', ImageResource) ],
+            batchers   : [ batcher ],
+            depth      : 2,
+            unchanging : true
+        });
         logo.transformation.origin.set_xy(resources.get('assets/images/logo.png', ImageResource).width / 2, resources.get('assets/images/logo.png', ImageResource).height / 2);
         logo.transformation.position.set_xy(1600 / 2, 900 / 2);
     }
@@ -83,6 +91,11 @@ class SampleScene extends Scene
         }
 
         super.onUpdate(_dt);
+    }
+
+    override function onPaused<T>(_data : T = null)
+    {
+        // TODO : Clean up geometry.
     }
 
     /**
