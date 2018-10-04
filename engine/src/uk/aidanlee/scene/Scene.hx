@@ -8,14 +8,22 @@ import snow.types.Types.ModState;
 import uk.aidanlee.resources.ResourceSystem;
 import uk.aidanlee.gpu.Renderer;
 
-using Lambda;
-
 class Scene
 {
     /**
      * Unique name of this scene.
      */
     public final name : String;
+
+    /**
+     * If this scene has been created and not destroyed.
+     */
+    public var created (default, null) : Bool;
+
+    /**
+     * If this scene is currently paused.
+     */
+    public var paused (default, null) : Bool;
 
     /**
      * Access to the underlying snow app.
@@ -25,14 +33,14 @@ class Scene
     final snow : Snow;
 
     /**
-     * All child scenes.
-     */
-    final children : Array<Scene>;
-
-    /**
      * Parent scene. If null then this is the root scene.
      */
     final parent : Scene;
+
+    /**
+     * All child scenes.
+     */
+    final children : Array<Scene>;
 
     /**
      * Access to the engine renderer.
@@ -56,7 +64,9 @@ class Scene
 
     public function new(_name : String, _snow : Snow, _parent : Scene, _renderer : Renderer, _resources : ResourceSystem, _events : Emitter<Int>)
     {
-        name = _name;
+        name    = _name;
+        created = false;
+        paused  = false;
 
         children  = [];
         snow      = _snow;
@@ -66,80 +76,333 @@ class Scene
         events    = _events;
     }
 
-    @:generic public function create<T : Scene>(_scene : Class<T>, _name : String, _arguments : Array<Dynamic>)
+    /**
+     * Issue the create event to a scene and all its children.
+     * @param _data The data to be sent to each scene.
+     */
+    public final function create<T>(_data : T = null)
     {
-        var defaultArgs : Array<Dynamic> = [ _name, snow, this, renderer, resources, events ];
-        
-        children.push(Type.createInstance(_scene, defaultArgs.concat(_arguments)));
-    }
+        if (created) return;
 
-    public function remove(_name : String)
-    {
-        //
-    }
+        created = true;
+        paused  = false;
+        onCreated(_data);
+        onResumed(_data);
 
-    public function set(_name : String, _enterWith : Any = null, _leaveWith : Any = null)
-    {
-        // If null is passed as a name that means we want to unset the active state.
-        if (_name == null)
+        for (child in children)
         {
-            if (activeChild != null)
+            child.create(_data);
+        }
+    }
+
+    /**
+     * Remove a scene and all its children.
+     * @param _data The data to be sent to each scene.
+     */
+    public final function remove<T>(_data : T = null)
+    {
+        if (!created) return;
+
+        onPaused(_data);
+        onRemoved(_data);
+        created = false;
+        paused  = false;
+
+        for (child in children)
+        {
+            child.remove(_data);
+        }
+    }
+
+    /**
+     * Pause a scene and all its children
+     * @param _data Data to send to all scenes.
+     */
+    public final function pause<T>(_data : T = null)
+    {
+        if (!created) return;
+
+        paused = true;
+        onPaused(_data);
+
+        for (child in children)
+        {
+            child.pause(_data);
+        }
+    }
+
+    /**
+     * Resume a scene and all its children.
+     * @param _data Data to send to all scenes.
+     */
+    public final function resume<T>(_data : T = null)
+    {
+        if (!created) return;
+
+        paused = false;
+        onResumed(_data);
+
+        for (child in children)
+        {
+            child.resume(_data);
+        }
+    }
+
+    /**
+     * Send an update to a scene and all its children.
+     * @param _dt Delta time.
+     */
+    public final function update(_dt : Float)
+    {
+        if (!created || paused) return;
+
+        onUpdate(_dt);
+
+        for (child in children)
+        {
+            child.update(_dt);
+        }
+    }
+
+    /**
+     * Recursively search the tree for a scene with a specific name.
+     * @param _name       The name of the scene to find.
+     * @param _depthFirst If the scene tree should be searched depth first (defaults false).
+     * @param _type       If the retured scene should be casted to a specific type (defaults Scene).
+     * @return T : Scene
+     */
+    public function getChild<T : Scene>(_name : String, _depthFirst : Bool = false, _type : Class<T> = null) : T
+    {
+        if (_type == null)
+        {
+            _type = cast Type.getClass(Scene);
+        }
+
+        if (name == _name)
+        {
+            return cast this;
+        }
+
+        if (_depthFirst)
+        {
+            // DFS, after checking a child we immediately start searching its children first instead of our other children.
+            for (child in children)
             {
-                activeChild.onLeave(_leaveWith);
-                activeChild = null;
+                if (child.name == _name)
+                {
+                    return cast child;
+                }
+                else
+                {
+                    var found = child.getChild(_name, _depthFirst, _type);
+                    if (found != null)
+                    {
+                        return found;
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (child in children)
+            {
+                if (child.name == name)
+                {
+                    return cast child;
+                }
             }
 
-            return;
+            for (child in children)
+            {
+                var found = child.getChild(_name, _depthFirst, _type);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
         }
 
-        // If we are trying to set the scene which is currently active exit early.
-        if (_name == activeChild.name)
-        {
-            return;
-        }
-
-        activeChild.onLeave(_leaveWith);
-        activeChild = children.find(scene -> scene.name == _name);
-
-        if (activeChild != null)
-        {
-            activeChild.onEnter(_enterWith);
-        }
+        return null;
     }
 
-    // #region Functions related to the FSM
-
-    public function onCreated() {}
-    public function onRemoved() {}
-
-    public function onEnter<T>(_data : T) {}
-    public function onLeave<T>(_data : T) {}
-
-    public function onUpdate(_dt : Float)
+    /**
+     * Create a child of this scene. The scenes create event is automatically called.
+     * @param _type      The scene type to add.
+     * @param _name      The name of the scene.
+     * @param _arguments The custom user defined arguments required by the scene.
+     * @return T
+     */
+    @:generic public function createChild<T : Scene>(_type : Class<T>, _name : String, _arguments : Array<Dynamic> = null) : T
     {
-        if (activeChild != null)
+        if (_arguments == null)
         {
-            activeChild.onUpdate(_dt);
+            _arguments = [];
+        }
+
+        var requiredArguments : Array<Dynamic> = [ _name, snow, this, renderer, resources, null ];
+        var child = Type.createInstance(_type, requiredArguments.concat(_arguments));
+
+        children.push(child);
+        child.create();
+
+        return child;
+    }
+
+    /**
+     * Remove a child from a scene. Remove is automatically called.
+     * @param _child Child to remove.
+     */
+    public function removeChild(_child : Scene)
+    {
+        _child.remove();
+        children.remove(_child);
+    }
+
+    @:noCompletion public final function mouseUp(_x : Int, _y : Int, _button : Int)
+    {
+        if (!created || paused) return;
+
+        onMouseUp(_x, _y, _button);
+
+        for (child in children)
+        {
+            child.mouseUp(_x, _y, _button);
+        }
+    }
+    @:noCompletion public final function mouseDown(_x : Int, _y : Int, _button : Int)
+    {
+        if (!created || paused) return;
+
+        onMouseDown(_x, _y, _button);
+
+        for (child in children)
+        {
+            child.mouseDown(_x, _y, _button);
+        }
+    }
+    @:noCompletion public final function mouseMove(_x : Int, _y : Int, _xRel : Int, _yRel : Int)
+    {
+        if (!created || paused) return;
+
+        onMouseMove(_x, _y, _xRel, _yRel);
+
+        for (child in children)
+        {
+            child.mouseMove(_x, _y, _xRel, _yRel);
+        }
+    }
+    @:noCompletion public final function mouseWheel(_x : Float, _y : Float)
+    {
+        if (!created || paused) return;
+
+        onMouseWheel(_x, _y);
+
+        for (child in children)
+        {
+            child.mouseWheel(_x, _y);
         }
     }
 
-    // #endregion
+    @:noCompletion public final function keyUp(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState)
+    {
+        if (!created || paused) return;
 
-    // #region Functions for when engine events are fired
+        onKeyUp(_keycode, _scancode, _repeat, _mod);
 
-    public function onMouseUp(_x : Int, _y : Int, _button : Int) {}
-    public function onMouseDown(_x : Int, _y : Int, _button : Int) {}
-    public function onMouseMove(_x : Int, _y : Int, _xRel : Int, _yRel : Int)  {}
-    public function onMouseWheel(_x : Float, _y : Float) {}
+        for (child in children)
+        {
+            child.keyUp(_keycode, _scancode, _repeat, _mod);
+        }
+    }
+    @:noCompletion public final function keyDown(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState)
+    {
+        if (!created || paused) return;
 
-    public function onKeyUp(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState) {}
-    public function onKeyDown(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState) {}
-    public function onTextInput(_text : String, _start : Int, _length : Int, _type : TextEventType) {}
+        onKeyDown(_keycode, _scancode, _repeat, _mod);
 
-    public function onGamepadDown(_gamepad : Int, _button : Int, _value : Float) {}
-    public function onGamepadUp(_gamepad : Int, _button : Int, _value : Float) {}
-    public function onGamepadAxis(_gamepad : Int, _axis : Int, _value : Float) {}
-    public function onGamepadDevice(_gamepad : Int, _id : String, _type : GamepadDeviceEventType) {}
+        for (child in children)
+        {
+            child.keyDown(_keycode, _scancode, _repeat, _mod);
+        }
+    }
+    @:noCompletion public final function textInput(_text : String, _start : Int, _length : Int, _type : TextEventType)
+    {
+        if (!created || paused) return;
+
+        onTextInput(_text, _start, _length, _type);
+
+        for (child in children)
+        {
+            child.textInput(_text, _start, _length, _type);
+        }
+    }
+
+    @:noCompletion public final function gamepadDown(_gamepad : Int, _button : Int, _value : Float)
+    {
+        if (!created || paused) return;
+
+        onGamepadDown(_gamepad, _button, _value);
+
+        for (child in children)
+        {
+            child.gamepadDown(_gamepad, _button, _value);
+        }
+    }
+    @:noCompletion public final function gamepadUp(_gamepad : Int, _button : Int, _value : Float)
+    {
+        if (!created || paused) return;
+
+        onGamepadUp(_gamepad, _button, _value);
+
+        for (child in children)
+        {
+            child.gamepadUp(_gamepad, _button, _value);
+        }
+    }
+    @:noCompletion public final function gamepadAxis(_gamepad : Int, _axis : Int, _value : Float)
+    {
+        if (!created || paused) return;
+
+        onGamepadAxis(_gamepad, _axis, _value);
+
+        for (child in children)
+        {
+            child.gamepadAxis(_gamepad, _axis, _value);
+        }
+    }
+    @:noCompletion public final function gamepadDevice(_gamepad : Int, _id : String, _type : GamepadDeviceEventType)
+    {
+        if (!created || paused) return;
+
+        onGamepadDevice(_gamepad, _id, _type);
+
+        for (child in children)
+        {
+            child.gamepadDevice(_gamepad, _id, _type);
+        }
+    }
+
+    // #region Event functions overwrittable by the user.
+
+    function onCreated<T>(_data : T = null) { }
+    function onRemoved<T>(_data : T = null) { }
+    function onPaused<T>(_data : T = null) { }
+    function onResumed<T>(_data : T = null) { }
+    function onUpdate(_dt : Float) { }
+
+    function onMouseUp(_x : Int, _y : Int, _button : Int) {}
+    function onMouseDown(_x : Int, _y : Int, _button : Int) {}
+    function onMouseMove(_x : Int, _y : Int, _xRel : Int, _yRel : Int)  {}
+    function onMouseWheel(_x : Float, _y : Float) {}
+
+    function onKeyUp(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState) {}
+    function onKeyDown(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState) {}
+    function onTextInput(_text : String, _start : Int, _length : Int, _type : TextEventType) {}
+
+    function onGamepadDown(_gamepad : Int, _button : Int, _value : Float) {}
+    function onGamepadUp(_gamepad : Int, _button : Int, _value : Float) {}
+    function onGamepadAxis(_gamepad : Int, _axis : Int, _value : Float) {}
+    function onGamepadDevice(_gamepad : Int, _id : String, _type : GamepadDeviceEventType) {}
 
     // #endregion
 }
