@@ -20,7 +20,8 @@
             dependencies : {
                 snow     : '*',
                 buddy    : '*',
-                mockatoo : '*'
+                mockatoo : '*',
+                "haxe-concurrent" : '*'
             },
             flags : [
                 '-resource assets/fonts/ubuntu.fnt@fntUbuntu',

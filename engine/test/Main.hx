@@ -32,7 +32,9 @@ class Main extends snow.App
             new tests.gpu.geometry.shapes.TextGeometryTests(),
             new tests.gpu.geometry.shapes.CircleGeometryTests(),
             new tests.gpu.geometry.shapes.QuadPackGeometryTests(),
-            new tests.gpu.geometry.shapes.RectangleGeometryTests()
+            new tests.gpu.geometry.shapes.RectangleGeometryTests(),
+
+            new tests.scene.SceneTests()
         ], new ColorReporter());
 
         runner.run();
