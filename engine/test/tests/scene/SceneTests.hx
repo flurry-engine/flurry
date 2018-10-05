@@ -26,29 +26,29 @@ class SceneTests extends BuddySuite
             });
 
             it('Can recursively search the scene tree for a child with a specific name', {
-                var found : Scene = root.getChild('root/child1/child2/child1');
+                var found = root.getChild(Scene, 'root/child1/child2/child1');
 
                 found.should.not.be(null);
                 found.name.should.be('root/child1/child2/child1');
 
-                var found : Scene = root.getChild('does not exist');
+                var found = root.getChild(Scene, 'does not exist');
                 found.should.be(null);
             });
 
             it('Can add extra default scenes into the tree', {
-                var found : Scene = root.getChild('root/child1/child2/child1');
+                var found = root.getChild(Scene, 'root/child1/child2/child1');
                 found.addChild(Scene, 'root/child1/child2/child1/child1');
 
-                var found : Scene = root.getChild('root/child1/child2/child1/child1');
+                var found = root.getChild(Scene, 'root/child1/child2/child1/child1');
                 found.should.not.be(null);
                 found.name.should.be('root/child1/child2/child1/child1');
             });
 
             it('Can add extra user defined scenes into the tree with custom constructor arguments', {
-                var found : Scene = root.getChild('root/child1/child2/child1');
+                var found = root.getChild(Scene, 'root/child1/child2/child1');
                 found.addChild(OtherScene, 'root/child1/child2/child1/child1', [ 7, 'hello' ]);
 
-                var found = root.getChild('root/child1/child2/child1/child1', false, OtherScene);
+                var found = root.getChild(OtherScene, 'root/child1/child2/child1/child1');
                 found.should.not.be(null);
                 found.name.should.be('root/child1/child2/child1/child1');
                 found.number.should.be(7);
@@ -56,12 +56,12 @@ class SceneTests extends BuddySuite
             });
 
             it('Can remove a child and its children from a scene tree', {
-                var found : Scene = root.getChild('root/child1');
-                found.removeChild(root.getChild('root/child1/child2'));
+                var found = root.getChild(Scene, 'root/child1');
+                found.removeChild(root.getChild(Scene, 'root/child1/child2'));
 
-                var found : Scene = root.getChild('root/child1/child2');
+                var found = root.getChild(Scene, 'root/child1/child2');
                 found.should.be(null);
-                var found : Scene = root.getChild('root/child1/child2/child1');
+                var found = root.getChild(Scene, 'root/child1/child2/child1');
                 found.should.be(null);
             });
         });

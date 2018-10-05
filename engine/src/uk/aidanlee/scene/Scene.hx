@@ -190,13 +190,8 @@ class Scene
      * @param _type       If the retured scene should be casted to a specific type (defaults Scene).
      * @return T : Scene
      */
-    public function getChild<T : Scene>(_name : String, _depthFirst : Bool = false, _type : Class<T> = null) : T
+    public function getChild<T : Scene>(_type : Class<T>, _name : String, _depthFirst : Bool = false) : T
     {
-        if (_type == null)
-        {
-            _type = cast Type.getClass(Scene);
-        }
-
         if (name == _name)
         {
             return cast this;
@@ -213,7 +208,7 @@ class Scene
                 }
                 else
                 {
-                    var found = child.getChild(_name, _depthFirst, _type);
+                    var found = child.getChild(_type, _name, _depthFirst);
                     if (found != null)
                     {
                         return found;
@@ -233,7 +228,7 @@ class Scene
 
             for (child in children)
             {
-                var found = child.getChild(_name, _depthFirst, _type);
+                var found = child.getChild(_type, _name, _depthFirst);
                 if (found != null)
                 {
                     return found;
