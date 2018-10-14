@@ -5,18 +5,18 @@ import snow.types.Types.ModState;
 import snow.Snow;
 import snow.api.Emitter;
 import snow.types.Types.Key;
-import uk.aidanlee.gpu.Renderer;
-import uk.aidanlee.scene.Scene;
-import uk.aidanlee.resources.ResourceSystem;
-import uk.aidanlee.resources.Resource.ImageResource;
-import uk.aidanlee.resources.Resource.ShaderResource;
-import uk.aidanlee.resources.Resource.TextResource;
-import uk.aidanlee.gpu.camera.OrthographicCamera;
-import uk.aidanlee.gpu.batcher.Batcher;
-import uk.aidanlee.gpu.geometry.Color;
-import uk.aidanlee.gpu.geometry.shapes.QuadPackGeometry;
-import uk.aidanlee.importers.textureatlas.TextureAtlasParser;
-import uk.aidanlee.importers.textureatlas.TextureAtlas;
+import uk.aidanlee.flurry.api.resources.ResourceSystem;
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Resource.TextResource;
+import uk.aidanlee.flurry.api.gpu.Renderer;
+import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.gpu.geometry.Color;
+import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadPackGeometry;
+import uk.aidanlee.flurry.modules.scene.Scene;
+import uk.aidanlee.flurry.modules.importers.textureatlas.TextureAtlasParser;
+import uk.aidanlee.flurry.modules.importers.textureatlas.TextureAtlas;
 
 class TetrisScene extends Scene
 {

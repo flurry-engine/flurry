@@ -1,8 +1,8 @@
 package;
 
-import uk.aidanlee.Flurry;
-import uk.aidanlee.FlurryConfig;
-import uk.aidanlee.scene.Scene;
+import uk.aidanlee.flurry.Flurry;
+import uk.aidanlee.flurry.FlurryConfig;
+import uk.aidanlee.flurry.modules.scene.Scene;
 import imgui.ImGui;
 import imgui.util.ImVec2;
 

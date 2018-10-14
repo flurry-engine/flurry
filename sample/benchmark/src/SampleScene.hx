@@ -2,15 +2,15 @@ package;
 
 import snow.Snow;
 import snow.api.Emitter;
-import uk.aidanlee.gpu.Renderer;
-import uk.aidanlee.scene.Scene;
-import uk.aidanlee.maths.Vector;
-import uk.aidanlee.resources.ResourceSystem;
-import uk.aidanlee.resources.Resource.ImageResource;
-import uk.aidanlee.resources.Resource.ShaderResource;
-import uk.aidanlee.gpu.geometry.shapes.QuadGeometry;
-import uk.aidanlee.gpu.camera.OrthographicCamera;
-import uk.aidanlee.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.modules.scene.Scene;
+import uk.aidanlee.flurry.api.gpu.Renderer;
+import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.resources.ResourceSystem;
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
+import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 
 class SampleScene extends Scene
 {
