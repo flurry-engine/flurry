@@ -6,7 +6,7 @@ import uk.aidanlee.flurry.api.gpu.geometry.Geometry.GeometryOptions;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.utils.Hash;
+import uk.aidanlee.flurry.api.maths.Hash;
 
 class QuadPackGeometry extends Geometry
 {

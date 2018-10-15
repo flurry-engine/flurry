@@ -1,4 +1,4 @@
-package uk.aidanlee.flurry.api.gpu.imgui;
+package uk.aidanlee.flurry.modules.imgui;
 
 import cpp.Pointer;
 import cpp.RawPointer;

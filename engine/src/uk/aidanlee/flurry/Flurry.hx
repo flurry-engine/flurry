@@ -10,7 +10,6 @@ import snow.types.Types.ModState;
 import snow.types.Types.WindowEventType;
 import snow.types.Types.SystemEvent;
 import uk.aidanlee.flurry.api.gpu.Renderer;
-import uk.aidanlee.flurry.api.gpu.imgui.ImGuiImpl;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.modules.scene.Scene;
@@ -24,8 +23,6 @@ class Flurry extends App
     var renderer : Renderer;
 
     var resources : ResourceSystem;
-
-    var imgui : ImGuiImpl;
 
     var root : Scene;
 
@@ -108,7 +105,6 @@ class Flurry extends App
         // Load the default parcel, this may contain the standard assets or user defined assets.
         // Once it has loaded the overridable onReady function is called.
         resources.createParcel('preload', flurryConfig.resources.preload, function(_) {
-            imgui  = new ImGuiImpl(app, renderer.backend, resources.get('assets/shaders/textured.json', ShaderResource));
             loaded = true;
 
             onReady();
@@ -133,8 +129,6 @@ class Flurry extends App
         // Our game specific logic, only do it if our default parcel has loaded.
         if (loaded)
         {
-            imgui.newFrame();
-
             onUpdate(_dt);
         }
 
@@ -143,9 +137,7 @@ class Flurry extends App
 
         if (loaded)
         {
-            onPostUpdate();            
-
-            imgui.render();
+            onPostUpdate();
         }
 
         // Post-draw
@@ -159,13 +151,11 @@ class Flurry extends App
 
     override final function ondestroy()
     {
+        onShutdown();
+
         root.remove();
 
-        imgui.dispose();
-
         resources.free('preload');
-
-        onShutdown();
     }
 
     override function onevent(_event : SystemEvent)
@@ -198,8 +188,6 @@ class Flurry extends App
         if (!loaded) return;
 
         root.textInput(_text, _start, _length, _type);
-
-        imgui.onTextInput(_text);
     }
 
     override function onmouseup(_x : Int, _y : Int, _button : Int, _timestamp : Float, _windowID : Int)
@@ -221,8 +209,6 @@ class Flurry extends App
         if (!loaded) return;
 
         root.mouseMove(_x, _y, _xRel, _yRel);
-
-        imgui.onMouseMove(_x, _y);
     }
 
     override function onmousewheel(_x : Float, _y : Float, _timestamp : Float, _windowID : Int)
@@ -230,8 +216,6 @@ class Flurry extends App
         if (!loaded) return;
 
         root.mouseWheel(_x, _y);
-
-        imgui.onMouseWheel(_y);
     }
 
     override function ongamepadup(_gamepad : Int, _button : Int, _value : Float, _timestamp : Float)

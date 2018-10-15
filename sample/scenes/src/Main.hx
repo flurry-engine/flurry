@@ -3,8 +3,6 @@ package;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.modules.scene.Scene;
-import imgui.ImGui;
-import imgui.util.ImVec2;
 
 typedef UserConfig = {};
 
@@ -33,45 +31,6 @@ class Main extends Flurry
     override function onUpdate(_dt : Float)
     {
         root.update(_dt);
-    }
-
-    override function onPostUpdate()
-    {
-        uiShowRenderStats();
-    }
-
-    /**
-     * Global ImGui window to display render stats.
-     */
-    function uiShowRenderStats()
-    {
-        var distance       = 10;
-        var windowPos      = ImVec2.create(ImGui.getIO().displaySize.x - distance, distance);
-        var windowPosPivot = ImVec2.create(1, 0);
-
-        ImGui.setNextWindowPos(windowPos, ImGuiCond.Always, windowPosPivot);
-        ImGui.setNextWindowBgAlpha(0.3);
-        if (ImGui.begin('Render Stats', NoMove | NoTitleBar | NoResize | AlwaysAutoResize | NoSavedSettings | NoFocusOnAppearing | NoNav))
-        {
-            ImGui.text('total batchers   ${renderer.stats.totalBatchers}');
-            ImGui.text('total geometry   ${renderer.stats.totalGeometry}');
-            ImGui.text('total vertices   ${renderer.stats.totalVertices}');
-            ImGui.text('dynamic draws    ${renderer.stats.dynamicDraws}');
-            ImGui.text('unchanging draws ${renderer.stats.unchangingDraws}');
-
-            ImGui.text('');
-            ImGui.text('state changes');
-            ImGui.separator();
-
-            ImGui.text('target           ${renderer.stats.targetSwaps}');
-            ImGui.text('shader           ${renderer.stats.shaderSwaps}');
-            ImGui.text('texture          ${renderer.stats.textureSwaps}');
-            ImGui.text('viewport         ${renderer.stats.viewportSwaps}');
-            ImGui.text('blend            ${renderer.stats.blendSwaps}');
-            ImGui.text('scissor          ${renderer.stats.scissorSwaps}');
-        }
-
-        ImGui.end();
     }
 
     /**

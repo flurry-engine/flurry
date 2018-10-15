@@ -14,9 +14,9 @@ import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Color;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadPackGeometry;
+import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlasParser;
+import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas;
 import uk.aidanlee.flurry.modules.scene.Scene;
-import uk.aidanlee.flurry.modules.importers.textureatlas.TextureAtlasParser;
-import uk.aidanlee.flurry.modules.importers.textureatlas.TextureAtlas;
 
 class TetrisScene extends Scene
 {
