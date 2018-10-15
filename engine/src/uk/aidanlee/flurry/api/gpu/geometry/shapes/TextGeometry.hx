@@ -1,7 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
-import snow.api.Debug.def;
-import uk.aidanlee.flurry.modules.importers.bmfont.BitmapFontData;
+import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontData;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.maths.Vector;
 

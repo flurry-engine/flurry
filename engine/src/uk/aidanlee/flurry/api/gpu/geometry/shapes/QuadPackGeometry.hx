@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
 import haxe.ds.Map;
-import uk.aidanlee.flurry.modules.importers.textureatlas.TextureAtlas;
+import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry.GeometryOptions;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
 import uk.aidanlee.flurry.api.maths.Vector;
