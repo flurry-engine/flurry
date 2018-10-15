@@ -1,4 +1,4 @@
-package uk.aidanlee.flurry.utils;
+package uk.aidanlee.flurry.api.maths;
 
 /**
  * Hash class provides several static functions to return unique IDs and hash values.

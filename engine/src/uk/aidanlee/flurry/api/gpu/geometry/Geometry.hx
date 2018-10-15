@@ -3,11 +3,11 @@ package uk.aidanlee.flurry.api.gpu.geometry;
 import snow.api.Emitter;
 import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.utils.Hash;
 
 enum PrimitiveType {
     Points;

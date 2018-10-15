@@ -6,7 +6,7 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.utils.Hash;
+import uk.aidanlee.flurry.api.maths.Hash;
 
 typedef BatcherOptions = {
     var camera : Camera;
