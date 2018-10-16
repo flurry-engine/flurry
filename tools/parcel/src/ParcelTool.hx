@@ -3,8 +3,8 @@ package;
 import haxe.Json;
 import haxe.Serializer;
 import haxe.io.Bytes;
-import uk.aidanlee.resources.Resource;
-import uk.aidanlee.resources.Parcel;
+import uk.aidanlee.flurry.api.resources.Resource;
+import uk.aidanlee.flurry.api.resources.Parcel;
 
 class ParcelTool
 {

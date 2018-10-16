@@ -1,9 +1,7 @@
 package;
 
-import uk.aidanlee.Flurry;
-import uk.aidanlee.FlurryConfig;
-import imgui.ImGui;
-import imgui.util.ImVec2;
+import uk.aidanlee.flurry.Flurry;
+import uk.aidanlee.flurry.FlurryConfig;
 
 typedef UserConfig = {};
 
@@ -18,9 +16,14 @@ class Main extends Flurry
 
         _config.renderer.backend = GL45;
 
-        _config.resources.preload.parcels.push('assets/parcels/sample.parcel');
         _config.resources.preload.images.push({ id : 'assets/images/shapes.png' });
         _config.resources.preload.texts.push({ id : 'assets/images/shapes.atlas' });
+        _config.resources.preload.shaders.push({
+            id    : 'assets/shaders/textured.json',
+            hlsl  : { vertex: 'assets/shaders/hlsl/textured.hlsl' , fragment: 'assets/shaders/hlsl/textured.hlsl' },
+            gl45  : { vertex: 'assets/shaders/gl45/textured.vert' , fragment: 'assets/shaders/gl45/textured.frag' },
+            webgl : { vertex: 'assets/shaders/webgl/textured.vert', fragment: 'assets/shaders/webgl/textured.frag' }
+        });
 
         return _config;
     }
@@ -43,44 +46,5 @@ class Main extends Flurry
     override function onUpdate(_dt : Float)
     {
         root.update(_dt);
-    }
-
-    override function onPostUpdate()
-    {
-        uiShowRenderStats();
-    }
-
-    /**
-     * Global ImGui window to display render stats.
-     */
-    function uiShowRenderStats()
-    {
-        var distance       = 10;
-        var windowPos      = ImVec2.create(ImGui.getIO().displaySize.x - distance, distance);
-        var windowPosPivot = ImVec2.create(1, 0);
-
-        ImGui.setNextWindowPos(windowPos, ImGuiCond.Always, windowPosPivot);
-        ImGui.setNextWindowBgAlpha(0.3);
-        if (ImGui.begin('Render Stats', NoMove | NoTitleBar | NoResize | AlwaysAutoResize | NoSavedSettings | NoFocusOnAppearing | NoNav))
-        {
-            ImGui.text('total batchers   ${renderer.stats.totalBatchers}');
-            ImGui.text('total geometry   ${renderer.stats.totalGeometry}');
-            ImGui.text('total vertices   ${renderer.stats.totalVertices}');
-            ImGui.text('dynamic draws    ${renderer.stats.dynamicDraws}');
-            ImGui.text('unchanging draws ${renderer.stats.unchangingDraws}');
-
-            ImGui.text('');
-            ImGui.text('state changes');
-            ImGui.separator();
-
-            ImGui.text('target           ${renderer.stats.targetSwaps}');
-            ImGui.text('shader           ${renderer.stats.shaderSwaps}');
-            ImGui.text('texture          ${renderer.stats.textureSwaps}');
-            ImGui.text('viewport         ${renderer.stats.viewportSwaps}');
-            ImGui.text('blend            ${renderer.stats.blendSwaps}');
-            ImGui.text('scissor          ${renderer.stats.scissorSwaps}');
-        }
-
-        ImGui.end();
     }
 }

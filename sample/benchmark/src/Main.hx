@@ -3,13 +3,13 @@ package;
 import snow.App;
 import snow.types.Types;
 import hxtelemetry.HxTelemetry;
-import uk.aidanlee.Flurry;
-import uk.aidanlee.FlurryConfig;
-import uk.aidanlee.gpu.Renderer;
-import uk.aidanlee.gpu.imgui.ImGuiImpl;
-import uk.aidanlee.resources.ResourceSystem;
-import uk.aidanlee.resources.Resource;
-import uk.aidanlee.scene.Scene;
+import uk.aidanlee.flurry.Flurry;
+import uk.aidanlee.flurry.FlurryConfig;
+import uk.aidanlee.flurry.api.gpu.Renderer;
+import uk.aidanlee.flurry.api.resources.ResourceSystem;
+import uk.aidanlee.flurry.api.resources.Resource;
+import uk.aidanlee.flurry.modules.scene.Scene;
+import uk.aidanlee.flurry.modules.imgui.ImGuiImpl;
 import imgui.ImGui;
 import imgui.util.ImVec2;
 
@@ -17,6 +17,8 @@ typedef UserConfig = {};
 
 class Main extends Flurry
 {
+    var imgui : ImGuiImpl;
+
     override function onConfig(_config : FlurryConfig) : FlurryConfig
     {
         _config.window.title  = 'Flurry';
@@ -32,9 +34,16 @@ class Main extends Flurry
 
     override function onReady()
     {
+        imgui = new ImGuiImpl(app, renderer.backend, resources.get('assets/shaders/textured.json', ShaderResource));
+
         root = new SampleScene('root', app, null, renderer, resources, events);
         root.resumeOnCreation = true;
         root.create();
+    }
+
+    override function onPreUpdate()
+    {
+        imgui.newFrame();
     }
 
     override function onUpdate(_dt : Float)
@@ -45,7 +54,45 @@ class Main extends Flurry
     override function onPostUpdate()
     {
         uiShowRenderStats();
+        
+        imgui.render();
     }
+
+    override function onShutdown()
+    {
+        imgui.dispose();
+    }
+
+    // We need to override the flurry / snow events for imgui to hook into them
+
+    override function onmousemove(_x : Int, _y : Int, _xRel : Int, _yRel : Int, _timestamp : Float, _windowID : Int)
+    {
+        if (!loaded) return;
+
+        root.mouseMove(_x, _y, _xRel, _yRel);
+
+        imgui.onMouseMove(_x, _y);
+    }
+
+    override function onmousewheel(_x : Float, _y : Float, _timestamp : Float, _windowID : Int)
+    {
+        if (!loaded) return;
+
+        root.mouseWheel(_x, _y);
+
+        imgui.onMouseWheel(_y);
+    }
+
+    override function ontextinput(_text : String, _start : Int, _length : Int, _type : TextEventType, _timestamp : Float, _windowID : Int)
+    {
+        if (!loaded) return;
+
+        root.textInput(_text, _start, _length, _type);
+
+        imgui.onTextInput(_text);
+    }
+
+    // Draw some stats about the renderer.
 
     function uiShowRenderStats()
     {

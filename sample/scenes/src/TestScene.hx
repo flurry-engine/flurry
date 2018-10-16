@@ -1,6 +1,6 @@
 package;
 
-import uk.aidanlee.scene.Scene;
+import uk.aidanlee.flurry.modules.scene.Scene;
 
 class TestScene extends Scene
 {
