@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.resources;
 
+import uk.aidanlee.flurry.api.resources.Parcel.ResourceInfo;
 import haxe.Json;
 import haxe.Unserializer;
 import snow.api.Debug.def;
@@ -129,6 +130,15 @@ class ResourceSystem
          * An event is fired with the loaded resources and parcel ID so the main thread can add them.
          */
         var parcelLoader = function() {
+
+            /**
+             * If the resource info path is not defined we assume the id is also the path.
+             * @param _resource ResourceInfo to get the path for.
+             * @return String
+             */
+            inline function getResourceInfoPath(_resource : ResourceInfo) : String {
+                return _resource.path == null ? _resource.id : _resource.path;
+            }
             
             try {
                 var resources = new Array<Resource>();
@@ -139,12 +149,12 @@ class ResourceSystem
                 var assets : Array<BytesInfo> = def(parcel.list.bytes, []);
                 for (asset in assets)
                 {
-                    if (!sys.FileSystem.exists(asset.id))
+                    if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
                     {
                         throw 'Loading ${asset.id} failed : File not found';
                     }
 
-                    resources.push(new BytesResource(asset.id, sys.io.File.getBytes(asset.id)));
+                    resources.push(new BytesResource(asset.id, sys.io.File.getBytes(getResourceInfoPath(asset))));
 
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
@@ -152,12 +162,12 @@ class ResourceSystem
                 var assets : Array<TextInfo> = def(parcel.list.texts, []);
                 for (asset in assets)
                 {
-                    if (!sys.FileSystem.exists(asset.id))
+                    if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
                     {
                         throw 'Loading ${asset.id} failed : File not found';
                     }
 
-                    resources.push(new TextResource(asset.id, sys.io.File.getContent(asset.id)));
+                    resources.push(new TextResource(asset.id, sys.io.File.getContent(getResourceInfoPath(asset))));
 
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
@@ -165,12 +175,12 @@ class ResourceSystem
                 var assets : Array<JSONInfo> = def(parcel.list.jsons, []);
                 for (asset in assets)
                 {
-                    if (!sys.FileSystem.exists(asset.id))
+                    if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
                     {
                         throw 'Loading ${asset.id} failed : File not found';
                     }
 
-                    resources.push(new JSONResource(asset.id, Json.parse(sys.io.File.getContent(asset.id))));
+                    resources.push(new JSONResource(asset.id, Json.parse(sys.io.File.getContent(getResourceInfoPath(asset)))));
 
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
@@ -178,12 +188,12 @@ class ResourceSystem
                 var assets : Array<ImageInfo> = def(parcel.list.images, []);
                 for (asset in assets)
                 {
-                    if (!sys.FileSystem.exists(asset.id))
+                    if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
                     {
                         throw 'Loading ${asset.id} failed : File not found';
                     }
 
-                    var bytes = sys.io.File.getBytes(asset.id);
+                    var bytes = sys.io.File.getBytes(getResourceInfoPath(asset));
                     var info  = stb.Image.load_from_memory(bytes.getData(), bytes.length, 4);
 
                     resources.push(new ImageResource(asset.id, info.w, info.h, info.bytes));
@@ -194,12 +204,12 @@ class ResourceSystem
                 var assets : Array<ShaderInfo> = def(parcel.list.shaders, []);
                 for (asset in assets)
                 {
-                    if (!sys.FileSystem.exists(asset.id))
+                    if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
                     {
                         throw 'Loading ${asset.id} failed : File not found';
                     }
 
-                    var layout = Json.parse(sys.io.File.getContent(asset.id));
+                    var layout = Json.parse(sys.io.File.getContent(getResourceInfoPath(asset)));
                     var sourceWebGL = asset.webgl == null ? null : { vertex : sys.io.File.getContent(asset.webgl.vertex), fragment : sys.io.File.getContent(asset.webgl.fragment) };
                     var sourceGL45  = asset.gl45  == null ? null : { vertex : sys.io.File.getContent(asset.gl45.vertex) , fragment : sys.io.File.getContent(asset.gl45.fragment) };
                     var sourceHLSL  = asset.hlsl  == null ? null : { vertex : sys.io.File.getContent(asset.hlsl.vertex) , fragment : sys.io.File.getContent(asset.hlsl.fragment) };

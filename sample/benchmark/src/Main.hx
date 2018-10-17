@@ -34,7 +34,7 @@ class Main extends Flurry
 
     override function onReady()
     {
-        imgui = new ImGuiImpl(app, renderer.backend, resources.get('assets/shaders/textured.json', ShaderResource));
+        imgui = new ImGuiImpl(app, renderer.backend, resources.get('std-shader-textured.json', ShaderResource));
 
         root = new SampleScene('root', app, null, renderer, resources, events);
         root.resumeOnCreation = true;

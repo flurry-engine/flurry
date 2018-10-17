@@ -47,7 +47,7 @@ class SampleScene extends Scene
     override function onResumed<T>(_data : T = null)
     {
         camera  = new OrthographicCamera(1600, 900);
-        batcher = renderer.createBatcher({ shader : resources.get('assets/shaders/textured.json', ShaderResource), camera : camera });
+        batcher = renderer.createBatcher({ shader : resources.get('std-shader-textured.json', ShaderResource), camera : camera });
 
         // Add some sprites.
         sprites  = [];

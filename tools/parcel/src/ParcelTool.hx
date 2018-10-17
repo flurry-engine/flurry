@@ -1,5 +1,6 @@
 package;
 
+import snow.api.Debug.def;
 import haxe.Json;
 import haxe.Serializer;
 import haxe.io.Bytes;
@@ -23,6 +24,15 @@ class ParcelTool
      */
     public static function createFromJson(_jsonPath : String, _output : String, _compress : Bool, _verbose : Bool)
     {
+        /**
+         * If the resource info path is not defined we assume the id is also the path.
+         * @param _resource ResourceInfo to get the path for.
+         * @return String
+         */
+        inline function getResourceInfoPath(_resource : ResourceInfo) : String {
+            return _resource.path == null ? _resource.id : _resource.path;
+        }
+
         var parcel : ParcelList = Json.parse(sys.io.File.getContent(_jsonPath));
 
         // Load and create resources for all the requested assets.
@@ -34,7 +44,7 @@ class ParcelTool
         var assets : Array<BytesInfo> = def(parcel.bytes, []);
         for (asset in assets)
         {
-            resources.push(new BytesResource(asset.id, sys.io.File.getBytes(asset.id)));
+            resources.push(new BytesResource(asset.id, sys.io.File.getBytes(getResourceInfoPath(asset))));
 
             log('Bytes asset "${asset.id}" added', _verbose);
         }
@@ -42,7 +52,7 @@ class ParcelTool
         var assets : Array<TextInfo> = def(parcel.texts, []);
         for (asset in assets)
         {
-            resources.push(new TextResource(asset.id, sys.io.File.getContent(asset.id)));
+            resources.push(new TextResource(asset.id, sys.io.File.getContent(getResourceInfoPath(asset))));
 
             log('Text asset "${asset.id}" added', _verbose);
         }
@@ -50,7 +60,7 @@ class ParcelTool
         var assets : Array<JSONInfo> = def(parcel.jsons, []);
         for (asset in assets)
         {
-            resources.push(new JSONResource(asset.id, Json.parse(sys.io.File.getContent(asset.id))));
+            resources.push(new JSONResource(asset.id, Json.parse(sys.io.File.getContent(getResourceInfoPath(asset)))));
 
             log('JSON asset "${asset.id}" added', _verbose);
         }
@@ -58,7 +68,7 @@ class ParcelTool
         var assets : Array<ImageInfo> = def(parcel.images, []);
         for (asset in assets)
         {
-            var bytes = sys.io.File.getBytes(asset.id);
+            var bytes = sys.io.File.getBytes(getResourceInfoPath(asset));
             var info  = stb.Image.load_from_memory(bytes.getData(), bytes.length, 4);
 
             resources.push(new ImageResource(asset.id, info.w, info.h, info.bytes));
@@ -69,7 +79,7 @@ class ParcelTool
         var assets : Array<ShaderInfo> = def(parcel.shaders, []);
         for (asset in assets)
         {
-            var layout = Json.parse(sys.io.File.getContent(asset.id));
+            var layout = Json.parse(sys.io.File.getContent(getResourceInfoPath(asset)));
             var sourceWebGL = asset.webgl == null ? null : { vertex : sys.io.File.getContent(asset.webgl.vertex), fragment : sys.io.File.getContent(asset.webgl.fragment) };
             var sourceGL45  = asset.gl45  == null ? null : { vertex : sys.io.File.getContent(asset.gl45.vertex) , fragment : sys.io.File.getContent(asset.gl45.fragment) };
             var sourceHLSL  = asset.hlsl  == null ? null : { vertex : sys.io.File.getContent(asset.hlsl.vertex) , fragment : sys.io.File.getContent(asset.hlsl.fragment) };
@@ -112,17 +122,6 @@ class ParcelTool
 
         sys.io.File.saveBytes(_output, Bytes.ofString(serializer.toString()));
         log('Parcel written to $_output', _verbose);
-    }
-
-    /**
-     * Returns either the provided value or a default value if its null.
-     * @param _value The value to check.
-     * @param _def   The value to return if its null.
-     * @return Dynamic
-     */
-    static inline function def(_value : Dynamic, _def : Dynamic) : Dynamic
-    {
-        return _value == null ? _def : _value;
     }
 
     /**

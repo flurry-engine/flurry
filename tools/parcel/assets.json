@@ -5,7 +5,8 @@
     ],
     "shaders" : [
         {
-            "id" : "assets/shaders/textured.json",
+            "id"   : "std-shader-textured.json",
+            "path" : "assets/shaders/textured.json",
             "gl45" : {
                 "vertex"   : "assets/shaders/gl45/textured.vert",
                 "fragment" : "assets/shaders/gl45/textured.frag"
