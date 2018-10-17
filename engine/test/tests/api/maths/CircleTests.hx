@@ -1,8 +1,8 @@
-package tests.maths;
+package tests.api.maths;
 
 import buddy.BuddySuite;
-import uk.aidanlee.maths.Vector;
-import uk.aidanlee.maths.Circle;
+import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Circle;
 
 using buddy.Should;
 

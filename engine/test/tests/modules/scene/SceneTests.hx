@@ -1,11 +1,11 @@
-package tests.scene;
+package tests.modules.scene;
 
-import uk.aidanlee.scene.Scene;
+import uk.aidanlee.flurry.api.gpu.Renderer;
+import uk.aidanlee.flurry.api.resources.ResourceSystem;
+import uk.aidanlee.flurry.modules.scene.Scene;
 import buddy.BuddySuite;
-import mockatoo.Mockatoo.*;
 
 using buddy.Should;
-using mockatoo.Mockatoo;
 
 class SceneTests extends BuddySuite
 {
@@ -74,7 +74,7 @@ private class OtherScene extends Scene
 
     public final string : String;
 
-    public function new(_name : String, _snow : snow.Snow, _parent : Scene, _renderer : uk.aidanlee.gpu.Renderer, _resources : uk.aidanlee.resources.ResourceSystem, _events : snow.api.Emitter<Int>, _number : Int, _string : String)
+    public function new(_name : String, _snow : snow.Snow, _parent : Scene, _renderer : Renderer, _resources : ResourceSystem, _events : snow.api.Emitter<Int>, _number : Int, _string : String)
     {
         super(_name, _snow, _parent, _renderer, _resources, _events);
 

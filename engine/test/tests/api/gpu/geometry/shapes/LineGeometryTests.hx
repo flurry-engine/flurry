@@ -1,8 +1,8 @@
-package tests.gpu.geometry.shapes;
+package tests.gpu.api.geometry.shapes;
 
-import uk.aidanlee.maths.Vector;
-import uk.aidanlee.gpu.geometry.shapes.LineGeometry;
-import uk.aidanlee.gpu.geometry.Color;
+import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.gpu.geometry.shapes.LineGeometry;
+import uk.aidanlee.flurry.api.gpu.geometry.Color;
 import buddy.BuddySuite;
 
 using buddy.Should;

@@ -1,7 +1,7 @@
-package tests.maths;
+package tests.api.maths;
 
 import buddy.BuddySuite;
-import uk.aidanlee.maths.Maths;
+import uk.aidanlee.flurry.api.maths.Maths;
 
 using buddy.Should;
 

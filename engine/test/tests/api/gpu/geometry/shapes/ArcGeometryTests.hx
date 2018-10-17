@@ -1,4 +1,4 @@
-package tests.gpu.geometry.shapes;
+package tests.gpu.api.geometry.shapes;
 
 import buddy.BuddySuite;
 

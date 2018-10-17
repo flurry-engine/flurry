@@ -1,12 +1,12 @@
-package tests.importers.textureatlas;
+package tests.api.importers.textureatlas;
 
-import uk.aidanlee.maths.Vector;
-import uk.aidanlee.maths.Rectangle;
-import uk.aidanlee.importers.textureatlas.TextureAtlas;
-import uk.aidanlee.importers.textureatlas.TextureAtlasParser;
-import uk.aidanlee.importers.textureatlas.TextureAtlas.TextureAtlasFormat;
-import uk.aidanlee.importers.textureatlas.TextureAtlas.TextureAtlasFilter;
-import uk.aidanlee.importers.textureatlas.TextureAtlas.TextureAtlasRepeat;
+import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas;
+import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlasParser;
+import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas.TextureAtlasFormat;
+import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas.TextureAtlasFilter;
+import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas.TextureAtlasRepeat;
 import buddy.BuddySuite;
 
 using buddy.Should;

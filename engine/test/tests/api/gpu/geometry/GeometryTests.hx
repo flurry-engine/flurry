@@ -1,13 +1,13 @@
-package tests.gpu.geometry;
+package tests.api.gpu.geometry;
 
-import uk.aidanlee.maths.Rectangle;
-import uk.aidanlee.maths.Vector;
-import uk.aidanlee.gpu.batcher.Batcher;
-import uk.aidanlee.gpu.geometry.Vertex;
-import uk.aidanlee.gpu.geometry.Geometry;
-import uk.aidanlee.gpu.geometry.Color;
-import uk.aidanlee.resources.Resource.ShaderResource;
-import uk.aidanlee.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
+import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.geometry.Color;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import buddy.BuddySuite;
 import mockatoo.Mockatoo.*;
 

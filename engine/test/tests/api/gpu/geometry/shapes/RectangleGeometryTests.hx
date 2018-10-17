@@ -1,11 +1,11 @@
-package tests.gpu.geometry.shapes;
+package tests.gpu.api.geometry.shapes;
 
-import uk.aidanlee.maths.Rectangle;
-import uk.aidanlee.maths.Vector;
-import uk.aidanlee.gpu.camera.Camera;
-import uk.aidanlee.gpu.batcher.Batcher;
-import uk.aidanlee.gpu.geometry.shapes.RectangleGeometry;
-import uk.aidanlee.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.gpu.camera.Camera;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.gpu.geometry.shapes.RectangleGeometry;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import mockatoo.Mockatoo.*;
 import buddy.BuddySuite;
 

@@ -1,6 +1,6 @@
-package tests.importers.bmfont;
+package tests.api.importers.bmfont;
 
-import uk.aidanlee.importers.bmfont.BitmapFontParser;
+import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontParser;
 import buddy.BuddySuite;
 
 using buddy.Should;

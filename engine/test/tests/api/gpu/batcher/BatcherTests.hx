@@ -1,15 +1,15 @@
-package tests.gpu.batcher;
+package tests.api.gpu.batcher;
 
-import uk.aidanlee.maths.Vector;
-import uk.aidanlee.maths.Maths;
-import uk.aidanlee.gpu.geometry.Geometry;
-import uk.aidanlee.gpu.geometry.Vertex;
-import uk.aidanlee.gpu.geometry.Color;
-import uk.aidanlee.gpu.batcher.Batcher;
-import uk.aidanlee.gpu.camera.Camera;
-import uk.aidanlee.utils.Hash;
-import uk.aidanlee.resources.Resource.ShaderResource;
-import uk.aidanlee.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Maths;
+import uk.aidanlee.flurry.api.maths.Hash;
+import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
+import uk.aidanlee.flurry.api.gpu.geometry.Color;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.gpu.camera.Camera;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import buddy.BuddySuite;
 import mockatoo.Mockatoo.*;
 
@@ -276,7 +276,7 @@ class BatcherTests extends BuddySuite
         });
     }
 
-    inline function createGeometry1() : Geometry
+    inline static function createGeometry1() : Geometry
     {
         var mesh = new Geometry({ name : 'geom1' });
 
@@ -296,7 +296,7 @@ class BatcherTests extends BuddySuite
         return mesh;
     }
 
-    inline function createGeometry2() : Geometry
+    inline static function createGeometry2() : Geometry
     {
         var mesh = new Geometry({ name : 'geom2' });
 
@@ -314,7 +314,7 @@ class BatcherTests extends BuddySuite
         return mesh;
     }
 
-    inline function createGeometry3() : Geometry
+    inline static function createGeometry3() : Geometry
     {
         var mesh = new Geometry({});
 
@@ -332,7 +332,7 @@ class BatcherTests extends BuddySuite
         return mesh;
     }
 
-    inline function createImmediateGeometry() : Geometry
+    inline static function createImmediateGeometry() : Geometry
     {
         var mesh = new Geometry({ immediate : true });
 
