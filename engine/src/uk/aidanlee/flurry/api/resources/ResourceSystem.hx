@@ -1,18 +1,20 @@
 package uk.aidanlee.flurry.api.resources;
 
-import uk.aidanlee.flurry.api.resources.Parcel.ResourceInfo;
 import haxe.Json;
 import haxe.Unserializer;
 import snow.api.Debug.def;
 import hx.concurrent.collection.Queue;
 import hx.concurrent.executor.Executor;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
-import uk.aidanlee.flurry.api.resources.Parcel.ParcelList;
+import uk.aidanlee.flurry.api.resources.Parcel.ResourceInfo;
+import uk.aidanlee.flurry.api.resources.Parcel.TextureAtlasInfo;
+import uk.aidanlee.flurry.api.resources.Parcel.FontInfo;
 import uk.aidanlee.flurry.api.resources.Parcel.ShaderInfo;
 import uk.aidanlee.flurry.api.resources.Parcel.ImageInfo;
 import uk.aidanlee.flurry.api.resources.Parcel.JSONInfo;
 import uk.aidanlee.flurry.api.resources.Parcel.TextInfo;
 import uk.aidanlee.flurry.api.resources.Parcel.BytesInfo;
+import uk.aidanlee.flurry.api.resources.Parcel.ParcelList;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelInfo;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelData;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -105,7 +107,7 @@ class ResourceSystem
     {
         if (parcels.exists(_parcel.id))
         {
-            throw 'Parcel with the ${_parcel.id} already exists within this resource system';
+            throw 'ParcelAlreadyAddedException : ${_parcel.id} already exists within this resource system';
         }
 
         parcels.set(_parcel.id, _parcel);
@@ -119,8 +121,7 @@ class ResourceSystem
     {
         if (parcelResources.exists(_parcel))
         {
-            trace('Attempting to load parcel which is already loaded.');
-            return;
+            throw 'ParcelAlreadyLoadedException : ${_parcel} is already loaded';
         }
 
         var parcel = parcels.get(_parcel);
@@ -151,7 +152,7 @@ class ResourceSystem
                 {
                     if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
                     {
-                        throw 'Loading ${asset.id} failed : File not found';
+                        throw 'ResourceSystemResourceNotFoundException failed to load ${asset.id}, ${getResourceInfoPath(asset)} does not exist';
                     }
 
                     resources.push(new BytesResource(asset.id, sys.io.File.getBytes(getResourceInfoPath(asset))));
@@ -164,7 +165,7 @@ class ResourceSystem
                 {
                     if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
                     {
-                        throw 'Loading ${asset.id} failed : File not found';
+                        throw 'ResourceSystemResourceNotFoundException failed to load ${asset.id}, ${getResourceInfoPath(asset)} does not exist';
                     }
 
                     resources.push(new TextResource(asset.id, sys.io.File.getContent(getResourceInfoPath(asset))));
@@ -177,7 +178,7 @@ class ResourceSystem
                 {
                     if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
                     {
-                        throw 'Loading ${asset.id} failed : File not found';
+                        throw 'ResourceSystemResourceNotFoundException failed to load ${asset.id}, ${getResourceInfoPath(asset)} does not exist';
                     }
 
                     resources.push(new JSONResource(asset.id, Json.parse(sys.io.File.getContent(getResourceInfoPath(asset)))));
@@ -190,7 +191,7 @@ class ResourceSystem
                 {
                     if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
                     {
-                        throw 'Loading ${asset.id} failed : File not found';
+                        throw 'ResourceSystemResourceNotFoundException failed to load ${asset.id}, ${getResourceInfoPath(asset)} does not exist';
                     }
 
                     var bytes = sys.io.File.getBytes(getResourceInfoPath(asset));
@@ -206,7 +207,7 @@ class ResourceSystem
                 {
                     if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
                     {
-                        throw 'Loading ${asset.id} failed : File not found';
+                        throw 'ResourceSystemResourceNotFoundException failed to load ${asset.id}, ${getResourceInfoPath(asset)} does not exist';
                     }
 
                     var layout = Json.parse(sys.io.File.getContent(getResourceInfoPath(asset)));
@@ -226,7 +227,7 @@ class ResourceSystem
                 {
                     if (!sys.FileSystem.exists(asset))
                     {
-                        throw 'Loading ${asset} failed : File not found';
+                        throw 'ResourceSystemParcelNotFoundException ${asset} does not exist';
                     }
 
                     // Get the serialized resource array from the parcel bytes.
@@ -268,8 +269,7 @@ class ResourceSystem
     {
         if (!parcelResources.exists(_parcel))
         {
-            trace('Attempting to remove a parcel which is not in this system');
-            return;
+            throw 'ParcelDoesNotExistException : $_parcel does not exist in this system';
         }
 
         for (resource in parcelResources.get(_parcel))

@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry.api.resources;
 
-import haxe.io.BytesData;
 import haxe.Json;
+import haxe.io.BytesData;
 import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;

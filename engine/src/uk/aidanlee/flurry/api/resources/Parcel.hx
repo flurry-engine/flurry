@@ -27,6 +27,8 @@ typedef ShaderInfo     = {
         fragment : String
     }
 }
+typedef TextureAtlasInfo = ResourceInfo;
+typedef FontInfo         = ResourceInfo;
 
 typedef ParcelList = {
     ?bytes   : Array<BytesInfo>,
@@ -34,7 +36,9 @@ typedef ParcelList = {
     ?jsons   : Array<JSONInfo>,
     ?images  : Array<ImageInfo>,
     ?shaders : Array<ShaderInfo>,
-    ?parcels : Array<ParcelInfo>
+    ?parcels : Array<ParcelInfo>,
+    ?atlases : Array<TextureAtlasInfo>,
+    ?fonts   : Array<FontInfo>
 }
 
 typedef ParcelData = {
