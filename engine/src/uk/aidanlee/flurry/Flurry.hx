@@ -1,7 +1,6 @@
 package uk.aidanlee.flurry;
 
 import snow.App;
-import snow.api.Emitter;
 import snow.api.Debug.log;
 import snow.types.Types.AppConfig;
 import snow.types.Types.GamepadDeviceEventType;
@@ -9,24 +8,26 @@ import snow.types.Types.TextEventType;
 import snow.types.Types.ModState;
 import snow.types.Types.WindowEventType;
 import snow.types.Types.SystemEvent;
+import uk.aidanlee.flurry.api.Event;
+import uk.aidanlee.flurry.api.EventBus;
 import uk.aidanlee.flurry.api.gpu.Renderer;
+import uk.aidanlee.flurry.api.input.InputEvents;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.modules.scene.Scene;
+import hxtelemetry.HxTelemetry;
 
 class Flurry extends App
 {
     var flurryConfig : FlurryConfig;
 
-    var events : Emitter<Int>;
+    var events : EventBus;
 
     var renderer : Renderer;
 
     var resources : ResourceSystem;
 
-    var root : Scene;
-
     var loaded : Bool;
+
+    var hxt : HxTelemetry;
 
     public function new()
     {
@@ -75,7 +76,7 @@ class Flurry extends App
         app.runtime.auto_swap = false;
 
         // Create a new events emitter for the engine components to communicate.
-        events = new Emitter();
+        events = new EventBus();
         
         // Setup the renderer.
         renderer = new Renderer({
@@ -108,7 +109,23 @@ class Flurry extends App
             loaded = true;
 
             onReady();
+
+            // Once the preload resource have been loaded fire the ready event after the engine callback.
+            events.fire(Ready);
+
         }, null, _e -> trace('Error loading preload parcel : ${_e}')).load();
+
+        // Fire the init event once the engine has loaded all its components.
+        events.fire(Init);
+
+        var cfg = new Config();
+        cfg.app_name    = 'flurry';
+        cfg.profiler    = true;
+        cfg.allocations = true;
+        cfg.trace       = true;
+        cfg.cpu_usage   = true;
+        cfg.activity_descriptors = [ { name : '.rendering', description : 'Time Spent Drawing', color : 0xE91E63 } ];
+        hxt = new HxTelemetry(cfg);
     }
     
     override final function update(_dt : Float)
@@ -120,6 +137,8 @@ class Flurry extends App
         if (loaded)
         {
             onPreUpdate();
+
+            events.fire(PreUpdate);
         }
 
         // Pre-draw
@@ -130,14 +149,20 @@ class Flurry extends App
         if (loaded)
         {
             onUpdate(_dt);
+
+            events.fire(Update);
         }
 
         // Render and present
+        hxt.start_timing('.rendering');
         renderer.render();
+        hxt.end_timing('.rendering');
 
         if (loaded)
         {
             onPostUpdate();
+
+            events.fire(PostUpdate);
         }
 
         // Post-draw
@@ -147,18 +172,20 @@ class Flurry extends App
         {
             app.runtime.window_swap();
         }
+
+        hxt.advance_frame();
     }
 
     override final function ondestroy()
     {
-        onShutdown();
+        events.fire(Shutdown);
 
-        root.remove();
+        onShutdown();
 
         resources.free('preload');
     }
 
-    override function onevent(_event : SystemEvent)
+    override final function onevent(_event : SystemEvent)
     {
         if (_event.window != null)
         {
@@ -169,81 +196,81 @@ class Flurry extends App
         }
     }
 
-    override function onkeyup(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState, _timestamp : Float, windowID : Int)
-    {
-        if (!loaded) return;
-
-        root.keyUp(_keycode, _scancode, _repeat, _mod);
-    }
-
-    override function onkeydown(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState, _timestamp : Float, windowID : Int)
-    {
-        if (!loaded) return;
-
-        root.keyDown(_keycode, _scancode, _repeat, _mod);
-    }
-
-    override function ontextinput(_text : String, _start : Int, _length : Int, _type : TextEventType, _timestamp : Float, _windowID : Int)
-    {
-        if (!loaded) return;
-
-        root.textInput(_text, _start, _length, _type);
-    }
-
-    override function onmouseup(_x : Int, _y : Int, _button : Int, _timestamp : Float, _windowID : Int)
-    {
-        if (!loaded) return;
-
-        root.mouseUp(_x, _y, _button);
-    }
-
-    override function onmousedown(_x : Int, _y : Int, _button : Int, _timestamp : Float, _windowID : Int)
-    {
-        if (!loaded) return;
-
-        root.mouseDown(_x, _y, _button);
-    }
-
-    override function onmousemove(_x : Int, _y : Int, _xRel : Int, _yRel : Int, _timestamp : Float, _windowID : Int)
-    {
-        if (!loaded) return;
-
-        root.mouseMove(_x, _y, _xRel, _yRel);
-    }
-
-    override function onmousewheel(_x : Float, _y : Float, _timestamp : Float, _windowID : Int)
-    {
-        if (!loaded) return;
-
-        root.mouseWheel(_x, _y);
-    }
-
-    override function ongamepadup(_gamepad : Int, _button : Int, _value : Float, _timestamp : Float)
-    {
-        if (!loaded) return;
-
-        root.gamepadUp(_gamepad, _button, _value);
-    }
-
-    override function ongamepaddown(_gamepad : Int, _button : Int, _value : Float, _timestamp : Float)
-    {
-        if (!loaded) return;
-
-        root.gamepadDown(_gamepad, _button, _value);
-    }
-
-    override function ongamepadaxis(_gamepad : Int, _axis : Int, _value : Float, _timestamp : Float)
-    {
-        if (!loaded) return;
-
-        root.gamepadAxis(_gamepad, _axis, _value);
-    }
-
-    override function ongamepaddevice(_gamepad : Int, _id : String, _type : GamepadDeviceEventType, _timestamp : Float)
+    override final function onkeyup(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState, _timestamp : Float, windowID : Int)
     {
         if (!loaded) return;
         
-        root.gamepadDevice(_gamepad, _id, _type);
+        events.fire(KeyUp, new InputEventKeyUp(_keycode, _scancode, _repeat, _mod));
+    }
+
+    override final function onkeydown(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState, _timestamp : Float, windowID : Int)
+    {
+        if (!loaded) return;
+
+        events.fire(KeyDown, new InputEventKeyDown(_keycode, _scancode, _repeat, _mod));
+    }
+
+    override final function ontextinput(_text : String, _start : Int, _length : Int, _type : TextEventType, _timestamp : Float, _windowID : Int)
+    {
+        if (!loaded) return;
+
+        events.fire(TextInput, new InputEventTextInput(_text, _start, _length, _type));
+    }
+
+    override final function onmouseup(_x : Int, _y : Int, _button : Int, _timestamp : Float, _windowID : Int)
+    {
+        if (!loaded) return;
+
+        events.fire(MouseUp, new InputEventMouseUp(_x, _y, _button));
+    }
+
+    override final function onmousedown(_x : Int, _y : Int, _button : Int, _timestamp : Float, _windowID : Int)
+    {
+        if (!loaded) return;
+
+        events.fire(MouseDown, new InputEventMouseDown(_x, _y, _button));
+    }
+
+    override final function onmousemove(_x : Int, _y : Int, _xRel : Int, _yRel : Int, _timestamp : Float, _windowID : Int)
+    {
+        if (!loaded) return;
+
+        events.fire(MouseMove, new InputEventMouseMove(_x, _y, _xRel, _yRel));
+    }
+
+    override final function onmousewheel(_x : Float, _y : Float, _timestamp : Float, _windowID : Int)
+    {
+        if (!loaded) return;
+
+        events.fire(MouseWheel, new InputEventMouseWheel(_x, _y));
+    }
+
+    override final function ongamepadup(_gamepad : Int, _button : Int, _value : Float, _timestamp : Float)
+    {
+        if (!loaded) return;
+
+        events.fire(GamepadUp, new InputEventGamepadUp(_gamepad, _button, _value));
+    }
+
+    override final function ongamepaddown(_gamepad : Int, _button : Int, _value : Float, _timestamp : Float)
+    {
+        if (!loaded) return;
+
+        events.fire(GamepadDown, new InputEventGamepadDown(_gamepad, _button, _value));
+    }
+
+    override final function ongamepadaxis(_gamepad : Int, _axis : Int, _value : Float, _timestamp : Float)
+    {
+        if (!loaded) return;
+
+        events.fire(GamepadAxis, new InputEventGamepadAxis(_gamepad, _axis, _value));
+    }
+
+    override final function ongamepaddevice(_gamepad : Int, _id : String, _type : GamepadDeviceEventType, _timestamp : Float)
+    {
+        if (!loaded) return;
+
+        events.fire(GamepadDevice, new InputEventGamepadDevice(_gamepad, _id, _type));
     }
 
     // Flurry functions the user can override.

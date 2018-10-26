@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry.modules.scene;
 
+import uk.aidanlee.flurry.api.EventBus;
 import snow.Snow;
-import snow.api.Emitter;
 import snow.types.Types.GamepadDeviceEventType;
 import snow.types.Types.TextEventType;
 import snow.types.Types.ModState;
@@ -60,14 +60,14 @@ class Scene
     /**
      * Access to the engine events bus.
      */
-    final events : Emitter<Int>;
+    final events : EventBus;
 
     /**
      * The currently active child. Null if no child is active.
      */
     var activeChild : Scene;
 
-    public function new(_name : String, _snow : Snow, _parent : Scene, _renderer : Renderer, _resources : ResourceSystem, _events : Emitter<Int>)
+    public function new(_name : String, _snow : Snow, _parent : Scene, _renderer : Renderer, _resources : ResourceSystem, _events : EventBus)
     {
         name             = _name;
         paused           = true;

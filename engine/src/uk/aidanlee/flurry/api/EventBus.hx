@@ -6,7 +6,7 @@ import uk.aidanlee.flurry.api.interfaces.IDisposable;
 /**
  * All callback functions must contain one argument return void.
  */
-typedef EventFunction = (_data : Dynamic) -> Void;
+typedef EventFunction = Dynamic->Void;
 
 /**
  * Event bus which can fire and queue named events.
@@ -72,7 +72,7 @@ class EventBus implements IDisposable
      * @param _properties Callback function.
      * @return listener ID.
      */
-    @:generic public function listen<T>(_name : String, _listener : (_data : T) -> Void) : Int
+    public function listen<T>(_name : String, _listener : (_data : T) -> Void) : Int
     {
         var id         = Hash.uniqueHash();
         var connection = new EventConnection(id, _name, _listener);

@@ -4,39 +4,39 @@ package uk.aidanlee.flurry.api;
  * These are the core event strings which are emitted by the flurry engine.
  * Any additional part of the engine which has access to the central event bus can listen to these events.
  */
-class Event
+enum abstract Event(String) from String to String
 {
-    public static var INIT           = 'flurry-core-ev-init';
+    var Init          = 'flurry-core-ev-init';
     
-    public static var READY          = 'flurry-core-ev-ready';
+    var Ready         = 'flurry-core-ev-ready';
 
-    public static var PRE_UPDATE     = 'flurry-core-ev-pre-update';
+    var PreUpdate     = 'flurry-core-ev-pre-update';
 
-    public static var UPDATE         = 'flurry-core-ev-update';
+    var Update        = 'flurry-core-ev-update';
 
-    public static var POST_UPDATE    = 'flurry-core-ev-post-update';
+    var PostUpdate    = 'flurry-core-ev-post-update';
 
-    public static var SHUTDOWN       = 'flurry-core-ev-shutdown';
+    var Shutdown      = 'flurry-core-ev-shutdown';
 
-    public static var KEY_UP         = 'flurry-core-ev-key-up';
+    var KeyUp         = 'flurry-core-ev-key-up';
 
-    public static var KEY_DOWN       = 'flurry-core-ev-key-down';
+    var KeyDown       = 'flurry-core-ev-key-down';
 
-    public static var TEXT_INPUT     = 'flurry-core-ev-text-input';
+    var TextInput     = 'flurry-core-ev-text-input';
 
-    public static var MOUSE_UP       = 'flurry-core-ev-mouse-up';
+    var MouseUp       = 'flurry-core-ev-mouse-up';
 
-    public static var MOUSE_DOWN     = 'flurry-core-ev-mouse-down';
+    var MouseDown     = 'flurry-core-ev-mouse-down';
 
-    public static var MOUSE_MOVE     = 'flurry-core-ev-mouse-move';
+    var MouseMove     = 'flurry-core-ev-mouse-move';
 
-    public static var MOUSE_WHEEL    = 'flurry-core-ev-mouse-wheel';
+    var MouseWheel    = 'flurry-core-ev-mouse-wheel';
 
-    public static var GAMEPAD_UP     = 'flurry-core-ev-gamepad-up';
+    var GamepadUp     = 'flurry-core-ev-gamepad-up';
 
-    public static var GAMEPAD_DOWN   = 'flurry-core-ev-gamepad-down';
+    var GamepadDown   = 'flurry-core-ev-gamepad-down';
 
-    public static var GAMEPAD_AXIS   = 'flurry-core-ev-gamepad-axis';
+    var GamepadAxis   = 'flurry-core-ev-gamepad-axis';
 
-    public static var GAMEPAD_DEVICE = 'flurry-core-ev-gamepad-device';
+    var GamepadDevice = 'flurry-core-ev-gamepad-device';
 }

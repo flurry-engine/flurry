@@ -1,5 +1,6 @@
 package;
 
+import uk.aidanlee.flurry.api.EventBus;
 import snow.Snow;
 import snow.api.Emitter;
 import uk.aidanlee.flurry.modules.scene.Scene;
@@ -39,7 +40,7 @@ class SampleScene extends Scene
      */
     var vectors : Array<Vector>;
 
-    public function new(_name : String, _snow : Snow, _parent : Scene, _renderer : Renderer, _resources : ResourceSystem, _events : Emitter<Int>)
+    public function new(_name : String, _snow : Snow, _parent : Scene, _renderer : Renderer, _resources : ResourceSystem, _events : EventBus)
     {
         super(_name, _snow, _parent, _renderer, _resources, _events);
     }
