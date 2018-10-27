@@ -87,17 +87,18 @@ class Renderer
      */
     final queuedCommands : Array<DrawCommand>;
 
-    public function new(_options : RendererOptions)
+    public function new(_events : EventBus, _options : RendererOptions)
     {
         queuedCommands = [];
         batchers       = [];
         api            = _options.api;
         stats          = new RendererStats();
 
-        switch (api) {
+        switch (api)
+        {
             #if cpp
             case GL45:
-                backend = new GL45Backend(stats, _options);
+                backend = new GL45Backend(_events, stats, _options);
                 api     = GL45;
             #end
 
