@@ -21,6 +21,7 @@ import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
 /**
  * OpenGL 4.5 renderer. Makes use of DSA, named buffers, persistent mapping, and (hopefully) eventually stuff like SSBOs and bindless textures.
@@ -36,6 +37,11 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
  */
 class GL45Backend implements IRendererBackend
 {
+    /**
+     * Event bus for the rendering backend to listen to resource creation events.
+     */
+    final events : EventBus;
+
     /**
      * Access to the renderer who owns this backend.
      */
@@ -155,17 +161,23 @@ class GL45Backend implements IRendererBackend
      */
     var shader : ShaderResource;
 
+    // Event listener IDs
+
+    final evResourceCreated : Int;
+
+    final evResourceRemoved : Int;
+
     /**
      * Creates a new openGL 4.5 renderer.
      * @param _renderer           Access to the renderer which owns this backend.
      * @param _dynamicVertices    The maximum number of dynamic vertices in the buffer.
      * @param _unchangingVertices The maximum number of static vertices in the buffer.
      */
-    public function new(_rendererStats : RendererStats, _options : RendererOptions)
+    public function new(_events : EventBus, _rendererStats : RendererStats, _options : RendererOptions)
     {
+        events           = _events;
+        rendererStats    = _rendererStats;
         _options.backend = def(_options.backend, {});
-
-        rendererStats = _rendererStats;
 
         // Check for ARB_bindless_texture support
         bindless = def(_options.backend.bindless, false);
@@ -260,6 +272,10 @@ class GL45Backend implements IRendererBackend
         textureHandles = new Map();
 
         framebufferObjects = new Map();
+
+        // Listen to resource creation events.
+        evResourceCreated = events.listen(ResourceEvents.Created, onResourceCreated);
+        evResourceRemoved = events.listen(ResourceEvents.Removed, onResourceRemoved);
     }
 
     /**
@@ -525,11 +541,37 @@ class GL45Backend implements IRendererBackend
 
     // #region Resource management.
 
+    function onResourceCreated(_event : ResourceEventCreated)
+    {
+        switch (_event.type)
+        {
+            case ImageResource:
+                createTexture(cast _event.resource);
+            case ShaderResource:
+                createShader(cast _event.resource);
+            case _:
+                //
+        }
+    }
+
+    function onResourceRemoved(_event : ResourceEventRemoved)
+    {
+        switch (_event.type)
+        {
+            case ImageResource:
+                removeTexture(cast _event.resource);
+            case ShaderResource:
+                removeShader(cast _event.resource);
+            case _:
+                //
+        }
+    }
+
     /**
      * Create a shader from a resource.
      * @param _resource Resource to create a shader of.
      */
-    public function createShader(_resource : ShaderResource)
+    function createShader(_resource : ShaderResource)
     {
         if (_resource.gl45 == null)
         {
@@ -629,7 +671,7 @@ class GL45Backend implements IRendererBackend
      * Free the GPU resources used by a shader program.
      * @param _resource Shader resource to remove.
      */
-    public function removeShader(_resource : ShaderResource)
+    function removeShader(_resource : ShaderResource)
     {
         glDeleteProgram(shaderPrograms.get(_resource.id));
 
@@ -641,7 +683,7 @@ class GL45Backend implements IRendererBackend
      * Create a texture from a resource.
      * @param _resource Image resource to create the texture from.
      */
-    public function createTexture(_resource : ImageResource)
+    function createTexture(_resource : ImageResource)
     {
         var ids = [ 0 ];
         glCreateTextures(GL_TEXTURE_2D, 1, ids);
@@ -669,7 +711,7 @@ class GL45Backend implements IRendererBackend
      * Free the GPU resources used by a texture.
      * @param _resource Image resource to remove.
      */
-    public function removeTexture(_resource : ImageResource)
+    function removeTexture(_resource : ImageResource)
     {
         if (bindless)
         {
