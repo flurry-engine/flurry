@@ -15,6 +15,7 @@ import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
 /**
  * WebGL backend written against the webGL 1.0 spec (openGL ES 2.0).
@@ -23,6 +24,11 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
  */
 class WebGLBackend implements IRendererBackend
 {
+    /**
+     * Event bus for the rendering backend to listen to resource creation events.
+     */
+    final events : EventBus;
+
     /**
      * Access to the renderer who owns this backend.
      */
@@ -89,8 +95,15 @@ class WebGLBackend implements IRendererBackend
     var viewport : Rectangle;
     var boundTextures : Array<Int>;
 
-    public function new(_rendererStats : RendererStats, _options : RendererOptions)
+    // Event listener IDs
+
+    final evResourceCreated : Int;
+
+    final evResourceRemoved : Int;
+
+    public function new(_events : EventBus, _rendererStats : RendererStats, _options : RendererOptions)
     {
+        events        = _events;
         rendererStats = _rendererStats;
 
         shaderPrograms = new Map();
@@ -151,6 +164,10 @@ class WebGLBackend implements IRendererBackend
         shader   = null;
         target   = null;
         boundTextures = [];
+
+        // Listen to resource creation events.
+        evResourceCreated = events.listen(ResourceEvents.Created, onResourceCreated);
+        evResourceRemoved = events.listen(ResourceEvents.Removed, onResourceRemoved);
     }
 
     /**
@@ -313,6 +330,32 @@ class WebGLBackend implements IRendererBackend
         }
     }
 
+    function onResourceCreated(_event : ResourceEventCreated)
+    {
+        switch (_event.type)
+        {
+            case ImageResource:
+                createTexture(cast _event.resource);
+            case ShaderResource:
+                createShader(cast _event.resource);
+            case _:
+                //
+        }
+    }
+
+    function onResourceRemoved(_event : ResourceEventRemoved)
+    {
+        switch (_event.type)
+        {
+            case ImageResource:
+                removeTexture(cast _event.resource);
+            case ShaderResource:
+                removeShader(cast _event.resource);
+            case _:
+                //
+        }
+    }
+
     /**
      * Creates a shader from a vertex and fragment source.
      * @param _vert   Vertex shader source.
@@ -320,7 +363,7 @@ class WebGLBackend implements IRendererBackend
      * @param _layout Shader layout JSON description.
      * @return Shader
      */
-    public function createShader(_resource : ShaderResource)
+    function createShader(_resource : ShaderResource)
     {
         if (_resource.webgl == null)
         {
@@ -390,7 +433,7 @@ class WebGLBackend implements IRendererBackend
      * Removes and frees the resources used by a shader.
      * @param _name Name of the shader.
      */
-    public function removeShader(_resource : ShaderResource)
+    function removeShader(_resource : ShaderResource)
     {
         GL.deleteProgram(shaderPrograms.get(_resource.id));
 
@@ -406,7 +449,7 @@ class WebGLBackend implements IRendererBackend
      * @param _height Height of the texture.
      * @return Texture
      */
-    public function createTexture(_resource : ImageResource)
+    function createTexture(_resource : ImageResource)
     {
         var id = GL.createTexture();
         GL.bindTexture(GL.TEXTURE_2D, id);
@@ -426,7 +469,7 @@ class WebGLBackend implements IRendererBackend
      * Removes and frees the resources used by a texture.
      * @param _name Name of the texture.
      */
-    public function removeTexture(_resource : ImageResource)
+    function removeTexture(_resource : ImageResource)
     {
         GL.deleteTexture(textureObjects.get(_resource.id));
         textureObjects.remove(_resource.id);
@@ -557,7 +600,7 @@ class WebGLBackend implements IRendererBackend
      * @param _combined     Only required uniform. VP combined matrix.
      * @param _disableStats If stats are to be recorded.
      */
-    inline function setUniforms(_command : DrawCommand, _disableStats : Bool)
+    function setUniforms(_command : DrawCommand, _disableStats : Bool)
     {
         // Find this shaders location cache.
         var cache = shaderUniforms.get(_command.shader.id);
@@ -616,7 +659,7 @@ class WebGLBackend implements IRendererBackend
         }
     }
 
-    inline function vectorToFloatArray(_vector : Vector) : Float32Array
+    function vectorToFloatArray(_vector : Vector) : Float32Array
     {
         var array = new Float32Array(4);
         array[0] = _vector.x;
@@ -627,7 +670,7 @@ class WebGLBackend implements IRendererBackend
         return array;
     }
 
-    inline function getBlendMode(_mode : BlendMode) : Int
+    function getBlendMode(_mode : BlendMode) : Int
     {
         return switch (_mode)
         {

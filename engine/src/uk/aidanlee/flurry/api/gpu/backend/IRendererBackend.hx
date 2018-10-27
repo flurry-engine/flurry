@@ -1,7 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
@@ -17,10 +15,13 @@ enum ShaderType {
 }
 
 /**
- * Anonymouse structure for describing the layout of a shader.
- * Shaders currently require several built in uniforms / blocks to draw stuff. Check each backends documentation for what is needed.
+ * Describes the shader layout.
  */
 typedef ShaderLayout = { textures : Array<String>, blocks : Array<ShaderBlock> };
+
+/**
+ * Describes the layout of a shader block.
+ */
 typedef ShaderBlock  = { name : String, vals : Array<{ name : String, type : String }> };
 
 /**
@@ -74,35 +75,6 @@ interface IRendererBackend
      * @param _height new height of the window.
      */
     public function resize(_width : Int, _height : Int) : Void;
-
-    /**
-     * Creates a shader from a vertex and fragment source.
-     * @param _vert Vertex shader source.
-     * @param _frag Fragment shader source.
-     * @return Shader
-     */
-    public function createShader(_resource : ShaderResource) : Void;
-
-    /**
-     * Removes and frees the resources used by a shader.
-     * @param _id Unique ID of the shader.
-     */
-    public function removeShader(_resource : ShaderResource) : Void;
-
-    /**
-     * Creates a new texture given an array of pixel data.
-     * @param _pixels R8G8B8A8 pixel data.
-     * @param _width  Width of the texture.
-     * @param _height Height of the texture.
-     * @return Texture
-     */
-    public function createTexture(_resource : ImageResource) : Void;
-
-    /**
-     * Removes and frees the resources used by a texture.
-     * @param _id Unique ID of the texture.
-     */
-    public function removeTexture(_resource : ImageResource) : Void;
 
     /**
      * Call when destroying the renderer. Will cleanup any resources used by the backend.

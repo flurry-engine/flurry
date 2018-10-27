@@ -5,10 +5,7 @@ import haxe.Unserializer;
 import snow.api.Debug.def;
 import hx.concurrent.collection.Queue;
 import hx.concurrent.executor.Executor;
-import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
 import uk.aidanlee.flurry.api.resources.Parcel.ResourceInfo;
-import uk.aidanlee.flurry.api.resources.Parcel.TextureAtlasInfo;
-import uk.aidanlee.flurry.api.resources.Parcel.FontInfo;
 import uk.aidanlee.flurry.api.resources.Parcel.ShaderInfo;
 import uk.aidanlee.flurry.api.resources.Parcel.ImageInfo;
 import uk.aidanlee.flurry.api.resources.Parcel.JSONInfo;
@@ -22,6 +19,8 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.JSONResource;
 import uk.aidanlee.flurry.api.resources.Resource.TextResource;
 import uk.aidanlee.flurry.api.resources.Resource.BytesResource;
+import uk.aidanlee.flurry.api.resources.ResourceEvents.ResourceEventRemoved;
+import uk.aidanlee.flurry.api.resources.ResourceEvents.ResourceEventCreated;
 
 enum ParcelEventType
 {
@@ -33,10 +32,9 @@ enum ParcelEventType
 class ResourceSystem
 {
     /**
-     * Rendering backend this resource system will use to automatically manage gpu resources.
-     * If not specified gpu resources will not be automatically created and destroyed.
+     * Event bus the resource system can fire events into as and when resources and created and removed.
      */
-    final backend : IRendererBackend;
+    final events : EventBus;
 
     /**
      * All parcels loaded in this resource system.
@@ -77,9 +75,9 @@ class ResourceSystem
      * 
      * @param _threads Number of active threads for loading parcels (defaults 1).
      */
-    public function new(_backend : IRendererBackend = null, _threads : Int = 1)
+    public function new(_events : EventBus, _threads : Int = 1)
     {
-        backend            = _backend;
+        events             = _events;
         parcels            = new Map();
         parcelResources    = new Map();
         resourceCache      = new Map();
@@ -279,17 +277,13 @@ class ResourceSystem
             // Otherwise we deincrement the resources reference and leave it in the system.
             if (resourceReferences.get(resource) == 1)
             {
-                // Optionally auto remove resource once it is not referenced by any parcels.
-                if (backend != null)
+                if (Std.is(resourceCache.get(resource), ImageResource))
                 {
-                    if (Std.is(resourceCache.get(resource), ImageResource))
-                    {
-                        backend.removeTexture(cast resourceCache.get(resource));
-                    }
-                    if (Std.is(resourceCache.get(resource), ShaderResource))
-                    {
-                        backend.removeShader(cast resourceCache.get(resource));
-                    }
+                    events.fire(ResourceEvents.Removed, new ResourceEventRemoved(ImageResource, resourceCache.get(resource)));
+                }
+                if (Std.is(resourceCache.get(resource), ShaderResource))
+                {
+                    events.fire(ResourceEvents.Removed, new ResourceEventRemoved(ShaderResource, resourceCache.get(resource)));
                 }
 
                 resourceReferences.remove(resource);
@@ -394,17 +388,13 @@ class ResourceSystem
             {
                 resourceCache.set(resource.id, resource);
 
-                // Optionally create the gpu resources
-                if (backend != null)
+                if (Std.is(resource, ImageResource))
                 {
-                    if (Std.is(resource, ImageResource))
-                    {
-                        backend.createTexture(cast resource);
-                    }
-                    if (Std.is(resource, ShaderResource))
-                    {
-                        backend.createShader(cast resource);
-                    }
+                    events.fire(ResourceEvents.Created, new ResourceEventCreated(ImageResource, resource));
+                }
+                if (Std.is(resource, ShaderResource))
+                {
+                    events.fire(ResourceEvents.Created, new ResourceEventCreated(ShaderResource, resource));
                 }
             }
         }
