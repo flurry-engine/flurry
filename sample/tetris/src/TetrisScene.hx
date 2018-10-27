@@ -1,10 +1,10 @@
 package;
 
+import snow.Snow;
 import snow.api.Timer;
 import snow.types.Types.ModState;
-import snow.Snow;
-import snow.api.Emitter;
 import snow.types.Types.Key;
+import uk.aidanlee.flurry.api.EventBus;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -55,7 +55,7 @@ class TetrisScene extends Scene
      */
     var timer : Timer;
 
-    public function new(_name : String, _snow : Snow, _parent : Scene, _renderer : Renderer, _resources : ResourceSystem, _events : Emitter<Int>)
+    public function new(_name : String, _snow : Snow, _parent : Scene, _renderer : Renderer, _resources : ResourceSystem, _events : EventBus)
     {
         super(_name, _snow, _parent, _renderer, _resources, _events);
     }
