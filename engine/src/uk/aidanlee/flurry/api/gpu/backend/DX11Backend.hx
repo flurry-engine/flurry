@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import haxe.io.Bytes;
 import haxe.ds.Map;
 import snow.api.Debug.def;
@@ -58,6 +59,11 @@ using cpp.Pointer;
 ')
 class DX11Backend implements IRendererBackend
 {
+    /**
+     * Event bus for the rendering backend to listen to resource creation events.
+     */
+    final events : EventBus;
+
     /**
      * Access to the renderer which owns this backend.
      */
@@ -174,8 +180,16 @@ class DX11Backend implements IRendererBackend
     var texture  : ImageResource;
     var target   : ImageResource;
 
-    public function new(_rendererStats : RendererStats, _options : RendererOptions)
+    // Event listener IDs
+
+    final evResourceCreated : Int;
+
+    final evResourceRemoved : Int;
+
+    public function new(_events : EventBus, _rendererStats : RendererStats, _options : RendererOptions)
     {
+        events           = _events;
+        rendererStats    = _rendererStats;
         _options.backend = def(_options.backend, {});
 
         var success    = false;
@@ -194,8 +208,6 @@ class DX11Backend implements IRendererBackend
         {
             throw 'Unable to get DXGI information for the main SDL window';
         }
-
-        rendererStats = _rendererStats;
 
         shaderResources  = new Map();
         textureResources = new Map();
@@ -348,6 +360,10 @@ class DX11Backend implements IRendererBackend
         target   = null;
         shader   = null;
         texture  = null;
+
+        // Listen to resource creation events.
+        evResourceCreated = events.listen(ResourceEvents.Created, onResourceCreated);
+        evResourceRemoved = events.listen(ResourceEvents.Removed, onResourceRemoved);
     }
 
     public function clear()
@@ -573,6 +589,32 @@ class DX11Backend implements IRendererBackend
 
     // #region resource handling
 
+    function onResourceCreated(_event : ResourceEventCreated)
+    {
+        switch (_event.type)
+        {
+            case ImageResource:
+                createTexture(cast _event.resource);
+            case ShaderResource:
+                createShader(cast _event.resource);
+            case _:
+                //
+        }
+    }
+
+    function onResourceRemoved(_event : ResourceEventRemoved)
+    {
+        switch (_event.type)
+        {
+            case ImageResource:
+                removeTexture(cast _event.resource);
+            case ShaderResource:
+                removeShader(cast _event.resource);
+            case _:
+                //
+        }
+    }
+
     /**
      * Create the D3D11 resources required for a shader.
      * @param _vert   Vertex source.
@@ -580,7 +622,7 @@ class DX11Backend implements IRendererBackend
      * @param _layout JSON shader layout description.
      * @return Shader
      */
-    public function createShader(_resource : ShaderResource)
+    function createShader(_resource : ShaderResource)
     {
         if (_resource.hlsl == null)
         {
@@ -700,7 +742,7 @@ class DX11Backend implements IRendererBackend
      * Remove the D3D11 resources used by a shader.
      * @param _name Name of the shader to remove.
      */
-    public function removeShader(_resource : ShaderResource)
+    function removeShader(_resource : ShaderResource)
     {
         var resources = shaderResources.get(_resource.id);
 
@@ -723,7 +765,7 @@ class DX11Backend implements IRendererBackend
      * @param _height Height of the texture.
      * @return Texture
      */
-    public function createTexture(_resource : ImageResource)
+    function createTexture(_resource : ImageResource)
     {
         // Sub resource struct to hold the raw image bytes.
         var imgData = SubResourceData.create();
@@ -790,7 +832,7 @@ class DX11Backend implements IRendererBackend
      * Free the D3D11 resources used by a texture.
      * @param _name Name of the texture to remove.
      */
-    public function removeTexture(_resource : ImageResource)
+    function removeTexture(_resource : ImageResource)
     {
         var resources = textureResources.get(_resource.id);
 

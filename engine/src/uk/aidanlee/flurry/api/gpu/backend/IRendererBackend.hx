@@ -15,10 +15,13 @@ enum ShaderType {
 }
 
 /**
- * Anonymouse structure for describing the layout of a shader.
- * Shaders currently require several built in uniforms / blocks to draw stuff. Check each backends documentation for what is needed.
+ * Describes the shader layout.
  */
 typedef ShaderLayout = { textures : Array<String>, blocks : Array<ShaderBlock> };
+
+/**
+ * Describes the layout of a shader block.
+ */
 typedef ShaderBlock  = { name : String, vals : Array<{ name : String, type : String }> };
 
 /**

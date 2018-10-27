@@ -104,12 +104,12 @@ class Renderer
 
             #if windows
             case DX11:
-                backend = new DX11Backend(stats, _options);
+                backend = new DX11Backend(_events, stats, _options);
                 api     = DX11;
             #end
 
             case WEBGL:
-                backend = new WebGLBackend(stats, _options);
+                backend = new WebGLBackend(_events, stats, _options);
                 api     = WEBGL;
 
             default:

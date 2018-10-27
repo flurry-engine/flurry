@@ -730,7 +730,7 @@ class GL45Backend implements IRendererBackend
      * @param _command      Command to set the state for.
      * @param _disableStats If stats are to be recorded.
      */
-    inline function setState(_command : DrawCommand, _disableStats : Bool)
+    function setState(_command : DrawCommand, _disableStats : Bool)
     {
         // Set the viewport.
         // If the viewport of the command is null then the backbuffer size is used (size of the window).
@@ -847,7 +847,7 @@ class GL45Backend implements IRendererBackend
      * @param _command      Command to set the state for.
      * @param _disableStats If stats are to be recorded.
      */
-    inline function setUniforms(_command : DrawCommand, _disableStats : Bool)
+    function setUniforms(_command : DrawCommand, _disableStats : Bool)
     {
         var cache = shaderUniforms.get(_command.shader.id);
 
@@ -908,7 +908,7 @@ class GL45Backend implements IRendererBackend
                 switch (ShaderType.createByName(val.type)) {
                     case Matrix4: bytePosition += writeMatrix4(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.matrix4.get(val.name));
                     case Vector4: bytePosition += writeVector4(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.vector4.get(val.name));
-                    case Int    : bytePosition +=     writeInt(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.int.get(val.name));
+                    case Int    : bytePosition +=    writeInt(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.int.get(val.name));
                 }
             }
 
@@ -924,7 +924,7 @@ class GL45Backend implements IRendererBackend
      * @param _matrix   Matrix to write.
      * @return Number of bytes written.
      */
-    inline function writeMatrix4(_bytes : Bytes, _position : Int, _matrix : Matrix) : Int
+    function writeMatrix4(_bytes : Bytes, _position : Int, _matrix : Matrix) : Int
     {
         var idx = 0;
         for (el in _matrix.elements)
@@ -943,7 +943,7 @@ class GL45Backend implements IRendererBackend
      * @param _vector   Vector to write.
      * @return Number of bytes written.
      */
-    inline function writeVector4(_bytes : Bytes, _position : Int, _vector : Vector) : Int
+    function writeVector4(_bytes : Bytes, _position : Int, _vector : Vector) : Int
     {
         _bytes.setFloat(_position +  0, _vector.x);
         _bytes.setFloat(_position +  4, _vector.y);
@@ -960,7 +960,7 @@ class GL45Backend implements IRendererBackend
      * @param _int      Int to write.
      * @return Number of bytes written.
      */
-    inline function writeInt(_bytes : Bytes, _position : Int, _int : Int) : Int
+    function writeInt(_bytes : Bytes, _position : Int, _int : Int) : Int
     {
         _bytes.setInt32(_position, _int);
 
@@ -972,7 +972,7 @@ class GL45Backend implements IRendererBackend
      * @param _mode Blend mode to fetch.
      * @return Int
      */
-    inline function getBlendMode(_mode : BlendMode) : Int
+    function getBlendMode(_mode : BlendMode) : Int
     {
         return switch (_mode)
         {
