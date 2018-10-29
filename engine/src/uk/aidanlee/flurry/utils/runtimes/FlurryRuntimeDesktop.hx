@@ -83,6 +83,11 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
         _debug('sdl / init ok');
     }
 
+    public static function timestamp() : Float
+    {
+        return haxe.Timer.stamp();
+    }
+
     override public function ready()
     {
         _debug('sdl / ready');
@@ -108,12 +113,6 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
             _debug('sdl / shutdown');
         }
     }
-
-    inline public static function timestamp() : Float {
-
-        return haxe.Timer.stamp();
-
-    } //timestamp
 
     function runLoop() : Bool
     {
