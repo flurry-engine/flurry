@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import sdl.Window;
+import sdl.SDL;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import haxe.io.Bytes;
 import haxe.ds.Map;
@@ -186,23 +188,28 @@ class DX11Backend implements IRendererBackend
 
     final evResourceRemoved : Int;
 
+    // SDL Window
+
+    var window : Window;
+
     public function new(_events : EventBus, _rendererStats : RendererStats, _options : RendererOptions)
     {
         events           = _events;
         rendererStats    = _rendererStats;
         _options.backend = def(_options.backend, {});
 
-        var success    = false;
-        var adapterIdx = 0;
-        var outputIdx  = 0;
-        var wind : sdl.Window.Window = _options.backend.window;
-        var hwnd : com.HWND          = null;
+        createWindow(_options);
+
+        var success         = false;
+        var adapterIdx      = 0;
+        var outputIdx       = 0;
+        var hwnd : com.HWND = null;
 
         untyped __cpp__('SDL_SysWMinfo info;
         SDL_VERSION(&info.version);
         SDL_GetWindowWMInfo({1}, &info);
         {0} = SDL_DXGIGetOutputInfo(SDL_GetWindowDisplayIndex({1}), &{2}, &{3});
-        {4} = info.info.win.window', success, wind, adapterIdx, outputIdx, hwnd);
+        {4} = info.info.win.window', success, window, adapterIdx, outputIdx, hwnd);
 
         if (!success)
         {
@@ -585,7 +592,18 @@ class DX11Backend implements IRendererBackend
         swapchain.release();
         context.release();
         device.release();
+
+        SDL.destroyWindow(window);
     }
+
+    // #region SDL Window Management
+
+    function createWindow(_options : RendererOptions)
+    {        
+        window = SDL.createWindow('Flurry', SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _options.width, _options.height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
+    }
+
+    // #endregion
 
     // #region resource handling
 

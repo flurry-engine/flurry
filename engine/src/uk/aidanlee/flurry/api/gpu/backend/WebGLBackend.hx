@@ -1,5 +1,8 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import sdl.Window;
+import sdl.GLContext;
+import sdl.SDL;
 import haxe.ds.Map;
 import snow.modules.opengl.GL;
 import snow.api.buffers.Uint8Array;
@@ -101,10 +104,18 @@ class WebGLBackend implements IRendererBackend
 
     final evResourceRemoved : Int;
 
+    // SDL Window and GL Context
+
+    var window : Window;
+
+    var glContext : GLContext;
+
     public function new(_events : EventBus, _rendererStats : RendererStats, _options : RendererOptions)
     {
         events        = _events;
         rendererStats = _rendererStats;
+
+        createWindow(_options);
 
         shaderPrograms = new Map();
         shaderUniforms = new Map();
@@ -290,7 +301,7 @@ class WebGLBackend implements IRendererBackend
 
     public function postDraw()
     {
-        //
+        SDL.GL_SwapWindow(window);
     }
 
     /**
@@ -328,7 +339,31 @@ class WebGLBackend implements IRendererBackend
                 framebufferObjects.remove(textureID);
             }
         }
+
+        SDL.GL_DeleteContext(glContext);
+        SDL.destroyWindow(window);
     }
+
+    // #region SDL Window Management
+
+    function createWindow(_options : RendererOptions)
+    {        
+        SDL.GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL.GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+        SDL.GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
+        window    = SDL.createWindow('Flurry', SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _options.width, _options.height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
+        glContext = SDL.GL_CreateContext(window);
+
+        SDL.GL_MakeCurrent(window, glContext);
+
+        // TODO : Error handling if GLEW doesn't return OK.
+        glew.GLEW.init();
+    }
+
+    // #endregion
+
+    // #region Resource Management
 
     function onResourceCreated(_event : ResourceEventCreated)
     {
@@ -474,6 +509,8 @@ class WebGLBackend implements IRendererBackend
         GL.deleteTexture(textureObjects.get(_resource.id));
         textureObjects.remove(_resource.id);
     }
+
+    //  #endregion
 
     /**
      * Update the openGL state so it can draw the provided command.
