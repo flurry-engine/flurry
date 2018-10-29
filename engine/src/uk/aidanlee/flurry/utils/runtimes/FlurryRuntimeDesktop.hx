@@ -4,8 +4,7 @@ import sdl.SDL;
 import sdl.Window;
 import sdl.GameController;
 import snow.Snow;
-import snow.api.Debug._debug;
-import snow.core.native.Runtime;
+import snow.api.Debug.*;
 import snow.types.Types.WindowEventType;
 import snow.types.Types.TextEventType;
 import snow.types.Types.ModState;
@@ -84,24 +83,19 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
         _debug('sdl / init ok');
     }
 
-    public static function timestamp() : Float
-    {
-        return haxe.Timer.stamp();
-    }
-
-    override function ready()
+    override public function ready()
     {
         _debug('sdl / ready');
     }
 
-    override function run() : Bool
+    override public function run() : Bool
     {
         _debug('sdl / run');
 
         return runLoop();
     }
 
-    override function shutdown(?_immediate : Bool = false)
+    override public function shutdown(?_immediate : Bool = false)
     {
         if (_immediate)
         {
@@ -114,6 +108,12 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
             _debug('sdl / shutdown');
         }
     }
+
+    inline public static function timestamp() : Float {
+
+        return haxe.Timer.stamp();
+
+    } //timestamp
 
     function runLoop() : Bool
     {
