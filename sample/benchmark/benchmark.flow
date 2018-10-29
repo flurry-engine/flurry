@@ -1,4 +1,12 @@
 {
+    snow : {
+        runtime : 'uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeDesktop',
+
+        config : {
+            log : 2
+        }
+    },
+
     project : {
         name    : 'Benchmark',
         version : '1.0.0',

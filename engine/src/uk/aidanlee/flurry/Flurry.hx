@@ -3,38 +3,60 @@ package uk.aidanlee.flurry;
 import snow.App;
 import snow.api.Debug.log;
 import snow.types.Types.AppConfig;
-import snow.types.Types.GamepadDeviceEventType;
-import snow.types.Types.TextEventType;
-import snow.types.Types.ModState;
 import snow.types.Types.WindowEventType;
 import snow.types.Types.SystemEvent;
 import uk.aidanlee.flurry.api.Event;
 import uk.aidanlee.flurry.api.EventBus;
 import uk.aidanlee.flurry.api.gpu.Renderer;
-import uk.aidanlee.flurry.api.input.InputEvents;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import hxtelemetry.HxTelemetry;
 
 class Flurry extends App
 {
+    /**
+     * Main events bus, engine components can fire events into this to communicate with each other.
+     */
+    public final events : EventBus;
+
+    /**
+     * User config file.
+     */
     var flurryConfig : FlurryConfig;
 
-    var events : EventBus;
-
+    /**
+     * The rendering backend of the engine.
+     */
     var renderer : Renderer;
 
+    /**
+     * The main resource system of the engine.
+     */
     var resources : ResourceSystem;
 
+    /**
+     * If the preload parcel has been loaded.
+     */
     var loaded : Bool;
 
+    /**
+     * Haxe telemetry object.
+     */
     var hxt : HxTelemetry;
 
     public function new()
     {
-        //
+        events = new EventBus();
     }
 
-    // Overriding snow functions to setup the engine.
+    /**
+     * If the preload parcel has been used.
+     * Mostly used by the runtime to decide if input and window events should be fired.
+     * @return Bool
+     */
+    public function isLoaded() : Bool
+    {
+        return loaded;
+    }
 
     override final function config(_config : AppConfig) : AppConfig
     {
@@ -54,12 +76,6 @@ class Flurry extends App
             log('TODO : Load a default shader parcel');
         }
 
-        // Core 3.2 is the minimum required version.
-        // Many graphics stacks don't support compatibility profiles and core 3.2 is supported pretty much everywhere by now.
-        _config.render.opengl.major   = 3;
-        _config.render.opengl.minor   = 2;
-        _config.render.opengl.profile = core;
-
         return _config;
     }
 
@@ -73,10 +89,9 @@ class Flurry extends App
         update_rate    = 1 / 60;
 
         // Disable auto swapping. We will swap ourselves if the renderer backend requires it.
-        app.runtime.auto_swap = false;
+        // app.runtime.auto_swap = false;
 
-        // Create a new events emitter for the engine components to communicate.
-        events = new EventBus();
+        trace('creating the renderer');
         
         // Setup the renderer.
         renderer = new Renderer(events, {
@@ -92,12 +107,14 @@ class Flurry extends App
             backend : {
 
                 // This tells the GL4.5 backend if we can use bindless textures
-                bindless : sdl.SDL.GL_ExtensionSupported('GL_ARB_bindless_texture'),
+                bindless : true //sdl.SDL.GL_ExtensionSupported('GL_ARB_bindless_texture'),
 
                 // The DX11 backend needs to know the games window so it can fetch the HWND for the DXGI swapchain.
-                window : app.runtime.window
+                // window : app.runtime.window
             }
         });
+
+        trace('creating the resource system');
 
         // Pass the renderer backend to the resource system so GPU resources (textures, shaders) can be automatically managed.
         // When loading and freeing parcels the needed GPU resources can then be created and destroyed as and when needed.
@@ -168,10 +185,6 @@ class Flurry extends App
         // Post-draw
         // The window_swap is only needed for GL renderers with snow.
         renderer.postRender();
-        if (renderer.api != DX11)
-        {
-            app.runtime.window_swap();
-        }
 
         hxt.advance_frame();
     }
@@ -194,83 +207,6 @@ class Flurry extends App
                 renderer.resize(_event.window.x, _event.window.y);
             }
         }
-    }
-
-    override final function onkeyup(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState, _timestamp : Float, windowID : Int)
-    {
-        if (!loaded) return;
-        
-        events.fire(KeyUp, new InputEventKeyUp(_keycode, _scancode, _repeat, _mod));
-    }
-
-    override final function onkeydown(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState, _timestamp : Float, windowID : Int)
-    {
-        if (!loaded) return;
-
-        events.fire(KeyDown, new InputEventKeyDown(_keycode, _scancode, _repeat, _mod));
-    }
-
-    override final function ontextinput(_text : String, _start : Int, _length : Int, _type : TextEventType, _timestamp : Float, _windowID : Int)
-    {
-        if (!loaded) return;
-
-        events.fire(TextInput, new InputEventTextInput(_text, _start, _length, _type));
-    }
-
-    override final function onmouseup(_x : Int, _y : Int, _button : Int, _timestamp : Float, _windowID : Int)
-    {
-        if (!loaded) return;
-
-        events.fire(MouseUp, new InputEventMouseUp(_x, _y, _button));
-    }
-
-    override final function onmousedown(_x : Int, _y : Int, _button : Int, _timestamp : Float, _windowID : Int)
-    {
-        if (!loaded) return;
-
-        events.fire(MouseDown, new InputEventMouseDown(_x, _y, _button));
-    }
-
-    override final function onmousemove(_x : Int, _y : Int, _xRel : Int, _yRel : Int, _timestamp : Float, _windowID : Int)
-    {
-        if (!loaded) return;
-
-        events.fire(MouseMove, new InputEventMouseMove(_x, _y, _xRel, _yRel));
-    }
-
-    override final function onmousewheel(_x : Float, _y : Float, _timestamp : Float, _windowID : Int)
-    {
-        if (!loaded) return;
-
-        events.fire(MouseWheel, new InputEventMouseWheel(_x, _y));
-    }
-
-    override final function ongamepadup(_gamepad : Int, _button : Int, _value : Float, _timestamp : Float)
-    {
-        if (!loaded) return;
-
-        events.fire(GamepadUp, new InputEventGamepadUp(_gamepad, _button, _value));
-    }
-
-    override final function ongamepaddown(_gamepad : Int, _button : Int, _value : Float, _timestamp : Float)
-    {
-        if (!loaded) return;
-
-        events.fire(GamepadDown, new InputEventGamepadDown(_gamepad, _button, _value));
-    }
-
-    override final function ongamepadaxis(_gamepad : Int, _axis : Int, _value : Float, _timestamp : Float)
-    {
-        if (!loaded) return;
-
-        events.fire(GamepadAxis, new InputEventGamepadAxis(_gamepad, _axis, _value));
-    }
-
-    override final function ongamepaddevice(_gamepad : Int, _id : String, _type : GamepadDeviceEventType, _timestamp : Float)
-    {
-        if (!loaded) return;
-
-        events.fire(GamepadDevice, new InputEventGamepadDevice(_gamepad, _id, _type));
     }
 
     // Flurry functions the user can override.

@@ -1,5 +1,8 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import sdl.GLContext;
+import sdl.Window;
+import sdl.SDL;
 import haxe.io.Bytes;
 import haxe.ds.Map;
 import cpp.Float32;
@@ -167,6 +170,12 @@ class GL45Backend implements IRendererBackend
 
     final evResourceRemoved : Int;
 
+    // SDL Window and GL Context
+
+    var window : Window;
+
+    var glContext : GLContext;
+
     /**
      * Creates a new openGL 4.5 renderer.
      * @param _renderer           Access to the renderer which owns this backend.
@@ -175,6 +184,8 @@ class GL45Backend implements IRendererBackend
      */
     public function new(_events : EventBus, _rendererStats : RendererStats, _options : RendererOptions)
     {
+        createWindow(_options);
+
         events           = _events;
         rendererStats    = _rendererStats;
         _options.backend = def(_options.backend, {});
@@ -492,6 +503,8 @@ class GL45Backend implements IRendererBackend
     {
         lockBuffer(bufferRanges[bufferRangeIndex]);
         bufferRangeIndex = (bufferRangeIndex + 1) % 3;
+
+        SDL.GL_SwapWindow(window);
     }
 
     /**
@@ -537,9 +550,31 @@ class GL45Backend implements IRendererBackend
                 framebufferObjects.remove(textureID);
             }
         }
+
+        SDL.GL_DeleteContext(glContext);
+        SDL.destroyWindow(window);
     }
 
-    // #region Resource management.
+    // #region SDL Window Management
+
+    function createWindow(_options : RendererOptions)
+    {        
+        SDL.GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+        SDL.GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
+        SDL.GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
+        window    = SDL.createWindow('Flurry', SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _options.width, _options.height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
+        glContext = SDL.GL_CreateContext(window);
+
+        SDL.GL_MakeCurrent(window, glContext);
+
+        // TODO : Error handling if GLEW doesn't return OK.
+        glew.GLEW.init();
+    }
+
+    // #endregion
+
+    // #region Resource Management
 
     function onResourceCreated(_event : ResourceEventCreated)
     {
@@ -724,6 +759,8 @@ class GL45Backend implements IRendererBackend
     }
 
     // #endregion
+
+    // #region State Management
 
     /**
      * Update the openGL state so it can draw the provided command.
@@ -1024,6 +1061,8 @@ class GL45Backend implements IRendererBackend
             }
         }
     }
+
+    // #endregion
 }
 
 /**

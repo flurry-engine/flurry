@@ -44,7 +44,7 @@ class Main extends Flurry
 
     override function onReady()
     {
-        imgui = new ImGuiImpl(app, renderer.backend, resources.get('std-shader-textured.json', ShaderResource));
+        //imgui = new ImGuiImpl(app, renderer.backend, resources.get('std-shader-textured.json', ShaderResource));
 
         root = new SampleScene('root', app, null, renderer, resources, events);
         root.resumeOnCreation = true;
@@ -57,7 +57,7 @@ class Main extends Flurry
 
     override function onPreUpdate()
     {
-        imgui.newFrame();
+        //imgui.newFrame();
     }
 
     override function onUpdate(_dt : Float)
@@ -67,9 +67,9 @@ class Main extends Flurry
 
     override function onPostUpdate()
     {
-        uiShowRenderStats();
+        //uiShowRenderStats();
         
-        imgui.render();
+        //imgui.render();
     }
 
     override function onShutdown()
@@ -78,22 +78,22 @@ class Main extends Flurry
         events.unlisten(evMouseWheel);
         events.unlisten(evTextInput);
 
-        imgui.dispose();
+        //imgui.dispose();
     }
 
     function onMouseMove(_event : InputEventMouseMove)
     {
-        imgui.onMouseMove(_event.x, _event.y);
+        //imgui.onMouseMove(_event.x, _event.y);
     }
 
     function onMouseWheel(_event : InputEventMouseWheel)
     {
-        imgui.onMouseWheel(_event.yWheelChange);
+        //imgui.onMouseWheel(_event.yWheelChange);
     }
 
     function onTextInput(_event : InputEventTextInput)
     {
-        imgui.onTextInput(_event.text);
+        //imgui.onTextInput(_event.text);
     }
 
     // Draw some stats about the renderer.
