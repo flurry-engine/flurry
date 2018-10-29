@@ -108,7 +108,7 @@ class TetrisScene extends Scene
      */
     override function onUpdate(_dt : Float)
     {
-        camera.viewport.set(0, 0, snow.runtime.window_width(), snow.runtime.window_height());
+        camera.viewport.set(0, 0, 1600, 900);
         camera.update();
 
         super.onUpdate(_dt);

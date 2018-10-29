@@ -1,4 +1,8 @@
 {
+    snow : {
+        runtime : 'uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeDesktop'
+    },
+
     project : {
         name    : 'Tetris',
         version : '1.0.0',

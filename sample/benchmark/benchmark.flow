@@ -1,10 +1,6 @@
 {
     snow : {
-        runtime : 'uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeDesktop',
-
-        config : {
-            log : 2
-        }
+        runtime : 'uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeDesktop'
     },
 
     project : {

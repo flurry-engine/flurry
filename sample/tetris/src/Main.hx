@@ -1,10 +1,9 @@
 package;
 
-import uk.aidanlee.flurry.api.input.InputEvents.InputEventKeyDown;
-import uk.aidanlee.flurry.api.Event;
-import uk.aidanlee.flurry.api.input.InputEvents.InputEventKeyUp;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
+import uk.aidanlee.flurry.api.Event;
+import uk.aidanlee.flurry.api.input.InputEvents.InputEventKeyDown;
 import uk.aidanlee.flurry.modules.scene.Scene;
 
 typedef UserConfig = {};
