@@ -130,6 +130,50 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
         w = _w;
     }
 
+    // #region overloaded operators
+
+    @:op(A + B) public inline function opAdd(_rhs : Vector) : Vector
+    {
+        return add(_rhs);
+    }
+
+    @:op(A - B) public inline function opSubtract(_rhs : Vector) : Vector
+    {
+        return subtract(_rhs);
+    }
+
+    @:op(A * B) public inline function opMultiply(_rhs : Vector) : Vector
+    {
+        return multiply(_rhs);
+    }
+
+    @:op(A / B) public inline function opDivide(_rhs : Vector) : Vector
+    {
+        return divide(_rhs);
+    }
+
+    @:op(A + B) public inline function opAddScalar(_rhs : Float) : Vector
+    {
+        return addScalar(_rhs);
+    }
+
+    @:op(A - B) public inline function opSubtractScalar(_rhs : Float) : Vector
+    {
+        return subtractScalar(_rhs);
+    }
+
+    @:op(A * B) public inline function opMultiplyScalar(_rhs : Float) : Vector
+    {
+        return multiplyScalar(_rhs);
+    }
+
+    @:op(A / B) public inline function opDivideScalar(_rhs : Float) : Vector
+    {
+        return divideScalar(_rhs);
+    }
+
+    // #endregion
+
     /**
      * Sets all four components of the vector.
      * @param _x x value of the vector.

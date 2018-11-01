@@ -332,6 +332,96 @@ class VectorTests extends BuddySuite
                 it('Can get the euler angles from a quaternion');
             });
 
+            describe('Overloaded Operators', {
+                it('Can add another vector instance', {
+                    var v1 = new Vector(1, 4.5, -12);
+                    var v2 = new Vector(1, 4.5, -12);
+                    var v3 = new Vector(4, -2 , 8);
+
+                    v1 + v3;
+                    v1.x.should.beCloseTo(v2.x + v3.x);
+                    v1.y.should.beCloseTo(v2.y + v3.y);
+                    v1.z.should.beCloseTo(v2.z + v3.z);
+                });
+
+                it('Can add subtract vector instance', {
+                    var v1 = new Vector(1, 4.5, -12);
+                    var v2 = new Vector(1, 4.5, -12);
+                    var v3 = new Vector(4, -2 , 8);
+
+                    v1 - v3;
+                    v1.x.should.beCloseTo(v2.x - v3.x);
+                    v1.y.should.beCloseTo(v2.y - v3.y);
+                    v1.z.should.beCloseTo(v2.z - v3.z);
+                });
+
+                it('Can multiply its components by another vector', {
+                    var v1 = new Vector(1, 4.5, -12);
+                    var v2 = new Vector(1, 4.5, -12);
+                    var v3 = new Vector(4, -2 , 8);
+
+                    v1 * v3;
+                    v1.x.should.beCloseTo(v2.x * v3.x);
+                    v1.y.should.beCloseTo(v2.y * v3.y);
+                    v1.z.should.beCloseTo(v2.z * v3.z);
+                });
+
+                it('Can divide its components by another vector', {
+                    var v1 = new Vector(1, 4.5, -12);
+                    var v2 = new Vector(1, 4.5, -12);
+                    var v3 = new Vector(4, -2 , 8);
+
+                    v1 / v3;
+                    v1.x.should.beCloseTo(v2.x / v3.x);
+                    v1.y.should.beCloseTo(v2.y / v3.y);
+                    v1.z.should.beCloseTo(v2.z / v3.z);
+                });
+
+                it('Can add a scalar value to all three components', {
+                    var sc = 12.4;
+                    var v1 = new Vector(3, -5, 7.2);
+                    var v2 = new Vector(3, -5, 7.2);
+
+                    v1 + sc;
+                    v1.x.should.beCloseTo(v2.x + sc);
+                    v1.y.should.beCloseTo(v2.y + sc);
+                    v1.z.should.beCloseTo(v2.z + sc);
+                });
+
+                it('Can subtract a scalar value from all three components', {
+                    var sc = 12.4;
+                    var v1 = new Vector(3, -5, 7.2);
+                    var v2 = new Vector(3, -5, 7.2);
+
+                    v1 - sc;
+                    v1.x.should.beCloseTo(v2.x - sc);
+                    v1.y.should.beCloseTo(v2.y - sc);
+                    v1.z.should.beCloseTo(v2.z - sc);
+                });
+
+                it('Can multiply all three components by a scalar value', {
+                    var sc = 12.4;
+                    var v1 = new Vector(3, -5, 7.2);
+                    var v2 = new Vector(3, -5, 7.2);
+
+                    v1 * sc;
+                    v1.x.should.beCloseTo(v2.x * sc);
+                    v1.y.should.beCloseTo(v2.y * sc);
+                    v1.z.should.beCloseTo(v2.z * sc);
+                });
+
+                it('Can divide all three components by a scalar value', {
+                    var sc = 12.4;
+                    var v1 = new Vector(3, -5, 7.2);
+                    var v2 = new Vector(3, -5, 7.2);
+
+                    v1 / sc;
+                    v1.x.should.beCloseTo(v2.x / sc);
+                    v1.y.should.beCloseTo(v2.y / sc);
+                    v1.z.should.beCloseTo(v2.z / sc);
+                });
+            });
+
             describe('Static Creators', {
                 it('Can add two vectors together and store the result in a new vector', {
                     var v1 = new Vector(1, 4.5, -12);
