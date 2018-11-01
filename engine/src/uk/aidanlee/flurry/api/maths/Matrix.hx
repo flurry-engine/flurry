@@ -106,6 +106,20 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
         );
     }
 
+    // #region Operator Overloading
+
+    @:op(A * B) public inline function opMultiply(_rhs : Matrix) : Matrix
+    {
+        return multiply(_rhs);
+    }
+
+    @:op(A * B) public inline function opMultiplyScalar(_rhs : Float) : Matrix
+    {
+        return multiplyScalar(_rhs);
+    }
+
+    // #endregion
+
     // #region General
 
     /**

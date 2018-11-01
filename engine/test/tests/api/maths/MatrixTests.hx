@@ -70,6 +70,11 @@ class MatrixTests extends BuddySuite
                 it('Can create a perspective matrix');
                 it('Can create a orthographic matrix');
             });
+
+            describe('Operator Overloading', {
+                it('Can multiply itself with another matrix');
+                it('Can multiply itself by a scalar value');
+            });
         });
     }
 }
