@@ -1,11 +1,11 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import sdl.Window;
-import sdl.SDL;
-import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import haxe.io.Bytes;
 import haxe.ds.Map;
+import sdl.Window;
+import sdl.SDL;
 import snow.api.Debug.def;
+import snow.api.buffers.Float32Array;
 import directx.DirectX;
 import dxgi.SwapChainDescription;
 import dxgi.SwapChain;
@@ -47,6 +47,7 @@ import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry.BlendMode;
+import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.maths.Rectangle;
@@ -1018,11 +1019,11 @@ class DX11Backend implements IRendererBackend
         var ptr : Pointer<cpp.Float32> = map.sysMem.fromRaw().reinterpret();
         var itr = 0;
 
-        for (el in _command.projection.elements)
+        for (el in cast (_command.projection, Float32Array))
         {
             ptr[itr++] = el;
         }
-        for (el in _command.view.elements)
+        for (el in cast (_command.view, Float32Array))
         {
             ptr[itr++] = el;
         }
@@ -1081,7 +1082,7 @@ class DX11Backend implements IRendererBackend
     inline function writeMatrix4(_bytes : Bytes, _position : Int, _matrix : Matrix) : Int
     {
         var idx = 0;
-        for (el in _matrix.elements)
+        for (el in cast (_matrix, Float32Array))
         {
             _bytes.setFloat(_position + idx, el);
             idx += 4;
