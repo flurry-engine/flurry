@@ -150,6 +150,7 @@ class OrthographicCamera extends Camera
         // Create the projection and combined matrices.
         projection.makeOrthographic(0, viewport.w, 0, viewport.h, 0, 1000);
         view.copy(transformation.transformation);
+        
         viewInverted.copy(view).invert();
     }
 

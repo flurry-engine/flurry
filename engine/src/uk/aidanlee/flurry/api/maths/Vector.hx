@@ -396,11 +396,9 @@ class Vector
      */
     inline public function transform(_m : Matrix) : Vector
     {
-        var e = _m.elements;
-
-        set_xyz(e[0] * x + e[4] * y + e[ 8] * z + e[12],
-                e[1] * x + e[5] * y + e[ 9] * z + e[13],
-                e[2] * x + e[6] * y + e[10] * z + e[14]);
+        set_xyz(_m[0] * x + _m[4] * y + _m[ 8] * z + _m[12],
+                _m[1] * x + _m[5] * y + _m[ 9] * z + _m[13],
+                _m[2] * x + _m[6] * y + _m[10] * z + _m[14]);
 
         return this;
     }

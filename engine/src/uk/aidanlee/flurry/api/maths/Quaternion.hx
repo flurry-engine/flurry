@@ -439,11 +439,9 @@ class Quaternion
      */
     inline public function setFromRotationMatrix(_m : Matrix) : Quaternion
     {
-        var te = _m.elements;
-
-        var m11 = te[0], m12 = te[4], m13 = te[8];
-        var m21 = te[1], m22 = te[5], m23 = te[9];
-        var m31 = te[2], m32 = te[6], m33 = te[10];
+        var m11 = _m[0], m12 = _m[4], m13 = _m[8];
+        var m21 = _m[1], m22 = _m[5], m23 = _m[9];
+        var m31 = _m[2], m32 = _m[6], m33 = _m[10];
 
         var _x = x;
         var _y = y;
