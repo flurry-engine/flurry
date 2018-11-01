@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
-import snow.api.Emitter;
 import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.maths.Hash;
@@ -32,8 +31,8 @@ enum BlendMode {
     OneMinusDstColor;
 }
 
-enum abstract EvGeometry(Int) from Int to Int {
-    var OrderProperyChanged;
+enum abstract GeometryEvent(String) from String to String {
+    var OrderProperyChanged = 'flurry-geom-ev-order-changed';
 }
 
 typedef GeometryOptions = {
@@ -75,7 +74,7 @@ class Geometry
     /**
      * Fires various events about the geometry.
      */
-    public final events : Emitter<EvGeometry>;
+    public final events : EventBus;
 
     /**
      * This meshes vertices.
@@ -93,7 +92,7 @@ class Geometry
     public var textures (default, set) : Array<ImageResource>;
 
     inline function set_textures(_textures : Array<ImageResource>) : Array<ImageResource> {
-        events.emit(OrderProperyChanged);
+        events.fire(OrderProperyChanged);
 
         return textures = _textures;
     }
@@ -105,7 +104,7 @@ class Geometry
     public var shader (default, set) : ShaderResource;
 
     inline function set_shader(_shader : ShaderResource) : ShaderResource {
-        events.emit(OrderProperyChanged);
+        events.fire(OrderProperyChanged);
 
         return shader = _shader;
     }
@@ -116,7 +115,7 @@ class Geometry
     public var depth (default, set) : Float;
 
     inline function set_depth(_depth : Float) : Float {
-        events.emit(OrderProperyChanged);
+        events.fire(OrderProperyChanged);
 
         return depth = _depth;
     }
@@ -127,17 +126,20 @@ class Geometry
     public var clip (default, set) : Rectangle;
 
     inline function set_clip(_clip : Rectangle) : Rectangle {
+
+        // Remove our old listener.
         if (clip != null)
         {
-            clip.events.off(ChangedSize, listenerClip);
+            clip.events.unlisten(evClipResized);
         }
 
-        events.emit(OrderProperyChanged);
         clip = _clip;
+        events.fire(OrderProperyChanged);
 
+        // Create a new listener
         if (clip != null)
         {
-            clip.events.on(ChangedSize, listenerClip);
+            evClipResized = clip.events.listen(RectangleEvent.Resized, onClipResized);
         }
 
         return clip;
@@ -149,7 +151,7 @@ class Geometry
     public var primitive (default, set) : PrimitiveType;
 
     inline function set_primitive(_primitive : PrimitiveType) : PrimitiveType {
-        events.emit(OrderProperyChanged);
+        events.fire(OrderProperyChanged);
 
         return primitive = _primitive;
     }
@@ -195,9 +197,9 @@ class Geometry
     public var dstAlpha : BlendMode;
 
     /**
-     * Called when this geometries clip rectangle changes size.
+     * Event ID for when our clipping rectangle is resized.
      */
-    var listenerClip : EvRectangle->Void;
+    var evClipResized : Int;
 
     /**
      * Create a new mesh, contains no vertices and no transformation.
@@ -205,11 +207,7 @@ class Geometry
     public function new(_options : GeometryOptions)
     {
         id     = Hash.uniqueHash();
-        events = new Emitter();
-
-        listenerClip = function(_event : EvRectangle) {
-            events.emit(OrderProperyChanged);
-        }
+        events = new EventBus();
 
         vertices       = [];
         transformation = new Transformation();
@@ -282,5 +280,10 @@ class Geometry
         transformation.scale.set_xyz(_v.x, _v.y, _v.z);
 
         return this;
+    }
+
+    function onClipResized(_)
+    {
+        events.fire(OrderProperyChanged);
     }
 }

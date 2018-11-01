@@ -1,13 +1,8 @@
 package uk.aidanlee.flurry.api.maths;
 
-import snow.api.Emitter;
-
-enum abstract EvRectangle(Int) from Int to Int
+enum abstract RectangleEvent(String) from String to String
 {
-    /**
-     * This event is emitted whenever the size of the rectangle changes.
-     */
-    var ChangedSize;
+    var Resized = 'flurry-maths-ev-rect-resized';
 }
 
 class Rectangle
@@ -15,7 +10,7 @@ class Rectangle
     /**
      * Event emitter for this rectangle.
      */
-    public final events : Emitter<EvRectangle>;
+    public final events : EventBus;
 
     /**
      * The top left x position of this rectangle.
@@ -76,7 +71,7 @@ class Rectangle
      */
     inline public function new(_x : Float = 0, _y : Float = 0, _w : Float = 0, _h : Float = 0)
     {
-        events = new Emitter();
+        events = new EventBus();
 
         x = _x;
         y = _y;
@@ -204,6 +199,6 @@ class Rectangle
     {
         if (ignoreListeners) return;
 
-        events.emit(ChangedSize);
+        events.fire(Resized);
     }
 }

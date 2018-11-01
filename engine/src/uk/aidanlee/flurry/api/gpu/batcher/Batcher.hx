@@ -77,9 +77,9 @@ class Batcher
     var orderGeometry : Bool;
 
     /**
-     * Function which sets the orderGeometry flag.
+     * Array of event IDs for all the geometries order changed event in this batcher.
      */
-    var onGeometryChanged : EvGeometry->Void;
+    var evGeometryOrderChanged : Array<Int>;
 
     /**
      * Creates an empty batcher.
@@ -99,9 +99,7 @@ class Batcher
         state         = new BatcherState(this);
         orderGeometry = true;
 
-        onGeometryChanged = function(_event : EvGeometry) {
-            orderGeometry = true;
-        }
+        evGeometryOrderChanged = [];
     }
 
     /**
@@ -112,7 +110,7 @@ class Batcher
     {
         geometry.push(_geom);
 
-        _geom.events.on(OrderProperyChanged, onGeometryChanged);
+        evGeometryOrderChanged.push(_geom.events.listen(OrderProperyChanged, onGeometryChanged));
 
         orderGeometry = true;
     }
@@ -124,8 +122,6 @@ class Batcher
     inline public function removeGeometry(_geom : Geometry)
     {
         geometry.remove(_geom);
-
-        _geom.events.off(OrderProperyChanged, onGeometryChanged);
 
         orderGeometry = true;
     }
@@ -272,5 +268,10 @@ class Batcher
         }
 
         return 0;
+    }
+
+    function onGeometryChanged(_)
+    {
+        orderGeometry = true;
     }
 }
