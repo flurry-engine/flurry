@@ -920,12 +920,12 @@ class GL45Backend implements IRendererBackend
         
         // Write the default matrices into the ssbo.
         var pos = 0;
-        for (el in _command.projection.elements)
+        for (el in cast (_command.projection, Float32Array))
         {
             cache.blockBytes[0].setFloat(pos, el);
             pos += 4;
         }
-        for (el in _command.view.elements)
+        for (el in cast (_command.view, Float32Array))
         {
             cache.blockBytes[0].setFloat(pos, el);
             pos += 4;
@@ -964,7 +964,7 @@ class GL45Backend implements IRendererBackend
     function writeMatrix4(_bytes : Bytes, _position : Int, _matrix : Matrix) : Int
     {
         var idx = 0;
-        for (el in _matrix.elements)
+        for (el in cast (_matrix, Float32Array))
         {
             _bytes.setFloat(_position + idx, el);
             idx += 4;

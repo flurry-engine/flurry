@@ -18,6 +18,7 @@ class Main extends snow.App
             new tests.api.maths.RectangleTests(),
             new tests.api.maths.CircleTests(),
             
+            /*
             new tests.api.importers.bmfont.BitmapFontParserTests(),
             new tests.api.importers.textureatlas.TextureAtlasParserTests(),
 
@@ -35,6 +36,7 @@ class Main extends snow.App
             new tests.api.gpu.geometry.shapes.RectangleGeometryTests(),
 
             new tests.modules.scene.SceneTests()
+            */
         ], new ColorReporter());
 
         runner.run();

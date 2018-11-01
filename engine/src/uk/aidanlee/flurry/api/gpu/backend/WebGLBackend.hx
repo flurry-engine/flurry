@@ -678,8 +678,8 @@ class WebGLBackend implements IRendererBackend
         }
 
         // Write the default matrix uniforms
-        GL.uniformMatrix4fv(cache.uniformLocations[0], false, _command.projection.elements);
-        GL.uniformMatrix4fv(cache.uniformLocations[1], false, _command.view.elements);
+        GL.uniformMatrix4fv(cache.uniformLocations[0], false, _command.projection);
+        GL.uniformMatrix4fv(cache.uniformLocations[1], false, _command.view);
 
         // Start at uniform index 2 since the first two are the default matrix uniforms.
         var uniformIdx = 2;
@@ -688,7 +688,7 @@ class WebGLBackend implements IRendererBackend
             for (val in cache.layout.blocks[i].vals)
             {
                 switch (ShaderType.createByName(val.type)) {
-                    case Matrix4: GL.uniformMatrix4fv(cache.uniformLocations[uniformIdx++], false, _command.shader.uniforms.matrix4.get(val.name).elements);
+                    case Matrix4: GL.uniformMatrix4fv(cache.uniformLocations[uniformIdx++], false, _command.shader.uniforms.matrix4.get(val.name));
                     case Vector4: GL.uniform4fv(cache.uniformLocations[uniformIdx++], vectorToFloatArray(_command.shader.uniforms.vector4.get(val.name)));
                     case Int    : GL.uniform1f(cache.uniformLocations[uniformIdx++], _command.shader.uniforms.int.get(val.name));
                 }
