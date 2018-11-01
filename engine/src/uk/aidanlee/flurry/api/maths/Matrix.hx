@@ -90,7 +90,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _n43 Value for column 4, row 3.
      * @param _n44 Value for column 4, row 4.
      */
-    inline public function new(
+    public inline function new(
         _n11 : Float = 1, _n12 : Float = 0, _n13 : Float = 0, _n14 : Float = 0,
         _n21 : Float = 0, _n22 : Float = 1, _n23 : Float = 0, _n24 : Float = 0,
         _n31 : Float = 0, _n32 : Float = 0, _n33 : Float = 1, _n34 : Float = 0,
@@ -128,7 +128,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _n43 Value for column 4, row 3.
      * @param _n44 Value for column 4, row 4.
      */
-    public function set(
+    public inline function set(
         _n11 : Float = 1, _n12 : Float = 0, _n13 : Float = 0, _n14 : Float = 0,
         _n21 : Float = 0, _n22 : Float = 1, _n23 : Float = 0, _n24 : Float = 0,
         _n31 : Float = 0, _n32 : Float = 0, _n33 : Float = 1, _n34 : Float = 0,
@@ -146,7 +146,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Copy another matrices elements into this ones.
      * @param _m Matrix to copy.
      */
-    public function copy(_m : Matrix) : Matrix
+    public inline function copy(_m : Matrix) : Matrix
     {
         set(
             _m[0], _m[4], _m[ 8], _m[12],
@@ -162,7 +162,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Creates a clone of this matrix.
      * @return Matrix
      */
-    public function clone() : Matrix
+    public inline function clone() : Matrix
     {
         return new Matrix(
             this[0], this[4], this[ 8], this[12],
@@ -177,7 +177,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _a Array of 16 floats.
      * @return Matrix
      */
-    public function fromArray(_a : Array<Float>) : Matrix
+    public inline function fromArray(_a : Array<Float>) : Matrix
     {
         if (_a.length != 16) return this;
 
@@ -193,7 +193,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Returns a float array of the matrix elements.
      * @return Array<Float>
      */
-    public function toArray() : Array<Float>
+    public inline function toArray() : Array<Float>
     {
         return [
             this[ 0], this[ 1], this[ 2], this[ 3],
@@ -207,7 +207,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Returns a string representation of this matrix.
      * @return String
      */
-    public function toString() : String
+    public inline function toString() : String
     {
         var str = '{ 11:' + Maths.fixed(this[0], 3) + ', 12:' + Maths.fixed(this[4], 3)  + ', 13:' + Maths.fixed(this[ 8], 3)  + ', 14:' + Maths.fixed(this[12], 3) + ' }, ' +
                   '{ 21:' + Maths.fixed(this[1], 3) + ', 22:' + Maths.fixed(this[5], 3)  + ', 23:' + Maths.fixed(this[ 9], 3)  + ', 24:' + Maths.fixed(this[13], 3) + ' }, ' +
@@ -216,7 +216,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
         return str;
     }
 
-    public function invert() : Matrix
+    public inline function invert() : Matrix
     {
         var me = clone();
 
@@ -265,7 +265,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Calculates the determinant of this matrix.
      * @return Float
      */
-    public function determinant() : Float
+    public inline function determinant() : Float
     {
         var n11 = this[0], n12 = this[4], n13 = this[ 8], n14 = this[12];
         var n21 = this[1], n22 = this[5], n23 = this[ 9], n24 = this[13];
@@ -312,7 +312,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Transpose this matrix.
      * @return Matrix
      */
-    public function transpose() : Matrix
+    public inline function transpose() : Matrix
     {
         var tmp : Float;
 
@@ -331,7 +331,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Scale this matrix by a vector.
      * @param _v Scaling vector.
      */
-    public function scale(_v : Vector) : Matrix
+    public inline function scale(_v : Vector) : Matrix
     {
         var _x = _v.x;
         var _y = _v.y;
@@ -351,7 +351,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _quaternion Rotation for the matrix.
      * @param _scale      Scale for the matrix.
      */
-    public function compose(_position : Vector, _quaternion : Quaternion, _scale : Vector) : Matrix
+    public inline function compose(_position : Vector, _quaternion : Quaternion, _scale : Vector) : Matrix
     {
         makeRotationFromQuaternion(_quaternion);
         scale(_scale);
@@ -366,7 +366,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _quaternion Optional quaternion to store the rotation in.
      * @param _scale      Optional vector to store the scale in.
      */
-    public function decompose(_position : Vector, _quaternion : Quaternion, _scale : Vector) : MatrixTransform
+    public inline function decompose(_position : Vector, _quaternion : Quaternion, _scale : Vector) : MatrixTransform
     {
         var ax_x = this[0]; var ax_y = this[1]; var ax_z = this[ 2];
         var ay_x = this[4]; var ay_y = this[5]; var ay_z = this[ 6];
@@ -428,7 +428,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Multiply this matrix by another.
      * @param _m Matrix to multiply with.
      */
-    public function multiply(_m : Matrix) : Matrix
+    public inline function multiply(_m : Matrix) : Matrix
     {
         var a11 = this[0], a12 = this[4], a13 = this[8],  a14 = this[12];
         var a21 = this[1], a22 = this[5], a23 = this[9],  a24 = this[13];
@@ -468,7 +468,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _a Matrix A.
      * @param _b Matrix B.
      */
-    inline public function multiplyMatrices(_a : Matrix, _b : Matrix) : Matrix
+    public inline function multiplyMatrices(_a : Matrix, _b : Matrix) : Matrix
     {
         var a11 = _a[0], a12 = _a[4], a13 = _a[8],  a14 = _a[12];
         var a21 = _a[1], a22 = _a[5], a23 = _a[9],  a24 = _a[13];
@@ -507,7 +507,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Multiply this matrix by a scalar value.
      * @param _v Scalar value.
      */
-    public function multiplyScalar(_v : Float) : Matrix
+    public inline function multiplyScalar(_v : Float) : Matrix
     {
         this[0] *= _v; this[4] *= _v; this[ 8] *= _v; this[12] *= _v;
         this[1] *= _v; this[5] *= _v; this[ 9] *= _v; this[13] *= _v;
@@ -517,32 +517,32 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
         return this;
     }
 
-    public function up() : Vector
+    public inline function up() : Vector
     {
         return new Vector(this[4], this[5], this[6]);
     }
 
-    public function down() : Vector
+    public inline function down() : Vector
     {
         return up().invert();
     }
 
-    public function left() : Vector
+    public inline function left() : Vector
     {
         return right().invert();
     }
 
-    public function right() : Vector
+    public inline function right() : Vector
     {
         return new Vector(this[0], this[1], this[2]);
     }
 
-    public function forward() : Vector
+    public inline function forward() : Vector
     {
         return backwards().invert();
     }
 
-    public function backwards() : Vector
+    public inline function backwards() : Vector
     {
         return new Vector(this[8], this[9], this[10]);
     }
@@ -555,7 +555,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Return the position from this matrix into a vector.
      * @return Vector
      */
-    public function getPosition() : Vector
+    public inline function getPosition() : Vector
     {
         return new Vector(this[12], this[13], this[14]);
     }
@@ -564,7 +564,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Set the position in the matrix based on a vector.
      * @param _v Position vector.
      */
-    public function setPosition(_v : Vector) : Matrix
+    public inline function setPosition(_v : Vector) : Matrix
     {
         this[12] = _v.x;
         this[13] = _v.y;
@@ -579,7 +579,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _target The target position.
      * @param _up     Up vector.
      */
-    public function lookAt(_eye : Vector, _target : Vector, _up : Vector) : Matrix
+    public inline function lookAt(_eye : Vector, _target : Vector, _up : Vector) : Matrix
     {
         var _z = Vector.Subtract(_target, _eye).normalize();
         if (_z.length == 0)
@@ -606,7 +606,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
     /**
      * Sets this matrix to an identity matrix.
      */
-    public function identity() : Matrix
+    public inline function identity() : Matrix
     {
         set(
             1, 0, 0, 0,
@@ -625,7 +625,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _scale    scale value. (default 1)
      * @param _rotation rotation value. (default 0)
      */
-    public function make2D(_x : Float, _y : Float, _scale : Float = 1, _rotation : Float = 0) : Matrix
+    public inline function make2D(_x : Float, _y : Float, _scale : Float = 1, _rotation : Float = 0) : Matrix
     {
         var theta = Maths.toRadians(_rotation);
         var c     = Maths.cos(theta);
@@ -647,7 +647,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _y y position.
      * @param _z z position.
      */
-    public function makeTranslation(_x : Float, _y : Float, _z : Float) : Matrix
+    public inline function makeTranslation(_x : Float, _y : Float, _z : Float) : Matrix
     {
         set(
             1, 0, 0, _x,
@@ -664,7 +664,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _axis  Vector containing the x, y, and z axis.
      * @param _angle Angle value.
      */
-    public function makeRotationAxis(_axis : Vector, _angle : Float) : Matrix
+    public inline function makeRotationAxis(_axis : Vector, _angle : Float) : Matrix
     {
         var c = Maths.cos(_angle);
         var s = Maths.sin(_angle);
@@ -691,7 +691,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Make a rotation around the x axis.
      * @param _theta Angle radians.
      */
-    public function makeRotationX(_theta : Float)
+    public inline function makeRotationX(_theta : Float)
     {
         var c = Maths.cos(_theta);
         var s = Maths.sin(_theta);
@@ -708,7 +708,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Make a rotation around the y axis.
      * @param _theta Angle radians.
      */
-    public function makeRotationY(_theta : Float) : Matrix
+    public inline function makeRotationY(_theta : Float) : Matrix
     {
         var c = Maths.cos(_theta);
         var s = Maths.sin(_theta);
@@ -727,7 +727,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Make a rotation around the z axis.
      * @param _theta Angle radians.
      */
-    public function makeRotationZ(_theta : Float) : Matrix
+    public inline function makeRotationZ(_theta : Float) : Matrix
     {
         var c = Maths.cos(_theta);
         var s = Maths.sin(_theta);
@@ -748,7 +748,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _y y scale.
      * @param _z z scale.
      */
-    public function makeScale(_x : Float, _y : Float, _z : Float) : Matrix
+    public inline function makeScale(_x : Float, _y : Float, _z : Float) : Matrix
     {
         set(
             _x,  0,  0,  0,
@@ -766,7 +766,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _order Component order.
      * @return Matrix
      */
-    public function makeRotationFromEuler(_v : Vector, _order : ComponentOrder = XYZ) : Matrix
+    public inline function makeRotationFromEuler(_v : Vector, _order : ComponentOrder = XYZ) : Matrix
     {
         var x = _v.x;
         var y = _v.y;
@@ -880,7 +880,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * Creates a rotation matrix from a quaternion.
      * @param _q Quaternion containing the rotation.
      */
-    public function makeRotationFromQuaternion(_q : Quaternion) : Matrix
+    public inline function makeRotationFromQuaternion(_q : Quaternion) : Matrix
     {
 
         var x2 = _q.x + _q.x, y2 = _q.y + _q.y, z2 = _q.z + _q.z;
@@ -924,7 +924,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _far    - 
      * @return Matrix
      */
-    public function makeFrustum(_left : Float, _right : Float, _bottom : Float, _top : Float, _near : Float, _far : Float) : Matrix
+    public inline function makeFrustum(_left : Float, _right : Float, _bottom : Float, _top : Float, _near : Float, _far : Float) : Matrix
     {
         var tx = 2 * _near / (_right - _left);
         var ty = 2 * _near / (_top - _bottom);
@@ -971,7 +971,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _far - 
      * @return Matrix
      */
-    public function makeOrthographic(_left : Float, _right : Float, _top : Float, _bottom : Float, _near : Float, _far : Float) : Matrix
+    public inline function makeOrthographic(_left : Float, _right : Float, _top : Float, _bottom : Float, _near : Float, _far : Float) : Matrix
     {
         var w = _right - _left;
         var h = _top - _bottom;
