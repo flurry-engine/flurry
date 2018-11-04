@@ -5,6 +5,7 @@ import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 
@@ -197,6 +198,42 @@ class Geometry
     public var dstAlpha : BlendMode;
 
     /**
+     * The position of the geometry.
+     */
+    public var position (get, never) : Vector;
+
+    inline function get_position() : Vector {
+        return transformation.position;
+    }
+
+    /**
+     * The origin of the geometry.
+     */
+    public var origin (get, never) : Vector;
+
+    inline function get_origin() : Vector {
+        return transformation.origin;
+    }
+
+    /**
+     * Rotation of the geometry.
+     */
+    public var rotation (get, never) : Quaternion;
+
+    inline function get_rotation() : Quaternion {
+        return transformation.rotation;
+    }
+
+    /**
+     * Scale of the geometry.
+     */
+    public var scale (get, never) : Vector;
+
+    inline function get_scale() : Vector {
+        return transformation.scale;
+    }
+
+    /**
      * Event ID for when our clipping rectangle is resized.
      */
     var evClipResized : Int;
@@ -240,7 +277,7 @@ class Geometry
      * Add a vertex to this mesh.
      * @param _v Vertex to add.
      */
-    public function addVertex(_v : Vertex)
+    public inline function addVertex(_v : Vertex)
     {
         vertices.push(_v);
     }
@@ -249,37 +286,9 @@ class Geometry
      * Remove a vertex from this mesh.
      * @param _v Vertex to remove.
      */
-    public function removeVertex(_v : Vertex)
+    public inline function removeVertex(_v : Vertex)
     {
         vertices.remove(_v);
-    }
-
-    /**
-     * Set the world space position of this mesh.
-     * 
-     * The verticies themselves are not updated. The transformation matrix is applied to them when batched into a buffer.
-     * @param _v Vector containing the x, y, and z position.
-     * @return Mesh
-     */
-    public function setPosition(_v : Vector) : Geometry
-    {
-        transformation.position.set_xyz(_v.x, _v.y, _v.z);
-
-        return this;
-    }
-
-    /**
-     * Sets the scale of this mesh.
-     * 
-     * The verticies themselves are not updated. The transformation matrix is applied to them when batched into a buffer.
-     * @param _v Vector containing the x, y, and z scale.
-     * @return Mesh
-     */
-    public function setScale(_v : Vector) : Geometry
-    {
-        transformation.scale.set_xyz(_v.x, _v.y, _v.z);
-
-        return this;
     }
 
     function onClipResized(_)
