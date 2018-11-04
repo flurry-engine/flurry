@@ -1,66 +1,26 @@
 package uk.aidanlee.flurry.api.maths;
 
-enum abstract RectangleEvent(String) from String to String
-{
-    var Resized = 'flurry-maths-ev-rect-resized';
-}
-
 class Rectangle
 {
     /**
-     * Event emitter for this rectangle.
-     */
-    public final events : EventBus;
-
-    /**
      * The top left x position of this rectangle.
      */
-    public var x (default, set) : Float;
-
-    inline function set_x(_x : Float) : Float {
-        emitChange();
-
-        return x = _x;
-    }
+    public var x : Float;
 
     /**
      * The top left y position of this rectangle.
      */
-    public var y (default, set) : Float;
-
-    inline function set_y(_y : Float) : Float {
-        emitChange();
-
-        return y = _y;
-    }
+    public var y : Float;
 
     /**
      * The width of this rectangle.
      */
-    public var w (default, set) : Float;
-
-    inline function set_w(_w : Float) : Float {
-        emitChange();
-
-        return w = _w;
-    }
+    public var w : Float;
 
     /**
      * The height of this rectangle.
      */
-    public var h (default, set) : Float;
-
-    inline function set_h(_h : Float) : Float {
-        emitChange();
-
-        return h = _h;
-    }
-
-    /**
-     * If set to true events will not be fired from setter functions.
-     * This is useful for the non setter functions as we can send one event instead of several.
-     */
-    var ignoreListeners : Bool;
+    public var h : Float;
 
     /**
      * Create a new rectangle instance.
@@ -71,14 +31,10 @@ class Rectangle
      */
     inline public function new(_x : Float = 0, _y : Float = 0, _w : Float = 0, _h : Float = 0)
     {
-        events = new EventBus();
-
         x = _x;
         y = _y;
         w = _w;
         h = _h;
-
-        ignoreListeners = false;
     }
 
     // #region general
@@ -93,16 +49,10 @@ class Rectangle
      */
     inline public function set(_x : Float, _y : Float, _w : Float, _h : Float) : Rectangle
     {
-        ignoreListeners = true;
-
         x = _x;
         y = _y;
         w = _w;
         h = _h;
-
-        ignoreListeners = false;
-
-        emitChange();
 
         return this;
     }
@@ -114,16 +64,10 @@ class Rectangle
      */
     inline public function copyFrom(_other : Rectangle) : Rectangle
     {
-        ignoreListeners = true;
-
         x = _other.x;
         y = _other.y;
         w = _other.w;
         h = _other.h;
-
-        ignoreListeners = false;
-
-        emitChange();
 
         return this;
     }
@@ -145,6 +89,15 @@ class Rectangle
     inline public function clone() : Rectangle
     {
         return new Rectangle(x, y, w, h);
+    }
+
+    /**
+     * Set the rectangle to have an area of 0 at 0x0.
+     * @return Rectangle
+     */
+    inline public function clear() : Rectangle
+    {
+        return set(0, 0, 0, 0);
     }
 
     /**
@@ -190,15 +143,14 @@ class Rectangle
         return _other.x > x && _other.y > y && (_other.x + _other.w) < (x + w) && (_other.y + _other.h) < (y + h);
     }
 
-    // #endregion
-
     /**
-     * Convenience inlined function to emit a size changed event.
+     * Returns the area of this rectangle.
+     * @return Float
      */
-    inline function emitChange()
+    inline public function area() : Float
     {
-        if (ignoreListeners) return;
-
-        events.fire(Resized);
+        return w * h;
     }
+
+    // #endregion
 }
