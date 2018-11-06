@@ -3,7 +3,7 @@ package uk.aidanlee.flurry.api.gpu.batcher;
 import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
-import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
+import uk.aidanlee.flurry.api.gpu.geometry.Blending;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 
@@ -43,15 +43,10 @@ class BatcherState
      */
     public var clip (default, null) : Rectangle;
 
-    public var blending (default, null) : Bool;
-
-    public var srcRGB (default, null) : BlendMode;
-
-    public var dstRGB (default, null) : BlendMode;
-
-    public var srcAlpha (default, null) : BlendMode;
-
-    public var dstAlpha (default, null) : BlendMode;
+    /**
+     * The blend state of the batcher.
+     */
+    public var blend (default, null) : Blending;
 
     /**
      * Creates a batcher state.
@@ -61,6 +56,7 @@ class BatcherState
     {
         textures = [];
         batcher  = _batcher;
+        blend    = inline new Blending();
     }
 
     /**
@@ -81,12 +77,7 @@ class BatcherState
         if (_geom.unchanging != unchanging) return true;
         if (_geom.primitive  != primitive ) return true;
         if (_geom.clip       != clip      ) return true;
-
-        if (_geom.blend.enabled  != blending ) return true;
-        if (_geom.blend.srcRGB   != srcRGB   ) return true;
-        if (_geom.blend.dstRGB   != dstRGB   ) return true;
-        if (_geom.blend.srcAlpha != srcAlpha ) return true;
-        if (_geom.blend.dstAlpha != dstAlpha ) return true;
+        if (!_geom.blend.equals(blend)) return true;
 
         return false;
     }
@@ -95,7 +86,7 @@ class BatcherState
      * Update this state to work with a geometry instance.
      * @param _geom Geometry.
      */
-    inline public function change(_geom : Geometry)
+    public function change(_geom : Geometry)
     {
         shader = def(_geom.shader, batcher.shader);
 
@@ -111,11 +102,6 @@ class BatcherState
         unchanging = _geom.unchanging;
         primitive  = _geom.primitive;
         clip       = _geom.clip;
-
-        blending  = _geom.blend.enabled;
-        srcRGB    = _geom.blend.srcRGB;
-        dstRGB    = _geom.blend.dstRGB;
-        srcAlpha  = _geom.blend.srcAlpha;
-        dstAlpha  = _geom.blend.dstAlpha;
+        blend.copyFrom(_geom.blend);
     }
 }

@@ -173,7 +173,7 @@ class Batcher
             // Line lists and triangle lists cannot (yet).
             if (!batchablePrimitive(geom) || state.requiresChange(geom))
             {
-                _output.push(new GeometryDrawCommand(commandGeom, commandName, state.unchanging, camera.projection, camera.viewInverted, vertices, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.srcRGB, state.dstRGB, state.srcAlpha, state.dstAlpha));
+                _output.push(new GeometryDrawCommand(commandGeom, commandName, state.unchanging, camera.projection, camera.viewInverted, vertices, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.blend.srcRGB, state.blend.dstRGB, state.blend.srcAlpha, state.blend.dstAlpha));
                 startIndex  = endIndex;
                 vertices    = 0;
 
@@ -196,7 +196,7 @@ class Batcher
         // Push any remaining verticies.
         if (vertices > 0)
         {
-            _output.push(new GeometryDrawCommand(commandGeom, commandName, state.unchanging, camera.projection, camera.viewInverted, vertices, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.srcRGB, state.dstRGB, state.srcAlpha, state.dstAlpha));
+            _output.push(new GeometryDrawCommand(commandGeom, commandName, state.unchanging, camera.projection, camera.viewInverted, vertices, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.blend.srcRGB, state.blend.dstRGB, state.blend.srcAlpha, state.blend.dstAlpha));
         }
 
         // Filter out any immediate geometry.
