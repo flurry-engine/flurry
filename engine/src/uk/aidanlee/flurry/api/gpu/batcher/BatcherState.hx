@@ -3,6 +3,7 @@ package uk.aidanlee.flurry.api.gpu.batcher;
 import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 
@@ -81,11 +82,11 @@ class BatcherState
         if (_geom.primitive  != primitive ) return true;
         if (_geom.clip       != clip      ) return true;
 
-        if (_geom.blending  != blending ) return true;
-        if (_geom.srcRGB    != srcRGB   ) return true;
-        if (_geom.dstRGB    != dstRGB   ) return true;
-        if (_geom.srcAlpha  != srcAlpha ) return true;
-        if (_geom.dstAlpha  != dstAlpha ) return true;
+        if (_geom.blend.enabled  != blending ) return true;
+        if (_geom.blend.srcRGB   != srcRGB   ) return true;
+        if (_geom.blend.dstRGB   != dstRGB   ) return true;
+        if (_geom.blend.srcAlpha != srcAlpha ) return true;
+        if (_geom.blend.dstAlpha != dstAlpha ) return true;
 
         return false;
     }
@@ -111,10 +112,10 @@ class BatcherState
         primitive  = _geom.primitive;
         clip       = _geom.clip;
 
-        blending  = _geom.blending;
-        srcRGB    = _geom.srcRGB;
-        dstRGB    = _geom.dstRGB;
-        srcAlpha  = _geom.srcAlpha;
-        dstAlpha  = _geom.dstAlpha;
+        blending  = _geom.blend.enabled;
+        srcRGB    = _geom.blend.srcRGB;
+        dstRGB    = _geom.blend.dstRGB;
+        srcAlpha  = _geom.blend.srcAlpha;
+        dstAlpha  = _geom.blend.dstAlpha;
     }
 }

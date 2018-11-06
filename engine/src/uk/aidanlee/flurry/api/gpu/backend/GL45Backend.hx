@@ -13,7 +13,7 @@ import opengl.WebGL;
 import snow.api.buffers.Float32Array;
 import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.gpu.Renderer.RendererOptions;
-import uk.aidanlee.flurry.api.gpu.geometry.Geometry.BlendMode;
+import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderType;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderLayout;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;

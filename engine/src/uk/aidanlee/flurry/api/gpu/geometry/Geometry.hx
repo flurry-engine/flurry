@@ -17,21 +17,6 @@ enum PrimitiveType {
     TriangleStrip;
 }
 
-enum BlendMode {
-    Zero;
-    One;
-    SrcAlphaSaturate;
-
-    SrcColor;
-    OneMinusSrcColor;
-    SrcAlpha;
-    OneMinusSrcAlpha;
-    DstAlpha;
-    OneMinusDstAlpha;
-    DstColor;
-    OneMinusDstColor;
-}
-
 enum abstract GeometryEvent(String) from String to String {
     var OrderProperyChanged = 'flurry-geom-ev-order-changed';
 }
@@ -47,12 +32,7 @@ typedef GeometryOptions = {
     var ?clip       : Rectangle;
     var ?primitive  : PrimitiveType;
     var ?batchers   : Array<Batcher>;
-
-    var ?blending : Bool;
-    var ?srcRGB   : BlendMode;
-    var ?dstRGB   : BlendMode;
-    var ?srcAlpha : BlendMode;
-    var ?dstAlpha : BlendMode;
+    var ?blend      : Blending;
 }
 
 /**
@@ -86,6 +66,11 @@ class Geometry
      * Transformation of this geometry.
      */
     public final transformation : Transformation;
+
+    /**
+     * The blend state for this geometry.
+     */
+    public final blend : Blending;
 
     /**
      * ID of the texture this mesh uses.
@@ -131,7 +116,7 @@ class Geometry
         // Remove our old listener.
         if (clip != null)
         {
-            clip.events.unlisten(evClipResized);
+            //clip.events.unlisten(evClipResized);
         }
 
         clip = _clip;
@@ -140,7 +125,7 @@ class Geometry
         // Create a new listener
         if (clip != null)
         {
-            evClipResized = clip.events.listen(RectangleEvent.Resized, onClipResized);
+            //evClipResized = clip.events.listen(RectangleEvent.Resized, onClipResized);
         }
 
         return clip;
@@ -171,31 +156,6 @@ class Geometry
      * Default colour of this geometry.
      */
     public var color : Color;
-
-    /**
-     * If blending is enabled for this geometry.
-     */
-    public var blending : Bool;
-
-    /**
-     * The source colour for blending.
-     */
-    public var srcRGB : BlendMode;
-
-    /**
-     * The source alpha for blending.
-     */
-    public var srcAlpha : BlendMode;
-
-    /**
-     * The destination color for blending.
-     */
-    public var dstRGB : BlendMode;
-
-    /**
-     * The destination alpha for blending.
-     */
-    public var dstAlpha : BlendMode;
 
     /**
      * The position of the geometry.
@@ -257,14 +217,8 @@ class Geometry
         unchanging = def(_options.unchanging, false);
         immediate  = def(_options.immediate , false);
         primitive  = def(_options.primitive , Triangles);
-        color      = def(_options.color     , new Color());
-
-        // Setup blending
-        blending = def(_options.blending, true);
-        srcRGB   = def(_options.srcRGB  , SrcAlpha);
-        srcAlpha = def(_options.srcAlpha, One);
-        dstRGB   = def(_options.dstRGB  , OneMinusSrcAlpha);
-        dstAlpha = def(_options.dstAlpha, Zero);
+        color      = def(_options.color     , inline new Color());
+        blend      = def(_options.blend     , inline new Blending());
 
         // Add to batchers.
         for (batcher in def(_options.batchers, []))
