@@ -169,6 +169,11 @@ class Geometry
     }
 
     /**
+     * All of the batchers this geometry is in.
+     */
+    final batchers : Array<Batcher>;
+
+    /**
      * Create a new mesh, contains no vertices and no transformation.
      */
     public function new(_options : GeometryOptions)
@@ -187,9 +192,10 @@ class Geometry
         primitive      = def(_options.primitive , Triangles);
         color          = def(_options.color     , inline new Color());
         blend          = def(_options.blend     , inline new Blending());
+        batchers       = def(_options.batchers  , []);
 
         // Add to batchers.
-        for (batcher in def(_options.batchers, []))
+        for (batcher in batchers)
         {
             batcher.addGeometry(this);
         }
@@ -199,7 +205,7 @@ class Geometry
      * Add a vertex to this mesh.
      * @param _v Vertex to add.
      */
-    public inline function addVertex(_v : Vertex)
+    public function addVertex(_v : Vertex)
     {
         vertices.push(_v);
     }
@@ -208,13 +214,21 @@ class Geometry
      * Remove a vertex from this mesh.
      * @param _v Vertex to remove.
      */
-    public inline function removeVertex(_v : Vertex)
+    public function removeVertex(_v : Vertex)
     {
         vertices.remove(_v);
     }
 
-    function onClipResized(_)
+    /**
+     * Remove this geometry from all the batchers it is in.
+     */
+    public function drop()
     {
-        events.fire(OrderProperyChanged);
+        for (batcher in batchers)
+        {
+            batcher.removeGeometry(this);
+        }
+
+        batchers.resize(0);
     }
 }
