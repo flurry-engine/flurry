@@ -542,15 +542,22 @@ class WebGLBackend implements IRendererBackend
         }
 
         // Apply the scissor clip.
-        var cmdClip = _command.clip != null ? _command.clip : new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-        if (!cmdClip.equals(clip))
+        if (!_command.clip.equals(clip))
         {
-            clip.copyFrom(cmdClip);
+            clip.copyFrom(_command.clip);
 
-            var x = clip.x *= target == null ? backbuffer.viewportScale : 1;
-            var y = clip.y *= target == null ? backbuffer.viewportScale : 1;
-            var w = clip.w *= target == null ? backbuffer.viewportScale : 1;
-            var h = clip.h *= target == null ? backbuffer.viewportScale : 1;
+            var x = clip.x * (target == null ? backbuffer.viewportScale : 1);
+            var y = clip.y * (target == null ? backbuffer.viewportScale : 1);
+            var w = clip.w * (target == null ? backbuffer.viewportScale : 1);
+            var h = clip.h * (target == null ? backbuffer.viewportScale : 1);
+
+            // If the clip rectangle has an area of 0 then set the width and height to that of the viewport
+            // This essentially disables clipping by clipping the entire backbuffer size.
+            if (clip.area() == 0)
+            {
+                w = backbuffer.width  * (target == null ? backbuffer.viewportScale : 1);
+                h = backbuffer.height * (target == null ? backbuffer.viewportScale : 1);
+            }
 
             // OpenGL works 0x0 is bottom left so we need to flip the y.
             y = (target == null ? backbuffer.height : target.height) - (y + h);

@@ -57,6 +57,7 @@ class BatcherState
         textures = [];
         batcher  = _batcher;
         blend    = inline new Blending();
+        clip     = inline new Rectangle();
     }
 
     /**
@@ -76,7 +77,7 @@ class BatcherState
 
         if (_geom.unchanging != unchanging) return true;
         if (_geom.primitive  != primitive ) return true;
-        if (_geom.clip       != clip      ) return true;
+        if (!_geom.clip.equals(clip)) return true;
         if (!_geom.blend.equals(blend)) return true;
 
         return false;
@@ -101,7 +102,7 @@ class BatcherState
 
         unchanging = _geom.unchanging;
         primitive  = _geom.primitive;
-        clip       = _geom.clip;
+        clip.copyFrom(_geom.clip);
         blend.copyFrom(_geom.blend);
     }
 }

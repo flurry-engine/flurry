@@ -895,15 +895,23 @@ class DX11Backend implements IRendererBackend
         }
 
         // Update scissor
-        var cmdClip = _command.clip != null ? _command.clip : new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-        if (!scissor.equals(cmdClip))
+        if (!scissor.equals(_command.clip))
         {
-            scissor.copyFrom(cmdClip);
+            scissor.copyFrom(_command.clip);
 
             nativeClip.left   = cast scissor.x;
             nativeClip.top    = cast scissor.y;
             nativeClip.right  = cast scissor.w;
             nativeClip.bottom = cast scissor.h;
+
+            // If the clip rectangle has an area of 0 then set the width and height to that of the viewport
+            // This essentially disables clipping by clipping the entire backbuffer size.
+            if (scissor.area() == 0)
+            {
+                nativeClip.right  = cast backbuffer.width;
+                nativeClip.bottom = cast backbuffer.height;
+            }
+
             context.rsSetScissorRects([ nativeClip ]);
 
             rendererStats.scissorSwaps++;

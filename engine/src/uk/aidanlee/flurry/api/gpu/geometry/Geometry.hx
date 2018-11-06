@@ -73,6 +73,11 @@ class Geometry
     public final blend : Blending;
 
     /**
+     * Clipping rectangle for this geometry. Null if none.
+     */
+    public final clip : Rectangle;
+
+    /**
      * ID of the texture this mesh uses.
      */
     public var textures (default, set) : Array<ImageResource>;
@@ -104,31 +109,6 @@ class Geometry
         events.fire(OrderProperyChanged);
 
         return depth = _depth;
-    }
-
-    /**
-     * Clipping rectangle for this geometry. Null if none.
-     */
-    public var clip (default, set) : Rectangle;
-
-    inline function set_clip(_clip : Rectangle) : Rectangle {
-
-        // Remove our old listener.
-        if (clip != null)
-        {
-            //clip.events.unlisten(evClipResized);
-        }
-
-        clip = _clip;
-        events.fire(OrderProperyChanged);
-
-        // Create a new listener
-        if (clip != null)
-        {
-            //evClipResized = clip.events.listen(RectangleEvent.Resized, onClipResized);
-        }
-
-        return clip;
     }
 
     /**
@@ -210,7 +190,7 @@ class Geometry
         transformation = new Transformation();
 
         shader     = _options.shader;
-        clip       = _options.clip;
+        clip       = def(_options.clip      , new Rectangle());
         textures   = def(_options.textures  , []);
         name       = def(_options.name      , '');
         depth      = def(_options.depth     , 0);
