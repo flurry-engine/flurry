@@ -14,7 +14,7 @@ class GeometryDrawCommand extends DrawCommand
      */
     public final geometry : Array<Geometry>;
 
-    inline public function new(
+    public inline function new(
         _geometry   : Array<Geometry>,
 
         _id         : Int,
@@ -38,5 +38,10 @@ class GeometryDrawCommand extends DrawCommand
         geometry = _geometry;
 
         super(_id, _unchanging, _projection, _view, _vertices, _viewport, _primitive, _target, _shader, _textures, _clip, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
+    }
+
+    public inline function isIndexed()
+    {
+        return geometry[0].isIndexed();
     }
 }
