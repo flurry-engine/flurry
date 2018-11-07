@@ -43,6 +43,11 @@ class BatcherState
     public var blend (default, null) : Blending;
 
     /**
+     * If the current batch is indexed.
+     */
+    public var indexed (default, null) : Bool;
+
+    /**
      * The batcher this state belongs to.
      * Used to set default values for some properties if they're null.
      */
@@ -76,8 +81,9 @@ class BatcherState
             if (textures[i].id != _geom.textures[i].id) return true;
         }
 
-        if (_geom.unchanging != unchanging) return true;
-        if (_geom.primitive  != primitive ) return true;
+        if (_geom.unchanging  != unchanging) return true;
+        if (_geom.primitive   != primitive ) return true;
+        if (_geom.isIndexed() != indexed   ) return true;
         if (!_geom.clip.equals(clip)) return true;
         if (!_geom.blend.equals(blend)) return true;
 
@@ -103,6 +109,7 @@ class BatcherState
 
         unchanging = _geom.unchanging;
         primitive  = _geom.primitive;
+        indexed    = _geom.isIndexed();
         clip.copyFrom(_geom.clip);
         blend.copyFrom(_geom.blend);
     }

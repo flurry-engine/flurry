@@ -20,6 +20,7 @@ enum PrimitiveType {
 
 typedef GeometryOptions = {
     var ?vertices   : Array<Vertex>;
+    var ?indices    : Array<Int>;
     var ?transform  : Transformation;
     var ?shader     : ShaderResource;
     var ?textures   : Array<ImageResource>;
@@ -57,9 +58,15 @@ class Geometry
     public final transformation : Transformation;
 
     /**
-     * This meshes vertices.
+     * Vertex data of this geometry.
      */
     public final vertices : Array<Vertex>;
+
+    /**
+     * Index data of this geometry.
+     * If it is empty then the geometry is drawn unindexed.
+     */
+    public final indices : Array<Int>;
 
     /**
      * Default colour of this geometry.
@@ -174,6 +181,7 @@ class Geometry
 
         batchers       = [];
         vertices       = def(_options.vertices  , []);
+        indices        = def(_options.indices   , []);
         transformation = def(_options.transform , inline new Transformation());
         clip           = def(_options.clip      , inline new Rectangle());
         textures       = def(_options.textures  , []);
@@ -266,5 +274,13 @@ class Geometry
         {
             batcher.setDirty();
         }
+    }
+
+    /**
+     * Convenience function to check if this geometry is indexed.
+     */
+    public function isIndexed()
+    {
+        return indices.length != 0;
     }
 }
