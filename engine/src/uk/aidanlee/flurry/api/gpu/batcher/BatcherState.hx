@@ -8,16 +8,10 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 
 /**
- * 
+ * Stores all of the state properties for a batcher.
  */
 class BatcherState
 {
-    /**
-     * The batcher this state belongs to.
-     * Used to set default values for some properties if they're null.
-     */
-    final batcher : Batcher;
-
     /**
      * If the current state is unchanging.
      */
@@ -49,10 +43,16 @@ class BatcherState
     public var blend (default, null) : Blending;
 
     /**
+     * The batcher this state belongs to.
+     * Used to set default values for some properties if they're null.
+     */
+    final batcher : Batcher;
+
+    /**
      * Creates a batcher state.
      * @param _batcher Batcher this state belongs to.
      */
-    inline public function new(_batcher : Batcher)
+    public function new(_batcher : Batcher)
     {
         textures = [];
         batcher  = _batcher;
@@ -67,9 +67,10 @@ class BatcherState
      */
     public function requiresChange(_geom : Geometry) : Bool
     {
-        if (def(_geom.shader, batcher.shader) != shader ) return true;
+        if (def(_geom.shader, batcher.shader) != shader) return true;
 
         if (_geom.textures.length != textures.length) return true;
+
         for (i in 0...textures.length)
         {
             if (textures[i].id != _geom.textures[i].id) return true;

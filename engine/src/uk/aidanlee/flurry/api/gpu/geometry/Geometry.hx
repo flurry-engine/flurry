@@ -34,12 +34,15 @@ typedef GeometryOptions = {
 }
 
 /**
- * Geometry class, holds a set of verticies and a matrix transformation for them.
+ * The geometry class is the primary way of displaying visuals to the screen.
+ * 
+ * Geometry contains a collection of vertices which defines the shape of the geometry
+ * and other rendering properties which will decide how it is drawn to the screen.
  */
 class Geometry
 {
     /**
-     * UUID of this geometry.
+     * Randomly generated ID for this geometry.
      */
     public final id : Int;
 
@@ -74,7 +77,7 @@ class Geometry
     public final clip : Rectangle;
 
     /**
-     * ID of the texture this mesh uses.
+     * All of the images this image will provide to the shader.
      */
     public final textures : Array<ImageResource>;
 
@@ -113,12 +116,16 @@ class Geometry
     }
 
     /**
-     * If immediate this geometry will only be drawn once.
+     * Unchanging geometry is drawn once and them immediately dropped.
      */
     public var immediate : Bool;
 
     /**
-     * If this geometry will not be changing. Provides a hint to the backend on how to optimise this geometry.
+     * If geometry is set to unchanging then its vertex data will only be uploaded once.
+     * Any further changes to the vertices will not be reflected on the GPU until unchanging is disabled.
+     * 
+     * This is an optimisation hint to the rendering backends, although not all backends will optimise
+     * unchaning geometry.
      */
     public var unchanging : Bool;
 
