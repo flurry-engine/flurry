@@ -9,50 +9,57 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.maths.Hash;
 
 typedef BatcherOptions = {
+    /**
+     * The initial camera this batcher will use.
+     */
     var camera : Camera;
+
+    /**
+     * The initial shader this batcher will use.
+     */
     var shader : ShaderResource;
+
+    /**
+     * Optional render target for this batcher.
+     * If not specified the backbuffer / default target will be used.
+     */
     var ?target : ImageResource;
+
+    /**
+     * Optional initial depth for this batcher.
+     * If not specified the depth starts at 0.
+     */
     var ?depth : Float;
-    var ?maxVerts : Int;
 }
 
 /**
- * Stores and orders geometry to minimise openGL state changes.
+ * A batcher is used to sort a set of geometries so that the renderer can draw them
+ * as effeciently as possible while retaining the user requested depth ordering.
  * 
- * Geometry is stored in this order.
- * - Depth
- * - Texture
- * - Clipping
- * - blend
+ * Batchers must contain a camera and a shader. The attached camera is used to provided
+ * the shader with a view matrix to transform all the geometry by the inverse of the cameras
+ * position.
+ * 
+ * The batcher generates a set of draw commands which are then fed to the renderer for uploading
+ * and drawing. The geometry instances call the setDirty() function to flag the batcher to
+ * re-order all the contained geometry.
  */
 class Batcher
 {
     /**
-     * UUID for this batcher.
+     * Randomly generated ID for this batcher.
      */
     public final id : Int;
 
     /**
-     * All of the geometry instances in this batcher.
+     * The depth of the batcher is the deciding factor in which batchers get drawn first.
+     */
+    public var depth : Float;
+
+    /**
+     * All of the geometry in this batcher.
      */
     public final geometry : Array<Geometry>;
-
-    /**
-     * All of the geometry to drop after batching.
-     */
-    public final geometryToDrop : Array<Geometry>;
-
-    /**
-     * The state of the batcher.
-     */
-    public final state : BatcherState;
-
-    /**
-     * Target this batcher will be drawn to.
-     * 
-     * If null the default target of the renderer will be used (probably the backbuffer).
-     */
-    public var target : ImageResource;
 
     /**
      * Camera for this batcher to use.
@@ -65,16 +72,26 @@ class Batcher
     public var shader : ShaderResource;
 
     /**
-     * The float of this batcher.
+     * Target this batcher will be drawn to.
      * 
-     * The depth of the batcher is the deciding factor in which batchers get drawn first.
+     * If null the backbuffer / default target will be used.
      */
-    public var depth : Float;
+    public var target : ImageResource;
 
     /**
      * If the batcher needs to sort all of its geometries.
      */
     var dirty : Bool;
+
+    /**
+     * All of the geometry to remove after batching.
+     */
+    final geometryToDrop : Array<Geometry>;
+
+    /**
+     * The state of the batcher.
+     */
+    final state : BatcherState;
 
     /**
      * Creates an empty batcher.
@@ -104,7 +121,7 @@ class Batcher
     }
 
     /**
-     * Add a geometry instance into the batcher.
+     * Add a geometry to this batcher.
      * @param _geom Geometry to add.
      */
     public function addGeometry(_geom : Geometry)
@@ -117,8 +134,8 @@ class Batcher
     }
 
     /**
-     * Removes a geometry instance from the batcher.
-     * @param _geom Geometry to move.
+     * Remove a geometry from this batcher.
+     * @param _geom Geometry to remove.
      */
     public function removeGeometry(_geom : Geometry)
     {
@@ -130,9 +147,8 @@ class Batcher
     }
 
     /**
-     * Transform and add all the geometry into this batchers buffer.
-     * Returns an array of draw commands describing batches within the buffer and the state required to draw them.
-     * 
+     * Generates a series of geometry draw commands from the geometry in this batcher.
+     * @param _output Optional existing array to put all the draw commands in.
      * @return Array<GeometryDrawCommand>
      */
     public function batch(_output : Array<GeometryDrawCommand> = null) : Array<GeometryDrawCommand>
