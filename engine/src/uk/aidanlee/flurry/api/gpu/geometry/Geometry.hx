@@ -44,6 +44,11 @@ class Geometry
     public final id : Int;
 
     /**
+     * All of the batchers this geometry is in.
+     */
+    public final batchers : Array<Batcher>;
+
+    /**
      * Transformation of this geometry.
      */
     public final transformation : Transformation;
@@ -154,18 +159,13 @@ class Geometry
     }
 
     /**
-     * All of the batchers this geometry is in.
-     */
-    final batchers : Array<Batcher>;
-
-    /**
      * Create a new mesh, contains no vertices and no transformation.
      */
     public function new(_options : GeometryOptions)
     {
         id = Hash.uniqueHash();
 
-        batchers       = def(_options.batchers  , []);
+        batchers       = [];
         vertices       = def(_options.vertices  , []);
         transformation = def(_options.transform , inline new Transformation());
         clip           = def(_options.clip      , inline new Rectangle());
@@ -179,7 +179,7 @@ class Geometry
         shader         = _options.shader;
 
         // Add to batchers.
-        for (batcher in batchers)
+        for (batcher in def(_options.batchers  , []))
         {
             batcher.addGeometry(this);
         }

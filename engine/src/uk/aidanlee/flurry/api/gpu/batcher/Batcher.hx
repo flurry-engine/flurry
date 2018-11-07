@@ -109,7 +109,11 @@ class Batcher
      */
     public function addGeometry(_geom : Geometry)
     {
+        _geom.batchers.push(this);
+
         geometry.push(_geom);
+
+        dirty = true;
     }
 
     /**
@@ -118,7 +122,11 @@ class Batcher
      */
     public function removeGeometry(_geom : Geometry)
     {
+        _geom.batchers.remove(this);
+
         geometry.remove(_geom);
+
+        dirty = true;
     }
 
     /**
