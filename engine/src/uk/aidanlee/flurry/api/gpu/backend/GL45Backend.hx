@@ -6,6 +6,7 @@ import sdl.SDL;
 import haxe.io.Bytes;
 import haxe.ds.Map;
 import cpp.Float32;
+import cpp.UInt16;
 import cpp.Pointer;
 import opengl.GL.*;
 import opengl.GL.GLSync;
@@ -61,6 +62,11 @@ class GL45Backend implements IRendererBackend
     final glVbo : Int;
 
     /**
+     * The single Index buffer used by the backend.
+     */
+    final glIbo : Int;
+
+    /**
      * The single VAO which is bound once when the backend is created.
      */
     final glVao : Int;
@@ -92,6 +98,12 @@ class GL45Backend implements IRendererBackend
      */
     final vertexBuffer : Array<Float32>;
 
+    final unchangingIndexStorage : UnchangingBuffer;
+
+    final indexBufferRanges : Array<Int>;
+
+    final indexBuffer : Array<UInt16>;
+
     /**
      * Constant vector instance which is used to transform vertices when copying into the vertex buffer.
      */
@@ -101,6 +113,8 @@ class GL45Backend implements IRendererBackend
      * Index pointing to the current writable buffer range.
      */
     var vertexBufferRangeIndex : Int;
+
+    var indexBufferRangeIndex : Int;
 
     /**
      * The index into the vertex buffer to write.
@@ -200,30 +214,37 @@ class GL45Backend implements IRendererBackend
         var totalBufferFloats = totalBufferVerts  * 9;
         var totalBufferBytes  = totalBufferFloats * 4;
 
-        // Create an empty buffer.
-        var vbo = [ 0 ];
-        glCreateBuffers(1, vbo);
-        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", vbo[0], totalBufferBytes, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        var totalBufferIndices = _options.maxUnchangingVertices + (_options.maxDynamicVertices * 3);
+        var totalIndexInts     = totalBufferIndices;
+        var totalIndexBytes    = totalBufferIndices * 2;
+
+        // Create two empty buffers, for the vertex and index data
+        var buffers = [ 0, 0 ];
+        glCreateBuffers(2, buffers);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", buffers[0], totalBufferBytes, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", buffers[1], totalIndexBytes , GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 
         // Create the vao and bind the vbo to it.
         var vao = [ 0 ];
         glCreateVertexArrays(1, vao);
-        glVertexArrayVertexBuffer(vao[0], 0, vbo[0], 0, Float32Array.BYTES_PER_ELEMENT * 9);
+        glVertexArrayVertexBuffer(vao[0], 0, buffers[0], 0, Float32Array.BYTES_PER_ELEMENT * 9);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[1]);
 
         // Enable and setup the vertex attributes for this batcher.
         glEnableVertexArrayAttrib(vao[0], 0);
         glEnableVertexArrayAttrib(vao[0], 1);
         glEnableVertexArrayAttrib(vao[0], 2);
 
-        glVertexArrayAttribFormat(vbo[0], 0, 3, GL_FLOAT, false, 0);
-        glVertexArrayAttribFormat(vbo[0], 1, 4, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * 3);
-        glVertexArrayAttribFormat(vbo[0], 2, 2, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * 7);
+        glVertexArrayAttribFormat(buffers[0], 0, 3, GL_FLOAT, false, 0);
+        glVertexArrayAttribFormat(buffers[0], 1, 4, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * 3);
+        glVertexArrayAttribFormat(buffers[0], 2, 2, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * 7);
 
         glVertexArrayAttribBinding(vao[0], 0, 0);
         glVertexArrayAttribBinding(vao[0], 1, 0);
         glVertexArrayAttribBinding(vao[0], 2, 0);
 
-        glVbo = vbo[0];
+        glVbo = buffers[0];
+        glIbo = buffers[1];
         glVao = vao[0];
 
         // Bind our VAO once.
@@ -243,14 +264,25 @@ class GL45Backend implements IRendererBackend
             new BufferRange(floatOffsetSize + (floatSegmentSize * 2), _options.maxUnchangingVertices + (_options.maxDynamicVertices * 2))
         ];
 
+        indexBufferRangeIndex = 0;
+        indexBufferRanges = [
+            _options.maxUnchangingVertices,
+            _options.maxUnchangingVertices + _options.maxDynamicVertices,
+            _options.maxUnchangingVertices + (_options.maxDynamicVertices * 2)
+        ];
+
         // create a new storage container for holding unchaning commands.
         unchangingVertexStorage = new UnchangingBuffer(_options.maxUnchangingVertices);
+        unchangingIndexStorage  = new UnchangingBuffer(_options.maxUnchangingVertices);
         dynamicCommandRanges    = new Map();
         transformationVector    = new Vector();
 
         // Map the buffer into an unmanaged array.
         var ptr : Pointer<Float32> = Pointer.fromRaw(glMapNamedBufferRange(glVbo, 0, totalBufferBytes, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
         vertexBuffer = ptr.toUnmanagedArray(totalBufferFloats);
+
+        var ptr : Pointer<UInt16> = Pointer.fromRaw(glMapNamedBufferRange(glVbo, 0, totalIndexBytes, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
+        indexBuffer = ptr.toUnmanagedArray(totalIndexInts);
 
         // Create a representation of the backbuffer and manually insert it into the target structure.
         var backbufferID = [ 0 ];
