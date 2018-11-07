@@ -18,10 +18,6 @@ enum PrimitiveType {
     TriangleStrip;
 }
 
-enum abstract GeometryEvent(String) from String to String {
-    var OrderProperyChanged = 'flurry-geom-ev-order-changed';
-}
-
 typedef GeometryOptions = {
     var ?vertices   : Array<Vertex>;
     var ?transform  : Transformation;
@@ -48,9 +44,9 @@ class Geometry
     public final id : Int;
 
     /**
-     * Fires various events about the geometry.
+     * Transformation of this geometry.
      */
-    public final events : EventBus;
+    public final transformation : Transformation;
 
     /**
      * This meshes vertices.
@@ -58,9 +54,9 @@ class Geometry
     public final vertices : Array<Vertex>;
 
     /**
-     * Transformation of this geometry.
+     * Default colour of this geometry.
      */
-    public final transformation : Transformation;
+    public final color : Color;
 
     /**
      * The blend state for this geometry.
@@ -75,13 +71,7 @@ class Geometry
     /**
      * ID of the texture this mesh uses.
      */
-    public var textures (default, set) : Array<ImageResource>;
-
-    inline function set_textures(_textures : Array<ImageResource>) : Array<ImageResource> {
-        events.fire(OrderProperyChanged);
-
-        return textures = _textures;
-    }
+    public final textures : Array<ImageResource>;
 
     /**
      * The specific shader for the geometry.
@@ -90,7 +80,7 @@ class Geometry
     public var shader (default, set) : ShaderResource;
 
     inline function set_shader(_shader : ShaderResource) : ShaderResource {
-        events.fire(OrderProperyChanged);
+        dirtyBatchers();
 
         return shader = _shader;
     }
@@ -101,7 +91,7 @@ class Geometry
     public var depth (default, set) : Float;
 
     inline function set_depth(_depth : Float) : Float {
-        events.fire(OrderProperyChanged);
+        dirtyBatchers();
 
         return depth = _depth;
     }
@@ -112,7 +102,7 @@ class Geometry
     public var primitive (default, set) : PrimitiveType;
 
     inline function set_primitive(_primitive : PrimitiveType) : PrimitiveType {
-        events.fire(OrderProperyChanged);
+        dirtyBatchers();
 
         return primitive = _primitive;
     }
@@ -126,11 +116,6 @@ class Geometry
      * If this geometry will not be changing. Provides a hint to the backend on how to optimise this geometry.
      */
     public var unchanging : Bool;
-
-    /**
-     * Default colour of this geometry.
-     */
-    public var color : Color;
 
     /**
      * The position of the geometry.
@@ -178,10 +163,9 @@ class Geometry
      */
     public function new(_options : GeometryOptions)
     {
-        id     = Hash.uniqueHash();
-        events = new EventBus();
+        id = Hash.uniqueHash();
 
-        shader         = _options.shader;
+        batchers       = def(_options.batchers  , []);
         vertices       = def(_options.vertices  , []);
         transformation = def(_options.transform , inline new Transformation());
         clip           = def(_options.clip      , inline new Rectangle());
@@ -192,7 +176,7 @@ class Geometry
         primitive      = def(_options.primitive , Triangles);
         color          = def(_options.color     , inline new Color());
         blend          = def(_options.blend     , inline new Blending());
-        batchers       = def(_options.batchers  , []);
+        shader         = _options.shader;
 
         // Add to batchers.
         for (batcher in batchers)
@@ -220,6 +204,40 @@ class Geometry
     }
 
     /**
+     * Add a texture to this geometry.
+     * Batchers are automatically dirtied.
+     * @param _image Image to add.
+     */
+    public function addTexture(_image : ImageResource)
+    {
+        textures.push(_image);
+        dirtyBatchers();
+    }
+
+    /**
+     * Remove a texture from this geometry.
+     * Batchers are automatically dirtied.
+     * @param _image Image to remove.
+     */
+    public function removeTexture(_image : ImageResource)
+    {
+        textures.remove(_image);
+        dirtyBatchers();
+    }
+
+    /**
+     * Replace a texture in this geometry.
+     * Batchers are automatically dirtied.
+     * @param _idx   Texture ID to replace.
+     * @param _image Texture to replace with.
+     */
+    public function setTexture(_idx : Int, _image : ImageResource)
+    {
+        textures[_idx] = _image;
+        dirtyBatchers();
+    }
+
+    /**
      * Remove this geometry from all the batchers it is in.
      */
     public function drop()
@@ -230,5 +248,16 @@ class Geometry
         }
 
         batchers.resize(0);
+    }
+
+    /**
+     * Flags all the batchers this geometry is in for re-ordering.
+     */
+    public function dirtyBatchers()
+    {
+        for (batcher in batchers)
+        {
+            batcher.setDirty();
+        }
     }
 }

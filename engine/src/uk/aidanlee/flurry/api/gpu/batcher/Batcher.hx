@@ -11,9 +11,9 @@ import uk.aidanlee.flurry.api.maths.Hash;
 typedef BatcherOptions = {
     var camera : Camera;
     var shader : ShaderResource;
-    @:optional var target : ImageResource;
-    @:optional var depth : Float;
-    @:optional var maxVerts : Int;
+    var ?target : ImageResource;
+    var ?depth : Float;
+    var ?maxVerts : Int;
 }
 
 /**
@@ -72,14 +72,9 @@ class Batcher
     public var depth : Float;
 
     /**
-     * If the geometries need to be re-ordered next time they're batched.
+     * If the batcher needs to sort all of its geometries.
      */
-    var orderGeometry : Bool;
-
-    /**
-     * Array of event IDs for all the geometries order changed event in this batcher.
-     */
-    var evGeometryOrderChanged : Array<Int>;
+    var dirty : Bool;
 
     /**
      * Creates an empty batcher.
@@ -96,34 +91,34 @@ class Batcher
         target   = _options.target;
         depth    = def(_options.depth, 0);
 
-        state         = new BatcherState(this);
-        orderGeometry = true;
+        state = new BatcherState(this);
+        dirty = true;
+    }
 
-        evGeometryOrderChanged = [];
+    /**
+     * Flag the batcher to re-order its geometries.
+     */
+    public function setDirty()
+    {
+        dirty = true;
     }
 
     /**
      * Add a geometry instance into the batcher.
      * @param _geom Geometry to add.
      */
-    inline public function addGeometry(_geom : Geometry)
+    public function addGeometry(_geom : Geometry)
     {
         geometry.push(_geom);
-
-        evGeometryOrderChanged.push(_geom.events.listen(OrderProperyChanged, onGeometryChanged));
-
-        orderGeometry = true;
     }
 
     /**
      * Removes a geometry instance from the batcher.
      * @param _geom Geometry to move.
      */
-    inline public function removeGeometry(_geom : Geometry)
+    public function removeGeometry(_geom : Geometry)
     {
         geometry.remove(_geom);
-
-        orderGeometry = true;
     }
 
     /**
@@ -157,10 +152,10 @@ class Batcher
 
         // Sort all of the geometry held in this batcher.
         // Sorted in order of most expensive state changes to least expensive.
-        if (orderGeometry)
+        if (dirty)
         {
             ArraySort.sort(geometry, sortGeometry);
-            orderGeometry = false;
+            dirty = false;
         }
 
         // Set the intial state to the first bit of geometry.
@@ -268,10 +263,5 @@ class Batcher
         }
 
         return 0;
-    }
-
-    function onGeometryChanged(_)
-    {
-        orderGeometry = true;
     }
 }
