@@ -35,7 +35,7 @@ class Main extends Flurry
         _config.window.width  = 1600;
         _config.window.height = 900;
 
-        _config.renderer.backend = GL45;
+        _config.renderer.backend = WEBGL;
 
         _config.resources.preload.parcels.push('assets/parcels/sample.parcel');
 

@@ -1,9 +1,7 @@
 package;
 
-import uk.aidanlee.flurry.api.EventBus;
 import snow.Snow;
-import snow.api.Emitter;
-import uk.aidanlee.flurry.modules.scene.Scene;
+import uk.aidanlee.flurry.api.EventBus;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
@@ -12,6 +10,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
 import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.modules.scene.Scene;
 
 class SampleScene extends Scene
 {
@@ -60,8 +59,8 @@ class SampleScene extends Scene
                 textures : [ resources.get('assets/images/haxe.png', ImageResource) ],
                 batchers : [ batcher ]
             });
-            sprite.transformation.origin.set_xy(75, 75);
-            sprite.transformation.position.set_xy(1600 / 2, 900 / 2);
+            sprite.origin.set_xy(75, 75);
+            sprite.position.set_xy(1600 / 2, 900 / 2);
 
             sprites.push(sprite);
             vectors.push(random_point_in_unit_circle());
@@ -70,11 +69,10 @@ class SampleScene extends Scene
         var logo = new QuadGeometry({
             textures   : [ resources.get('assets/images/logo.png', ImageResource) ],
             batchers   : [ batcher ],
-            depth      : 2,
-            unchanging : true
+            depth      : 2
         });
-        logo.transformation.origin.set_xy(resources.get('assets/images/logo.png', ImageResource).width / 2, resources.get('assets/images/logo.png', ImageResource).height / 2);
-        logo.transformation.position.set_xy(1600 / 2, 900 / 2);
+        logo.origin.set_xy(resources.get('assets/images/logo.png', ImageResource).width / 2, resources.get('assets/images/logo.png', ImageResource).height / 2);
+        logo.position.set_xy(1600 / 2, 900 / 2);
     }
 
     override function onUpdate(_dt : Float)
@@ -82,13 +80,13 @@ class SampleScene extends Scene
         // Make all of our haxe logos bounce around the screen.
         for (i in 0...numLogos)
         {
-            sprites[i].transformation.position.x += (vectors[i].x * 1000) * _dt;
-            sprites[i].transformation.position.y += (vectors[i].y * 1000) * _dt;
+            sprites[i].position.x += (vectors[i].x * 1000) * _dt;
+            sprites[i].position.y += (vectors[i].y * 1000) * _dt;
             
-            if (sprites[i].transformation.position.x > 1600 + sprites[i].transformation.origin.x) vectors[i].x = -vectors[i].x;
-            if (sprites[i].transformation.position.x <     0) vectors[i].x = -vectors[i].x;
-            if (sprites[i].transformation.position.y >  900 + sprites[i].transformation.origin.y) vectors[i].y = -vectors[i].y;
-            if (sprites[i].transformation.position.y <    0)  vectors[i].y = -vectors[i].y;
+            if (sprites[i].position.x > 1600 + sprites[i].origin.x) vectors[i].x = -vectors[i].x;
+            if (sprites[i].position.x <     0) vectors[i].x = -vectors[i].x;
+            if (sprites[i].position.y >  900 + sprites[i].origin.y) vectors[i].y = -vectors[i].y;
+            if (sprites[i].position.y <    0)  vectors[i].y = -vectors[i].y;
         }
 
         super.onUpdate(_dt);
