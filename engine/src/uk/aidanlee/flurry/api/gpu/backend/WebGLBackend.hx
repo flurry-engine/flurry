@@ -165,7 +165,7 @@ class WebGLBackend implements IRendererBackend
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
         vertexBuffer = new Float32Array((_options.maxDynamicVertices + _options.maxUnchangingVertices) * 9);
-        indexBuffer  = new Uint16Array(_options.maxDynamicVertices + _options.maxUnchangingVertices);
+        indexBuffer  = new Uint16Array(_options.maxDynamicIndices + _options.maxUnchangingIndices);
 
         #if cpp
 
@@ -226,8 +226,8 @@ class WebGLBackend implements IRendererBackend
     public function clear()
     {
         // Disable the clip to clear the entire target.
-        clip.set(0, 0, 1600, 900);
-        GL.scissor(0, 0, 1600, 900);
+        clip.set(0, 0, backbuffer.width, backbuffer.height);
+        GL.scissor(0, 0, backbuffer.width, backbuffer.height);
 
         GL.clear(GL.COLOR_BUFFER_BIT);
     }

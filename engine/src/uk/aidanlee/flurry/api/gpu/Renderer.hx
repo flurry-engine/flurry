@@ -53,6 +53,16 @@ typedef RendererOptions = {
      * Maximum number of dynamic vertices allowed in the dynamic vertex buffer.
      */
     var maxDynamicVertices : Int;
+    
+    /**
+     * The maximum number of indices allowed in the unchanging index buffer.
+     */
+    var maxUnchangingIndices : Int;
+
+    /**
+     * The maximum number of indices allowed in the dynamic index buffer.
+     */
+    var maxDynamicIndices : Int;
 
     /**
      * Optional settings for the chosen api backend.
