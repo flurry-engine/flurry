@@ -69,7 +69,8 @@ class SampleScene extends Scene
         var logo = new QuadGeometry({
             textures   : [ resources.get('assets/images/logo.png', ImageResource) ],
             batchers   : [ batcher ],
-            depth      : 2
+            depth      : 2,
+            unchanging : true
         });
         logo.origin.set_xy(resources.get('assets/images/logo.png', ImageResource).width / 2, resources.get('assets/images/logo.png', ImageResource).height / 2);
         logo.position.set_xy(1600 / 2, 900 / 2);

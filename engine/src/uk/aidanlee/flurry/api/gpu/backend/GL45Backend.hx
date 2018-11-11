@@ -388,8 +388,9 @@ class GL45Backend implements IRendererBackend
         {
             if (command.unchanging)
             {
-                var unchangingFloatOffset = unchangingStorage.currentVertices * 9;
-                var unchangingIndexOffset = unchangingStorage.currentIndices;
+                var unchangingVertexOffset = unchangingStorage.currentVertices;
+                var unchangingFloatOffset  = unchangingStorage.currentVertices * 9;
+                var unchangingIndexOffset  = unchangingStorage.currentIndices;
 
                 if (unchangingStorage.exists(command.id))
                 {
@@ -401,6 +402,11 @@ class GL45Backend implements IRendererBackend
                     for (geom in command.geometry)
                     {
                         var matrix = geom.transformation.transformation;
+
+                        for (index in geom.indices)
+                        {
+                            indexBuffer[unchangingIndexOffset++] = unchangingVertexOffset + index;
+                        }
 
                         for (vertex in geom.vertices)
                         {
@@ -515,18 +521,32 @@ class GL45Backend implements IRendererBackend
             {
                 if (unchangingStorage.exists(command.id))
                 {
-                    var offset = unchangingStorage.get(command.id);
+                    var range = unchangingStorage.get(command.id);
 
                     setState(command, !_recordStats);
 
                     // Draw the actual vertices
-                    switch (command.primitive)
+                    if (command.indices > 0)
                     {
-                        case Points        : glDrawArrays(GL_POINTS        , offset, command.vertices);
-                        case Lines         : glDrawArrays(GL_LINES         , offset, command.vertices);
-                        case LineStrip     : glDrawArrays(GL_LINE_STRIP    , offset, command.vertices);
-                        case Triangles     : glDrawArrays(GL_TRIANGLES     , offset, command.vertices);
-                        case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, offset, command.vertices);
+                        switch (command.primitive)
+                        {
+                            case Points        : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_POINTS        , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                            case Lines         : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINES         , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                            case LineStrip     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINE_STRIP    , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                            case Triangles     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLES     , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                            case TriangleStrip : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLE_STRIP, command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                        }
+                    }
+                    else
+                    {
+                        switch (command.primitive)
+                        {
+                            case Points        : glDrawArrays(GL_POINTS        , range.vertexOffset, command.vertices);
+                            case Lines         : glDrawArrays(GL_LINES         , range.vertexOffset, command.vertices);
+                            case LineStrip     : glDrawArrays(GL_LINE_STRIP    , range.vertexOffset, command.vertices);
+                            case Triangles     : glDrawArrays(GL_TRIANGLES     , range.vertexOffset, command.vertices);
+                            case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, range.vertexOffset, command.vertices);
+                        }
                     }
 
                     // Record stats about this draw call.
@@ -546,26 +566,26 @@ class GL45Backend implements IRendererBackend
             setState(command, !_recordStats);
 
             // Draw the actual vertices
-            if (range.indices > 0)
+            if (command.indices > 0)
             {
                 switch (command.primitive)
                 {
-                    case Points        : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_POINTS        , range.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                    case Lines         : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINES         , range.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                    case LineStrip     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINE_STRIP    , range.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                    case Triangles     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLES     , range.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                    case TriangleStrip : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLE_STRIP, range.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case Points        : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_POINTS        , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case Lines         : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINES         , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case LineStrip     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINE_STRIP    , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case Triangles     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLES     , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case TriangleStrip : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLE_STRIP, command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
                 }
             }
             else
             {
                 switch (command.primitive)
                 {
-                    case Points        : glDrawArrays(GL_POINTS        , range.vertexOffset, range.vertices);
-                    case Lines         : glDrawArrays(GL_LINES         , range.vertexOffset, range.vertices);
-                    case LineStrip     : glDrawArrays(GL_LINE_STRIP    , range.vertexOffset, range.vertices);
-                    case Triangles     : glDrawArrays(GL_TRIANGLES     , range.vertexOffset, range.vertices);
-                    case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, range.vertexOffset, range.vertices);
+                    case Points        : glDrawArrays(GL_POINTS        , range.vertexOffset, command.vertices);
+                    case Lines         : glDrawArrays(GL_LINES         , range.vertexOffset, command.vertices);
+                    case LineStrip     : glDrawArrays(GL_LINE_STRIP    , range.vertexOffset, command.vertices);
+                    case Triangles     : glDrawArrays(GL_TRIANGLES     , range.vertexOffset, command.vertices);
+                    case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, range.vertexOffset, command.vertices);
                 }
             }
 
@@ -1276,7 +1296,7 @@ private class UnchangingBuffer
     /**
      * Maps a draw commands hash to the vertex offset of that commands vertices in the unchanging buffer range.
      */
-    final currentRanges : Map<Int, Int>;
+    final currentRanges : Map<Int, UnchangingRange>;
 
     /**
      * The current number of vertices we have stored.
@@ -1304,10 +1324,11 @@ private class UnchangingBuffer
      */
     public function add(_command : DrawCommand) : Bool
     {
-        if ((currentVertices + _command.vertices) <= maxVertices)
+        if ((currentVertices + _command.vertices) <= maxVertices && (currentIndices + _command.indices) <= maxIndices)
         {
-            currentRanges.set(_command.id, currentVertices);
+            currentRanges.set(_command.id, new UnchangingRange(currentVertices, currentIndices * Uint16Array.BYTES_PER_ELEMENT));
             currentVertices += _command.vertices;
+            currentIndices  += _command.indices;
 
             return true;
         }
@@ -1330,7 +1351,7 @@ private class UnchangingBuffer
      * @param _id Draw command hash.
      * @return Vertex offset into the unchanging range.
      */
-    public function get(_id : Int) : Int
+    public function get(_id : Int) : UnchangingRange
     {
         return currentRanges.get(_id);
     }
@@ -1349,7 +1370,15 @@ private class UnchangingBuffer
 
 private class UnchangingRange
 {
-    //
+    public final vertexOffset : Int;
+
+    public final indexByteOffset : Int;
+
+    public function new(_vertexOffset : Int, _indexByteOffset : Int)
+    {
+        vertexOffset    = _vertexOffset;
+        indexByteOffset = _indexByteOffset;
+    }
 }
 
 /**
