@@ -101,17 +101,8 @@ class Flurry extends App
             maxDynamicVertices    : flurryConfig.renderer.dynamicVertices,
             maxUnchangingIndices  : flurryConfig.renderer.unchangingIndices,
             maxDynamicIndices     : flurryConfig.renderer.dynamicIndices,
-            backend : {
-
-                // This tells the GL4.5 backend if we can use bindless textures
-                bindless : true //sdl.SDL.GL_ExtensionSupported('GL_ARB_bindless_texture'),
-
-                // The DX11 backend needs to know the games window so it can fetch the HWND for the DXGI swapchain.
-                // window : app.runtime.window
-            }
+            backend : { bindless : false }
         });
-
-        trace('creating the resource system');
 
         // Pass the renderer backend to the resource system so GPU resources (textures, shaders) can be automatically managed.
         // When loading and freeing parcels the needed GPU resources can then be created and destroyed as and when needed.
@@ -127,7 +118,9 @@ class Flurry extends App
             // Once the preload resource have been loaded fire the ready event after the engine callback.
             events.fire(Ready);
 
-        }, null, _e -> trace('Error loading preload parcel : ${_e}')).load();
+        }, null, function(_error : String) {
+            trace('Error loading preload parcel : $_error');
+        }).load();
 
         // Fire the init event once the engine has loaded all its components.
         events.fire(Init);
@@ -172,15 +165,15 @@ class Flurry extends App
         renderer.render();
         hxt.end_timing('.rendering');
 
+        // Post-draw
+        renderer.postRender();
+
         if (loaded)
         {
             onPostUpdate();
 
             events.fire(PostUpdate);
         }
-
-        // Post-draw
-        renderer.postRender();
 
         hxt.advance_frame();
     }
