@@ -29,6 +29,26 @@ import uk.aidanlee.flurry.api.resources.ResourceEvents;
 class WebGLBackend implements IRendererBackend
 {
     /**
+     * The number of floats in each vertex.
+     */
+    static final VERTEX_FLOAT_SIZE = 9;
+
+    /**
+     * The byte offset for the position in each vertex.
+     */
+    static final VERTEX_OFFSET_POS = 0;
+
+    /**
+     * The byte offset for the colour in each vertex.
+     */
+    static final VERTEX_OFFSET_COL = 3;
+
+    /**
+     * The byte offset for the texture coordinates in each vertex.
+     */
+    static final VERTEX_OFFSET_TEX = 7;
+
+    /**
      * Event bus for the rendering backend to listen to resource creation events.
      */
     final events : EventBus;
@@ -164,7 +184,7 @@ class WebGLBackend implements IRendererBackend
 
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
-        vertexBuffer = new Float32Array((_options.maxDynamicVertices + _options.maxUnchangingVertices) * 9);
+        vertexBuffer = new Float32Array((_options.maxDynamicVertices + _options.maxUnchangingVertices) * VERTEX_FLOAT_SIZE);
         indexBuffer  = new Uint16Array(_options.maxDynamicIndices + _options.maxUnchangingIndices);
 
         #if cpp
@@ -189,9 +209,9 @@ class WebGLBackend implements IRendererBackend
         GL.enableVertexAttribArray(0);
         GL.enableVertexAttribArray(1);
         GL.enableVertexAttribArray(2);
-        GL.vertexAttribPointer(0, 3, GL.FLOAT, false, 9 * Float32Array.BYTES_PER_ELEMENT, 0);
-        GL.vertexAttribPointer(1, 4, GL.FLOAT, false, 9 * Float32Array.BYTES_PER_ELEMENT, 3 * Float32Array.BYTES_PER_ELEMENT);
-        GL.vertexAttribPointer(2, 2, GL.FLOAT, false, 9 * Float32Array.BYTES_PER_ELEMENT, 7 * Float32Array.BYTES_PER_ELEMENT);
+        GL.vertexAttribPointer(0, 3, GL.FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_POS);
+        GL.vertexAttribPointer(1, 4, GL.FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_COL);
+        GL.vertexAttribPointer(2, 2, GL.FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
 
         // Create a representation of the backbuffer.
         backbuffer = new BackBuffer(_options.width, _options.height, _options.dpi, GL.getParameter(GL.FRAMEBUFFER));
@@ -206,11 +226,11 @@ class WebGLBackend implements IRendererBackend
 
         // Default scissor test
         GL.enable(GL.SCISSOR_TEST);
-        GL.scissor(0, 0, 1600, 900);
+        GL.scissor(0, 0, backbuffer.width, backbuffer.height);
 
         // default state
-        viewport = new Rectangle(0, 0, 1600, 900);
-        clip     = new Rectangle(0, 0, 1600, 900);
+        viewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
+        clip     = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
         shader   = null;
         target   = null;
         boundTextures = [];
@@ -270,7 +290,7 @@ class WebGLBackend implements IRendererBackend
                 for (index in geom.indices)
                 {
                     indexBuffer[indexOffset++] = vertexOffset + index;
-                    indexByteOffset += 2;
+                    indexByteOffset += Uint16Array.BYTES_PER_ELEMENT;
                 }
 
                 for (vertex in geom.vertices)
@@ -291,7 +311,7 @@ class WebGLBackend implements IRendererBackend
                     vertexBuffer[vertexFloatOffset++] = vertex.texCoord.y;
 
                     vertexOffset++;
-                    vertexByteOffset += (9 * 4);
+                    vertexByteOffset += (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT);
                 }
             }
         }
@@ -313,8 +333,8 @@ class WebGLBackend implements IRendererBackend
             GL.bufferSubData(GL.ARRAY_BUFFER, vertexByteOffset, command.buffer.subarray(command.startIndex, command.endIndex));
 
             vertexOffset      += command.vertices;
-            vertexFloatOffset += command.vertices * 9;
-            vertexByteOffset  += command.vertices * 9 * 4;
+            vertexFloatOffset += command.vertices * VERTEX_FLOAT_SIZE;
+            vertexByteOffset  += command.vertices * VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT;
         }
     }
 

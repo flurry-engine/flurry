@@ -43,6 +43,26 @@ import uk.aidanlee.flurry.api.resources.ResourceEvents;
 class GL45Backend implements IRendererBackend
 {
     /**
+     * The number of floats in each vertex.
+     */
+    static final VERTEX_FLOAT_SIZE = 9;
+
+    /**
+     * The byte offset for the position in each vertex.
+     */
+    static final VERTEX_OFFSET_POS = 0;
+
+    /**
+     * The byte offset for the colour in each vertex.
+     */
+    static final VERTEX_OFFSET_COL = 3;
+
+    /**
+     * The byte offset for the texture coordinates in each vertex.
+     */
+    static final VERTEX_OFFSET_TEX = 7;
+
+    /**
      * Event bus for the rendering backend to listen to resource creation events.
      */
     final events : EventBus;
@@ -232,7 +252,7 @@ class GL45Backend implements IRendererBackend
         // Only needs to be bound once since it is used for all drawing.
 
         var totalBufferVerts  = _options.maxUnchangingVertices + (_options.maxDynamicVertices * 3);
-        var totalBufferFloats = totalBufferVerts  * 9;
+        var totalBufferFloats = totalBufferVerts  * VERTEX_FLOAT_SIZE;
         var totalBufferBytes  = totalBufferFloats * Float32Array.BYTES_PER_ELEMENT;
 
         var totalBufferIndices = _options.maxUnchangingIndices + (_options.maxDynamicIndices * 3);
@@ -247,16 +267,16 @@ class GL45Backend implements IRendererBackend
         // Create the vao and bind the vbo to it.
         var vao = [ 0 ];
         glCreateVertexArrays(1, vao);
-        glVertexArrayVertexBuffer(vao[0], 0, buffers[0], 0, Float32Array.BYTES_PER_ELEMENT * 9);
+        glVertexArrayVertexBuffer(vao[0], 0, buffers[0], 0, Float32Array.BYTES_PER_ELEMENT * VERTEX_FLOAT_SIZE);
 
         // Enable and setup the vertex attributes for this batcher.
         glEnableVertexArrayAttrib(vao[0], 0);
         glEnableVertexArrayAttrib(vao[0], 1);
         glEnableVertexArrayAttrib(vao[0], 2);
 
-        glVertexArrayAttribFormat(buffers[0], 0, 3, GL_FLOAT, false, 0);
-        glVertexArrayAttribFormat(buffers[0], 1, 4, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * 3);
-        glVertexArrayAttribFormat(buffers[0], 2, 2, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * 7);
+        glVertexArrayAttribFormat(buffers[0], 0, 3, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_POS);
+        glVertexArrayAttribFormat(buffers[0], 1, 4, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_COL);
+        glVertexArrayAttribFormat(buffers[0], 2, 2, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
 
         glVertexArrayAttribBinding(vao[0], 0, 0);
         glVertexArrayAttribBinding(vao[0], 1, 0);
@@ -274,8 +294,8 @@ class GL45Backend implements IRendererBackend
         // These ranges will map into the array pointer.
         // Offset to ignore the unchanging region.
 
-        var floatSegmentSize = _options.maxDynamicVertices * 9;
-        var floatOffsetSize  = _options.maxUnchangingVertices * 9;
+        var floatSegmentSize = _options.maxDynamicVertices    * VERTEX_FLOAT_SIZE;
+        var floatOffsetSize  = _options.maxUnchangingVertices * VERTEX_FLOAT_SIZE;
 
         vertexBufferRangeIndex = 0;
         vertexBufferRanges = [
@@ -389,7 +409,7 @@ class GL45Backend implements IRendererBackend
             if (command.unchanging)
             {
                 var unchangingVertexOffset = unchangingStorage.currentVertices;
-                var unchangingFloatOffset  = unchangingStorage.currentVertices * 9;
+                var unchangingFloatOffset  = unchangingStorage.currentVertices * VERTEX_FLOAT_SIZE;
                 var unchangingIndexOffset  = unchangingStorage.currentIndices;
 
                 if (unchangingStorage.exists(command.id))
@@ -479,7 +499,7 @@ class GL45Backend implements IRendererBackend
         {
             if (command.unchanging)
             {
-                var unchangingOffset = unchangingStorage.currentVertices * 9;
+                var unchangingOffset = unchangingStorage.currentVertices * VERTEX_FLOAT_SIZE;
 
                 if (unchangingStorage.exists(command.id))
                 {
