@@ -9,50 +9,57 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.maths.Hash;
 
 typedef BatcherOptions = {
+    /**
+     * The initial camera this batcher will use.
+     */
     var camera : Camera;
+
+    /**
+     * The initial shader this batcher will use.
+     */
     var shader : ShaderResource;
-    @:optional var target : ImageResource;
-    @:optional var depth : Float;
-    @:optional var maxVerts : Int;
+
+    /**
+     * Optional render target for this batcher.
+     * If not specified the backbuffer / default target will be used.
+     */
+    var ?target : ImageResource;
+
+    /**
+     * Optional initial depth for this batcher.
+     * If not specified the depth starts at 0.
+     */
+    var ?depth : Float;
 }
 
 /**
- * Stores and orders geometry to minimise openGL state changes.
+ * A batcher is used to sort a set of geometries so that the renderer can draw them
+ * as effeciently as possible while retaining the user requested depth ordering.
  * 
- * Geometry is stored in this order.
- * - Depth
- * - Texture
- * - Clipping
- * - blend
+ * Batchers must contain a camera and a shader. The attached camera is used to provided
+ * the shader with a view matrix to transform all the geometry by the inverse of the cameras
+ * position.
+ * 
+ * The batcher generates a set of draw commands which are then fed to the renderer for uploading
+ * and drawing. The geometry instances call the setDirty() function to flag the batcher to
+ * re-order all the contained geometry.
  */
 class Batcher
 {
     /**
-     * UUID for this batcher.
+     * Randomly generated ID for this batcher.
      */
     public final id : Int;
 
     /**
-     * All of the geometry instances in this batcher.
+     * The depth of the batcher is the deciding factor in which batchers get drawn first.
+     */
+    public var depth : Float;
+
+    /**
+     * All of the geometry in this batcher.
      */
     public final geometry : Array<Geometry>;
-
-    /**
-     * All of the geometry to drop after batching.
-     */
-    public final geometryToDrop : Array<Geometry>;
-
-    /**
-     * The state of the batcher.
-     */
-    public final state : BatcherState;
-
-    /**
-     * Target this batcher will be drawn to.
-     * 
-     * If null the default target of the renderer will be used (probably the backbuffer).
-     */
-    public var target : ImageResource;
 
     /**
      * Camera for this batcher to use.
@@ -65,21 +72,26 @@ class Batcher
     public var shader : ShaderResource;
 
     /**
-     * The float of this batcher.
+     * Target this batcher will be drawn to.
      * 
-     * The depth of the batcher is the deciding factor in which batchers get drawn first.
+     * If null the backbuffer / default target will be used.
      */
-    public var depth : Float;
+    public var target : ImageResource;
 
     /**
-     * If the geometries need to be re-ordered next time they're batched.
+     * If the batcher needs to sort all of its geometries.
      */
-    var orderGeometry : Bool;
+    var dirty : Bool;
 
     /**
-     * Function which sets the orderGeometry flag.
+     * All of the geometry to remove after batching.
      */
-    var onGeometryChanged : EvGeometry->Void;
+    final geometryToDrop : Array<Geometry>;
+
+    /**
+     * The state of the batcher.
+     */
+    final state : BatcherState;
 
     /**
      * Creates an empty batcher.
@@ -96,44 +108,47 @@ class Batcher
         target   = _options.target;
         depth    = def(_options.depth, 0);
 
-        state         = new BatcherState(this);
-        orderGeometry = true;
-
-        onGeometryChanged = function(_event : EvGeometry) {
-            orderGeometry = true;
-        }
+        state = new BatcherState(this);
+        dirty = true;
     }
 
     /**
-     * Add a geometry instance into the batcher.
+     * Flag the batcher to re-order its geometries.
+     */
+    public function setDirty()
+    {
+        dirty = true;
+    }
+
+    /**
+     * Add a geometry to this batcher.
      * @param _geom Geometry to add.
      */
-    inline public function addGeometry(_geom : Geometry)
+    public function addGeometry(_geom : Geometry)
     {
+        _geom.batchers.push(this);
+
         geometry.push(_geom);
 
-        _geom.events.on(OrderProperyChanged, onGeometryChanged);
-
-        orderGeometry = true;
+        dirty = true;
     }
 
     /**
-     * Removes a geometry instance from the batcher.
-     * @param _geom Geometry to move.
+     * Remove a geometry from this batcher.
+     * @param _geom Geometry to remove.
      */
-    inline public function removeGeometry(_geom : Geometry)
+    public function removeGeometry(_geom : Geometry)
     {
+        _geom.batchers.remove(this);
+
         geometry.remove(_geom);
 
-        _geom.events.off(OrderProperyChanged, onGeometryChanged);
-
-        orderGeometry = true;
+        dirty = true;
     }
 
     /**
-     * Transform and add all the geometry into this batchers buffer.
-     * Returns an array of draw commands describing batches within the buffer and the state required to draw them.
-     * 
+     * Generates a series of geometry draw commands from the geometry in this batcher.
+     * @param _output Optional existing array to put all the draw commands in.
      * @return Array<GeometryDrawCommand>
      */
     public function batch(_output : Array<GeometryDrawCommand> = null) : Array<GeometryDrawCommand>
@@ -156,15 +171,16 @@ class Batcher
         var startIndex  = 0;
         var endIndex    = 0;
         var vertices    = 0;
+        var indices     = 0;
         var commandGeom = [];
         var commandName = id;
 
         // Sort all of the geometry held in this batcher.
         // Sorted in order of most expensive state changes to least expensive.
-        if (orderGeometry)
+        if (dirty)
         {
             ArraySort.sort(geometry, sortGeometry);
-            orderGeometry = false;
+            dirty = false;
         }
 
         // Set the intial state to the first bit of geometry.
@@ -177,9 +193,10 @@ class Batcher
             // Line lists and triangle lists cannot (yet).
             if (!batchablePrimitive(geom) || state.requiresChange(geom))
             {
-                _output.push(new GeometryDrawCommand(commandGeom, commandName, state.unchanging, camera.projection, camera.viewInverted, vertices, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.srcRGB, state.dstRGB, state.srcAlpha, state.dstAlpha));
+                _output.push(new GeometryDrawCommand(commandGeom, commandName, state.unchanging, camera.projection, camera.viewInverted, vertices, indices, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.blend.srcRGB, state.blend.dstRGB, state.blend.srcAlpha, state.blend.dstAlpha));
                 startIndex  = endIndex;
                 vertices    = 0;
+                indices     = 0;
 
                 commandGeom = new Array<Geometry>();
                 commandName = id;
@@ -188,6 +205,7 @@ class Batcher
             }
 
             vertices    += geom.vertices.length;
+            indices     += geom.indices.length;
             commandName += geom.id;
             commandGeom.push(geom);
 
@@ -200,7 +218,7 @@ class Batcher
         // Push any remaining verticies.
         if (vertices > 0)
         {
-            _output.push(new GeometryDrawCommand(commandGeom, commandName, state.unchanging, camera.projection, camera.viewInverted, vertices, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.srcRGB, state.dstRGB, state.srcAlpha, state.dstAlpha));
+            _output.push(new GeometryDrawCommand(commandGeom, commandName, state.unchanging, camera.projection, camera.viewInverted, vertices, indices, camera.viewport, state.primitive, target, state.shader, [ for (texture in state.textures) texture ], state.clip, true, state.blend.srcRGB, state.blend.dstRGB, state.blend.srcAlpha, state.blend.dstAlpha));
         }
 
         // Filter out any immediate geometry.

@@ -87,11 +87,6 @@ class Flurry extends App
         // Fixed dt of 16.66
         fixed_timestep = true;
         update_rate    = 1 / 60;
-
-        // Disable auto swapping. We will swap ourselves if the renderer backend requires it.
-        // app.runtime.auto_swap = false;
-
-        trace('creating the renderer');
         
         // Setup the renderer.
         renderer = new Renderer(events, {
@@ -104,6 +99,8 @@ class Flurry extends App
             dpi    : 1,
             maxUnchangingVertices : flurryConfig.renderer.unchangingVertices,
             maxDynamicVertices    : flurryConfig.renderer.dynamicVertices,
+            maxUnchangingIndices  : flurryConfig.renderer.unchangingIndices,
+            maxDynamicIndices     : flurryConfig.renderer.dynamicIndices,
             backend : {
 
                 // This tells the GL4.5 backend if we can use bindless textures
@@ -183,7 +180,6 @@ class Flurry extends App
         }
 
         // Post-draw
-        // The window_swap is only needed for GL renderers with snow.
         renderer.postRender();
 
         hxt.advance_frame();

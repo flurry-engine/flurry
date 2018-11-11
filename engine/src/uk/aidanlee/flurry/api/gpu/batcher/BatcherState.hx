@@ -3,20 +3,15 @@ package uk.aidanlee.flurry.api.gpu.batcher;
 import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.geometry.Blending;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 
 /**
- * 
+ * Stores all of the state properties for a batcher.
  */
 class BatcherState
 {
-    /**
-     * The batcher this state belongs to.
-     * Used to set default values for some properties if they're null.
-     */
-    final batcher : Batcher;
-
     /**
      * If the current state is unchanging.
      */
@@ -42,24 +37,32 @@ class BatcherState
      */
     public var clip (default, null) : Rectangle;
 
-    public var blending (default, null) : Bool;
+    /**
+     * The blend state of the batcher.
+     */
+    public var blend (default, null) : Blending;
 
-    public var srcRGB (default, null) : BlendMode;
+    /**
+     * If the current batch is indexed.
+     */
+    public var indexed (default, null) : Bool;
 
-    public var dstRGB (default, null) : BlendMode;
-
-    public var srcAlpha (default, null) : BlendMode;
-
-    public var dstAlpha (default, null) : BlendMode;
+    /**
+     * The batcher this state belongs to.
+     * Used to set default values for some properties if they're null.
+     */
+    final batcher : Batcher;
 
     /**
      * Creates a batcher state.
      * @param _batcher Batcher this state belongs to.
      */
-    inline public function new(_batcher : Batcher)
+    public function new(_batcher : Batcher)
     {
         textures = [];
         batcher  = _batcher;
+        blend    = inline new Blending();
+        clip     = inline new Rectangle();
     }
 
     /**
@@ -69,23 +72,20 @@ class BatcherState
      */
     public function requiresChange(_geom : Geometry) : Bool
     {
-        if (def(_geom.shader, batcher.shader) != shader ) return true;
+        if (def(_geom.shader, batcher.shader) != shader) return true;
 
         if (_geom.textures.length != textures.length) return true;
+
         for (i in 0...textures.length)
         {
             if (textures[i].id != _geom.textures[i].id) return true;
         }
 
-        if (_geom.unchanging != unchanging) return true;
-        if (_geom.primitive  != primitive ) return true;
-        if (_geom.clip       != clip      ) return true;
-
-        if (_geom.blending  != blending ) return true;
-        if (_geom.srcRGB    != srcRGB   ) return true;
-        if (_geom.dstRGB    != dstRGB   ) return true;
-        if (_geom.srcAlpha  != srcAlpha ) return true;
-        if (_geom.dstAlpha  != dstAlpha ) return true;
+        if (_geom.unchanging  != unchanging) return true;
+        if (_geom.primitive   != primitive ) return true;
+        if (_geom.isIndexed() != indexed   ) return true;
+        if (!_geom.clip.equals(clip)) return true;
+        if (!_geom.blend.equals(blend)) return true;
 
         return false;
     }
@@ -94,7 +94,7 @@ class BatcherState
      * Update this state to work with a geometry instance.
      * @param _geom Geometry.
      */
-    inline public function change(_geom : Geometry)
+    public function change(_geom : Geometry)
     {
         shader = def(_geom.shader, batcher.shader);
 
@@ -109,12 +109,8 @@ class BatcherState
 
         unchanging = _geom.unchanging;
         primitive  = _geom.primitive;
-        clip       = _geom.clip;
-
-        blending  = _geom.blending;
-        srcRGB    = _geom.srcRGB;
-        dstRGB    = _geom.dstRGB;
-        srcAlpha  = _geom.srcAlpha;
-        dstAlpha  = _geom.dstAlpha;
+        indexed    = _geom.isIndexed();
+        clip.copyFrom(_geom.clip);
+        blend.copyFrom(_geom.blend);
     }
 }

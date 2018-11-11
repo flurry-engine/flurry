@@ -31,13 +31,19 @@ class QuadGeometry extends Geometry
         _options.h  = def(_options.h, textures[0].height);
         _options.uv = def(_options.uv, new Rectangle(0, 0, 1, 1));
 
-        addVertex( new Vertex( new Vector(         0,          0), color, new Vector(_options.uv.x, _options.uv.y) ) );
-        addVertex( new Vertex( new Vector(_options.w,          0), color, new Vector(_options.uv.w, _options.uv.y) ) );
-        addVertex( new Vertex( new Vector(_options.w, _options.h), color, new Vector(_options.uv.w, _options.uv.h) ) );
+        vertices.resize(4);
+        vertices[0] = new Vertex( new Vector(         0, _options.h), color, new Vector(_options.uv.x, _options.uv.h) );
+        vertices[1] = new Vertex( new Vector(_options.w, _options.h), color, new Vector(_options.uv.w, _options.uv.h) );
+        vertices[2] = new Vertex( new Vector(         0,          0), color, new Vector(_options.uv.x, _options.uv.y) );
+        vertices[3] = new Vertex( new Vector(_options.w,          0), color, new Vector(_options.uv.w, _options.uv.y) );
 
-        addVertex( new Vertex( new Vector(         0, _options.h), color, new Vector(_options.uv.x, _options.uv.h) ) );
-        addVertex( new Vertex( new Vector(         0,          0), color, new Vector(_options.uv.x, _options.uv.y) ) );
-        addVertex( new Vertex( new Vector(_options.w, _options.h), color, new Vector(_options.uv.w, _options.uv.h) ) );
+        indices.resize(6);
+        indices[0] = 0;
+        indices[1] = 1;
+        indices[2] = 2;
+        indices[3] = 2;
+        indices[4] = 1;
+        indices[5] = 3;
 
         transformation.position.set_xy(_options.x, _options.y);
     }
@@ -48,13 +54,10 @@ class QuadGeometry extends Geometry
      */
     public function resize(_vector : Vector)
     {
-        vertices[0].position.set_xy(        0,         0);
-        vertices[1].position.set_xy(_vector.x,         0);
-        vertices[2].position.set_xy(_vector.x, _vector.y);
-
-        vertices[3].position.set_xy(        0, _vector.y);
-        vertices[4].position.set_xy(        0,         0);
-        vertices[5].position.set_xy(_vector.x, _vector.y);
+        vertices[0].position.set_xy(        0, _vector.y);
+        vertices[1].position.set_xy(_vector.x, _vector.y);
+        vertices[2].position.set_xy(        0,         0);
+        vertices[3].position.set_xy(_vector.x,         0);
     }
 
     /**
@@ -64,13 +67,10 @@ class QuadGeometry extends Geometry
      */
     public function resize_xy(_x : Float, _y : Float)
     {
-        vertices[0].position.set_xy( 0,  0);
-        vertices[1].position.set_xy(_x,  0);
-        vertices[2].position.set_xy(_x, _y);
-
-        vertices[3].position.set_xy( 0, _y);
-        vertices[4].position.set_xy( 0,  0);
-        vertices[5].position.set_xy(_x, _y);
+        vertices[0].position.set_xy( 0, _y);
+        vertices[1].position.set_xy(_x, _y);
+        vertices[2].position.set_xy( 0,  0);
+        vertices[3].position.set_xy(_x,  0);
     }
 
     /**
@@ -79,13 +79,10 @@ class QuadGeometry extends Geometry
      */
     public function set(_rectangle : Rectangle)
     {
-        vertices[0].position.set_xy(           0,            0);
-        vertices[1].position.set_xy(_rectangle.w,            0);
-        vertices[2].position.set_xy(_rectangle.w, _rectangle.h);
-
-        vertices[3].position.set_xy(           0, _rectangle.h);
-        vertices[4].position.set_xy(           0,            0);
-        vertices[5].position.set_xy(_rectangle.w, _rectangle.h);
+        vertices[0].position.set_xy(           0, _rectangle.h);
+        vertices[1].position.set_xy(_rectangle.w, _rectangle.h);
+        vertices[2].position.set_xy(           0,            0);
+        vertices[3].position.set_xy(_rectangle.w,            0);
 
         transformation.position.set_xy(_rectangle.x, _rectangle.y);
     }
@@ -99,13 +96,10 @@ class QuadGeometry extends Geometry
      */
     public function set_xywh(_x : Float, _y : Float, _w : Float, _h : Float)
     {
-        vertices[0].position.set_xy( 0,  0);
-        vertices[1].position.set_xy(_w,  0);
-        vertices[2].position.set_xy(_w, _h);
-
-        vertices[3].position.set_xy( 0, _h);
-        vertices[4].position.set_xy( 0,  0);
-        vertices[5].position.set_xy(_w, _h);
+        vertices[0].position.set_xy( 0, _h);
+        vertices[1].position.set_xy(_w, _h);
+        vertices[2].position.set_xy( 0,  0);
+        vertices[3].position.set_xy(_w,  0);
 
         transformation.position.set_xy(_x, _y);
     }
@@ -124,13 +118,10 @@ class QuadGeometry extends Geometry
         var uv_w = _normalized ? _uv.w : _uv.w / textures[0].width;
         var uv_h = _normalized ? _uv.h : _uv.h / textures[0].height;
 
-        vertices[0].texCoord.set_xy(uv_x, uv_y);
-        vertices[1].texCoord.set_xy(uv_w, uv_y);
-        vertices[2].texCoord.set_xy(uv_w, uv_h);
-
-        vertices[3].texCoord.set_xy(uv_x, uv_h);
-        vertices[4].texCoord.set_xy(uv_x, uv_y);
-        vertices[5].texCoord.set_xy(uv_w, uv_h);
+        vertices[0].position.set_xy(uv_x, uv_h);
+        vertices[1].position.set_xy(uv_w, uv_h);
+        vertices[2].position.set_xy(uv_x, uv_y);
+        vertices[3].position.set_xy(uv_w, uv_y);
     }
 
     /**
@@ -149,12 +140,9 @@ class QuadGeometry extends Geometry
         var uv_w = _normalized ? _z : _z / textures[0].width;
         var uv_h = _normalized ? _w : _w / textures[0].height;
 
-        vertices[0].texCoord.set_xy(uv_x, uv_y);
-        vertices[1].texCoord.set_xy(uv_w, uv_y);
-        vertices[2].texCoord.set_xy(uv_w, uv_h);
-
-        vertices[3].texCoord.set_xy(uv_x, uv_h);
-        vertices[4].texCoord.set_xy(uv_x, uv_y);
-        vertices[5].texCoord.set_xy(uv_w, uv_h);
+        vertices[0].position.set_xy(uv_x, uv_h);
+        vertices[1].position.set_xy(uv_w, uv_h);
+        vertices[2].position.set_xy(uv_x, uv_y);
+        vertices[3].position.set_xy(uv_w, uv_y);
     }
 }

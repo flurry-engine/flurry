@@ -2,7 +2,8 @@ package uk.aidanlee.flurry.api.gpu.batcher;
 
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
+import uk.aidanlee.flurry.api.gpu.geometry.Geometry.PrimitiveType;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Matrix;
 
@@ -38,6 +39,11 @@ class DrawCommand
      * Number of vertices in this draw command.
      */
     public final vertices : Int;
+
+    /**
+     * Number of indices in this draw command.
+     */
+    public final indices : Int;
 
     /**
      * Viewport for this draw command.
@@ -88,6 +94,7 @@ class DrawCommand
         _projection : Matrix,
         _view       : Matrix,
         _vertices   : Int,
+        _indices    : Int,
         _viewport   : Rectangle,
         _primitive  : PrimitiveType,
         _target     : ImageResource,
@@ -107,6 +114,7 @@ class DrawCommand
         projection = _projection;
         view       = _view;
         vertices   = _vertices;
+        indices    = _indices;
 
         viewport  = _viewport;
         primitive = _primitive;

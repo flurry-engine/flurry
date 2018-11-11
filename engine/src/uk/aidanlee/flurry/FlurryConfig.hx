@@ -93,6 +93,16 @@ private class FlurryRendererConfig
     public var unchangingVertices : Int;
 
     /**
+     * The maximum number of indices allowed in the dynamic index buffer. (Defaults 1000000)
+     */
+    public var dynamicIndices : Int;
+
+    /**
+     * The maximum number of indices allowed in the unchanging index buffer. (Defaults 100000)
+     */
+    public var unchangingIndices : Int;
+
+    /**
      * The default clear colour used by the renderer.
      */
     public final clearColour : { r : Float, g : Float, b : Float, a : Float };
@@ -104,6 +114,8 @@ private class FlurryRendererConfig
     {
         dynamicVertices    = 1000000;
         unchangingVertices = 100000;
+        dynamicIndices     = 1000000;
+        unchangingIndices  = 100000;
         clearColour        = { r : 0.2, g : 0.2, b : 0.2, a : 1.0 };
     }
 }

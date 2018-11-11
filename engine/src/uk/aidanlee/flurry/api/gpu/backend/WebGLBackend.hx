@@ -7,13 +7,14 @@ import haxe.ds.Map;
 import snow.modules.opengl.GL;
 import snow.api.buffers.Uint8Array;
 import snow.api.buffers.Float32Array;
+import snow.api.buffers.Uint16Array;
 import uk.aidanlee.flurry.api.gpu.Renderer.RendererOptions;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderType;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderLayout;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
-import uk.aidanlee.flurry.api.gpu.geometry.Geometry.BlendMode;
+import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
@@ -27,6 +28,26 @@ import uk.aidanlee.flurry.api.resources.ResourceEvents;
  */
 class WebGLBackend implements IRendererBackend
 {
+    /**
+     * The number of floats in each vertex.
+     */
+    static final VERTEX_FLOAT_SIZE = 9;
+
+    /**
+     * The byte offset for the position in each vertex.
+     */
+    static final VERTEX_OFFSET_POS = 0;
+
+    /**
+     * The byte offset for the colour in each vertex.
+     */
+    static final VERTEX_OFFSET_COL = 3;
+
+    /**
+     * The byte offset for the texture coordinates in each vertex.
+     */
+    static final VERTEX_OFFSET_TEX = 7;
+
     /**
      * Event bus for the rendering backend to listen to resource creation events.
      */
@@ -43,9 +64,19 @@ class WebGLBackend implements IRendererBackend
     final glVbo : GLBuffer;
 
     /**
+     * The single index buffer used by the backend.
+     */
+    final glIbo : GLBuffer;
+
+    /**
      * Vertex buffer used by this backend.
      */
     final vertexBuffer : Float32Array;
+
+    /**
+     * Index buffer used by this backend.
+     */
+    final indexBuffer : Uint16Array;
 
     /**
      * Backbuffer display, default target if none is specified.
@@ -84,11 +115,30 @@ class WebGLBackend implements IRendererBackend
      */
     final framebufferObjects : Map<String, Int>;
 
+    /**
+     * The number of vertices that have been written into the vertex buffer this frame.
+     */
     var vertexOffset : Int;
 
-    var floatOffset : Int;
+    /**
+     * The number of 32bit floats that have been written into the vertex buffer this frame.
+     */
+    var vertexFloatOffset : Int;
 
-    var byteOffset : Int;
+    /**
+     * The number of bytes that have been written into the vertex buffer this frame.
+     */
+    var vertexByteOffset : Int;
+
+    /**
+     * The number of indices that have been written into the index buffer this frame.
+     */
+    var indexOffset : Int;
+
+    /**
+     * The number of bytes that have been written into the index buffer this frame.
+     */
+    var indexByteOffset : Int;
 
     // GL state variables
 
@@ -124,13 +174,18 @@ class WebGLBackend implements IRendererBackend
 
         transformationVector = new Vector();
         dynamicCommandRanges = new Map();
-        vertexOffset = 0;
-        floatOffset  = 0;
-        byteOffset   = 0;
+
+        vertexOffset      = 0;
+        vertexFloatOffset = 0;
+        vertexByteOffset  = 0;
+
+        indexOffset     = 0;
+        indexByteOffset = 0;
 
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
-        vertexBuffer = new Float32Array((_options.maxDynamicVertices + _options.maxUnchangingVertices) * 9);
+        vertexBuffer = new Float32Array((_options.maxDynamicVertices + _options.maxUnchangingVertices) * VERTEX_FLOAT_SIZE);
+        indexBuffer  = new Uint16Array(_options.maxDynamicIndices + _options.maxUnchangingIndices);
 
         #if cpp
 
@@ -147,12 +202,16 @@ class WebGLBackend implements IRendererBackend
         GL.bindBuffer(GL.ARRAY_BUFFER, glVbo);
         GL.bufferData(GL.ARRAY_BUFFER, vertexBuffer, GL.DYNAMIC_DRAW);
 
+        glIbo = GL.createBuffer();
+        GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, glIbo);
+        GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, indexBuffer, GL.DYNAMIC_DRAW);
+
         GL.enableVertexAttribArray(0);
         GL.enableVertexAttribArray(1);
         GL.enableVertexAttribArray(2);
-        GL.vertexAttribPointer(0, 3, GL.FLOAT, false, 9 * Float32Array.BYTES_PER_ELEMENT, 0);
-        GL.vertexAttribPointer(1, 4, GL.FLOAT, false, 9 * Float32Array.BYTES_PER_ELEMENT, 3 * Float32Array.BYTES_PER_ELEMENT);
-        GL.vertexAttribPointer(2, 2, GL.FLOAT, false, 9 * Float32Array.BYTES_PER_ELEMENT, 7 * Float32Array.BYTES_PER_ELEMENT);
+        GL.vertexAttribPointer(0, 3, GL.FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_POS);
+        GL.vertexAttribPointer(1, 4, GL.FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_COL);
+        GL.vertexAttribPointer(2, 2, GL.FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
 
         // Create a representation of the backbuffer.
         backbuffer = new BackBuffer(_options.width, _options.height, _options.dpi, GL.getParameter(GL.FRAMEBUFFER));
@@ -167,11 +226,11 @@ class WebGLBackend implements IRendererBackend
 
         // Default scissor test
         GL.enable(GL.SCISSOR_TEST);
-        GL.scissor(0, 0, 1600, 900);
+        GL.scissor(0, 0, backbuffer.width, backbuffer.height);
 
         // default state
-        viewport = new Rectangle(0, 0, 1600, 900);
-        clip     = new Rectangle(0, 0, 1600, 900);
+        viewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
+        clip     = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
         shader   = null;
         target   = null;
         boundTextures = [];
@@ -187,8 +246,8 @@ class WebGLBackend implements IRendererBackend
     public function clear()
     {
         // Disable the clip to clear the entire target.
-        clip.set(0, 0, 1600, 900);
-        GL.scissor(0, 0, 1600, 900);
+        clip.set(0, 0, backbuffer.width, backbuffer.height);
+        GL.scissor(0, 0, backbuffer.width, backbuffer.height);
 
         GL.clear(GL.COLOR_BUFFER_BIT);
     }
@@ -200,9 +259,12 @@ class WebGLBackend implements IRendererBackend
 
     public function preDraw()
     {
-        vertexOffset = 0;
-        floatOffset  = 0;
-        byteOffset   = 0;
+        vertexOffset      = 0;
+        vertexFloatOffset = 0;
+        vertexByteOffset  = 0;
+
+        indexOffset     = 0;
+        indexByteOffset = 0;
     }
 
     /**
@@ -211,16 +273,25 @@ class WebGLBackend implements IRendererBackend
      */
     public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void
     {
-        var startByteOffset  = byteOffset;
-        var startFloatOffset = floatOffset;
+        var startVertexByteOffset  = vertexByteOffset;
+        var startVertexFloatOffset = vertexFloatOffset;
+
+        var startIndexOffset     = indexOffset;
+        var startIndexByteOffset = indexByteOffset;
 
         for (command in _commands)
         {
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexByteOffset));
 
             for (geom in command.geometry)
             {
                 var matrix = geom.transformation.transformation;
+
+                for (index in geom.indices)
+                {
+                    indexBuffer[indexOffset++] = vertexOffset + index;
+                    indexByteOffset += Uint16Array.BYTES_PER_ELEMENT;
+                }
 
                 for (vertex in geom.vertices)
                 {
@@ -229,23 +300,24 @@ class WebGLBackend implements IRendererBackend
                     transformationVector.copyFrom(vertex.position);
                     transformationVector.transform(matrix);
 
-                    vertexBuffer[floatOffset++] = transformationVector.x;
-                    vertexBuffer[floatOffset++] = transformationVector.y;
-                    vertexBuffer[floatOffset++] = transformationVector.z;
-                    vertexBuffer[floatOffset++] = vertex.color.r;
-                    vertexBuffer[floatOffset++] = vertex.color.g;
-                    vertexBuffer[floatOffset++] = vertex.color.b;
-                    vertexBuffer[floatOffset++] = vertex.color.a;
-                    vertexBuffer[floatOffset++] = vertex.texCoord.x;
-                    vertexBuffer[floatOffset++] = vertex.texCoord.y;
+                    vertexBuffer[vertexFloatOffset++] = transformationVector.x;
+                    vertexBuffer[vertexFloatOffset++] = transformationVector.y;
+                    vertexBuffer[vertexFloatOffset++] = transformationVector.z;
+                    vertexBuffer[vertexFloatOffset++] = vertex.color.r;
+                    vertexBuffer[vertexFloatOffset++] = vertex.color.g;
+                    vertexBuffer[vertexFloatOffset++] = vertex.color.b;
+                    vertexBuffer[vertexFloatOffset++] = vertex.color.a;
+                    vertexBuffer[vertexFloatOffset++] = vertex.texCoord.x;
+                    vertexBuffer[vertexFloatOffset++] = vertex.texCoord.y;
 
-                    vertexOffset += 1;
-                    byteOffset   += (9 * 4);
+                    vertexOffset++;
+                    vertexByteOffset += (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT);
                 }
             }
         }
 
-        GL.bufferSubData(GL.ARRAY_BUFFER, startByteOffset, vertexBuffer.subarray(startFloatOffset, floatOffset));
+        GL.bufferSubData(GL.ARRAY_BUFFER        , startVertexByteOffset, vertexBuffer.subarray(startVertexFloatOffset, vertexFloatOffset));
+        GL.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, startIndexByteOffset , indexBuffer.subarray(startIndexOffset, indexOffset));
     }
 
     /**
@@ -256,13 +328,13 @@ class WebGLBackend implements IRendererBackend
     {
         for (command in _commands)
         {
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, 0, 0));
 
-            GL.bufferSubData(GL.ARRAY_BUFFER, byteOffset, command.buffer.subarray(command.startIndex, command.endIndex));
+            GL.bufferSubData(GL.ARRAY_BUFFER, vertexByteOffset, command.buffer.subarray(command.startIndex, command.endIndex));
 
-            vertexOffset += command.vertices;
-            floatOffset  += command.vertices * 9;
-            byteOffset   += command.vertices * 9 * 4;
+            vertexOffset      += command.vertices;
+            vertexFloatOffset += command.vertices * VERTEX_FLOAT_SIZE;
+            vertexByteOffset  += command.vertices * VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT;
         }
     }
 
@@ -281,14 +353,28 @@ class WebGLBackend implements IRendererBackend
             setState(command, !_recordStats);
 
             // Draw the actual vertices
-            switch (command.primitive)
+            if (range.indices > 0)
             {
-                case Points        : GL.drawArrays(GL.POINTS        , range.vertexOffset, range.vertices);
-                case Lines         : GL.drawArrays(GL.LINES         , range.vertexOffset, range.vertices);
-                case LineStrip     : GL.drawArrays(GL.LINE_STRIP    , range.vertexOffset, range.vertices);
-                case Triangles     : GL.drawArrays(GL.TRIANGLES     , range.vertexOffset, range.vertices);
-                case TriangleStrip : GL.drawArrays(GL.TRIANGLE_STRIP, range.vertexOffset, range.vertices);
+                switch (command.primitive)
+                {
+                    case Points        : GL.drawElements(GL.POINTS        , range.indices, GL.UNSIGNED_SHORT, range.indexOffset);
+                    case Lines         : GL.drawElements(GL.LINES         , range.indices, GL.UNSIGNED_SHORT, range.indexOffset);
+                    case LineStrip     : GL.drawElements(GL.LINE_STRIP    , range.indices, GL.UNSIGNED_SHORT, range.indexOffset);
+                    case Triangles     : GL.drawElements(GL.TRIANGLES     , range.indices, GL.UNSIGNED_SHORT, range.indexOffset);
+                    case TriangleStrip : GL.drawElements(GL.TRIANGLE_STRIP, range.indices, GL.UNSIGNED_SHORT, range.indexOffset);
+                }
             }
+            else
+            {
+                switch (command.primitive)
+                {
+                    case Points        : GL.drawArrays(GL.POINTS        , range.vertexOffset, range.vertices);
+                    case Lines         : GL.drawArrays(GL.LINES         , range.vertexOffset, range.vertices);
+                    case LineStrip     : GL.drawArrays(GL.LINE_STRIP    , range.vertexOffset, range.vertices);
+                    case Triangles     : GL.drawArrays(GL.TRIANGLES     , range.vertexOffset, range.vertices);
+                    case TriangleStrip : GL.drawArrays(GL.TRIANGLE_STRIP, range.vertexOffset, range.vertices);
+                }
+            }            
 
             // Record stats about this draw call.
             if (_recordStats)
@@ -542,15 +628,22 @@ class WebGLBackend implements IRendererBackend
         }
 
         // Apply the scissor clip.
-        var cmdClip = _command.clip != null ? _command.clip : new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-        if (!cmdClip.equals(clip))
+        if (!_command.clip.equals(clip))
         {
-            clip.copyFrom(cmdClip);
+            clip.copyFrom(_command.clip);
 
-            var x = clip.x *= target == null ? backbuffer.viewportScale : 1;
-            var y = clip.y *= target == null ? backbuffer.viewportScale : 1;
-            var w = clip.w *= target == null ? backbuffer.viewportScale : 1;
-            var h = clip.h *= target == null ? backbuffer.viewportScale : 1;
+            var x = clip.x * (target == null ? backbuffer.viewportScale : 1);
+            var y = clip.y * (target == null ? backbuffer.viewportScale : 1);
+            var w = clip.w * (target == null ? backbuffer.viewportScale : 1);
+            var h = clip.h * (target == null ? backbuffer.viewportScale : 1);
+
+            // If the clip rectangle has an area of 0 then set the width and height to that of the viewport
+            // This essentially disables clipping by clipping the entire backbuffer size.
+            if (clip.area() == 0)
+            {
+                w = backbuffer.width  * (target == null ? backbuffer.viewportScale : 1);
+                h = backbuffer.height * (target == null ? backbuffer.viewportScale : 1);
+            }
 
             // OpenGL works 0x0 is bottom left so we need to flip the y.
             y = (target == null ? backbuffer.height : target.height) - (y + h);
@@ -804,9 +897,21 @@ private class DrawCommandRange
      */
     public final vertexOffset : Int;
 
-    inline public function new(_vertices : Int, _vertexOffset : Int)
+    /**
+     * The number of indices in this draw command.
+     */
+    public final indices : Int;
+
+    /**
+     * The number of bytes this command is offset into the current range.
+     */
+    public final indexOffset : Int;
+
+    inline public function new(_vertices : Int, _vertexOffset : Int, _indices : Int, _indexOffset)
     {
         vertices     = _vertices;
         vertexOffset = _vertexOffset;
+        indices      = _indices;
+        indexOffset  = _indexOffset;
     }
 }

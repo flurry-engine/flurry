@@ -1,19 +1,21 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import sdl.GLContext;
-import sdl.Window;
-import sdl.SDL;
 import haxe.io.Bytes;
 import haxe.ds.Map;
 import cpp.Float32;
+import cpp.UInt16;
 import cpp.Pointer;
+import sdl.GLContext;
+import sdl.Window;
+import sdl.SDL;
 import opengl.GL.*;
 import opengl.GL.GLSync;
 import opengl.WebGL;
-import snow.api.buffers.Float32Array;
 import snow.api.Debug.def;
+import snow.api.buffers.Float32Array;
+import snow.api.buffers.Uint16Array;
 import uk.aidanlee.flurry.api.gpu.Renderer.RendererOptions;
-import uk.aidanlee.flurry.api.gpu.geometry.Geometry.BlendMode;
+import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderType;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderLayout;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
@@ -41,6 +43,26 @@ import uk.aidanlee.flurry.api.resources.ResourceEvents;
 class GL45Backend implements IRendererBackend
 {
     /**
+     * The number of floats in each vertex.
+     */
+    static final VERTEX_FLOAT_SIZE = 9;
+
+    /**
+     * The byte offset for the position in each vertex.
+     */
+    static final VERTEX_OFFSET_POS = 0;
+
+    /**
+     * The byte offset for the colour in each vertex.
+     */
+    static final VERTEX_OFFSET_COL = 3;
+
+    /**
+     * The byte offset for the texture coordinates in each vertex.
+     */
+    static final VERTEX_OFFSET_TEX = 7;
+
+    /**
      * Event bus for the rendering backend to listen to resource creation events.
      */
     final events : EventBus;
@@ -61,6 +83,11 @@ class GL45Backend implements IRendererBackend
     final glVbo : Int;
 
     /**
+     * The single Index buffer used by the backend.
+     */
+    final glIbo : Int;
+
+    /**
      * The single VAO which is bound once when the backend is created.
      */
     final glVao : Int;
@@ -71,20 +98,20 @@ class GL45Backend implements IRendererBackend
     final backbuffer : BackBuffer;
 
     /**
-     * Tracks, stores, and uploads unchaning buffer data and its required state.
-     */
-    final unchangingStorage : UnchangingBuffer;
-
-    /**
      * Tracks the position and number of vertices for draw commands uploaded into the dynamic buffer.
      */
     final dynamicCommandRanges : Map<Int, DrawCommandRange>;
 
     /**
+     * Tracks, stores, and uploads unchaning commands and its required state.
+     */
+    final unchangingStorage : UnchangingBuffer;
+
+    /**
      * These ranges describe writable chunks of the vertex buffer.
      * This is used for triple buffering with mapped buffers where only one chunk can be written to at a time.
      */
-    final bufferRanges : Array<BufferRange>;
+    final vertexBufferRanges : Array<BufferRange>;
 
     /**
      * The persistently mapped float buffer to write vertex data into.
@@ -93,26 +120,54 @@ class GL45Backend implements IRendererBackend
     final vertexBuffer : Array<Float32>;
 
     /**
+     * Describes a set of ranges the triple buffered dynamic index buffer.
+     * Each range contains a int offset and byte offset.
+     */
+    final indexBufferRanges : Array<BufferRange>;
+
+    /**
+     * The persistently mapped ushort buffer to write index data into.
+     * This buffer will be three times the requested size for triple buffering.
+     */
+    final indexBuffer : Array<UInt16>;
+
+    /**
      * Constant vector instance which is used to transform vertices when copying into the vertex buffer.
      */
     final transformationVector : Vector;
 
     /**
-     * Index pointing to the current writable buffer range.
+     * Index pointing to the current writable vertex buffer range.
      */
-    var bufferRangeIndex : Int;
+    var vertexBufferRangeIndex : Int;
+
+    /**
+     * Index pointing to the current writing index buffer range.
+     */
+    var indexBufferRangeIndex : Int;
 
     /**
      * The index into the vertex buffer to write.
      * Writing more floats must increment this value. Set the to current ranges offset in preDraw.
      */
-    var floatOffset : Int;
+    var vertexFloatOffset : Int;
 
     /**
      * Offset to use when calling openngl draw commands.
      * Writing more verticies must increment this value. Set the to current ranges offset in preDraw.
      */
     var vertexOffset : Int;
+
+    /**
+     * The current index position into the index buffer we are writing to.
+     * Like vertexOffset at the beginning of each frame it is set to an initial offset into the index buffer.
+     */
+    var indexOffset : Int;
+
+    /**
+     * The number of bytes into the index buffer we are writing to.
+     */
+    var indexByteOffset : Int;
 
     /**
      * Shader programs keyed by their associated shader resource IDs.
@@ -197,60 +252,79 @@ class GL45Backend implements IRendererBackend
         // Only needs to be bound once since it is used for all drawing.
 
         var totalBufferVerts  = _options.maxUnchangingVertices + (_options.maxDynamicVertices * 3);
-        var totalBufferFloats = totalBufferVerts  * 9;
-        var totalBufferBytes  = totalBufferFloats * 4;
+        var totalBufferFloats = totalBufferVerts  * VERTEX_FLOAT_SIZE;
+        var totalBufferBytes  = totalBufferFloats * Float32Array.BYTES_PER_ELEMENT;
 
-        // Create an empty buffer.
-        var vbo = [ 0 ];
-        glCreateBuffers(1, vbo);
-        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", vbo[0], totalBufferBytes, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        var totalBufferIndices = _options.maxUnchangingIndices + (_options.maxDynamicIndices * 3);
+        var totalIndexBytes    = totalBufferIndices * Uint16Array.BYTES_PER_ELEMENT;
+
+        // Create two empty buffers, for the vertex and index data
+        var buffers = [ 0, 0 ];
+        glCreateBuffers(2, buffers);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", buffers[0], totalBufferBytes, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", buffers[1], totalIndexBytes , GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 
         // Create the vao and bind the vbo to it.
         var vao = [ 0 ];
         glCreateVertexArrays(1, vao);
-        glVertexArrayVertexBuffer(vao[0], 0, vbo[0], 0, Float32Array.BYTES_PER_ELEMENT * 9);
+        glVertexArrayVertexBuffer(vao[0], 0, buffers[0], 0, Float32Array.BYTES_PER_ELEMENT * VERTEX_FLOAT_SIZE);
 
         // Enable and setup the vertex attributes for this batcher.
         glEnableVertexArrayAttrib(vao[0], 0);
         glEnableVertexArrayAttrib(vao[0], 1);
         glEnableVertexArrayAttrib(vao[0], 2);
 
-        glVertexArrayAttribFormat(vbo[0], 0, 3, GL_FLOAT, false, 0);
-        glVertexArrayAttribFormat(vbo[0], 1, 4, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * 3);
-        glVertexArrayAttribFormat(vbo[0], 2, 2, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * 7);
+        glVertexArrayAttribFormat(buffers[0], 0, 3, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_POS);
+        glVertexArrayAttribFormat(buffers[0], 1, 4, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_COL);
+        glVertexArrayAttribFormat(buffers[0], 2, 2, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
 
         glVertexArrayAttribBinding(vao[0], 0, 0);
         glVertexArrayAttribBinding(vao[0], 1, 0);
         glVertexArrayAttribBinding(vao[0], 2, 0);
 
-        glVbo = vbo[0];
+        glVbo = buffers[0];
+        glIbo = buffers[1];
         glVao = vao[0];
 
         // Bind our VAO once.
         glBindVertexArray(glVao);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIbo);
 
         // Define the dynamic vertex triple buffering ranges
         // These ranges will map into the array pointer.
         // Offset to ignore the unchanging region.
 
-        var floatSegmentSize = _options.maxDynamicVertices * 9;
-        var floatOffsetSize  = _options.maxUnchangingVertices * 9;
+        var floatSegmentSize = _options.maxDynamicVertices    * VERTEX_FLOAT_SIZE;
+        var floatOffsetSize  = _options.maxUnchangingVertices * VERTEX_FLOAT_SIZE;
 
-        bufferRangeIndex = 0;
-        bufferRanges = [
+        vertexBufferRangeIndex = 0;
+        vertexBufferRanges = [
             new BufferRange(floatOffsetSize                         , _options.maxUnchangingVertices),
             new BufferRange(floatOffsetSize + floatSegmentSize      , _options.maxUnchangingVertices +  _options.maxDynamicVertices),
             new BufferRange(floatOffsetSize + (floatSegmentSize * 2), _options.maxUnchangingVertices + (_options.maxDynamicVertices * 2))
         ];
 
+        var shortSegmentSize = _options.maxDynamicIndices    * Uint16Array.BYTES_PER_ELEMENT;
+        var shortOffsetSize  = _options.maxUnchangingIndices * Uint16Array.BYTES_PER_ELEMENT;
+
+        indexBufferRangeIndex = 0;
+        indexBufferRanges = [
+            new BufferRange(shortOffsetSize                         , _options.maxUnchangingIndices),
+            new BufferRange(shortOffsetSize +  shortSegmentSize     , _options.maxUnchangingIndices +  _options.maxDynamicIndices),
+            new BufferRange(shortOffsetSize + (shortSegmentSize * 2), _options.maxUnchangingIndices + (_options.maxDynamicIndices * 2))
+        ];
+
         // create a new storage container for holding unchaning commands.
-        unchangingStorage    = new UnchangingBuffer(_options.maxUnchangingVertices);
+        unchangingStorage    = new UnchangingBuffer(_options.maxUnchangingVertices, _options.maxUnchangingIndices);
         dynamicCommandRanges = new Map();
         transformationVector = new Vector();
 
         // Map the buffer into an unmanaged array.
         var ptr : Pointer<Float32> = Pointer.fromRaw(glMapNamedBufferRange(glVbo, 0, totalBufferBytes, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
         vertexBuffer = ptr.toUnmanagedArray(totalBufferFloats);
+
+        var ptr : Pointer<UInt16> = Pointer.fromRaw(glMapNamedBufferRange(glIbo, 0, totalIndexBytes, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
+        indexBuffer = ptr.toUnmanagedArray(totalBufferIndices);
 
         // Create a representation of the backbuffer and manually insert it into the target structure.
         var backbufferID = [ 0 ];
@@ -314,10 +388,14 @@ class GL45Backend implements IRendererBackend
      */
     public function preDraw()
     {
-        unlockBuffer(bufferRanges[bufferRangeIndex]);
+        unlockBuffer(vertexBufferRanges[vertexBufferRangeIndex]);
+        unlockBuffer(indexBufferRanges[indexBufferRangeIndex]);
 
-        floatOffset  = bufferRanges[bufferRangeIndex].fltOffset;
-        vertexOffset = bufferRanges[bufferRangeIndex].vtxOffset;
+        vertexFloatOffset = vertexBufferRanges[vertexBufferRangeIndex].typeOffset;
+        vertexOffset      = vertexBufferRanges[vertexBufferRangeIndex].offset;
+
+        indexByteOffset   = indexBufferRanges[indexBufferRangeIndex].typeOffset;
+        indexOffset       = indexBufferRanges[indexBufferRangeIndex].offset;
     }
 
     /**
@@ -330,7 +408,9 @@ class GL45Backend implements IRendererBackend
         {
             if (command.unchanging)
             {
-                var unchangingOffset = unchangingStorage.currentVertices * 9;
+                var unchangingVertexOffset = unchangingStorage.currentVertices;
+                var unchangingFloatOffset  = unchangingStorage.currentVertices * VERTEX_FLOAT_SIZE;
+                var unchangingIndexOffset  = unchangingStorage.currentIndices;
 
                 if (unchangingStorage.exists(command.id))
                 {
@@ -343,6 +423,11 @@ class GL45Backend implements IRendererBackend
                     {
                         var matrix = geom.transformation.transformation;
 
+                        for (index in geom.indices)
+                        {
+                            indexBuffer[unchangingIndexOffset++] = unchangingVertexOffset + index;
+                        }
+
                         for (vertex in geom.vertices)
                         {
                             // Copy the vertex into another vertex.
@@ -350,15 +435,15 @@ class GL45Backend implements IRendererBackend
                             transformationVector.copyFrom(vertex.position);
                             transformationVector.transform(matrix);
 
-                            vertexBuffer[unchangingOffset++] = transformationVector.x;
-                            vertexBuffer[unchangingOffset++] = transformationVector.y;
-                            vertexBuffer[unchangingOffset++] = transformationVector.z;
-                            vertexBuffer[unchangingOffset++] = vertex.color.r;
-                            vertexBuffer[unchangingOffset++] = vertex.color.g;
-                            vertexBuffer[unchangingOffset++] = vertex.color.b;
-                            vertexBuffer[unchangingOffset++] = vertex.color.a;
-                            vertexBuffer[unchangingOffset++] = vertex.texCoord.x;
-                            vertexBuffer[unchangingOffset++] = vertex.texCoord.y;
+                            vertexBuffer[unchangingFloatOffset++] = transformationVector.x;
+                            vertexBuffer[unchangingFloatOffset++] = transformationVector.y;
+                            vertexBuffer[unchangingFloatOffset++] = transformationVector.z;
+                            vertexBuffer[unchangingFloatOffset++] = vertex.color.r;
+                            vertexBuffer[unchangingFloatOffset++] = vertex.color.g;
+                            vertexBuffer[unchangingFloatOffset++] = vertex.color.b;
+                            vertexBuffer[unchangingFloatOffset++] = vertex.color.a;
+                            vertexBuffer[unchangingFloatOffset++] = vertex.texCoord.x;
+                            vertexBuffer[unchangingFloatOffset++] = vertex.texCoord.y;
                         }
                     }
 
@@ -366,11 +451,18 @@ class GL45Backend implements IRendererBackend
                 }
             }
 
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+            var rangeIndexOffset = 0;
+
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexByteOffset));
 
             for (geom in command.geometry)
             {
                 var matrix = geom.transformation.transformation;
+
+                for (index in geom.indices)
+                {
+                    indexBuffer[indexOffset++] = rangeIndexOffset + index;
+                }
 
                 for (vertex in geom.vertices)
                 {
@@ -379,18 +471,20 @@ class GL45Backend implements IRendererBackend
                     transformationVector.copyFrom(vertex.position);
                     transformationVector.transform(matrix);
 
-                    vertexBuffer[floatOffset++] = transformationVector.x;
-                    vertexBuffer[floatOffset++] = transformationVector.y;
-                    vertexBuffer[floatOffset++] = transformationVector.z;
-                    vertexBuffer[floatOffset++] = vertex.color.r;
-                    vertexBuffer[floatOffset++] = vertex.color.g;
-                    vertexBuffer[floatOffset++] = vertex.color.b;
-                    vertexBuffer[floatOffset++] = vertex.color.a;
-                    vertexBuffer[floatOffset++] = vertex.texCoord.x;
-                    vertexBuffer[floatOffset++] = vertex.texCoord.y;
-
-                    vertexOffset++;
+                    vertexBuffer[vertexFloatOffset++] = transformationVector.x;
+                    vertexBuffer[vertexFloatOffset++] = transformationVector.y;
+                    vertexBuffer[vertexFloatOffset++] = transformationVector.z;
+                    vertexBuffer[vertexFloatOffset++] = vertex.color.r;
+                    vertexBuffer[vertexFloatOffset++] = vertex.color.g;
+                    vertexBuffer[vertexFloatOffset++] = vertex.color.b;
+                    vertexBuffer[vertexFloatOffset++] = vertex.color.a;
+                    vertexBuffer[vertexFloatOffset++] = vertex.texCoord.x;
+                    vertexBuffer[vertexFloatOffset++] = vertex.texCoord.y;
                 }
+
+                indexByteOffset  += geom.indices.length * Uint16Array.BYTES_PER_ELEMENT;
+                vertexOffset     += geom.vertices.length;
+                rangeIndexOffset += geom.vertices.length;
             }
         }
     }
@@ -405,7 +499,7 @@ class GL45Backend implements IRendererBackend
         {
             if (command.unchanging)
             {
-                var unchangingOffset = unchangingStorage.currentVertices * 9;
+                var unchangingOffset = unchangingStorage.currentVertices * VERTEX_FLOAT_SIZE;
 
                 if (unchangingStorage.exists(command.id))
                 {
@@ -423,11 +517,11 @@ class GL45Backend implements IRendererBackend
                 }
             }
 
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, 0, 0));
 
             for (i in command.startIndex...command.endIndex)
             {
-                vertexBuffer[floatOffset++] = command.buffer[i];
+                vertexBuffer[vertexFloatOffset++] = command.buffer[i];
             }
 
             vertexOffset += command.vertices;
@@ -447,18 +541,32 @@ class GL45Backend implements IRendererBackend
             {
                 if (unchangingStorage.exists(command.id))
                 {
-                    var offset = unchangingStorage.get(command.id);
+                    var range = unchangingStorage.get(command.id);
 
                     setState(command, !_recordStats);
 
                     // Draw the actual vertices
-                    switch (command.primitive)
+                    if (command.indices > 0)
                     {
-                        case Points        : glDrawArrays(GL_POINTS        , offset, command.vertices);
-                        case Lines         : glDrawArrays(GL_LINES         , offset, command.vertices);
-                        case LineStrip     : glDrawArrays(GL_LINE_STRIP    , offset, command.vertices);
-                        case Triangles     : glDrawArrays(GL_TRIANGLES     , offset, command.vertices);
-                        case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, offset, command.vertices);
+                        switch (command.primitive)
+                        {
+                            case Points        : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_POINTS        , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                            case Lines         : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINES         , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                            case LineStrip     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINE_STRIP    , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                            case Triangles     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLES     , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                            case TriangleStrip : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLE_STRIP, command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                        }
+                    }
+                    else
+                    {
+                        switch (command.primitive)
+                        {
+                            case Points        : glDrawArrays(GL_POINTS        , range.vertexOffset, command.vertices);
+                            case Lines         : glDrawArrays(GL_LINES         , range.vertexOffset, command.vertices);
+                            case LineStrip     : glDrawArrays(GL_LINE_STRIP    , range.vertexOffset, command.vertices);
+                            case Triangles     : glDrawArrays(GL_TRIANGLES     , range.vertexOffset, command.vertices);
+                            case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, range.vertexOffset, command.vertices);
+                        }
                     }
 
                     // Record stats about this draw call.
@@ -478,13 +586,27 @@ class GL45Backend implements IRendererBackend
             setState(command, !_recordStats);
 
             // Draw the actual vertices
-            switch (command.primitive)
+            if (command.indices > 0)
             {
-                case Points        : glDrawArrays(GL_POINTS        , range.vertexOffset, range.vertices);
-                case Lines         : glDrawArrays(GL_LINES         , range.vertexOffset, range.vertices);
-                case LineStrip     : glDrawArrays(GL_LINE_STRIP    , range.vertexOffset, range.vertices);
-                case Triangles     : glDrawArrays(GL_TRIANGLES     , range.vertexOffset, range.vertices);
-                case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, range.vertexOffset, range.vertices);
+                switch (command.primitive)
+                {
+                    case Points        : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_POINTS        , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case Lines         : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINES         , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case LineStrip     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINE_STRIP    , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case Triangles     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLES     , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case TriangleStrip : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLE_STRIP, command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                }
+            }
+            else
+            {
+                switch (command.primitive)
+                {
+                    case Points        : glDrawArrays(GL_POINTS        , range.vertexOffset, command.vertices);
+                    case Lines         : glDrawArrays(GL_LINES         , range.vertexOffset, command.vertices);
+                    case LineStrip     : glDrawArrays(GL_LINE_STRIP    , range.vertexOffset, command.vertices);
+                    case Triangles     : glDrawArrays(GL_TRIANGLES     , range.vertexOffset, command.vertices);
+                    case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, range.vertexOffset, command.vertices);
+                }
             }
 
             // Record stats about this draw call.
@@ -501,8 +623,11 @@ class GL45Backend implements IRendererBackend
      */
     public function postDraw()
     {
-        lockBuffer(bufferRanges[bufferRangeIndex]);
-        bufferRangeIndex = (bufferRangeIndex + 1) % 3;
+        lockBuffer(vertexBufferRanges[vertexBufferRangeIndex]);
+        lockBuffer(indexBufferRanges[indexBufferRangeIndex]);
+
+        vertexBufferRangeIndex = (vertexBufferRangeIndex + 1) % 3;
+        indexBufferRangeIndex  = (indexBufferRangeIndex + 1) % 3;
 
         SDL.GL_SwapWindow(window);
     }
@@ -792,15 +917,22 @@ class GL45Backend implements IRendererBackend
         }
 
         // Apply the scissor clip.
-        var cmdClip = _command.clip != null ? _command.clip : new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-        if (!cmdClip.equals(clip))
+        if (!_command.clip.equals(clip))
         {
-            clip.copyFrom(cmdClip);
+            clip.copyFrom(_command.clip);
 
-            var x = clip.x *= target == null ? backbuffer.viewportScale : 1;
-            var y = clip.y *= target == null ? backbuffer.viewportScale : 1;
-            var w = clip.w *= target == null ? backbuffer.viewportScale : 1;
-            var h = clip.h *= target == null ? backbuffer.viewportScale : 1;
+            var x = clip.x * (target == null ? backbuffer.viewportScale : 1);
+            var y = clip.y * (target == null ? backbuffer.viewportScale : 1);
+            var w = clip.w * (target == null ? backbuffer.viewportScale : 1);
+            var h = clip.h * (target == null ? backbuffer.viewportScale : 1);
+
+            // If the clip rectangle has an area of 0 then set the width and height to that of the viewport
+            // This essentially disables clipping by clipping the entire backbuffer size.
+            if (clip.area() == 0)
+            {
+                w = backbuffer.width  * (target == null ? backbuffer.viewportScale : 1);
+                h = backbuffer.height * (target == null ? backbuffer.viewportScale : 1);
+            }
 
             // OpenGL works 0x0 is bottom left so we need to flip the y.
             y = (target == null ? backbuffer.height : target.height) - (y + h);
@@ -1147,22 +1279,22 @@ private class BufferRange
     /**
      * Float offset of this buffer range.
      */
-    public final fltOffset : Int;
+    public final typeOffset : Int;
 
     /**
      * Vertex offset of this buffer range.
      */
-    public final vtxOffset : Int;
+    public final offset : Int;
 
     /**
      * OpenGL sync object used to lock this buffer range.
      */
     public var sync : GLSync;
 
-    public function new(_flt : Int, _vtx : Int)
+    public function new(_typeOffset : Int, _offset : Int)
     {
-        fltOffset = _flt;
-        vtxOffset = _vtx;
+        typeOffset = _typeOffset;
+        offset     = _offset;
     }
 }
 
@@ -1172,25 +1304,36 @@ private class BufferRange
 private class UnchangingBuffer
 {
     /**
-     * The current number of vertices we have stored.
-     */
-    public var currentVertices (default, null) : Int;
-
-    /**
      * The total number of vertices we can store.
      */
     final maxVertices : Int;
 
     /**
+     * The total number of indices we can store.
+     */
+    final maxIndices : Int;
+
+    /**
      * Maps a draw commands hash to the vertex offset of that commands vertices in the unchanging buffer range.
      */
-    final currentRanges : Map<Int, Int>;
+    final currentRanges : Map<Int, UnchangingRange>;
 
-    public function new(_maxVertices)
+    /**
+     * The current number of vertices we have stored.
+     */
+    public var currentVertices (default, null) : Int;
+
+    /**
+     * The current number of indices we have stored.
+     */
+    public var currentIndices (default, null) : Int;
+
+    public function new(_maxVertices : Int, _maxIndices : Int)
     {
         maxVertices     = _maxVertices;
+        maxIndices      = _maxIndices;
         currentVertices = 0;
-
+        currentIndices  = 0;
         currentRanges   = new Map();
     }
 
@@ -1201,10 +1344,11 @@ private class UnchangingBuffer
      */
     public function add(_command : DrawCommand) : Bool
     {
-        if ((currentVertices + _command.vertices) <= maxVertices)
+        if ((currentVertices + _command.vertices) <= maxVertices && (currentIndices + _command.indices) <= maxIndices)
         {
-            currentRanges.set(_command.id, currentVertices);
+            currentRanges.set(_command.id, new UnchangingRange(currentVertices, currentIndices * Uint16Array.BYTES_PER_ELEMENT));
             currentVertices += _command.vertices;
+            currentIndices  += _command.indices;
 
             return true;
         }
@@ -1227,7 +1371,7 @@ private class UnchangingBuffer
      * @param _id Draw command hash.
      * @return Vertex offset into the unchanging range.
      */
-    public function get(_id : Int) : Int
+    public function get(_id : Int) : UnchangingRange
     {
         return currentRanges.get(_id);
     }
@@ -1241,6 +1385,19 @@ private class UnchangingBuffer
         {
             currentRanges.remove(key);
         }
+    }
+}
+
+private class UnchangingRange
+{
+    public final vertexOffset : Int;
+
+    public final indexByteOffset : Int;
+
+    public function new(_vertexOffset : Int, _indexByteOffset : Int)
+    {
+        vertexOffset    = _vertexOffset;
+        indexByteOffset = _indexByteOffset;
     }
 }
 
@@ -1259,9 +1416,21 @@ private class DrawCommandRange
      */
     public final vertexOffset : Int;
 
-    inline public function new(_vertices : Int, _vertexOffset : Int)
+    /**
+     * The number of indices in this draw command.
+     */
+    public final indices : Int;
+
+    /**
+     * The number of bytes this command is offset into the current range.
+     */
+    public final indexByteOffset : Int;
+
+    inline public function new(_vertices : Int, _vertexOffset : Int, _indices : Int, _indexByteOffset : Int)
     {
-        vertices     = _vertices;
-        vertexOffset = _vertexOffset;
+        vertices        = _vertices;
+        vertexOffset    = _vertexOffset;
+        indices         = _indices;
+        indexByteOffset = _indexByteOffset;
     }
 }

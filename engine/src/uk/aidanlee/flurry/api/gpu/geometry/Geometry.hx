@@ -1,11 +1,12 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
-import snow.api.Emitter;
 import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.gpu.geometry.Transformation;
 import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 
@@ -17,27 +18,10 @@ enum PrimitiveType {
     TriangleStrip;
 }
 
-enum BlendMode {
-    Zero;
-    One;
-    SrcAlphaSaturate;
-
-    SrcColor;
-    OneMinusSrcColor;
-    SrcAlpha;
-    OneMinusSrcAlpha;
-    DstAlpha;
-    OneMinusDstAlpha;
-    DstColor;
-    OneMinusDstColor;
-}
-
-enum abstract EvGeometry(Int) from Int to Int {
-    var OrderProperyChanged;
-}
-
 typedef GeometryOptions = {
-    var ?name       : String;
+    var ?vertices   : Array<Vertex>;
+    var ?indices    : Array<Int>;
+    var ?transform  : Transformation;
     var ?shader     : ShaderResource;
     var ?textures   : Array<ImageResource>;
     var ?depth      : Int;
@@ -47,40 +31,26 @@ typedef GeometryOptions = {
     var ?clip       : Rectangle;
     var ?primitive  : PrimitiveType;
     var ?batchers   : Array<Batcher>;
-
-    var ?blending : Bool;
-    var ?srcRGB   : BlendMode;
-    var ?dstRGB   : BlendMode;
-    var ?srcAlpha : BlendMode;
-    var ?dstAlpha : BlendMode;
+    var ?blend      : Blending;
 }
 
 /**
- * Geometry class, holds a set of verticies and a matrix transformation for them.
+ * The geometry class is the primary way of displaying visuals to the screen.
+ * 
+ * Geometry contains a collection of vertices which defines the shape of the geometry
+ * and other rendering properties which will decide how it is drawn to the screen.
  */
 class Geometry
 {
     /**
-     * UUID of this geometry.
+     * Randomly generated ID for this geometry.
      */
     public final id : Int;
 
     /**
-     * Name of this geometry.
-     * This name is used as part of a hash key for batching unchanging geometry.
-     * If this geometry is unchanging its name should be unique.
+     * All of the batchers this geometry is in.
      */
-    public final name : String;
-
-    /**
-     * Fires various events about the geometry.
-     */
-    public final events : Emitter<EvGeometry>;
-
-    /**
-     * This meshes vertices.
-     */
-    public final vertices : Array<Vertex>;
+    public final batchers : Array<Batcher>;
 
     /**
      * Transformation of this geometry.
@@ -88,15 +58,35 @@ class Geometry
     public final transformation : Transformation;
 
     /**
-     * ID of the texture this mesh uses.
+     * Vertex data of this geometry.
      */
-    public var textures (default, set) : Array<ImageResource>;
+    public final vertices : Array<Vertex>;
 
-    inline function set_textures(_textures : Array<ImageResource>) : Array<ImageResource> {
-        events.emit(OrderProperyChanged);
+    /**
+     * Index data of this geometry.
+     * If it is empty then the geometry is drawn unindexed.
+     */
+    public final indices : Array<Int>;
 
-        return textures = _textures;
-    }
+    /**
+     * Default colour of this geometry.
+     */
+    public final color : Color;
+
+    /**
+     * The blend state for this geometry.
+     */
+    public final blend : Blending;
+
+    /**
+     * Clipping rectangle for this geometry. Null if none.
+     */
+    public final clip : Rectangle;
+
+    /**
+     * All of the images this image will provide to the shader.
+     */
+    public final textures : Array<ImageResource>;
 
     /**
      * The specific shader for the geometry.
@@ -105,7 +95,7 @@ class Geometry
     public var shader (default, set) : ShaderResource;
 
     inline function set_shader(_shader : ShaderResource) : ShaderResource {
-        events.emit(OrderProperyChanged);
+        dirtyBatchers();
 
         return shader = _shader;
     }
@@ -116,31 +106,9 @@ class Geometry
     public var depth (default, set) : Float;
 
     inline function set_depth(_depth : Float) : Float {
-        events.emit(OrderProperyChanged);
+        dirtyBatchers();
 
         return depth = _depth;
-    }
-
-    /**
-     * Clipping rectangle for this geometry. Null if none.
-     */
-    public var clip (default, set) : Rectangle;
-
-    inline function set_clip(_clip : Rectangle) : Rectangle {
-        if (clip != null)
-        {
-            clip.events.off(ChangedSize, listenerClip);
-        }
-
-        events.emit(OrderProperyChanged);
-        clip = _clip;
-
-        if (clip != null)
-        {
-            clip.events.on(ChangedSize, listenerClip);
-        }
-
-        return clip;
     }
 
     /**
@@ -149,90 +117,84 @@ class Geometry
     public var primitive (default, set) : PrimitiveType;
 
     inline function set_primitive(_primitive : PrimitiveType) : PrimitiveType {
-        events.emit(OrderProperyChanged);
+        dirtyBatchers();
 
         return primitive = _primitive;
     }
 
     /**
-     * If immediate this geometry will only be drawn once.
+     * Unchanging geometry is drawn once and them immediately dropped.
      */
     public var immediate : Bool;
 
     /**
-     * If this geometry will not be changing. Provides a hint to the backend on how to optimise this geometry.
+     * If geometry is set to unchanging then its vertex data will only be uploaded once.
+     * Any further changes to the vertices will not be reflected on the GPU until unchanging is disabled.
+     * 
+     * This is an optimisation hint to the rendering backends, although not all backends will optimise
+     * unchaning geometry.
      */
     public var unchanging : Bool;
 
     /**
-     * Default colour of this geometry.
+     * The position of the geometry.
      */
-    public var color : Color;
+    public var position (get, never) : Vector;
+
+    inline function get_position() : Vector {
+        return transformation.position;
+    }
 
     /**
-     * If blending is enabled for this geometry.
+     * The origin of the geometry.
      */
-    public var blending : Bool;
+    public var origin (get, never) : Vector;
+
+    inline function get_origin() : Vector {
+        return transformation.origin;
+    }
 
     /**
-     * The source colour for blending.
+     * Rotation of the geometry.
      */
-    public var srcRGB : BlendMode;
+    public var rotation (get, never) : Quaternion;
+
+    inline function get_rotation() : Quaternion {
+        return transformation.rotation;
+    }
 
     /**
-     * The source alpha for blending.
+     * Scale of the geometry.
      */
-    public var srcAlpha : BlendMode;
+    public var scale (get, never) : Vector;
 
-    /**
-     * The destination color for blending.
-     */
-    public var dstRGB : BlendMode;
-
-    /**
-     * The destination alpha for blending.
-     */
-    public var dstAlpha : BlendMode;
-
-    /**
-     * Called when this geometries clip rectangle changes size.
-     */
-    var listenerClip : EvRectangle->Void;
+    inline function get_scale() : Vector {
+        return transformation.scale;
+    }
 
     /**
      * Create a new mesh, contains no vertices and no transformation.
      */
     public function new(_options : GeometryOptions)
     {
-        id     = Hash.uniqueHash();
-        events = new Emitter();
+        id = Hash.uniqueHash();
 
-        listenerClip = function(_event : EvRectangle) {
-            events.emit(OrderProperyChanged);
-        }
-
-        vertices       = [];
-        transformation = new Transformation();
-
-        shader     = _options.shader;
-        clip       = _options.clip;
-        textures   = def(_options.textures  , []);
-        name       = def(_options.name      , '');
-        depth      = def(_options.depth     , 0);
-        unchanging = def(_options.unchanging, false);
-        immediate  = def(_options.immediate , false);
-        primitive  = def(_options.primitive , Triangles);
-        color      = def(_options.color     , new Color());
-
-        // Setup blending
-        blending = def(_options.blending, true);
-        srcRGB   = def(_options.srcRGB  , SrcAlpha);
-        srcAlpha = def(_options.srcAlpha, One);
-        dstRGB   = def(_options.dstRGB  , OneMinusSrcAlpha);
-        dstAlpha = def(_options.dstAlpha, Zero);
+        batchers       = [];
+        vertices       = def(_options.vertices  , []);
+        indices        = def(_options.indices   , []);
+        transformation = def(_options.transform , inline new Transformation());
+        clip           = def(_options.clip      , inline new Rectangle());
+        textures       = def(_options.textures  , []);
+        depth          = def(_options.depth     , 0);
+        unchanging     = def(_options.unchanging, false);
+        immediate      = def(_options.immediate , false);
+        primitive      = def(_options.primitive , Triangles);
+        color          = def(_options.color     , inline new Color());
+        blend          = def(_options.blend     , inline new Blending());
+        shader         = _options.shader;
 
         // Add to batchers.
-        for (batcher in def(_options.batchers, []))
+        for (batcher in def(_options.batchers  , []))
         {
             batcher.addGeometry(this);
         }
@@ -257,30 +219,68 @@ class Geometry
     }
 
     /**
-     * Set the world space position of this mesh.
-     * 
-     * The verticies themselves are not updated. The transformation matrix is applied to them when batched into a buffer.
-     * @param _v Vector containing the x, y, and z position.
-     * @return Mesh
+     * Add a texture to this geometry.
+     * Batchers are automatically dirtied.
+     * @param _image Image to add.
      */
-    public function setPosition(_v : Vector) : Geometry
+    public function addTexture(_image : ImageResource)
     {
-        transformation.position.set_xyz(_v.x, _v.y, _v.z);
-
-        return this;
+        textures.push(_image);
+        dirtyBatchers();
     }
 
     /**
-     * Sets the scale of this mesh.
-     * 
-     * The verticies themselves are not updated. The transformation matrix is applied to them when batched into a buffer.
-     * @param _v Vector containing the x, y, and z scale.
-     * @return Mesh
+     * Remove a texture from this geometry.
+     * Batchers are automatically dirtied.
+     * @param _image Image to remove.
      */
-    public function setScale(_v : Vector) : Geometry
+    public function removeTexture(_image : ImageResource)
     {
-        transformation.scale.set_xyz(_v.x, _v.y, _v.z);
+        textures.remove(_image);
+        dirtyBatchers();
+    }
 
-        return this;
+    /**
+     * Replace a texture in this geometry.
+     * Batchers are automatically dirtied.
+     * @param _idx   Texture ID to replace.
+     * @param _image Texture to replace with.
+     */
+    public function setTexture(_idx : Int, _image : ImageResource)
+    {
+        textures[_idx] = _image;
+        dirtyBatchers();
+    }
+
+    /**
+     * Remove this geometry from all the batchers it is in.
+     */
+    public function drop()
+    {
+        for (batcher in batchers)
+        {
+            batcher.removeGeometry(this);
+        }
+
+        batchers.resize(0);
+    }
+
+    /**
+     * Flags all the batchers this geometry is in for re-ordering.
+     */
+    public function dirtyBatchers()
+    {
+        for (batcher in batchers)
+        {
+            batcher.setDirty();
+        }
+    }
+
+    /**
+     * Convenience function to check if this geometry is indexed.
+     */
+    public function isIndexed()
+    {
+        return indices.length != 0;
     }
 }
