@@ -41,6 +41,11 @@ class DrawCommand
     public final vertices : Int;
 
     /**
+     * Number of indices in this draw command.
+     */
+    public final indices : Int;
+
+    /**
      * Viewport for this draw command.
      */
     public final viewport : Rectangle;
@@ -89,6 +94,7 @@ class DrawCommand
         _projection : Matrix,
         _view       : Matrix,
         _vertices   : Int,
+        _indices    : Int,
         _viewport   : Rectangle,
         _primitive  : PrimitiveType,
         _target     : ImageResource,
@@ -108,6 +114,7 @@ class DrawCommand
         projection = _projection;
         view       = _view;
         vertices   = _vertices;
+        indices    = _indices;
 
         viewport  = _viewport;
         primitive = _primitive;

@@ -22,6 +22,7 @@ class GeometryDrawCommand extends DrawCommand
         _projection : Matrix,
         _view       : Matrix,
         _vertices   : Int,
+        _indices    : Int,
         _viewport   : Rectangle,
         _primitive  : PrimitiveType,
         _target     : ImageResource,
@@ -37,7 +38,7 @@ class GeometryDrawCommand extends DrawCommand
     {
         geometry = _geometry;
 
-        super(_id, _unchanging, _projection, _view, _vertices, _viewport, _primitive, _target, _shader, _textures, _clip, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
+        super(_id, _unchanging, _projection, _view, _vertices, _indices, _viewport, _primitive, _target, _shader, _textures, _clip, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
     }
 
     public inline function isIndexed()

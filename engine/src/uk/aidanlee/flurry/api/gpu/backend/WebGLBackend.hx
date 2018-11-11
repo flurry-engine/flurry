@@ -261,16 +261,7 @@ class WebGLBackend implements IRendererBackend
 
         for (command in _commands)
         {
-            var totalIndices = 0;
-            if (command.isIndexed())
-            {
-                for (geom in command.geometry)
-                {
-                    totalIndices += geom.indices.length;
-                }
-            }
-
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, totalIndices, indexByteOffset));
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexByteOffset));
 
             for (geom in command.geometry)
             {

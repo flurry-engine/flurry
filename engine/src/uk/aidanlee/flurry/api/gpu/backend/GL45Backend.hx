@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import cpp.UInt32;
 import haxe.io.Bytes;
 import haxe.ds.Map;
 import cpp.Float32;
@@ -84,9 +83,9 @@ class GL45Backend implements IRendererBackend
     final dynamicCommandRanges : Map<Int, DrawCommandRange>;
 
     /**
-     * Tracks, stores, and uploads unchaning buffer data and its required state.
+     * Tracks, stores, and uploads unchaning commands and its required state.
      */
-    final unchangingVertexStorage : UnchangingBuffer;
+    final unchangingStorage : UnchangingBuffer;
 
     /**
      * These ranges describe writable chunks of the vertex buffer.
@@ -99,11 +98,6 @@ class GL45Backend implements IRendererBackend
      * This will be three times the requested float size for triple buffering.
      */
     final vertexBuffer : Array<Float32>;
-
-    /**
-     * Tracks, stores, and uploads unchanging index data.
-     */
-    final unchangingIndexStorage : UnchangingBuffer;
 
     /**
      * Describes a set of ranges the triple buffered dynamic index buffer.
@@ -301,10 +295,9 @@ class GL45Backend implements IRendererBackend
         ];
 
         // create a new storage container for holding unchaning commands.
-        unchangingVertexStorage = new UnchangingBuffer(_options.maxUnchangingVertices);
-        unchangingIndexStorage  = new UnchangingBuffer(_options.maxUnchangingIndices);
-        dynamicCommandRanges    = new Map();
-        transformationVector    = new Vector();
+        unchangingStorage    = new UnchangingBuffer(_options.maxUnchangingVertices, _options.maxUnchangingIndices);
+        dynamicCommandRanges = new Map();
+        transformationVector = new Vector();
 
         // Map the buffer into an unmanaged array.
         var ptr : Pointer<Float32> = Pointer.fromRaw(glMapNamedBufferRange(glVbo, 0, totalBufferBytes, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
@@ -367,7 +360,7 @@ class GL45Backend implements IRendererBackend
      */
     public function clearUnchanging()
     {
-        unchangingVertexStorage.empty();
+        unchangingStorage.empty();
     }
 
     /**
@@ -395,14 +388,15 @@ class GL45Backend implements IRendererBackend
         {
             if (command.unchanging)
             {
-                var unchangingOffset = unchangingVertexStorage.currentVertices * 9;
+                var unchangingFloatOffset = unchangingStorage.currentVertices * 9;
+                var unchangingIndexOffset = unchangingStorage.currentIndices;
 
-                if (unchangingVertexStorage.exists(command.id))
+                if (unchangingStorage.exists(command.id))
                 {
                     continue;
                 }
 
-                if (unchangingVertexStorage.add(command))
+                if (unchangingStorage.add(command))
                 {
                     for (geom in command.geometry)
                     {
@@ -415,15 +409,15 @@ class GL45Backend implements IRendererBackend
                             transformationVector.copyFrom(vertex.position);
                             transformationVector.transform(matrix);
 
-                            vertexBuffer[unchangingOffset++] = transformationVector.x;
-                            vertexBuffer[unchangingOffset++] = transformationVector.y;
-                            vertexBuffer[unchangingOffset++] = transformationVector.z;
-                            vertexBuffer[unchangingOffset++] = vertex.color.r;
-                            vertexBuffer[unchangingOffset++] = vertex.color.g;
-                            vertexBuffer[unchangingOffset++] = vertex.color.b;
-                            vertexBuffer[unchangingOffset++] = vertex.color.a;
-                            vertexBuffer[unchangingOffset++] = vertex.texCoord.x;
-                            vertexBuffer[unchangingOffset++] = vertex.texCoord.y;
+                            vertexBuffer[unchangingFloatOffset++] = transformationVector.x;
+                            vertexBuffer[unchangingFloatOffset++] = transformationVector.y;
+                            vertexBuffer[unchangingFloatOffset++] = transformationVector.z;
+                            vertexBuffer[unchangingFloatOffset++] = vertex.color.r;
+                            vertexBuffer[unchangingFloatOffset++] = vertex.color.g;
+                            vertexBuffer[unchangingFloatOffset++] = vertex.color.b;
+                            vertexBuffer[unchangingFloatOffset++] = vertex.color.a;
+                            vertexBuffer[unchangingFloatOffset++] = vertex.texCoord.x;
+                            vertexBuffer[unchangingFloatOffset++] = vertex.texCoord.y;
                         }
                     }
 
@@ -432,16 +426,8 @@ class GL45Backend implements IRendererBackend
             }
 
             var rangeIndexOffset = 0;
-            var totalIndices     = 0;
-            if (command.isIndexed())
-            {
-                for (geom in command.geometry)
-                {
-                    totalIndices += geom.indices.length;
-                }
-            }
 
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, totalIndices, indexByteOffset));
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexByteOffset));
 
             for (geom in command.geometry)
             {
@@ -487,14 +473,14 @@ class GL45Backend implements IRendererBackend
         {
             if (command.unchanging)
             {
-                var unchangingOffset = unchangingVertexStorage.currentVertices * 9;
+                var unchangingOffset = unchangingStorage.currentVertices * 9;
 
-                if (unchangingVertexStorage.exists(command.id))
+                if (unchangingStorage.exists(command.id))
                 {
                     continue;
                 }
 
-                if (unchangingVertexStorage.add(command))
+                if (unchangingStorage.add(command))
                 {
                     for (i in command.startIndex...command.endIndex)
                     {
@@ -527,9 +513,9 @@ class GL45Backend implements IRendererBackend
         {
             if (command.unchanging)
             {
-                if (unchangingVertexStorage.exists(command.id))
+                if (unchangingStorage.exists(command.id))
                 {
-                    var offset = unchangingVertexStorage.get(command.id);
+                    var offset = unchangingStorage.get(command.id);
 
                     setState(command, !_recordStats);
 
@@ -1278,25 +1264,36 @@ private class BufferRange
 private class UnchangingBuffer
 {
     /**
-     * The current number of vertices we have stored.
-     */
-    public var currentVertices (default, null) : Int;
-
-    /**
      * The total number of vertices we can store.
      */
     final maxVertices : Int;
+
+    /**
+     * The total number of indices we can store.
+     */
+    final maxIndices : Int;
 
     /**
      * Maps a draw commands hash to the vertex offset of that commands vertices in the unchanging buffer range.
      */
     final currentRanges : Map<Int, Int>;
 
-    public function new(_maxVertices)
+    /**
+     * The current number of vertices we have stored.
+     */
+    public var currentVertices (default, null) : Int;
+
+    /**
+     * The current number of indices we have stored.
+     */
+    public var currentIndices (default, null) : Int;
+
+    public function new(_maxVertices : Int, _maxIndices : Int)
     {
         maxVertices     = _maxVertices;
+        maxIndices      = _maxIndices;
         currentVertices = 0;
-
+        currentIndices  = 0;
         currentRanges   = new Map();
     }
 
@@ -1348,6 +1345,11 @@ private class UnchangingBuffer
             currentRanges.remove(key);
         }
     }
+}
+
+private class UnchangingRange
+{
+    //
 }
 
 /**
