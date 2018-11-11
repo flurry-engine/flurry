@@ -18,10 +18,10 @@ class Main extends snow.App
             new tests.api.maths.RectangleTests(),
             new tests.api.maths.CircleTests(),
             
-            /*
             new tests.api.importers.bmfont.BitmapFontParserTests(),
             new tests.api.importers.textureatlas.TextureAtlasParserTests(),
 
+            /*
             new tests.api.gpu.batcher.BatcherTests(),
             new tests.api.gpu.geometry.VertexTests(),
             new tests.api.gpu.geometry.GeometryTests(),
