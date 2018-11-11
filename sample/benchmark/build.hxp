@@ -8,8 +8,8 @@ class Build extends FlurryProject
     {
         app.name      = 'Benchmark';
         app.main      = 'Main';
+        app.output    = 'bin';
         app.codepaths = [ '../../engine/src', 'src' ];
-        app.output    = Path.combine('bin', 'hxp');
 
         build.dependencies = [
             'hxtelemetry' => null,
