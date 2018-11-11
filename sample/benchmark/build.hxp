@@ -1,0 +1,28 @@
+
+import hxp.Path;
+import uk.aidanlee.flurry.utils.build.FlurryProject;
+
+class Build extends FlurryProject
+{
+    override function setup()
+    {
+        app.name      = 'Benchmark';
+        app.main      = 'Main';
+        app.codepaths = [ '../../engine/src', 'src' ];
+        app.output    = Path.combine('bin', 'hxp');
+
+        build.dependencies = [
+            'hxtelemetry' => null,
+            'linc_imgui'  => null
+        ];
+
+        build.defines = [
+            'HXCPP_STACK_TRACE',
+            'HXCPP_TELEMETRY'
+        ];
+
+        files = [
+            'assets' => 'assets'
+        ];
+    }
+}
