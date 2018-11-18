@@ -231,6 +231,9 @@ class Project extends Script
             case LINUX : {
                 FileSystem.rename(Path.join([ _pathBuild, 'cpp', 'App' ]), Path.join([ _pathBuild, 'cpp', app.name ]));
                 System.copyFile(Path.join([ _pathBuild, 'cpp', app.name ]), Path.combine(_pathRelease, app.name));
+
+                System.runCommand(workingDirectory, 'chmod a+x ${Path.join([ _pathBuild, 'cpp', app.name ])}', []);
+                System.runCommand(workingDirectory, 'chmod a+x ${Path.join([ _pathRelease, app.name ])}', []);
             }
         }
     }
