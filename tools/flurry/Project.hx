@@ -165,7 +165,8 @@ class Project extends Script
         _snow.addMacro('snow.Set.main("${app.main}")');
         _snow.addMacro('snow.Set.ident("${app.namespace}")');
         _snow.addMacro('snow.Set.config("config.json")');
-        _snow.addMacro('snow.Set.runtime("uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeDesktop")');
+        _snow.addMacro('snow.Set.runtime("${ snowGetRuntimeString() }")');
+        _snow.addMacro('snow.api.Debug.level(${ app.snow.log })');
     }
 
     final function snowAddUserMacros(_user : HXML)
@@ -173,6 +174,20 @@ class Project extends Script
         for (mac in build.macros)
         {
             _user.addMacro(mac);
+        }
+    }
+
+    final function snowGetRuntimeString() : String
+    {
+        if (app.snow.runtime != '')
+        {
+            return app.snow.runtime;
+        }
+
+        return switch (meta.target) {
+            case SnowDesktop: 'uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeDesktop';
+            case SnowCLI:     'uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeCLI';
+            default: throw 'No snow runtime found for the target';
         }
     }
 
@@ -270,6 +285,11 @@ private class FlurryProjectApp
      */
     public var codepaths : Array<String>;
 
+    /**
+     * Options exclusive to the snow backend.
+     */
+    public final snow : FlurrySnowOptions;
+
     public function new()
     {
         name      = 'flurry';
@@ -277,6 +297,8 @@ private class FlurryProjectApp
         output    = 'bin';
         main      = 'Main';
         codepaths = [ 'src' ];
+
+        snow = new FlurrySnowOptions();
     }
 }
 
@@ -307,5 +329,25 @@ private class FlurryProjectBuild
         dependencies = [];
         macros       = [];
         defines      = [];
+    }
+}
+
+private class FlurrySnowOptions
+{
+    /**
+     * The name of the runtime to use.
+     * If not set a runtime is chosen based on the target.
+     */
+    public var runtime : String;
+
+    /**
+     * The log level to use.
+     */
+    public var log : Int;
+
+    public function new()
+    {
+        runtime = '';
+        log     = 1;
     }
 }
