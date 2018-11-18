@@ -87,7 +87,15 @@ class Main
 	 */
 	function doRunCommand()
 	{
-		//
+		var script  = findBuildScript();
+		if (script != '')
+		{
+			runHxpScript(script, 'run');
+		}
+		else
+		{
+			Log.println('Cound not find a suitable script file to build and run');
+		}
 	}
 
 	/**

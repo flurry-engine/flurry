@@ -219,11 +219,17 @@ class Project extends Script
 
         // Rename the output executable and copy it over to the .build directory.
         // Platform specific since file extensions change.
+        // If the script is called with the 'run' command i.e. `hxp .. build.hxp run` then the binary should be launched after building.
         switch (System.hostPlatform)
         {
             case WINDOWS : {
                 FileSystem.rename(Path.join([ _pathBuild, 'cpp', 'App.exe' ]), Path.join([ _pathBuild, 'cpp', '${app.name}.exe' ]));
                 System.copyFile(Path.join([ _pathBuild, 'cpp', '${app.name}.exe' ]), Path.combine(_pathRelease, '${app.name}.exe'));
+
+                if (command == 'run')
+                {
+                    System.runCommand(workingDirectory, Path.combine(_pathRelease, '${app.name}.exe'), []);
+                }
             }
             case MAC : {
                 //
@@ -234,6 +240,11 @@ class Project extends Script
 
                 System.runCommand(workingDirectory, 'chmod a+x ${Path.join([ _pathBuild, 'cpp', app.name ])}', []);
                 System.runCommand(workingDirectory, 'chmod a+x ${Path.join([ _pathRelease, app.name ])}', []);
+
+                if (command == 'run')
+                {
+                    System.runCommand(workingDirectory, Path.join([ _pathRelease, app.name ]), []);
+                }
             }
         }
     }
