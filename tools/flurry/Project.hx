@@ -217,9 +217,22 @@ class Project extends Script
             System.recursiveCopy(src, Path.combine(_pathRelease, dst));
         }
 
-        // Copy the output binary to the release folder and rename it to what the user requested
-        // TODO : Make this work for Windows and OSX, assumes no file extension right now.
-        System.copyFile(Path.join([ _pathBuild, 'cpp', 'App' ]), Path.combine(_pathRelease, app.name));
+        // Rename the output executable and copy it over to the .build directory.
+        // Platform specific since file extensions change.
+        switch (System.hostPlatform)
+        {
+            case WINDOWS : {
+                FileSystem.rename(Path.join([ _pathBuild, 'cpp', 'App.exe' ]), Path.join([ _pathBuild, 'cpp', '${app.name}.exe' ]));
+                System.copyFile(Path.join([ _pathBuild, 'cpp', '${app.name}.exe' ]), Path.combine(_pathRelease, '${app.name}.exe'));
+            }
+            case MAC : {
+                //
+            }
+            case LINUX : {
+                FileSystem.rename(Path.join([ _pathBuild, 'cpp', 'App' ]), Path.join([ _pathBuild, 'cpp', app.name ]));
+                System.copyFile(Path.join([ _pathBuild, 'cpp', app.name ]), Path.combine(_pathRelease, app.name));
+            }
+        }
     }
 
     // #endregion
