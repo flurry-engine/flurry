@@ -6,11 +6,11 @@ import hxp.Path;
 import hxp.System;
 import hxp.Log;
 
-class Boot
+class Main
 {
     static function main()
     {
-		new Boot();
+		new Main();
     }
 
 	/**
