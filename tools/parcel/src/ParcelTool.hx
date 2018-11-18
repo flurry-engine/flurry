@@ -9,6 +9,39 @@ import uk.aidanlee.flurry.api.resources.Parcel;
 
 class ParcelTool
 {
+    @:flag('-from-json')
+    public var json : String;
+
+    @:flag('-output')
+    public var output : String;
+
+    @:flag('--compress')
+    public var compress : Bool;
+
+    @:flag('--ignore-hidden')
+    public var ignoreHidden : Bool;
+
+    @:flag('--verbose')
+    public var verbose : Bool;
+
+    public function new()
+    {
+        json         = '';
+        compress     = false;
+        ignoreHidden = false;
+        verbose      = false;
+        output       = 'output.parcel';
+    }
+
+    @:defaultCommand
+    public function create()
+    {
+        if (json != '')
+        {
+            createFromJson(json, output, compress, verbose);
+        }
+    }
+
     /**
      * Creates a binary packed parcel containing the assets found in a json file.
      * The json file contains the ID of the asset and the path to file the bytes data.
@@ -22,7 +55,7 @@ class ParcelTool
      * @param _compress If this parcel should be compressed.
      * @param _verbose  If debug information should be printed.
      */
-    public static function createFromJson(_jsonPath : String, _output : String, _compress : Bool, _verbose : Bool)
+    function createFromJson(_jsonPath : String, _output : String, _compress : Bool, _verbose : Bool)
     {
         /**
          * If the resource info path is not defined we assume the id is also the path.
