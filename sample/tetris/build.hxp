@@ -5,7 +5,7 @@ class Build extends Project
 {
     override function setup()
     {
-        app.name      = 'Benchmark';
+        app.name      = 'Tetris';
         app.main      = 'Main';
         app.output    = 'bin';
         app.codepaths = [ '../../engine/src', 'src' ];
