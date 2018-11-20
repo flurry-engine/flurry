@@ -42,13 +42,16 @@ class Main
 				doInstallCommand();
 
 			case 'build':
-				doBuildCommand();
+				doBuildCommand('build');
 
 			case 'run':
-				doRunCommand();
+				doBuildCommand('run');
 
 			case 'package':
-				doPackageCommand();
+				doBuildCommand('package');
+
+			case 'clean':
+				doBuildCommand('clean');
 
 			case 'help':
 				doHelpCommand();
@@ -67,51 +70,15 @@ class Main
 	}
 
 	/**
-	 * The build command will build the game but does not run or package it up after.
+	 * Run the build script with a command.
+	 * @param _command The command for the build script to decide what to do.
 	 */
-	function doBuildCommand()
+	function doBuildCommand(_command : String)
 	{
 		var script  = findBuildScript();
 		if (script != '')
 		{
-			runHxpScript(script);
-		}
-		else
-		{
-			Log.println('Cound not find a suitable script file to build');
-		}
-	}
-
-	/**
-	 * The run command will build the game and then launch the executable.
-	 */
-	function doRunCommand()
-	{
-		var script  = findBuildScript();
-		if (script != '')
-		{
-			runHxpScript(script, 'run');
-		}
-		else
-		{
-			Log.println('Cound not find a suitable script file to build and run');
-		}
-	}
-
-	/**
-	 * The package command will build the game and then package it up for distribution.
-	 * Packaging the game will build the game with the following optimisations.
-	 * - release mode
-	 * - no traces
-	 * - full dce
-	 * These options can be over-written in the projects build file
-	 */
-	function doPackageCommand()
-	{
-		var script  = findBuildScript();
-		if (script != '')
-		{
-			runHxpScript(script, 'package');
+			runHxpScript(script, _command);
 		}
 		else
 		{

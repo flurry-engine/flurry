@@ -1,6 +1,6 @@
 
-import sys.FileSystem;
 import sys.io.File;
+import sys.FileSystem;
 import hxp.System;
 import hxp.Path;
 import hxp.Version;
@@ -48,166 +48,139 @@ class Project extends Script
 
         setup();
 
-        snowBuild();
+        var pathBuild   = Path.combine(app.output, System.hostPlatform + '-' + System.hostArchitecture.getName() + '.build');
+        var pathRelease = Path.combine(app.output, System.hostPlatform + '-' + System.hostArchitecture.getName());
+
+        switch (command)
+        {
+            case 'build':
+                snowBuild(pathBuild, pathRelease);
+
+            case 'run':
+                snowBuild(pathBuild, pathRelease);
+                snowRun(pathRelease);
+
+            case 'package':
+                snowBuild(pathBuild, pathRelease);
+                snowPackage(pathRelease);
+
+            case 'clean':
+                cleanOutputDirectory();
+
+            case 'default':
+                // TODO : Error
+        }
     }
 
+    /**
+     * Overridable function, users should configure their project build in this function.
+     */
     function setup()
     {
         //
     }
 
+    final function cleanOutputDirectory()
+    {
+        System.removeDirectory(app.output);
+    }
+
     // #region snow build
 
-    final function snowBuild()
+    final function snowBuild(_pathBuild : String, _pathRelease : String)
     {
         var user = new HXML();
         var snow = new HXML();
-        var pathBuild   = Path.combine(app.output, System.hostPlatform + '-' + System.hostArchitecture.getName() + '.build');
-        var pathRelease = Path.combine(app.output, System.hostPlatform + '-' + System.hostArchitecture.getName());
 
-        FileSystem.createDirectory(pathBuild);
-        FileSystem.createDirectory(pathRelease);
+        FileSystem.createDirectory(_pathBuild);
+        FileSystem.createDirectory(_pathRelease);
 
-        snowAddGeneral(user, pathBuild);
-
-        snowAddRequiredDefines(user);
-        snowAddLibraryDefines(user);
-        snowAddUserDefines(user);
-
-        snowAddRequiredLibs(user);
-        snowAddUserLibs(user);
-
-        snowAddRequiredMacros(user, snow);
-        snowAddUserMacros(user);
-
-        snowWriteBuildFiles(user, snow, pathBuild);
-        snowBuildProject(pathBuild, pathRelease);
-    }
-
-    final function snowAddGeneral(_user : HXML, _path : String)
-    {
-        _user.main = 'snow.App';
-        _user.cpp  = Path.combine(_path, 'cpp');
+        // General snow settings
+        user.main = 'snow.App';
+        user.cpp  = Path.combine(_pathBuild, 'cpp');
 
         for (codepath in app.codepaths)
         {
-            _user.cp(codepath);
+            user.cp(codepath);
         }
-    }
 
-    final function snowAddRequiredDefines(_user : HXML)
-    {
-        _user.define(System.hostPlatform);
-        _user.define('target-cpp');
-        _user.define('arch-64');
-        _user.define('desktop');
-        _user.define('hxcpp_static_std');
-        _user.define('snow_use_glew');
-        _user.define('snow_native');
-    }
-
-    final function snowAddLibraryDefines(_user : HXML)
-    {
-        _user.define('hxcpp'          );
-        _user.define('haxe-concurrent');
-        _user.define('linc_opengl'    );
-        _user.define('linc_directx'   );
-        _user.define('linc_sdl'       );
-        _user.define('linc_ogg'       );
-        _user.define('linc_stb'       );
-        _user.define('linc_timestamp' );
-        _user.define('linc_openal'    );
-        _user.define('snow'           );
+        // Add snow required defines, user specified defines, and a define for each libraries name.
+        user.define(System.hostPlatform);
+        user.define('target-cpp');
+        user.define('arch-64');
+        user.define('desktop');
+        user.define('hxcpp_static_std');
+        user.define('snow_use_glew');
+        user.define('snow_native');
+        
+        user.define('hxcpp'          );
+        user.define('haxe-concurrent');
+        user.define('linc_opengl'    );
+        user.define('linc_directx'   );
+        user.define('linc_sdl'       );
+        user.define('linc_ogg'       );
+        user.define('linc_stb'       );
+        user.define('linc_timestamp' );
+        user.define('linc_openal'    );
+        user.define('snow'           );
 
         for (lib in build.dependencies.keys())
         {
-            _user.define(lib);
+            user.define(lib);
         }
-    }
 
-    final function snowAddUserDefines(_user : HXML)
-    {
         for (define in build.defines)
         {
-            _user.define(define);
+            user.define(define);
         }
-    }
 
-    final function snowAddRequiredLibs(_user : HXML)
-    {
-        _user.lib('hxcpp'          , null);
-        _user.lib('haxe-concurrent', null);
-        _user.lib('linc_opengl'    , null);
-        _user.lib('linc_directx'   , null);
-        _user.lib('linc_sdl'       , null);
-        _user.lib('linc_ogg'       , null);
-        _user.lib('linc_stb'       , null);
-        _user.lib('linc_timestamp' , null);
-        _user.lib('linc_openal'    , null);
-        _user.lib('snow'           , null);
-    }
+        // Add snow required libraries and user specified libraries.
+        user.lib('hxcpp'          , null);
+        user.lib('haxe-concurrent', null);
+        user.lib('linc_opengl'    , null);
+        user.lib('linc_directx'   , null);
+        user.lib('linc_sdl'       , null);
+        user.lib('linc_ogg'       , null);
+        user.lib('linc_stb'       , null);
+        user.lib('linc_timestamp' , null);
+        user.lib('linc_openal'    , null);
+        user.lib('snow'           , null);
 
-    final function snowAddUserLibs(_user : HXML)
-    {
         for (lib => ver in build.dependencies)
         {
-            _user.lib(lib, ver);
+            user.lib(lib, ver);
         }
-    }
 
-    final function snowAddRequiredMacros(_user : HXML, _snow : HXML)
-    {
-        _user.addMacro('snow.Set.assets("snow.core.native.assets.Assets")');
-        _user.addMacro('snow.Set.runtime("snow.modules.sdl.Runtime")');
-        _user.addMacro('snow.Set.audio("snow.modules.openal.Audio")');
-        _user.addMacro('snow.Set.io("snow.modules.sdl.IO")');
+        // Add snow required macros and user specified macros.
+        user.addMacro('snow.Set.assets("snow.core.native.assets.Assets")');
+        user.addMacro('snow.Set.runtime("snow.modules.sdl.Runtime")');
+        user.addMacro('snow.Set.audio("snow.modules.openal.Audio")');
+        user.addMacro('snow.Set.io("snow.modules.sdl.IO")');
 
-        _snow.addMacro('snow.Set.main("${app.main}")');
-        _snow.addMacro('snow.Set.ident("${app.namespace}")');
-        _snow.addMacro('snow.Set.config("config.json")');
-        _snow.addMacro('snow.Set.runtime("${ snowGetRuntimeString() }")');
-        _snow.addMacro('snow.api.Debug.level(${ app.snow.log })');
-    }
+        snow.addMacro('snow.Set.main("${app.main}")');
+        snow.addMacro('snow.Set.ident("${app.namespace}")');
+        snow.addMacro('snow.Set.config("config.json")');
+        snow.addMacro('snow.Set.runtime("${ snowGetRuntimeString() }")');
+        snow.addMacro('snow.api.Debug.level(${ app.snow.log })');
 
-    final function snowAddUserMacros(_user : HXML)
-    {
         for (mac in build.macros)
         {
-            _user.addMacro(mac);
-        }
-    }
-
-    final function snowGetRuntimeString() : String
-    {
-        if (app.snow.runtime != '')
-        {
-            return app.snow.runtime;
+            user.addMacro(mac);
         }
 
-        return switch (meta.target) {
-            case SnowDesktop: 'uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeDesktop';
-            case SnowCLI:     'uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeCLI';
-            default: throw 'No snow runtime found for the target';
-        }
-    }
+        // Write the two snow build hxmls and build them.
+        var hxmlUser = File.write(Path.combine(_pathBuild, 'build.hxml'), false);
+        var hxmlSnow = File.write(Path.combine(_pathBuild, 'snow.hxml'), false);
 
-    final function snowWriteBuildFiles(_user : HXML, _snow : HXML, _path : String)
-    {
-        var user = File.write(Path.combine(_path, 'build.hxml'), false);
-        var snow = File.write(Path.combine(_path, 'snow.hxml'), false);
+        hxmlUser.writeString(user);
+        hxmlUser.writeString('\n');
+        hxmlUser.writeString(Path.combine(_pathBuild, 'snow.hxml'));
 
-        user.writeString(_user);
-        user.writeString('\n');
-        user.writeString(Path.combine(_path, 'snow.hxml'));
+        hxmlSnow.writeString(snow);
 
-        snow.writeString(_snow);
+        hxmlUser.close();
+        hxmlSnow.close();
 
-        user.close();
-        snow.close();
-    }
-
-    final function snowBuildProject(_pathBuild : String, _pathRelease : String)
-    {
         // Build the project
         System.runCommand(workingDirectory, 'haxe', [ Path.combine(_pathBuild, 'build.hxml')]);
 
@@ -225,11 +198,6 @@ class Project extends Script
             case WINDOWS : {
                 FileSystem.rename(Path.join([ _pathBuild, 'cpp', 'App.exe' ]), Path.join([ _pathBuild, 'cpp', '${app.name}.exe' ]));
                 System.copyFile(Path.join([ _pathBuild, 'cpp', '${app.name}.exe' ]), Path.combine(_pathRelease, '${app.name}.exe'));
-
-                if (command == 'run')
-                {
-                    System.runCommand(workingDirectory, Path.combine(_pathRelease, '${app.name}.exe'), []);
-                }
             }
             case MAC : {
                 //
@@ -240,21 +208,46 @@ class Project extends Script
 
                 System.runCommand(workingDirectory, 'chmod a+x ${Path.join([ _pathBuild, 'cpp', app.name ])}', []);
                 System.runCommand(workingDirectory, 'chmod a+x ${Path.join([ _pathRelease, app.name ])}', []);
-
-                if (command == 'run')
-                {
-                    System.runCommand(workingDirectory, Path.join([ _pathRelease, app.name ]), []);
-                }
             }
         }
+    }
 
-        if (command == 'package')
+    final function snowRun(_pathRelease : String)
+    {
+        switch (System.hostPlatform)
         {
-            System.compress(_pathRelease, Path.combine(app.output, '${app.name}-${System.hostPlatform}${System.hostArchitecture.getName()}.zip'));
+            case WINDOWS:
+                System.runCommand(workingDirectory, Path.combine(_pathRelease, '${app.name}.exe'), []);
+            
+            case MAC:
+                //
+
+            case LINUX:
+                System.runCommand(workingDirectory, Path.join([ _pathRelease, app.name ]), []);
+        }
+    }
+
+    final function snowPackage(_pathRelease : String)
+    {
+        System.compress(_pathRelease, Path.combine(app.output, '${app.name}-${System.hostPlatform}${System.hostArchitecture.getName()}.zip'));
+    }
+
+    final function snowGetRuntimeString() : String
+    {
+        if (app.snow.runtime != '')
+        {
+            return app.snow.runtime;
+        }
+
+        return switch (meta.target) {
+            case SnowDesktop: 'uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeDesktop';
+            case SnowCLI:     'uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeCLI';
+            default: throw 'No snow runtime found for the target';
         }
     }
 
     // #endregion
+
 }
 
 private class FlurryProjectMeta
