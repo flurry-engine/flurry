@@ -8,10 +8,10 @@ import hxp.Log;
 
 class Main
 {
-    static function main()
-    {
+	static function main()
+	{
 		new Main();
-    }
+	}
 
 	/**
 	 * The command line arguments passed when this program was ran.
@@ -108,7 +108,15 @@ class Main
 	 */
 	function doPackageCommand()
 	{
-		//
+		var script  = findBuildScript();
+		if (script != '')
+		{
+			runHxpScript(script, 'package');
+		}
+		else
+		{
+			Log.println('Cound not find a suitable script file to build');
+		}
 	}
 
 	/**

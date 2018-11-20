@@ -247,6 +247,11 @@ class Project extends Script
                 }
             }
         }
+
+        if (command == 'package')
+        {
+            System.compress(_pathRelease, Path.combine(app.output, '${app.name}-${System.hostPlatform}${System.hostArchitecture.getName()}.zip'));
+        }
     }
 
     // #endregion
