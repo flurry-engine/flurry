@@ -5,7 +5,7 @@ import snow.api.Debug.log;
 import snow.types.Types.AppConfig;
 import snow.types.Types.WindowEventType;
 import snow.types.Types.SystemEvent;
-import uk.aidanlee.flurry.api.Event;
+import uk.aidanlee.flurry.api.CoreEvents;
 import uk.aidanlee.flurry.api.EventBus;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;

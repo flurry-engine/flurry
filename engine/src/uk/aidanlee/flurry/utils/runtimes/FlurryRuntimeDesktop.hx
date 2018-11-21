@@ -11,7 +11,7 @@ import snow.types.Types.ModState;
 import snow.types.Types.Error;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.input.InputEvents;
-import uk.aidanlee.flurry.api.Event;
+import uk.aidanlee.flurry.api.CoreEvents;
 
 typedef RuntimeConfig = {}
 typedef WindowHandle  = Window;
@@ -165,7 +165,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.KeyUp, new InputEventKeyUp(
+                flurry.events.fire(InputEvents.KeyUp, new InputEventKeyUp(
                     _event.key.keysym.sym,
                     _event.key.keysym.scancode,
                     _event.key.repeat,
@@ -184,7 +184,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.KeyDown, new InputEventKeyDown(
+                flurry.events.fire(InputEvents.KeyDown, new InputEventKeyDown(
                     _event.key.keysym.sym,
                     _event.key.keysym.scancode,
                     _event.key.repeat,
@@ -203,7 +203,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.TextInput, new InputEventTextInput(
+                flurry.events.fire(InputEvents.TextInput, new InputEventTextInput(
                     _event.edit.text,
                     _event.edit.start,
                     _event.edit.length,
@@ -222,7 +222,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.TextInput, new InputEventTextInput(
+                flurry.events.fire(InputEvents.TextInput, new InputEventTextInput(
                     _event.edit.text,
                     0,
                     0,
@@ -241,7 +241,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.MouseMove, new InputEventMouseMove(
+                flurry.events.fire(InputEvents.MouseMove, new InputEventMouseMove(
                     _event.motion.x,
                     _event.motion.y,
                     _event.motion.xrel,
@@ -259,7 +259,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.MouseUp, new InputEventMouseUp(_event.button.x, _event.button.y,  _event.button.button));
+                flurry.events.fire(InputEvents.MouseUp, new InputEventMouseUp(_event.button.x, _event.button.y,  _event.button.button));
 
             case SDL_MOUSEBUTTONDOWN:
                 #if !flurry_no_snow_input_events
@@ -272,7 +272,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.MouseDown, new InputEventMouseDown(_event.button.x, _event.button.y,  _event.button.button));
+                flurry.events.fire(InputEvents.MouseDown, new InputEventMouseDown(_event.button.x, _event.button.y,  _event.button.button));
 
             case SDL_MOUSEWHEEL:
                 #if !flurry_no_snow_input_events
@@ -284,7 +284,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.MouseWheel, new InputEventMouseWheel(_event.wheel.x, _event.wheel.y));
+                flurry.events.fire(InputEvents.MouseWheel, new InputEventMouseWheel(_event.wheel.x, _event.wheel.y));
 
             case SDL_CONTROLLERAXISMOTION:
                 //(range: -32768 to 32767)
@@ -300,7 +300,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.GamepadAxis, new InputEventGamepadAxis(_event.caxis.which, _event.caxis.axis, normalized_val));
+                flurry.events.fire(InputEvents.GamepadAxis, new InputEventGamepadAxis(_event.caxis.which, _event.caxis.axis, normalized_val));
 
             case SDL_CONTROLLERBUTTONUP:
                 #if !flurry_no_snow_input_events
@@ -312,7 +312,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.GamepadUp, new InputEventGamepadUp(_event.cbutton.which, _event.cbutton.button, 0));
+                flurry.events.fire(InputEvents.GamepadUp, new InputEventGamepadUp(_event.cbutton.which, _event.cbutton.button, 0));
 
             case SDL_CONTROLLERBUTTONDOWN:
                 #if !flurry_no_snow_input_events
@@ -324,7 +324,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.GamepadUp, new InputEventGamepadUp(_event.cbutton.which, _event.cbutton.button, 1));
+                flurry.events.fire(InputEvents.GamepadUp, new InputEventGamepadUp(_event.cbutton.which, _event.cbutton.button, 1));
 
             case SDL_CONTROLLERDEVICEADDED:
                 gamepads.set(_event.cdevice.which, SDL.gameControllerOpen(_event.cdevice.which));
@@ -338,7 +338,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.GamepadDevice, new InputEventGamepadDevice(
+                flurry.events.fire(InputEvents.GamepadDevice, new InputEventGamepadDevice(
                     _event.cdevice.which,
                     SDL.gameControllerNameForIndex(_event.cdevice.which),
                     ge_device_added
@@ -357,7 +357,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.GamepadDevice, new InputEventGamepadDevice(
+                flurry.events.fire(InputEvents.GamepadDevice, new InputEventGamepadDevice(
                     _event.cdevice.which,
                     SDL.gameControllerNameForIndex(_event.cdevice.which),
                     ge_device_removed
@@ -373,7 +373,7 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(Event.GamepadDevice, new InputEventGamepadDevice(
+                flurry.events.fire(InputEvents.GamepadDevice, new InputEventGamepadDevice(
                     _event.cdevice.which,
                     SDL.gameControllerNameForIndex(_event.cdevice.which),
                     ge_device_remapped

@@ -4,6 +4,31 @@ import snow.types.Types.ModState;
 import snow.types.Types.TextEventType;
 import snow.types.Types.GamepadDeviceEventType;
 
+enum abstract InputEvents(String) from String to String
+{
+    var KeyUp         = 'flurry-input-ev-key-up';
+
+    var KeyDown       = 'flurry-input-ev-key-down';
+
+    var TextInput     = 'flurry-input-ev-text-input';
+    
+    var MouseUp       = 'flurry-input-ev-mouse-up';
+
+    var MouseDown     = 'flurry-input-ev-mouse-down';
+
+    var MouseMove     = 'flurry-input-ev-mouse-move';
+
+    var MouseWheel    = 'flurry-input-ev-mouse-wheel';
+
+    var GamepadUp     = 'flurry-input-ev-gamepad-up';
+
+    var GamepadDown   = 'flurry-input-ev-gamepad-down';
+
+    var GamepadAxis   = 'flurry-input-ev-gamepad-axis';
+    
+    var GamepadDevice = 'flurry-input-ev-gamepad-device';
+}
+
 class InputEventKeyUp
 {
     public final keycode : Int;
