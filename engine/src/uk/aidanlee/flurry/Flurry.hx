@@ -8,6 +8,7 @@ import snow.types.Types.SystemEvent;
 import uk.aidanlee.flurry.api.CoreEvents;
 import uk.aidanlee.flurry.api.EventBus;
 import uk.aidanlee.flurry.api.gpu.Renderer;
+import uk.aidanlee.flurry.api.input.Input;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import hxtelemetry.HxTelemetry;
 
@@ -32,6 +33,11 @@ class Flurry extends App
      * The main resource system of the engine.
      */
     var resources : ResourceSystem;
+
+    /**
+     * Manages the state of the keyboard, mouse, game gamepads.
+     */
+    var input : Input;
 
     /**
      * If the preload parcel has been loaded.
@@ -108,6 +114,8 @@ class Flurry extends App
         // When loading and freeing parcels the needed GPU resources can then be created and destroyed as and when needed.
         resources = new ResourceSystem(events);
 
+        input = new Input(events);
+
         // Load the default parcel, this may contain the standard assets or user defined assets.
         // Once it has loaded the overridable onReady function is called.
         resources.createParcel('preload', flurryConfig.resources.preload, function(_) {
@@ -140,6 +148,8 @@ class Flurry extends App
         // The resource system needs to be called periodically to process thread events.
         // If this is not called the resources loaded on separate threads won't be registered and parcel callbacks won't be invoked.
         resources.update();
+        
+        input.update();
 
         if (loaded)
         {
