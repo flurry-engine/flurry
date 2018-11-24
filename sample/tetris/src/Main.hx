@@ -2,8 +2,7 @@ package;
 
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
-import uk.aidanlee.flurry.api.Event;
-import uk.aidanlee.flurry.api.input.InputEvents.InputEventKeyDown;
+import uk.aidanlee.flurry.api.input.InputEvents;
 import uk.aidanlee.flurry.modules.scene.Scene;
 
 typedef UserConfig = {};
@@ -42,7 +41,7 @@ class Main extends Flurry
         root.resumeOnCreation = true;
         root.create();
 
-        events.listen(Event.KeyDown, function(_event : InputEventKeyDown) {
+        events.listen(InputEvents.KeyDown, function(_event : InputEventKeyDown) {
             root.keyDown(_event.keycode, _event.scancode, _event.repeat, _event.modifier);
         });
     }
