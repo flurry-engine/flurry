@@ -101,7 +101,7 @@ class ResourceSystem
      * Add a parcel to this system.
      * @param _parcel Parcel to add.
      */
-    public function add(_parcel : Parcel)
+    public function addParcel(_parcel : Parcel)
     {
         if (parcels.exists(_parcel.id))
         {
@@ -109,6 +109,54 @@ class ResourceSystem
         }
 
         parcels.set(_parcel.id, _parcel);
+    }
+
+    /**
+     * Manually attempt to add a resource to this system.
+     * @param _resource The resource to add.
+     */
+    public function addResource(_resource : Resource)
+    {
+        if (!resourceCache.exists(_resource.id))
+        {
+            resourceCache.set(_resource.id, _resource);
+            resourceReferences.set(_resource.id, 1);
+
+            if (Std.is(_resource, ImageResource))
+            {
+                events.fire(ResourceEvents.Created, new ResourceEventCreated(ImageResource, _resource));
+            }
+            if (Std.is(_resource, ShaderResource))
+            {
+                events.fire(ResourceEvents.Created, new ResourceEventCreated(ShaderResource, _resource));
+            }
+        }
+    }
+
+    /**
+     * Manually attempt to remove a resource from this system.
+     * @param _resource The resource to remove.
+     */
+    public function removeResource(_resource : Resource)
+    {
+        if (resourceReferences.get(_resource.id) == 1)
+        {
+            if (Std.is(resourceCache.get(_resource.id), ImageResource))
+            {
+                events.fire(ResourceEvents.Removed, new ResourceEventRemoved(ImageResource, resourceCache.get(_resource.id)));
+            }
+            if (Std.is(resourceCache.get(_resource.id), ShaderResource))
+            {
+                events.fire(ResourceEvents.Removed, new ResourceEventRemoved(ShaderResource, resourceCache.get(_resource.id)));
+            }
+
+            resourceReferences.remove(_resource.id);
+            resourceCache.remove(_resource.id);
+        }
+        else
+        {
+            resourceReferences.set(_resource.id, resourceReferences.get(_resource.id) - 1);
+        }
     }
 
     /**

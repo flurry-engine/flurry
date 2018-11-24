@@ -1,18 +1,18 @@
 package uk.aidanlee.flurry.modules.imgui;
 
+import uk.aidanlee.flurry.api.CoreEvents;
 import cpp.Pointer;
 import cpp.RawPointer;
-import snow.Snow;
 import snow.api.buffers.Float32Array;
-import snow.systems.input.Keycodes;
-import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
-import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
-import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
-import uk.aidanlee.flurry.api.maths.Hash;
+import uk.aidanlee.flurry.api.input.Keycodes;
+import uk.aidanlee.flurry.api.input.Scancodes;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
+import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import imgui.ImGui;
 import imgui.draw.ImDrawData;
 import imgui.util.ImVec2;
@@ -20,20 +20,16 @@ import imgui.util.ImVec4;
 
 class ImGuiImpl
 {
-    final app      : Snow;
-    final renderer : IRendererBackend;
+    final flurry   : Flurry;
     final texture  : ImageResource;
-    final shader   : ShaderResource;
     final mousePos : Vector;
     final buffer   : Float32Array;
     final camera   : OrthographicCamera;
 
-    public function new(_app : Snow, _renderer : IRendererBackend, _shader : ShaderResource)
+    public function new(_flurry : Flurry)
     {
-        app      = _app;
-        renderer = _renderer;
-        shader   = _shader;
-        camera   = new OrthographicCamera(app.runtime.window_width(), app.runtime.window_height());
+        flurry = _flurry;
+        camera = new OrthographicCamera(1600, 900);
 
         ImGui.createContext();
 
@@ -71,9 +67,9 @@ class ImGuiImpl
         buffer   = new Float32Array(1000000);
 
         texture = new ImageResource('imgui_texture', width, height, cast pixels);
-        renderer.createTexture(texture);
-
         atlas.texID = Pointer.addressOf(texture).rawCast();
+
+        flurry.resources.addResource(texture);
 
         // Change the imgui style.
         var style = ImGui.getStyle();
@@ -83,43 +79,48 @@ class ImGuiImpl
         style.colors[10] = ImVec4.create(0.1, 0.1, 0.1, 1.0);
         style.colors[11] = ImVec4.create(0.1, 0.1, 0.1, 1.0);
         style.colors[12] = ImVec4.create(0.1, 0.1, 0.1, 1.0);
+
+        // Hook into flurry events
+        flurry.events.listen(CoreEvents.PreUpdate , newFrame);
+        flurry.events.listen(CoreEvents.PostUpdate, render);
+        flurry.events.listen(CoreEvents.Shutdown  , dispose);
     }
 
     /**
      * Populates the imgui fields with the latest screen, mouse, keyboard, and gamepad info.
      */
-    public function newFrame()
+    public function newFrame(_)
     {
         var io = ImGui.getIO();
-        io.displaySize  = ImVec2.create(app.runtime.window_width(), app.runtime.window_height());
+        io.displaySize  = ImVec2.create(1600, 900);
         io.mousePos.x   = mousePos.x;
         io.mousePos.y   = mousePos.y;
-        io.mouseDown[0] = app.input.mousedown(1);
-        io.mouseDown[1] = app.input.mousedown(3);
-        io.keyCtrl      = app.input.keydown(Keycodes.lctrl);
-        io.keyAlt       = app.input.keydown(Keycodes.lalt);
-        io.keyShift     = app.input.keydown(Keycodes.lshift);
-        io.keySuper     = app.input.keydown(Keycodes.lmeta);
+        io.mouseDown[0] = flurry.input.isMouseDown(1);
+        io.mouseDown[1] = flurry.input.isMouseDown(3);
+        io.keyCtrl      = flurry.input.isKeyDown(Keycodes.lctrl);
+        io.keyAlt       = flurry.input.isKeyDown(Keycodes.lalt);
+        io.keyShift     = flurry.input.isKeyDown(Keycodes.lshift);
+        io.keySuper     = flurry.input.isKeyDown(Keycodes.lmeta);
 
-        io.keysDown[Scancodes.tab      ] = app.input.keypressed(Keycodes.tab);
-        io.keysDown[Scancodes.left     ] = app.input.keypressed(Keycodes.left);
-        io.keysDown[Scancodes.right    ] = app.input.keypressed(Keycodes.right);
-        io.keysDown[Scancodes.up       ] = app.input.keypressed(Keycodes.up);
-        io.keysDown[Scancodes.down     ] = app.input.keypressed(Keycodes.down);
-        io.keysDown[Scancodes.pageup   ] = app.input.keypressed(Keycodes.pageup);
-        io.keysDown[Scancodes.pagedown ] = app.input.keypressed(Keycodes.pagedown);
-        io.keysDown[Scancodes.home     ] = app.input.keypressed(Keycodes.home);
-        io.keysDown[Scancodes.end      ] = app.input.keypressed(Keycodes.end);
-        io.keysDown[Scancodes.enter    ] = app.input.keypressed(Keycodes.enter);
-        io.keysDown[Scancodes.backspace] = app.input.keypressed(Keycodes.backspace);
-        io.keysDown[Scancodes.escape   ] = app.input.keypressed(Keycodes.escape);
-        io.keysDown[Scancodes.delete   ] = app.input.keypressed(Keycodes.delete);
-        io.keysDown[Scancodes.key_a    ] = app.input.keypressed(Keycodes.key_a);
-        io.keysDown[Scancodes.key_c    ] = app.input.keypressed(Keycodes.key_c);
-        io.keysDown[Scancodes.key_v    ] = app.input.keypressed(Keycodes.key_v);
-        io.keysDown[Scancodes.key_x    ] = app.input.keypressed(Keycodes.key_x);
-        io.keysDown[Scancodes.key_y    ] = app.input.keypressed(Keycodes.key_y);
-        io.keysDown[Scancodes.key_z    ] = app.input.keypressed(Keycodes.key_z);
+        io.keysDown[Scancodes.tab      ] = flurry.input.isKeyDown(Keycodes.tab);
+        io.keysDown[Scancodes.left     ] = flurry.input.isKeyDown(Keycodes.left);
+        io.keysDown[Scancodes.right    ] = flurry.input.isKeyDown(Keycodes.right);
+        io.keysDown[Scancodes.up       ] = flurry.input.isKeyDown(Keycodes.up);
+        io.keysDown[Scancodes.down     ] = flurry.input.isKeyDown(Keycodes.down);
+        io.keysDown[Scancodes.pageup   ] = flurry.input.isKeyDown(Keycodes.pageup);
+        io.keysDown[Scancodes.pagedown ] = flurry.input.isKeyDown(Keycodes.pagedown);
+        io.keysDown[Scancodes.home     ] = flurry.input.isKeyDown(Keycodes.home);
+        io.keysDown[Scancodes.end      ] = flurry.input.isKeyDown(Keycodes.end);
+        io.keysDown[Scancodes.enter    ] = flurry.input.isKeyDown(Keycodes.enter);
+        io.keysDown[Scancodes.backspace] = flurry.input.isKeyDown(Keycodes.backspace);
+        io.keysDown[Scancodes.escape   ] = flurry.input.isKeyDown(Keycodes.escape);
+        io.keysDown[Scancodes.delete   ] = flurry.input.isKeyDown(Keycodes.delete);
+        io.keysDown[Scancodes.key_a    ] = flurry.input.isKeyDown(Keycodes.key_a);
+        io.keysDown[Scancodes.key_c    ] = flurry.input.isKeyDown(Keycodes.key_c);
+        io.keysDown[Scancodes.key_v    ] = flurry.input.isKeyDown(Keycodes.key_v);
+        io.keysDown[Scancodes.key_x    ] = flurry.input.isKeyDown(Keycodes.key_x);
+        io.keysDown[Scancodes.key_y    ] = flurry.input.isKeyDown(Keycodes.key_y);
+        io.keysDown[Scancodes.key_z    ] = flurry.input.isKeyDown(Keycodes.key_z);
 
         ImGui.newFrame();
     }
@@ -127,13 +128,11 @@ class ImGuiImpl
     /**
      * Builds the imgui draw data and renders it into its batcher.
      */
-    public function render()
+    public function render(_)
     {
-        camera.viewport.set(0, 0, app.runtime.window_width(), app.runtime.window_height());
+        camera.viewport.set(0, 0, 1600, 900);
         camera.size.set_xy(camera.viewport.w, camera.viewport.h);
         camera.update();
-
-        //shader.int.set('ourTexture', 0);
 
         ImGui.render();
         onRender(ImGui.getDrawData());
@@ -142,9 +141,9 @@ class ImGuiImpl
     /**
      * Cleans up resources used by the batcher and texture.
      */
-    public function dispose()
+    public function dispose(_)
     {
-        renderer.removeTexture(texture);
+        flurry.resources.removeResource(texture);
     }
 
     /**
@@ -259,15 +258,15 @@ class ImGuiImpl
                     vtxOffset += 9;
                 }
 
-                commands.push(new BufferDrawCommand(buffer, start, vtxOffset, Hash.uniqueHash(), false, camera.projection, camera.viewInverted, cmd.elemCount, camera.viewport, Triangles, null, shader, [ t.ref ], clip, true, SrcAlpha, OneMinusSrcAlpha, One, Zero));
+                commands.push(new BufferDrawCommand(buffer, start, vtxOffset, Hash.uniqueHash(), false, camera.projection, camera.viewInverted, cmd.elemCount, 0, camera.viewport, Triangles, null, flurry.resources.get('std-shader-textured.json', ShaderResource), [ t.ref ], clip, true, SrcAlpha, OneMinusSrcAlpha, One, Zero));
 
                 idxOffset += cmd.elemCount;
             }
         }
         
         // Send commands to renderer backend.
-        renderer.uploadBufferCommands(commands);
-        renderer.submitCommands(cast commands, true);
+        flurry.renderer.backend.uploadBufferCommands(commands);
+        flurry.renderer.backend.submitCommands(cast commands, true);
     }
 
     // Callbacks

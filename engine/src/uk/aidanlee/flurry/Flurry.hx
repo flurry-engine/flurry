@@ -22,22 +22,22 @@ class Flurry extends App
     /**
      * User config file.
      */
-    var flurryConfig : FlurryConfig;
+    public var flurryConfig (default, null) : FlurryConfig;
 
     /**
      * The rendering backend of the engine.
      */
-    var renderer : Renderer;
+    public var renderer (default, null) : Renderer;
 
     /**
      * The main resource system of the engine.
      */
-    var resources : ResourceSystem;
+    public var resources (default, null) : ResourceSystem;
 
     /**
      * Manages the state of the keyboard, mouse, game gamepads.
      */
-    var input : Input;
+    public var input (default, null) : Input;
 
     /**
      * If the preload parcel has been loaded.
@@ -176,7 +176,6 @@ class Flurry extends App
         hxt.end_timing('.rendering');
 
         // Post-draw
-        renderer.postRender();
 
         if (loaded)
         {
@@ -184,6 +183,8 @@ class Flurry extends App
 
             events.fire(PostUpdate);
         }
+
+        renderer.postRender();
 
         hxt.advance_frame();
     }

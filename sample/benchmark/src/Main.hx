@@ -5,9 +5,10 @@ import snow.types.Types;
 import hxtelemetry.HxTelemetry;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
-import uk.aidanlee.flurry.api.Event;
+import uk.aidanlee.flurry.api.CoreEvents;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.input.InputEvents;
+import uk.aidanlee.flurry.api.input.Keycodes;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.modules.scene.Scene;
@@ -22,12 +23,6 @@ class Main extends Flurry
     var root : Scene;
 
     var imgui : ImGuiImpl;
-
-    var evMouseMove : Int;
-
-    var evMouseWheel : Int;
-
-    var evTextInput : Int;
 
     override function onConfig(_config : FlurryConfig) : FlurryConfig
     {
@@ -44,20 +39,11 @@ class Main extends Flurry
 
     override function onReady()
     {
-        //imgui = new ImGuiImpl(app, renderer.backend, resources.get('std-shader-textured.json', ShaderResource));
+        imgui = new ImGuiImpl(this);
 
         root = new SampleScene('root', app, null, renderer, resources, events);
         root.resumeOnCreation = true;
         root.create();
-
-        evMouseMove  = events.listen(Event.MouseMove , onMouseMove);
-        evMouseWheel = events.listen(Event.MouseWheel, onMouseWheel);
-        evTextInput  = events.listen(Event.TextInput , onTextInput);
-    }
-
-    override function onPreUpdate()
-    {
-        //imgui.newFrame();
     }
 
     override function onUpdate(_dt : Float)
@@ -67,33 +53,7 @@ class Main extends Flurry
 
     override function onPostUpdate()
     {
-        //uiShowRenderStats();
-        
-        //imgui.render();
-    }
-
-    override function onShutdown()
-    {
-        events.unlisten(evMouseMove);
-        events.unlisten(evMouseWheel);
-        events.unlisten(evTextInput);
-
-        //imgui.dispose();
-    }
-
-    function onMouseMove(_event : InputEventMouseMove)
-    {
-        //imgui.onMouseMove(_event.x, _event.y);
-    }
-
-    function onMouseWheel(_event : InputEventMouseWheel)
-    {
-        //imgui.onMouseWheel(_event.yWheelChange);
-    }
-
-    function onTextInput(_event : InputEventTextInput)
-    {
-        //imgui.onTextInput(_event.text);
+        uiShowRenderStats();
     }
 
     // Draw some stats about the renderer.

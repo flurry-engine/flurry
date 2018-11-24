@@ -98,7 +98,7 @@ class Parcel
         onProgress = _onProgress;
         onFailed   = _onFailed;
 
-        system.add(this);
+        system.addParcel(this);
     }
 
     /**
