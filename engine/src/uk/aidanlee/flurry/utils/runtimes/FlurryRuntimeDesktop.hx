@@ -1,8 +1,8 @@
 package uk.aidanlee.flurry.utils.runtimes;
 
+import sdl.Joystick;
 import sdl.SDL;
 import sdl.Window;
-import sdl.GameController;
 import snow.Snow;
 import snow.api.Debug.*;
 import snow.types.Types.WindowEventType;
@@ -11,7 +11,6 @@ import snow.types.Types.ModState;
 import snow.types.Types.Error;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.input.InputEvents;
-import uk.aidanlee.flurry.api.CoreEvents;
 
 typedef RuntimeConfig = {}
 typedef WindowHandle  = Window;
@@ -27,14 +26,14 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
     /**
      * All conntected SDL gamepads.
      */
-    final gamepads : Map<Int, GameController>;
+    final joysticks : Map<Int, Joystick>;
 
     public function new(_app : Snow)
     {
         super(_app);
 
-        flurry   = app.host;
-        gamepads = [];
+        flurry    = app.host;
+        joysticks = [];
 
         if (SDL.init(SDL_INIT_TIMER) != 0)
         {
@@ -54,19 +53,6 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
 
         #end
 
-        #if !flurry_sdl_no_controller
-
-        if (SDL.initSubSystem(SDL_INIT_GAMECONTROLLER) != 0)
-        {
-            throw Error.init('runtime / flurry / failed to initialize controller / ${SDL.getError()}');
-        }
-        else
-        {
-            _debug('sdl / init controller');
-        }
-
-        #end
-
         #if !flurry_sdl_no_joystick
 
         if (SDL.initSubSystem(SDL_INIT_JOYSTICK) != 0)
@@ -76,6 +62,19 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
         else
         {
             _debug('sdl / init joystick');
+
+            for (i in 0...SDL.numJoysticks())
+            {
+                var js  = SDL.joystickOpen(i);
+                if (js != null)
+                {
+                    joysticks.set(i, js);
+                }
+                else
+                {
+                    _debug('sdl / failed to open joystick $i : ${SDL.getError()}');
+                }
+            }
         }
 
         #end
@@ -131,13 +130,17 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
         while (SDL.hasAnEvent())
         {
             var event = SDL.pollEvent();
-
-            dispatchEventInput(event);
-            dispatchEventWindow(event);
-
             if (event.type == SDL_QUIT)
             {
                 app.dispatch_event(se_quit);
+            }
+            else
+            {
+                if (flurry.isLoaded())
+                {
+                    dispatchEventInput(event);
+                    dispatchEventWindow(event);
+                }
             }
         }
 
@@ -146,11 +149,6 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
 
     function dispatchEventInput(_event : sdl.Event)
     {
-        if (!flurry.isLoaded())
-        {
-            return;
-        }
-
         switch (_event.type) {
             case SDL_KEYUP:
 
@@ -286,7 +284,13 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
 
                 flurry.events.fire(InputEvents.MouseWheel, new InputEventMouseWheel(_event.wheel.x, _event.wheel.y));
 
-            case SDL_CONTROLLERAXISMOTION:
+            case _:
+                //
+
+            /*
+            case SDL_JOYAXISMOTION:
+                trace('joystick axis');
+
                 //(range: -32768 to 32767)
                 var val = (_event.caxis.value + 32768) / (32767 + 32768);
                 var normalized_val = (-0.5 + val) * 2.0;
@@ -302,7 +306,9 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
 
                 flurry.events.fire(InputEvents.GamepadAxis, new InputEventGamepadAxis(_event.caxis.which, _event.caxis.axis, normalized_val));
 
-            case SDL_CONTROLLERBUTTONUP:
+            case SDL_JOYBUTTONUP:
+                trace('joystick button up');
+
                 #if !flurry_no_snow_input_events
                     app.input.dispatch_gamepad_button_up_event(
                         _event.cbutton.which,
@@ -314,7 +320,9 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
 
                 flurry.events.fire(InputEvents.GamepadUp, new InputEventGamepadUp(_event.cbutton.which, _event.cbutton.button, 0));
 
-            case SDL_CONTROLLERBUTTONDOWN:
+            case SDL_JOYBUTTONDOWN:
+                trace('joystick button down');
+
                 #if !flurry_no_snow_input_events
                     app.input.dispatch_gamepad_button_down_event(
                         _event.cbutton.which,
@@ -324,10 +332,12 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     );
                 #end
 
-                flurry.events.fire(InputEvents.GamepadUp, new InputEventGamepadUp(_event.cbutton.which, _event.cbutton.button, 1));
+                flurry.events.fire(InputEvents.GamepadDown, new InputEventGamepadDown(_event.cbutton.which, _event.cbutton.button, 1));
 
-            case SDL_CONTROLLERDEVICEADDED:
-                gamepads.set(_event.cdevice.which, SDL.gameControllerOpen(_event.cdevice.which));
+            case SDL_JOYDEVICEADDED:
+                trace('joystick device added');
+
+                joysticks.set(_event.cdevice.which, SDL.joystickOpen(_event.cdevice.which));
 
                 #if !flurry_no_snow_input_events
                     app.input.dispatch_gamepad_device_event(
@@ -344,9 +354,11 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     ge_device_added
                 ));
 
-            case SDL_CONTROLLERDEVICEREMOVED:
-                SDL.gameControllerClose(gamepads.get(_event.cdevice.which));
-                gamepads.remove(_event.cdevice.which);
+            case SDL_JOYDEVICEREMOVED:
+                trace('joystick device removed');
+
+                SDL.joystickClose(joysticks.get(_event.cdevice.which));
+                joysticks.remove(_event.cdevice.which);
 
                 #if !flurry_no_snow_input_events
                     app.input.dispatch_gamepad_device_event(
@@ -363,34 +375,17 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                     ge_device_removed
                 ));
 
-            case SDL_CONTROLLERDEVICEREMAPPED:
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_gamepad_device_event(
-                        _event.cdevice.which,
-                        SDL.gameControllerNameForIndex(_event.cdevice.which),
-                        ge_device_remapped,
-                        _event.cdevice.timestamp / 1000
-                    );
-                #end
+            case SDL_CONTROLLERDEVICEADDED:
+                trace('controller added');
 
-                flurry.events.fire(InputEvents.GamepadDevice, new InputEventGamepadDevice(
-                    _event.cdevice.which,
-                    SDL.gameControllerNameForIndex(_event.cdevice.which),
-                    ge_device_remapped
-                ));
-
-            case _:
-                //
+            case SDL_CONTROLLERDEVICEREMOVED:
+                trace('controller removed');
+            */
         }
     }
 
     function dispatchEventWindow(_event : sdl.Event)
     {
-        if (!flurry.isLoaded())
-        {
-            return;
-        }
-
         if (_event.type == SDL_WINDOWEVENT)
         {
             var snowType   = WindowEventType.we_unknown;

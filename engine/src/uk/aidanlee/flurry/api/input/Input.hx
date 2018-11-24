@@ -16,11 +16,15 @@ class Input
     final mouseButtonsReleased : Map<Int, Bool>;
     final mouseButtonsDown     : Map<Int, Bool>;
 
+    final gamepadButtonsPressed  : Array<Map<Int, Bool>>;
+    final gamepadButtonsReleased : Array<Map<Int, Bool>>;
+    final gamepadButtonsDown     : Array<Map<Int, Bool>>;
+    final gamepadAxisValues      : Array<Map<Int, Float>>;
+
     final evKeyUp         : Int;
     final evKeyDown       : Int;
     final evMouseUp       : Int;
     final evMouseDown     : Int;
-    final evGamepadDevice : Int;
     final evGamepadUp     : Int;
     final evGamepadDown   : Int;
     final evGamepadAxis   : Int;
@@ -29,22 +33,30 @@ class Input
     {
         events = _events;
 
-        keyCodesPressed      = [];
-        keyCodesReleased     = [];
-        keyCodesDown         = [];
+        keyCodesPressed  = [];
+        keyCodesReleased = [];
+        keyCodesDown     = [];
 
         mouseButtonsPressed  = [];
         mouseButtonsReleased = [];
         mouseButtonsDown     = [];
 
+        gamepadButtonsPressed  = [ for (i in 0...MAX_CONTROLLERS) [] ];
+        gamepadButtonsReleased = [ for (i in 0...MAX_CONTROLLERS) [] ];
+        gamepadButtonsDown     = [ for (i in 0...MAX_CONTROLLERS) [] ];
+        gamepadAxisValues      = [ for (i in 0...MAX_CONTROLLERS) [] ];
+
         evKeyUp         = events.listen(InputEvents.KeyUp        , onKeyUp);
         evKeyDown       = events.listen(InputEvents.KeyDown      , onKeyDown);
         evMouseUp       = events.listen(InputEvents.MouseUp      , onMouseUp);
         evMouseDown     = events.listen(InputEvents.MouseDown    , onMouseDown);
-        evGamepadDevice = events.listen(InputEvents.GamepadDevice, onGamepadDevice);
         evGamepadUp     = events.listen(InputEvents.GamepadUp    , onGamepadUp);
         evGamepadDown   = events.listen(InputEvents.GamepadDown  , onGamepadDown);
         evGamepadAxis   = events.listen(InputEvents.GamepadAxis  , onGamepadAxis);
+
+        events.listen(InputEvents.GamepadDevice, function(_data : InputEventGamepadDevice) {
+            trace(_data.gamepad, _data.id, _data.type);
+        });
     }
 
     // #region polling commands
@@ -81,28 +93,34 @@ class Input
 
     public function gamepadAxis(_gamepad : Int, _axis : Int) : Float
     {
+        if (gamepadAxisValues[_gamepad].exists(_axis))
+        {
+            return gamepadAxisValues[_gamepad].get(_axis);
+        }
+
         return 0;
     }
 
     public function isGamepadDown(_gamepad : Int, _button : Int) : Bool
     {
-        return false;
+        return gamepadButtonsDown[_gamepad].exists(_button);
     }
 
     public function wasGamepadPressed(_gamepad : Int, _button : Int) : Bool
     {
-        return false;
+        return gamepadButtonsPressed[_gamepad].exists(_button);
     }
 
     public function wasGamepadReleased(_gamepad : Int, _button : Int) : Bool
     {
-        return false;
+        return gamepadButtonsReleased[_gamepad].exists(_button);
     }
 
     public function update()
     {
         updateKeyState();
         updateMouseState();
+        updateGamepadState();
     }
 
     // #endregion
@@ -142,24 +160,21 @@ class Input
         mouseButtonsDown.set(_event.button, true);
     }
 
-    function onGamepadDevice(_event : InputEventGamepadDevice)
-    {
-        //
-    }
-
     function onGamepadUp(_event : InputEventGamepadUp)
     {
-        //
+        gamepadButtonsReleased[_event.gamepad].set(_event.button, false);
+        gamepadButtonsDown[_event.gamepad].remove(_event.button);
     }
 
     function onGamepadDown(_event : InputEventGamepadDown)
     {
-        //
+        gamepadButtonsPressed[_event.gamepad].set(_event.button, false);
+        gamepadButtonsDown[_event.gamepad].set(_event.button, true);
     }
 
     function onGamepadAxis(_event : InputEventGamepadAxis)
     {
-        //
+        gamepadAxisValues[_event.gamepad].set(_event.axis, _event.value);
     }
 
     function updateKeyState()
@@ -212,6 +227,39 @@ class Input
             else
             {
                 mouseButtonsReleased.set(button, true);
+            }
+        }
+    }
+
+    function updateGamepadState()
+    {
+        for (gamepad in gamepadButtonsPressed)
+        {
+            for (button => state in gamepad)
+            {
+                if (state)
+                {
+                    gamepad.remove(button);
+                }
+                else
+                {
+                    gamepad.set(button, true);
+                }
+            }
+        }
+
+        for (gamepad in gamepadButtonsReleased)
+        {
+            for (button => state in gamepad)
+            {
+                if (state)
+                {
+                    gamepad.remove(button);
+                }
+                else
+                {
+                    gamepad.set(button, true);
+                }
             }
         }
     }
