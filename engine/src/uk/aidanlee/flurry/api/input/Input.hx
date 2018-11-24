@@ -4,11 +4,17 @@ import uk.aidanlee.flurry.api.input.InputEvents;
 
 class Input
 {
+    public static final MAX_CONTROLLERS : Int = 8;
+
     final events : EventBus;
 
     final keyCodesPressed  : Map<Int, Bool>;
     final keyCodesReleased : Map<Int, Bool>;
     final keyCodesDown     : Map<Int, Bool>;
+
+    final mouseButtonsPressed  : Map<Int, Bool>;
+    final mouseButtonsReleased : Map<Int, Bool>;
+    final mouseButtonsDown     : Map<Int, Bool>;
 
     final evKeyUp         : Int;
     final evKeyDown       : Int;
@@ -23,9 +29,13 @@ class Input
     {
         events = _events;
 
-        keyCodesPressed  = [];
-        keyCodesReleased = [];
-        keyCodesDown     = [];
+        keyCodesPressed      = [];
+        keyCodesReleased     = [];
+        keyCodesDown         = [];
+
+        mouseButtonsPressed  = [];
+        mouseButtonsReleased = [];
+        mouseButtonsDown     = [];
 
         evKeyUp         = events.listen(InputEvents.KeyUp        , onKeyUp);
         evKeyDown       = events.listen(InputEvents.KeyDown      , onKeyDown);
@@ -56,17 +66,17 @@ class Input
 
     public function isMouseDown(_button : Int) : Bool
     {
-        return false;
+        return mouseButtonsDown.exists(_button);
     } 
 
     public function wasMousePressed(_button : Int) : Bool
     {
-        return false;
+        return mouseButtonsPressed.exists(_button);
     }
 
     public function wasMouseReleased(_button : Int) : Bool
     {
-        return false;
+        return mouseButtonsReleased.exists(_button);
     }
 
     public function gamepadAxis(_gamepad : Int, _axis : Int) : Float
@@ -91,7 +101,8 @@ class Input
 
     public function update()
     {
-        updateKeystate();
+        updateKeyState();
+        updateMouseState();
     }
 
     // #endregion
@@ -121,12 +132,14 @@ class Input
 
     function onMouseUp(_event : InputEventMouseUp)
     {
-        //
+        mouseButtonsReleased.set(_event.button, false);
+        mouseButtonsDown.remove(_event.button);
     }
 
     function onMouseDown(_event : InputEventMouseDown)
     {
-        //
+        mouseButtonsPressed.set(_event.button, false);
+        mouseButtonsDown.set(_event.button, true);
     }
 
     function onGamepadDevice(_event : InputEventGamepadDevice)
@@ -149,7 +162,7 @@ class Input
         //
     }
 
-    function updateKeystate()
+    function updateKeyState()
     {
         for (key => state in keyCodesPressed)
         {
@@ -172,6 +185,33 @@ class Input
             else
             {
                 keyCodesReleased.set(key, true);
+            }
+        }
+    }
+
+    function updateMouseState()
+    {
+        for (button => state in mouseButtonsPressed)
+        {
+            if (state)
+            {
+                mouseButtonsPressed.remove(button);
+            }
+            else
+            {
+                mouseButtonsPressed.set(button, true);
+            }
+        }
+
+        for (button => state in mouseButtonsReleased)
+        {
+            if (state)
+            {
+                mouseButtonsReleased.remove(button);
+            }
+            else
+            {
+                mouseButtonsReleased.set(button, true);
             }
         }
     }
