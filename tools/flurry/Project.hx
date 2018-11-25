@@ -6,6 +6,8 @@ import hxp.Path;
 import hxp.Version;
 import hxp.Script;
 import hxp.HXML;
+import hxp.Log;
+import hxp.Haxelib;
 
 enum FlurryTarget {
     SnowDesktop;
@@ -149,6 +151,17 @@ class Project extends Script
         for (lib => ver in build.dependencies)
         {
             user.lib(lib, ver);
+        }
+
+        // Add the SDL gamecontroller database
+        var controllerDB = Path.join([Haxelib.getPath(new Haxelib('flurry')), 'resources', 'gamecontrollerdb.txt']);
+        if (FileSystem.exists(controllerDB))
+        {
+            user.resource(Path.join([Haxelib.getPath(new Haxelib('flurry')), 'resources', 'gamecontrollerdb.txt']), 'flurry-gamecontroller-db');
+        }
+        else
+        {
+            Log.error('Unable to find gamecontrollerdb at ${controllerDB}, game controller might not work.');
         }
 
         // Add snow required macros and user specified macros.
