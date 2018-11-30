@@ -53,10 +53,6 @@ class Input
         evGamepadUp     = events.listen(InputEvents.GamepadUp    , onGamepadUp);
         evGamepadDown   = events.listen(InputEvents.GamepadDown  , onGamepadDown);
         evGamepadAxis   = events.listen(InputEvents.GamepadAxis  , onGamepadAxis);
-
-        events.listen(InputEvents.GamepadDevice, function(_data : InputEventGamepadDevice) {
-            trace(_data.gamepad, _data.id, _data.type);
-        });
     }
 
     // #region polling commands
