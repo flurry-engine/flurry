@@ -153,17 +153,6 @@ class Project extends Script
             user.lib(lib, ver);
         }
 
-        // Add the SDL gamecontroller database
-        var controllerDB = Path.join([Haxelib.getPath(new Haxelib('flurry')), 'resources', 'gamecontrollerdb.txt']);
-        if (FileSystem.exists(controllerDB))
-        {
-            user.resource(Path.join([Haxelib.getPath(new Haxelib('flurry')), 'resources', 'gamecontrollerdb.txt']), 'flurry-gamecontroller-db');
-        }
-        else
-        {
-            Log.error('Unable to find gamecontrollerdb at ${controllerDB}, game controller might not work.');
-        }
-
         // Add snow required macros and user specified macros.
         user.addMacro('snow.Set.assets("snow.core.native.assets.Assets")');
         user.addMacro('snow.Set.runtime("snow.modules.sdl.Runtime")');

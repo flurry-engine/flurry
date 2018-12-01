@@ -22,17 +22,9 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
      */
     final flurry : Flurry;
 
-    /**
-     * All gamepad slots with the corresponding SDL gamepad instance ID.
-     * Array will grow as more gamepads are found, if no gamepad is present in a slot -1 will be the instance ID.
-     */
-    final gamepadSlots : Array<UInt>;
+    final gamepadSlots : Array<Gamepad>;
 
-    /**
-     * gamepad instance IDs mapped to the slot its assigned to.
-     * Allows for faster lookup than looping over all gamepad slots.
-     */
-    final gamepadInstanceSlotMapping : Map<UInt, UInt>;
+    final gamepadInstanceSlotMapping : Map<Int, Gamepad>;
 
     public function new(_app : Snow)
     {
@@ -68,30 +60,15 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
         }
         else
         {
-            if (SDL.gameControllerAddMapping(haxe.Resource.getString('flurry-gamecontroller-db')) == -1)
-            {
-                _debug('sdl / failed to add game controller mappings : ${SDL.getError()}');
-            }
-
             for (i in 0...SDL.numJoysticks())
             {
-                var gp  = SDL.joystickOpen(i);
-                if (gp != null)
+                if (SDL.isGameController(i))
                 {
-                    var gpID = SDL.joystickInstanceID(gp);
-                    var slot = getFirstFreeGamepadSlot();
-
-                    if (slot != -1)
-                    {
-                        gamepadSlots[slot] = gpID;
-                        gamepadInstanceSlotMapping[gpID] = slot;
-
-                        _debug('sdl / added joystick $gpID to slot $slot');
-                    }
-                    else
-                    {
-                        _debug('sdl / unable to add joystick $gpID, no more slots');
-                    }
+                    setupNewGameController(i);
+                }
+                else
+                {
+                    setupNewJoystick(i);
                 }
             }
 
@@ -307,101 +284,83 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
 
             case SDL_JOYAXISMOTION:
 
-                var slot = gamepadInstanceSlotMapping[_event.jdevice.which];
+                var gp = gamepadInstanceSlotMapping[_event.jdevice.which];
 
                 //(range: -32768 to 32767)
-                var val = (_event.caxis.value + 32768) / (32767 + 32768);
+                var val = (_event.jaxis.value + 32768) / (32767 + 32768);
                 var normalized_val = (-0.5 + val) * 2.0;
 
                 #if !flurry_no_snow_input_events
                     app.input.dispatch_gamepad_axis_event(
-                        slot,
-                        _event.caxis.axis,
+                        gp.slot,
+                        _event.jaxis.axis,
                         normalized_val,
-                        _event.caxis.timestamp / 1000
+                        _event.jaxis.timestamp / 1000
                     );
                 #end
 
-                flurry.events.fire(InputEvents.GamepadAxis, new InputEventGamepadAxis(slot, _event.caxis.axis, normalized_val));
+                flurry.events.fire(InputEvents.GamepadAxis, new InputEventGamepadAxis(gp.slot, _event.jaxis.axis, normalized_val));
 
             case SDL_JOYBUTTONUP:
 
-                var slot = gamepadInstanceSlotMapping[_event.jdevice.which];
+                var gp = gamepadInstanceSlotMapping[_event.jdevice.which];
 
                 #if !flurry_no_snow_input_events
                     app.input.dispatch_gamepad_button_up_event(
-                        slot,
-                        _event.cbutton.button,
+                        gp.slot,
+                        _event.jbutton.button,
                         0,
-                        _event.cbutton.timestamp / 1000
+                        _event.jbutton.timestamp / 1000
                     );
                 #end
 
-                flurry.events.fire(InputEvents.GamepadUp, new InputEventGamepadUp(slot, _event.cbutton.button, 0));
+                flurry.events.fire(InputEvents.GamepadUp, new InputEventGamepadUp(gp.slot, _event.jbutton.button, 0));
 
             case SDL_JOYBUTTONDOWN:
 
-                var slot = gamepadInstanceSlotMapping[_event.jdevice.which];
+                var gp = gamepadInstanceSlotMapping[_event.jdevice.which];
 
                 #if !flurry_no_snow_input_events
                     app.input.dispatch_gamepad_button_down_event(
-                        slot,
-                        _event.cbutton.button,
+                        gp.slot,
+                        _event.jbutton.button,
                         1,
-                        _event.cbutton.timestamp / 1000
+                        _event.jbutton.timestamp / 1000
                     );
                 #end
 
-                flurry.events.fire(InputEvents.GamepadDown, new InputEventGamepadDown(slot, _event.cbutton.button, 1));
+                flurry.events.fire(InputEvents.GamepadDown, new InputEventGamepadDown(gp.slot, _event.jbutton.button, 1));
 
             case SDL_JOYDEVICEADDED:
 
-                var gp  = SDL.joystickOpen(_event.jdevice.which);
-                if (gp != null)
+                if (SDL.isGameController(_event.jdevice.which))
                 {
-                    var gpID = SDL.joystickInstanceID(gp);
-                    var slot = getFirstFreeGamepadSlot();
-
-                    if (slot != -1)
-                    {
-                        gamepadSlots[slot] = gpID;
-                        gamepadInstanceSlotMapping[gpID] = slot;
-
-                        #if !flurry_no_snow_input_events
-                            app.input.dispatch_gamepad_device_event(
-                                slot,
-                                SDL.gameControllerNameForIndex(_event.jdevice.which),
-                                ge_device_added,
-                                _event.jdevice.timestamp / 1000
-                            );
-                        #end
-
-                        flurry.events.fire(InputEvents.GamepadDevice, new InputEventGamepadDevice(
-                            slot,
-                            SDL.gameControllerNameForIndex(_event.jdevice.which),
-                            ge_device_added
-                        ));
-
-                        _debug('sdl / added joystick $gpID to slot $slot');
-                    }
-                    else
-                    {
-                        _debug('sdl / unable to add joystick $gpID, no more slots');
-                    }
+                    return;
                 }
 
-            case SDL_JOYDEVICEREMOVED:
+                setupNewJoystick(_event.jdevice.which);
 
-                var slot = gamepadInstanceSlotMapping[_event.jdevice.which];
+            case SDL_JOYDEVICEREMOVED:
+                if (!gamepadInstanceSlotMapping.exists(_event.jdevice.which))
+                {
+                    return;
+                }
+
+                var gp = gamepadInstanceSlotMapping[_event.jdevice.which];
+                if (!gp.isJoystick)
+                {
+                    return;
+                }
+
                 gamepadInstanceSlotMapping.remove(_event.jdevice.which);
 
-                gamepadSlots[slot] = -1;
+                gamepadSlots[gp.slot] = null;
 
-                _debug('sdl / removed joystick ${_event.jdevice.which} from slot $slot');
+                _debug('sdl / removed joystick ${_event.jdevice.which} from slot ${gp.slot}');
 
                 #if !flurry_no_snow_input_events
                     app.input.dispatch_gamepad_device_event(
-                        slot,
+                        gp.slot,
                         SDL.gameControllerNameForIndex(_event.jdevice.which),
                         ge_device_removed,
                         _event.jdevice.timestamp / 1000
@@ -409,8 +368,86 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 #end
 
                 flurry.events.fire(InputEvents.GamepadDevice, new InputEventGamepadDevice(
-                    slot,
+                    gp.slot,
                     SDL.gameControllerNameForIndex(_event.jdevice.which),
+                    ge_device_removed
+                ));
+
+            case SDL_CONTROLLERAXISMOTION:
+                var gp = gamepadInstanceSlotMapping[_event.cdevice.which];
+
+                //(range: -32768 to 32767)
+                var val = (_event.caxis.value + 32768) / (32767 + 32768);
+                var normalized_val = (-0.5 + val) * 2.0;
+
+                #if !flurry_no_snow_input_events
+                    app.input.dispatch_gamepad_axis_event(
+                        gp.slot,
+                        _event.caxis.axis,
+                        normalized_val,
+                        _event.caxis.timestamp / 1000
+                    );
+                #end
+
+                flurry.events.fire(InputEvents.GamepadAxis, new InputEventGamepadAxis(gp.slot, _event.caxis.axis, normalized_val));
+
+            case SDL_CONTROLLERBUTTONUP:
+
+                var gp = gamepadInstanceSlotMapping[_event.cdevice.which];
+
+                #if !flurry_no_snow_input_events
+                    app.input.dispatch_gamepad_button_up_event(
+                        gp.slot,
+                        _event.cbutton.button,
+                        0,
+                        _event.cbutton.timestamp / 1000
+                    );
+                #end
+
+                flurry.events.fire(InputEvents.GamepadUp, new InputEventGamepadUp(gp.slot, _event.cbutton.button, 0));
+
+            case SDL_CONTROLLERBUTTONDOWN:
+
+                var gp = gamepadInstanceSlotMapping[_event.cdevice.which];
+
+                #if !flurry_no_snow_input_events
+                    app.input.dispatch_gamepad_button_down_event(
+                        gp.slot,
+                        _event.cbutton.button,
+                        1,
+                        _event.cbutton.timestamp / 1000
+                    );
+                #end
+
+                flurry.events.fire(InputEvents.GamepadDown, new InputEventGamepadDown(gp.slot, _event.cbutton.button, 1));
+
+            case SDL_CONTROLLERDEVICEADDED:
+                setupNewGameController(_event.cdevice.which);
+
+            case SDL_CONTROLLERDEVICEREMOVED:
+                if (!gamepadInstanceSlotMapping.exists(_event.cdevice.which))
+                {
+                    return;
+                }
+
+                var gp = gamepadInstanceSlotMapping[_event.cdevice.which];
+                gamepadInstanceSlotMapping.remove(gp.instanceID);
+                gamepadSlots[gp.slot] = null;
+
+                _debug('sdl / removed game controller ${gp.instanceID} from slot ${gp.slot}');
+
+                #if !flurry_no_snow_input_events
+                    app.input.dispatch_gamepad_device_event(
+                        gp.slot,
+                        SDL.gameControllerNameForIndex(gp.instanceID),
+                        ge_device_removed,
+                        0
+                    );
+                #end
+
+                flurry.events.fire(InputEvents.GamepadDevice, new InputEventGamepadDevice(
+                    gp.slot,
+                    SDL.gameControllerNameForIndex(gp.instanceID),
                     ge_device_removed
                 ));
 
@@ -536,14 +573,116 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
     {
         for (i in 0...gamepadSlots.length)
         {
-            if (gamepadSlots[i] == -1)
+            if (gamepadSlots[i] == null)
             {
                 return i;
             }
         }
 
-        gamepadSlots.push(-1);
+        gamepadSlots.push(null);
 
         return gamepadSlots.length - 1;
+    }
+
+    function setupNewJoystick(_deviceIndex : Int)
+    {
+        var js = SDL.joystickOpen(_deviceIndex);
+        if (js == null)
+        {
+            _debug('sdl / unable to open joystick ${SDL.getError()}');
+        }
+        else
+        {
+            var jsID = SDL.joystickInstanceID(js);
+            var slot = getFirstFreeGamepadSlot();
+
+            if (slot != -1)
+            {
+                var gp = new Gamepad(true, slot, jsID);
+
+                gamepadSlots[slot] = gp;
+                gamepadInstanceSlotMapping[jsID] = gp;
+
+                #if !flurry_no_snow_input_events
+                    app.input.dispatch_gamepad_device_event(
+                        slot,
+                        SDL.gameControllerNameForIndex(_deviceIndex),
+                        ge_device_added,
+                        0
+                    );
+                #end
+
+                flurry.events.fire(InputEvents.GamepadDevice, new InputEventGamepadDevice(
+                    slot,
+                    SDL.gameControllerNameForIndex(_deviceIndex),
+                    ge_device_added
+                ));
+
+                _debug('sdl / added joystick $jsID to slot $slot');
+            }
+            else
+            {
+                _debug('sdl / unable to add joystick $jsID, no more slots');
+            }
+        }
+    }
+
+    function setupNewGameController(_deviceIndex : Int)
+    {
+        var gc = SDL.gameControllerOpen(_deviceIndex);
+        if (gc == null)
+        {
+            _debug('sdl / unable to open game controller $_deviceIndex, ${SDL.getError()}');
+        }
+        else
+        {
+            var jsID = SDL.joystickInstanceID(SDL.gameControllerGetJoystick(gc));
+            var slot = getFirstFreeGamepadSlot();
+
+            if (slot != -1)
+            {
+                var gp = new Gamepad(false, slot, jsID);
+
+                gamepadSlots[slot] = gp;
+                gamepadInstanceSlotMapping[jsID] = gp;
+
+                #if !flurry_no_snow_input_events
+                    app.input.dispatch_gamepad_device_event(
+                        slot,
+                        SDL.gameControllerNameForIndex(_deviceIndex),
+                        ge_device_added,
+                        0
+                    );
+                #end
+
+                flurry.events.fire(InputEvents.GamepadDevice, new InputEventGamepadDevice(
+                    slot,
+                    SDL.gameControllerNameForIndex(_deviceIndex),
+                    ge_device_added
+                ));
+
+                _debug('sdl / added game controller $jsID to slot ${gp.slot}');
+            }
+            else
+            {
+                _debug('sdl / unable to add game controller $jsID, no more slots');
+            }
+        }
+    }
+}
+
+private class Gamepad
+{
+    public final isJoystick : Bool;
+
+    public final slot : Int;
+
+    public final instanceID : Int;
+
+    public function new(_isJoystick : Bool, _slot : Int, _instanceID : Int)
+    {
+        isJoystick = _isJoystick;
+        slot       = _slot;
+        instanceID = _instanceID;
     }
 }
