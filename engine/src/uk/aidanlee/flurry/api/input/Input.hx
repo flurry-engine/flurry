@@ -46,13 +46,13 @@ class Input
         gamepadButtonsDown     = [ for (i in 0...MAX_CONTROLLERS) [] ];
         gamepadAxisValues      = [ for (i in 0...MAX_CONTROLLERS) [] ];
 
-        evKeyUp         = events.listen(InputEvents.KeyUp        , onKeyUp);
-        evKeyDown       = events.listen(InputEvents.KeyDown      , onKeyDown);
-        evMouseUp       = events.listen(InputEvents.MouseUp      , onMouseUp);
-        evMouseDown     = events.listen(InputEvents.MouseDown    , onMouseDown);
-        evGamepadUp     = events.listen(InputEvents.GamepadUp    , onGamepadUp);
-        evGamepadDown   = events.listen(InputEvents.GamepadDown  , onGamepadDown);
-        evGamepadAxis   = events.listen(InputEvents.GamepadAxis  , onGamepadAxis);
+        evKeyUp         = events.listen(InputEvents.KeyUp      , onKeyUp);
+        evKeyDown       = events.listen(InputEvents.KeyDown    , onKeyDown);
+        evMouseUp       = events.listen(InputEvents.MouseUp    , onMouseUp);
+        evMouseDown     = events.listen(InputEvents.MouseDown  , onMouseDown);
+        evGamepadUp     = events.listen(InputEvents.GamepadUp  , onGamepadUp);
+        evGamepadDown   = events.listen(InputEvents.GamepadDown, onGamepadDown);
+        evGamepadAxis   = events.listen(InputEvents.GamepadAxis, onGamepadAxis);
     }
 
     // #region polling commands
@@ -112,18 +112,17 @@ class Input
         return gamepadButtonsReleased[_gamepad].exists(_button);
     }
 
+    public function rumbleGamepad(_gamepad : Int, _intensity : Float, _duration : Int) : Void
+    {
+        events.fire(GamepadRumble, new InputEventGamepadRumble(_gamepad, _intensity, _duration));
+    }
+
     public function update()
     {
         updateKeyState();
         updateMouseState();
         updateGamepadState();
     }
-
-    // #endregion
-
-    // #region user defined inputs
-
-    // 
 
     // #endregion
 

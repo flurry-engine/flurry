@@ -27,6 +27,8 @@ enum abstract InputEvents(String) from String to String
     var GamepadAxis   = 'flurry-input-ev-gamepad-axis';
     
     var GamepadDevice = 'flurry-input-ev-gamepad-device';
+
+    var GamepadRumble = 'flurry-input-ev-gamepad-rumble';
 }
 
 class InputEventKeyUp
@@ -179,6 +181,22 @@ class InputEventGamepadDown
         gamepad = _gamepad;
         button  = _button;
         value   = _value;
+    }
+}
+
+class InputEventGamepadRumble
+{
+    public final gamepad : Int;
+
+    public final intensity : Float;
+
+    public final duration : Int;
+
+    public function new(_gamepad : Int, _intensity : Float, _duration : Int)
+    {
+        gamepad   = _gamepad;
+        intensity = _intensity;
+        duration  = _duration;
     }
 }
 

@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.utils.runtimes;
 
+import sdl.Haptic;
 import sdl.SDL;
 import sdl.Window;
 import snow.Snow;
@@ -78,6 +79,8 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
         #end
 
         _debug('sdl / init ok');
+
+        flurry.events.listen(GamepadRumble, onRumbleRequest);
     }
 
     public static function timestamp() : Float
@@ -353,8 +356,10 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 }
 
                 gamepadInstanceSlotMapping.remove(_event.jdevice.which);
-
                 gamepadSlots[gp.slot] = null;
+
+                SDL.hapticRumbleStop(gp.haptic);
+                SDL.hapticClose(gp.haptic);
 
                 _debug('sdl / removed joystick ${_event.jdevice.which} from slot ${gp.slot}');
 
@@ -433,6 +438,9 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 var gp = gamepadInstanceSlotMapping[_event.cdevice.which];
                 gamepadInstanceSlotMapping.remove(gp.instanceID);
                 gamepadSlots[gp.slot] = null;
+
+                SDL.hapticRumbleStop(gp.haptic);
+                SDL.hapticClose(gp.haptic);
 
                 _debug('sdl / removed game controller ${gp.instanceID} from slot ${gp.slot}');
 
@@ -598,7 +606,18 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
 
             if (slot != -1)
             {
-                var gp = new Gamepad(true, slot, jsID);
+                var haptic = SDL.hapticOpenFromJoystick(js);
+                if (haptic == null)
+                {
+                    _debug('sdl / joystick does not support haptics');
+                }
+
+                if (haptic != null && SDL.hapticRumbleInit(haptic) != 0)
+                {
+                    _debug('sdl / could not init rumble haptics ${SDL.getError()}');
+                }
+
+                var gp = new Gamepad(true, haptic, slot, jsID);
 
                 gamepadSlots[slot] = gp;
                 gamepadInstanceSlotMapping[jsID] = gp;
@@ -641,7 +660,18 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
 
             if (slot != -1)
             {
-                var gp = new Gamepad(false, slot, jsID);
+                var haptic = SDL.hapticOpenFromJoystick(SDL.gameControllerGetJoystick(gc));
+                if (haptic == null)
+                {
+                    _debug('sdl / joystick does not support haptics ${SDL.getError()}');
+                }
+
+                if (haptic != null && SDL.hapticRumbleInit(haptic) != 0)
+                {
+                    _debug('sdl / could not init rumble haptics ${SDL.getError()}');
+                }
+
+                var gp = new Gamepad(false, haptic, slot, jsID);
 
                 gamepadSlots[slot] = gp;
                 gamepadInstanceSlotMapping[jsID] = gp;
@@ -669,19 +699,39 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
             }
         }
     }
+
+    function onRumbleRequest(_event : InputEventGamepadRumble)
+    {
+        if (_event.gamepad >= gamepadSlots.length)
+        {
+            return;
+        }
+
+        var gp = gamepadSlots[_event.gamepad];
+        if (gp.haptic != null)
+        {
+            if (SDL.hapticRumblePlay(gp.haptic, _event.intensity, _event.duration) != 0)
+            {
+                _debug('sdl / unable to play rumble haptic ${SDL.getError()}');
+            }
+        }
+    }
 }
 
 private class Gamepad
 {
     public final isJoystick : Bool;
 
+    public final haptic : Haptic;
+
     public final slot : Int;
 
     public final instanceID : Int;
 
-    public function new(_isJoystick : Bool, _slot : Int, _instanceID : Int)
+    public function new(_isJoystick : Bool, _haptic : Haptic, _slot : Int, _instanceID : Int)
     {
         isJoystick = _isJoystick;
+        haptic     = _haptic;
         slot       = _slot;
         instanceID = _instanceID;
     }
