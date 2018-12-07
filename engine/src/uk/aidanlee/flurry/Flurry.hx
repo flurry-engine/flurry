@@ -9,6 +9,7 @@ import uk.aidanlee.flurry.api.CoreEvents;
 import uk.aidanlee.flurry.api.EventBus;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.input.Input;
+import uk.aidanlee.flurry.api.display.Display;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import hxtelemetry.HxTelemetry;
 
@@ -38,6 +39,11 @@ class Flurry extends App
      * Manages the state of the keyboard, mouse, game gamepads.
      */
     public var input (default, null) : Input;
+
+    /**
+     * Manages the programs window and allows access to the mouse coordinates.
+     */
+    public var display (default, null) : Display;
 
     /**
      * If the preload parcel has been loaded.
@@ -114,7 +120,8 @@ class Flurry extends App
         // When loading and freeing parcels the needed GPU resources can then be created and destroyed as and when needed.
         resources = new ResourceSystem(events);
 
-        input = new Input(events);
+        input   = new Input(events);
+        display = new Display(events, flurryConfig);
 
         // Load the default parcel, this may contain the standard assets or user defined assets.
         // Once it has loaded the overridable onReady function is called.
@@ -196,17 +203,6 @@ class Flurry extends App
         onShutdown();
 
         resources.free('preload');
-    }
-
-    override final function onevent(_event : SystemEvent)
-    {
-        if (_event.window != null)
-        {
-            if (_event.window.type == WindowEventType.we_resized)
-            {
-                renderer.resize(_event.window.x, _event.window.y);
-            }
-        }
     }
 
     // Flurry functions the user can override.

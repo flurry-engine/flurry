@@ -2,35 +2,37 @@ package uk.aidanlee.flurry.api.display;
 
 enum abstract DisplayEvents(String) from String to String
 {
-    var Unknown     = 'flurry-window-ev-unknown';
+    var Unknown         = 'flurry-window-ev-unknown';
 
-    var Shown       = 'flurry-window-ev-shown';
+    var Shown           = 'flurry-window-ev-shown';
 
-    var Hidden      = 'flurry-window-ev-hidden';
+    var Hidden          = 'flurry-window-ev-hidden';
 
-    var Exposed     = 'flurry-window-ev-exposed';
+    var Exposed         = 'flurry-window-ev-exposed';
 
-    var Moved       = 'flurry-window-ev-moved';
+    var Moved           = 'flurry-window-ev-moved';
 
-    var Minimised   = 'flurry-window-ev-minimised';
+    var Minimised       = 'flurry-window-ev-minimised';
 
-    var Maximised   = 'flurry-window-ev-maximised';
+    var Maximised       = 'flurry-window-ev-maximised';
 
-    var Restored    = 'flurry-window-ev-restored';
+    var Restored        = 'flurry-window-ev-restored';
 
-    var Enter       = 'flurry-window-ev-Enter';
+    var Enter           = 'flurry-window-ev-Enter';
 
-    var Leave       = 'flurry-window-ev-Leave';
+    var Leave           = 'flurry-window-ev-Leave';
 
-    var FocusGained = 'flurry-window-ev-focus-gained';
+    var FocusGained     = 'flurry-window-ev-focus-gained';
 
-    var FocusLost   = 'flurry-window-ev-focus-lost';
+    var FocusLost       = 'flurry-window-ev-focus-lost';
 
-    var Close       = 'flurry-window-ev-close';
+    var Close           = 'flurry-window-ev-close';
 
-    var Resized     = 'flurry-window-ev-resized';
+    var Resized         = 'flurry-window-ev-resized';
 
-    var SizeChanged = 'flurry-window-ev-size-changed';
+    var SizeChanged     = 'flurry-window-ev-size-changed';
+
+    var ChangeRequested = 'flurry-window-ev-change-request';
 }
 
 class DisplayEventData
@@ -43,5 +45,24 @@ class DisplayEventData
     {
         width  = _width;
         height = _height;
+    }
+}
+
+class DisplayEventChangeRequest
+{
+    public final width : Int;
+
+    public final height : Int;
+
+    public final fullscreen : Bool;
+
+    public final vsync : Bool;
+
+    public function new(_width : Int, _height : Int, _fullscreen : Bool, _vsync : Bool)
+    {
+        width      = _width;
+        height     = _height;
+        fullscreen = _fullscreen;
+        vsync      = _vsync;
     }
 }

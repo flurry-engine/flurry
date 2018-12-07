@@ -17,6 +17,7 @@ import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
@@ -154,6 +155,10 @@ class WebGLBackend implements IRendererBackend
 
     final evResourceRemoved : Int;
 
+    final evChangeRequest : Int;
+
+    final evSizeChanged : Int;
+
     // SDL Window and GL Context
 
     var window : Window;
@@ -236,8 +241,10 @@ class WebGLBackend implements IRendererBackend
         boundTextures = [];
 
         // Listen to resource creation events.
-        evResourceCreated = events.listen(ResourceEvents.Created, onResourceCreated);
-        evResourceRemoved = events.listen(ResourceEvents.Removed, onResourceRemoved);
+        evResourceCreated = events.listen(ResourceEvents.Created       , onResourceCreated);
+        evResourceRemoved = events.listen(ResourceEvents.Removed       , onResourceRemoved);
+        evChangeRequest   = events.listen(DisplayEvents.ChangeRequested, onChangeRequest);
+        evSizeChanged     = events.listen(DisplayEvents.SizeChanged    , onSizeChanged);
     }
 
     /**
@@ -391,17 +398,6 @@ class WebGLBackend implements IRendererBackend
     }
 
     /**
-     * Called when the game window is resized.
-     * @param _width  new width of the window.
-     * @param _height new height of the window.
-     */
-    public function resize(_width : Int, _height : Int)
-    {
-        backbuffer.width  = _width;
-        backbuffer.height = _height;
-    }
-
-    /**
      * Unmap the buffer and iterate over all resources deleting their resources and remove them from the structure.
      */
     public function cleanup()
@@ -445,6 +441,19 @@ class WebGLBackend implements IRendererBackend
 
         // TODO : Error handling if GLEW doesn't return OK.
         glew.GLEW.init();
+    }
+
+    function onChangeRequest(_event : DisplayEventChangeRequest)
+    {
+        SDL.setWindowSize(window, _event.width, _event.height);
+        SDL.setWindowFullscreen(window, _event.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+        SDL.GL_SetSwapInterval(_event.vsync ? 1 : 0);
+    }
+
+    function onSizeChanged(_event : DisplayEventData)
+    {
+        backbuffer.width  = _event.width;
+        backbuffer.height = _event.height;
     }
 
     // #endregion

@@ -70,13 +70,6 @@ interface IRendererBackend
     public function postDraw() : Void;
 
     /**
-     * Called when the game window is resized.
-     * @param _width  new width of the window.
-     * @param _height new height of the window.
-     */
-    public function resize(_width : Int, _height : Int) : Void;
-
-    /**
      * Call when destroying the renderer. Will cleanup any resources used by the backend.
      */
     public function cleanup() : Void;

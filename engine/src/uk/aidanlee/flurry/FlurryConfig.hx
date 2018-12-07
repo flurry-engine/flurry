@@ -36,6 +36,11 @@ private class FlurryWindowConfig
     public var fullscreen : Bool;
 
     /**
+     * If the window should have vsync applied to it.
+     */
+    public var vsync : Bool;
+
+    /**
      * If the window is resiable by the user. (Defaults true)
      */
     public var resizable : Bool;

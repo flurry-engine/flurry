@@ -169,16 +169,6 @@ class Renderer
         backend.clear();
     }
 
-    /**
-     * Resize the renderer.
-     * @param _width  Renderer new width.
-     * @param _height Renderer new height.
-     */
-    public function resize(_width : Int, _height : Int)
-    {
-        backend.resize(_width, _height);
-    }
-
     // #region Batcher Management
 
     /**
