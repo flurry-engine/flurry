@@ -270,6 +270,7 @@ class Batcher
             if (_a.textures[0].id < _b.textures[0].id) return -1;
             if (_a.textures[0].id > _b.textures[0].id) return  1;
         }
+        else
         {
             if (_a.textures.length != 0 && _b.textures.length == 0) return  1;
             if (_a.textures.length == 0 && _b.textures.length != 0) return -1;
