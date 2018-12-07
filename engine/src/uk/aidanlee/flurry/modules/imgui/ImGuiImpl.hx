@@ -1,9 +1,9 @@
 package uk.aidanlee.flurry.modules.imgui;
 
-import uk.aidanlee.flurry.api.CoreEvents;
 import cpp.Pointer;
 import cpp.RawPointer;
 import snow.api.buffers.Float32Array;
+import uk.aidanlee.flurry.api.CoreEvents;
 import uk.aidanlee.flurry.api.input.Keycodes;
 import uk.aidanlee.flurry.api.input.Scancodes;
 import uk.aidanlee.flurry.api.maths.Vector;
@@ -22,14 +22,13 @@ class ImGuiImpl
 {
     final flurry   : Flurry;
     final texture  : ImageResource;
-    final mousePos : Vector;
     final buffer   : Float32Array;
     final camera   : OrthographicCamera;
 
     public function new(_flurry : Flurry)
     {
         flurry = _flurry;
-        camera = new OrthographicCamera(1600, 900);
+        camera = new OrthographicCamera(flurry.display.width, flurry.display.height);
 
         ImGui.createContext();
 
@@ -63,8 +62,7 @@ class ImGuiImpl
         var pixels : Array<Int> = null;
         atlas.getTexDataAsRGBA32(pixels, width, height);
 
-        mousePos = new Vector();
-        buffer   = new Float32Array(1000000);
+        buffer = new Float32Array(1000000);
 
         texture = new ImageResource('imgui_texture', width, height, cast pixels);
         atlas.texID = Pointer.addressOf(texture).rawCast();
@@ -92,9 +90,9 @@ class ImGuiImpl
     public function newFrame(_)
     {
         var io = ImGui.getIO();
-        io.displaySize  = ImVec2.create(1600, 900);
-        io.mousePos.x   = mousePos.x;
-        io.mousePos.y   = mousePos.y;
+        io.displaySize  = ImVec2.create(flurry.display.width, flurry.display.height);
+        io.mousePos.x   = flurry.display.mouseX;
+        io.mousePos.y   = flurry.display.mouseY;
         io.mouseDown[0] = flurry.input.isMouseDown(1);
         io.mouseDown[1] = flurry.input.isMouseDown(3);
         io.keyCtrl      = flurry.input.isKeyDown(Keycodes.lctrl);
@@ -130,7 +128,7 @@ class ImGuiImpl
      */
     public function render(_)
     {
-        camera.viewport.set(0, 0, 1600, 900);
+        camera.viewport.set(0, 0, flurry.display.width, flurry.display.height);
         camera.size.set_xy(camera.viewport.w, camera.viewport.h);
         camera.update();
 
@@ -144,23 +142,6 @@ class ImGuiImpl
     public function dispose(_)
     {
         flurry.resources.removeResource(texture);
-    }
-
-    /**
-     * Set the mouse cursor position.
-     * @param _x The x position of the cursor.
-     * @param _y The y position of the cursor.
-     */
-    public function onMouseMove(_x : Float, _y : Float)
-    {
-        mousePos.x = _x;
-        mousePos.y = _y;
-    }
-
-    public function onMouseWheel(_v : Float)
-    {
-        var io = ImGui.getIO();
-        io.mouseWheel = _v;
     }
 
     /**
