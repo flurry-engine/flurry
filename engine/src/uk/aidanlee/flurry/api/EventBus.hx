@@ -1,7 +1,6 @@
 package uk.aidanlee.flurry.api;
 
 import uk.aidanlee.flurry.api.maths.Hash;
-import uk.aidanlee.flurry.api.interfaces.IDisposable;
 
 /**
  * All callback functions must contain one argument return void.
@@ -11,7 +10,7 @@ typedef EventFunction = Dynamic->Void;
 /**
  * Event bus which can fire and queue named events.
  */
-class EventBus implements IDisposable
+class EventBus
 {
     /**
      * Queue of all events to be fired new processing step.
