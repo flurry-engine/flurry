@@ -109,7 +109,7 @@ class Batcher
         depth    = def(_options.depth, 0);
 
         state = new BatcherState(this);
-        dirty = true;
+        dirty = false;
     }
 
     /**

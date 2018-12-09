@@ -15,7 +15,8 @@ class Main implements Buddy<[
 
     tests.api.gpu.geometry.VertexTests,
     tests.api.gpu.geometry.ColorTests,
-    tests.api.gpu.geometry.GeometryTests
+    tests.api.gpu.geometry.GeometryTests,
+    tests.api.gpu.batcher.BatcherTests
     
     /*
     new tests.api.gpu.batcher.BatcherTests(),
