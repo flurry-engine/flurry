@@ -20,3 +20,5 @@
 
 -resource assets/atlas/cavesofgallet.atlas@atlasData
 -resource assets/fonts/ubuntu.fnt@fntUbuntu
+
+--no-inline

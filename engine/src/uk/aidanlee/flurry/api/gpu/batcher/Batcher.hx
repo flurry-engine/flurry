@@ -121,6 +121,15 @@ class Batcher
     }
 
     /**
+     * Returns if this batcher is currently flagged as dirty.
+     * @return Bool
+     */
+    public function isDirty() : Bool
+    {
+        return dirty;
+    }
+
+    /**
      * Add a geometry to this batcher.
      * @param _geom Geometry to add.
      */

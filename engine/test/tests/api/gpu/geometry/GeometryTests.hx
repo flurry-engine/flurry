@@ -2,6 +2,8 @@ package tests.api.gpu.geometry;
 
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Quaternion;
+import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
@@ -18,169 +20,193 @@ class GeometryTests extends BuddySuite
     public function new()
     {
         describe('Geometry', {
-            var geomDefault : Geometry;
-            var geomCustom  : Geometry;
-            var shdr = mock(ShaderResource);
-            var txtr = mock(ImageResource);
+            
+            it('Has a unique identifier for each geometry instance', {
+                var g1 = new Geometry({});
+                var g2 = new Geometry({});
+                var g3 = new Geometry({});
 
-            beforeEach({
-                geomDefault = new Geometry({});
-                geomCustom  = new Geometry({
-                    name       : 'custom name',
-                    shader     : shdr,
-                    textures   : [ txtr ],
-                    clip       : new Rectangle(32, 64, 128, 256),
-                    depth      : 2,
-                    immediate  : true,
-                    unchanging : true,
-                    primitive  : Lines,
-                    color      : new Color(0.25, 0.5, 0.3),
+                g1.id.should.not.be(g2.id);
+                g1.id.should.not.be(g3.id);
 
-                    blending   : false,
-                    srcRGB     : OneMinusSrcAlpha,
-                    srcAlpha   : One,
-                    dstRGB     : DstAlpha,
-                    dstAlpha   : SrcAlphaSaturate,
-                });
+                g2.id.should.not.be(g1.id);
+                g2.id.should.not.be(g3.id);
+
+                g3.id.should.not.be(g1.id);
+                g3.id.should.not.be(g2.id);
             });
 
-            it('Can create geometry with default settings', {
-                geomDefault.name.should.be('');
-                geomDefault.shader.should.be(null);
-                geomDefault.textures.should.containExactly([ ]);
-                geomDefault.clip.should.be(null);
-                geomDefault.depth.should.be(0);
-                geomDefault.immediate.should.be(false);
-                geomDefault.unchanging.should.be(false);
-                geomDefault.primitive.should.equal(Triangles);
-                geomDefault.color.r.should.be(1);
-                geomDefault.color.g.should.be(1);
-                geomDefault.color.b.should.be(1);
-                geomDefault.color.a.should.be(1);
-                geomDefault.blending.should.be(true);
-                geomDefault.srcRGB.should.equal(SrcAlpha);
-                geomDefault.srcAlpha.should.equal(One);
-                geomDefault.dstRGB.should.equal(OneMinusSrcAlpha);
-                geomDefault.dstAlpha.should.equal(Zero);
+            it('Tracks which batchers it is stored in', {
+                var b = new Batcher({ shader : mock(ShaderResource), camera : mock(Camera) });
+
+                var g1 = new Geometry({});
+                g1.batchers.should.containExactly([]);
+
+                var g2 = new Geometry({ batchers : [ b ] });
+                g2.batchers.should.containExactly([ b ]);
             });
 
-            it('Can create geometry with custom settings', {
-                geomCustom.name.should.be('custom name');
-                geomCustom.shader.should.be(shdr);
-                geomCustom.textures.should.containExactly([ txtr ]);
-                geomCustom.clip.x.should.be(32);
-                geomCustom.clip.y.should.be(64);
-                geomCustom.clip.w.should.be(128);
-                geomCustom.clip.h.should.be(256);
-                geomCustom.depth.should.be(2);
-                geomCustom.immediate.should.be(true);
-                geomCustom.unchanging.should.be(true);
-                geomCustom.primitive.should.equal(Lines);
-                geomCustom.color.r.should.be(0.25);
-                geomCustom.color.g.should.be(0.5);
-                geomCustom.color.b.should.be(0.3);
-                geomCustom.color.a.should.be(1);
-                geomCustom.blending.should.be(false);
-                geomCustom.srcRGB.should.equal(OneMinusSrcAlpha);
-                geomCustom.srcAlpha.should.equal(One);
-                geomCustom.dstRGB.should.equal(DstAlpha);
-                geomCustom.dstAlpha.should.equal(SrcAlphaSaturate);
+            it('Has a transformation instance to modify its vertices', {
+                var g = new Geometry({});
+                g.transformation.position.equals(new Vector()).should.be(true);
+                g.transformation.origin.equals(new Vector()).should.be(true);
+                g.transformation.scale.equals(new Vector(1, 1, 1)).should.be(true);
+                g.transformation.rotation.equals(new Quaternion()).should.be(true);
             });
 
-            it('Can add vertices to the geoemtry', {
-                var v1 = new Vertex(null, null, null);
-                var v2 = new Vertex(null, null, null);
-                var v3 = new Vertex(null, null, null);
-
-                geomDefault.addVertex(v1);
-                geomDefault.addVertex(v2);
-                geomDefault.addVertex(v3);
-                geomDefault.vertices.should.containExactly([ v1, v2, v3 ]);
+            it('Has shortcut properties to access transformation data', {
+                var g = new Geometry({});
+                g.position.equals(g.transformation.position).should.be(true);
+                g.origin.equals(g.transformation.origin).should.be(true);
+                g.scale.equals(g.transformation.scale).should.be(true);
+                g.rotation.equals(g.transformation.rotation).should.be(true);
             });
 
-            it('Can remove vertices from the geoemtry', {
-                var v1 = new Vertex(null, null, null);
-                var v2 = new Vertex(null, null, null);
-                var v3 = new Vertex(null, null, null);
+            it('Contains an array of vertices which makes up the geometry', {
+                var v = [
+                    new Vertex(new Vector(), new Color(), new Vector()),
+                    new Vertex(new Vector(), new Color(), new Vector()),
+                    new Vertex(new Vector(), new Color(), new Vector())
+                ];
 
-                geomDefault.addVertex(v1);
-                geomDefault.addVertex(v2);
-                geomDefault.addVertex(v3);
+                var g = new Geometry({});
+                g.vertices.should.containExactly([]);
 
-                geomDefault.removeVertex(v2);
-                geomDefault.vertices.should.containExactly([ v1, v3 ]);
+                var g = new Geometry({ vertices : v });
+                g.vertices.should.containExactly(v);
             });
 
-            it ('Can set the transformation position of the geometry', {
-                var pos = new Vector(32, 64, 96);
-                geomDefault.setPosition(pos);
+            it('Contains an array of indices for indexed drawing', {
+                var i = [ 0, 1, 2 ];
 
-                geomDefault.transformation.position.x.should.be(32);
-                geomDefault.transformation.position.y.should.be(64);
-                geomDefault.transformation.position.z.should.be(96);
+                var g = new Geometry({});
+                g.indices.should.containExactly([]);
+
+                var g = new Geometry({ indices : i });
+                g.indices.should.containExactly(i);
             });
 
-            it ('Can set the transformation scale of the geometry', {
-                var scl = new Vector(0.2, 3.4, 1.0);
-                geomDefault.setScale(scl);
+            it('Has a colour which the geometry is tinted by', {
+                var c = new Color(0.5, 0.2, 0.8, 0.9);
 
-                geomDefault.transformation.scale.x.should.be(0.2);
-                geomDefault.transformation.scale.y.should.be(3.4);
-                geomDefault.transformation.scale.z.should.be(1.0);
+                var g = new Geometry({});
+                g.color.equals(new Color()).should.be(true);
+
+                var g = new Geometry({ color : c });
+                g.color.equals(c).should.be(true);
             });
 
-            describe('Geometries have an events emitter which can be listened to', {
-                it ('Fires an OrderProperyChanged event when the depth is changed', {
-                    var callCount = 0;
-                    var onChanged = function(_event : EvGeometry) {
-                        callCount++;
-                    };
+            it('Has a clip rectangle for cutting off part of the geometry', {
+                var r = new Rectangle(12, 4, 20, 7);
 
-                    geomDefault.events.on(OrderProperyChanged, onChanged);
-                    geomDefault.depth = 7;
+                var g = new Geometry({});
+                g.clip.equals(new Rectangle()).should.be(true);
 
-                    callCount.should.be(1);
-                });
-
-                it ('Fires an OrderProperyChanged event when the clip is changed', {
-                    var callCount = 0;
-                    var onChanged = function(_event : EvGeometry) {
-                        callCount++;
-                    };
-
-                    geomDefault.events.on(OrderProperyChanged, onChanged);
-                    geomDefault.clip = new Rectangle();
-
-                    callCount.should.be(1);
-
-                    geomDefault.clip.x = 12;
-                    callCount.should.be(2);
-                });
-
-                it ('Fires an OrderProperyChanged event when the shader is changed', {
-                    var callCount = 0;
-                    var onChanged = function(_event : EvGeometry) {
-                        callCount++;
-                    };
-
-                    geomDefault.events.on(OrderProperyChanged, onChanged);
-                    geomDefault.shader = null;
-
-                    callCount.should.be(1);
-                });
-
-                it ('Fires an OrderProperyChanged event when the primitive is changed', {
-                    var callCount = 0;
-                    var onChanged = function(_event : EvGeometry) {
-                        callCount++;
-                    };
-
-                    geomDefault.events.on(OrderProperyChanged, onChanged);
-                    geomDefault.primitive = Triangles;
-
-                    callCount.should.be(1);
-                });
+                var g = new Geometry({ clip : r });
+                g.clip.equals(r).should.be(true);
             });
+
+            it('Has an array of textures to draw the geometry with', {
+                var t = mock(ImageResource);
+
+                var g = new Geometry({});
+                g.textures.should.containExactly([]);
+
+                var g = new Geometry({ textures : [ t ] });
+                g.textures.should.containExactly([ t ]);
+            });
+
+            it('Has a shader for overriding the batchers shader', {
+                var s = mock(ShaderResource);
+
+                var g = new Geometry({});
+                g.shader.should.be(null);
+
+                var g = new Geometry({ shader : s });
+                g.shader.should.be(s);
+            });
+
+            it('Has a depth to decide when it should be drawn', {
+                var g = new Geometry({});
+                g.depth.should.be(0);
+
+                var g = new Geometry({ depth : 5.2 });
+                g.depth.should.be(5.2);
+            });
+
+            it('Has a primitive type to tell the renderer how to interpret the vertex data', {
+                var g = new Geometry({});
+                g.primitive.should.equal(Triangles);
+
+                var g = new Geometry({ primitive : Points });
+                g.primitive.should.equal(Points);
+            });
+
+            it('has an immediate flag to indicate it is to be drawn once then dropped', {
+                var g = new Geometry({});
+                g.immediate.should.be(false);
+
+                var g = new Geometry({ immediate : true });
+                g.immediate.should.be(true);
+            });
+
+            it('Will dirty any batchers its in when adding a texture', {
+                var b = new Batcher({ shader : mock(ShaderResource), camera : mock(Camera) });
+                var g = new Geometry({ batchers : [ b ] });
+
+                // Batching is required to clear the dirty state set when the geometry was added.
+                b.batch();
+                g.addTexture(mock(ImageResource));
+
+                b.isDirty().should.be(true);
+            });
+
+            it('Will dirty any batchers its in when removing a texture', {
+                var t = mock(ImageResource);
+                var b = new Batcher({ shader : mock(ShaderResource), camera : mock(Camera) });
+                var g = new Geometry({ batchers : [ b ], textures: [ t ] });
+
+                // Batching is required to clear the dirty state set when the geometry was added.
+                b.batch();
+                g.removeTexture(t);
+
+                b.isDirty().should.be(true);
+            });
+
+            it('Will remove itself from any batchers when dropped', {
+                var b = new Batcher({ shader : mock(ShaderResource), camera : mock(Camera) });
+
+                var g1 = new Geometry({ batchers : [ b ] });
+                var g2 = new Geometry({ batchers : [ b ] });
+
+                b.geometry.should.containExactly([ g1, g2 ]);
+                g1.drop();
+                b.geometry.should.containExactly([ g2 ]);
+            });
+
+            it('Contains a convenience function to dirty all the batchers it is in', {
+                var b1 = new Batcher({ shader : mock(ShaderResource), camera : mock(Camera) });
+                var b2 = new Batcher({ shader : mock(ShaderResource), camera : mock(Camera) });
+
+                var g = new Geometry({ batchers : [ b1, b2 ] });
+
+                // Batching is required to clear the dirty state set when the geometry was added.
+                b1.batch();
+                b2.batch();
+                g.dirtyBatchers();
+
+                b1.isDirty().should.be(true);
+                b2.isDirty().should.be(true);
+            });
+
+            it('Contains a convenience function to check if the geometry is indexed', {
+                var g = new Geometry({ indices : [ 0, 1, 2 ] });
+                g.isIndexed().should.be(true);
+
+                var g = new Geometry({});
+                g.isIndexed().should.be(false);
+            });
+
         });
     }
 }

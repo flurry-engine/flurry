@@ -11,13 +11,15 @@ class Main implements Buddy<[
     tests.api.maths.CircleTests,
 
     tests.api.importers.bmfont.BitmapFontParserTests,
-    tests.api.importers.textureatlas.TextureAtlasParserTests
+    tests.api.importers.textureatlas.TextureAtlasParserTests,
+
+    tests.api.gpu.geometry.VertexTests,
+    tests.api.gpu.geometry.ColorTests,
+    tests.api.gpu.geometry.GeometryTests
     
     /*
     new tests.api.gpu.batcher.BatcherTests(),
-    new tests.api.gpu.geometry.VertexTests(),
     new tests.api.gpu.geometry.GeometryTests(),
-    new tests.api.gpu.geometry.ColorTests(),
     new tests.api.gpu.geometry.shapes.ArcGeometryTests(),
     new tests.api.gpu.geometry.shapes.LineGeometryTests(),
     new tests.api.gpu.geometry.shapes.RingGeometryTests(),
