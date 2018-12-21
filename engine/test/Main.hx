@@ -14,24 +14,21 @@ class Main implements Buddy<[
     tests.api.importers.textureatlas.TextureAtlasParserTests,
 
     tests.api.gpu.geometry.VertexTests,
+    tests.api.gpu.geometry.TransformationTests,
+    tests.api.gpu.geometry.BlendingTests,
     tests.api.gpu.geometry.ColorTests,
     tests.api.gpu.geometry.GeometryTests,
-    tests.api.gpu.batcher.BatcherTests
-    
-    /*
-    new tests.api.gpu.batcher.BatcherTests(),
-    new tests.api.gpu.geometry.GeometryTests(),
-    new tests.api.gpu.geometry.shapes.ArcGeometryTests(),
-    new tests.api.gpu.geometry.shapes.LineGeometryTests(),
-    new tests.api.gpu.geometry.shapes.RingGeometryTests(),
-    new tests.api.gpu.geometry.shapes.QuadGeometryTests(),
-    new tests.api.gpu.geometry.shapes.TextGeometryTests(),
-    new tests.api.gpu.geometry.shapes.CircleGeometryTests(),
-    new tests.api.gpu.geometry.shapes.QuadPackGeometryTests(),
-    new tests.api.gpu.geometry.shapes.RectangleGeometryTests(),
+    tests.api.gpu.geometry.shapes.ArcGeometryTests,
+    tests.api.gpu.geometry.shapes.CircleGeometryTests,
+    tests.api.gpu.geometry.shapes.LineGeometryTests,
+    tests.api.gpu.geometry.shapes.QuadGeometryTests,
+    tests.api.gpu.geometry.shapes.QuadPackGeometryTests,
+    tests.api.gpu.geometry.shapes.RectangleGeometryTests,
+    tests.api.gpu.geometry.shapes.RingGeometryTests,
+    tests.api.gpu.geometry.shapes.TextGeometryTests,
 
-    new tests.modules.scene.SceneTests()
-    */
+    tests.api.gpu.batcher.BatcherStateTests,
+    tests.api.gpu.batcher.BatcherTests
 ]>
 {
     //

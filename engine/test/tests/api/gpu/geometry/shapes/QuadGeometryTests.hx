@@ -1,4 +1,4 @@
-package tests.gpu.api.geometry.shapes;
+package tests.api.gpu.geometry.shapes;
 
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
@@ -18,6 +18,7 @@ class QuadGeometryTests extends BuddySuite
     public function new()
     {
         describe('QuadGeometry', {
+
             var texture = mock(ImageResource);
             var batcher = new Batcher({
                 camera : mock(Camera),
@@ -27,19 +28,42 @@ class QuadGeometryTests extends BuddySuite
             texture.width.returns(256);
             texture.height.returns(128);
 
-            it('Can create a quad the size of the provided texture', {
+            it('Creates an indexed quad with the textures size by default', {
                 var quad = new QuadGeometry({
                     textures : [ texture ],
                     batchers : [ batcher ]
                 });
 
-                quad.vertices[0].position.equals(new Vector(            0,              0)).should.be(true);
-                quad.vertices[1].position.equals(new Vector(texture.width,              0)).should.be(true);
-                quad.vertices[2].position.equals(new Vector(texture.width, texture.height)).should.be(true);
+                quad.vertices.length.should.be(4);
+                
+                quad.vertices[0].position.x.should.be(0);
+                quad.vertices[0].position.y.should.be(texture.height);
+                quad.vertices[1].position.x.should.be(texture.width);
+                quad.vertices[1].position.y.should.be(texture.height);
+                quad.vertices[2].position.x.should.be(0);
+                quad.vertices[2].position.y.should.be(0);
+                quad.vertices[3].position.x.should.be(texture.width);
+                quad.vertices[3].position.y.should.be(0);
 
-                quad.vertices[3].position.equals(new Vector(            0, texture.height)).should.be(true);
-                quad.vertices[4].position.equals(new Vector(            0,              0)).should.be(true);
-                quad.vertices[5].position.equals(new Vector(texture.width, texture.height)).should.be(true);
+                quad.vertices[0].texCoord.x.should.be(0);
+                quad.vertices[0].texCoord.y.should.be(1);
+                quad.vertices[1].texCoord.x.should.be(1);
+                quad.vertices[1].texCoord.y.should.be(1);
+                quad.vertices[2].texCoord.x.should.be(0);
+                quad.vertices[2].texCoord.y.should.be(0);
+                quad.vertices[3].texCoord.x.should.be(1);
+                quad.vertices[3].texCoord.y.should.be(0);
+
+                for (i in 0...quad.vertices.length)
+                {
+                    quad.vertices[i].color.r.should.be(1);
+                    quad.vertices[i].color.r.should.be(1);
+                    quad.vertices[i].color.r.should.be(1);
+                    quad.vertices[i].color.r.should.be(1);
+                }
+
+                quad.indices.length.should.be(6);
+                quad.indices.should.containExactly([ 0, 1, 2, 2, 1, 3 ]);
             });
 
             it('Can create a quad at a specific position', {
@@ -68,13 +92,15 @@ class QuadGeometryTests extends BuddySuite
                     batchers : [ batcher ]
                 });
 
-                quad.vertices[0].position.equals(new Vector(    0,      0)).should.be(true);
-                quad.vertices[1].position.equals(new Vector(width,      0)).should.be(true);
-                quad.vertices[2].position.equals(new Vector(width, height)).should.be(true);
-
-                quad.vertices[3].position.equals(new Vector(    0, height)).should.be(true);
-                quad.vertices[4].position.equals(new Vector(    0,      0)).should.be(true);
-                quad.vertices[5].position.equals(new Vector(width, height)).should.be(true);
+                quad.vertices.length.should.be(4);
+                quad.vertices[0].position.x.should.be(0);
+                quad.vertices[0].position.y.should.be(height);
+                quad.vertices[1].position.x.should.be(width);
+                quad.vertices[1].position.y.should.be(height);
+                quad.vertices[2].position.x.should.be(0);
+                quad.vertices[2].position.y.should.be(0);
+                quad.vertices[3].position.x.should.be(width);
+                quad.vertices[3].position.y.should.be(0);
             });
 
             it('Will UV the entire texture by default', {
@@ -83,13 +109,15 @@ class QuadGeometryTests extends BuddySuite
                     batchers : [ batcher ]
                 });
 
-                quad.vertices[0].texCoord.equals(new Vector(0, 0)).should.be(true);
-                quad.vertices[1].texCoord.equals(new Vector(1, 0)).should.be(true);
-                quad.vertices[2].texCoord.equals(new Vector(1, 1)).should.be(true);
-
-                quad.vertices[3].texCoord.equals(new Vector(0, 1)).should.be(true);
-                quad.vertices[4].texCoord.equals(new Vector(0, 0)).should.be(true);
-                quad.vertices[5].texCoord.equals(new Vector(1, 1)).should.be(true);
+                quad.vertices.length.should.be(4);
+                quad.vertices[0].texCoord.x.should.be(0);
+                quad.vertices[0].texCoord.y.should.be(1);
+                quad.vertices[1].texCoord.x.should.be(1);
+                quad.vertices[1].texCoord.y.should.be(1);
+                quad.vertices[2].texCoord.x.should.be(0);
+                quad.vertices[2].texCoord.y.should.be(0);
+                quad.vertices[3].texCoord.x.should.be(1);
+                quad.vertices[3].texCoord.y.should.be(0);
             });
 
             it('Allows a custom UV region to be specified', {
@@ -101,13 +129,15 @@ class QuadGeometryTests extends BuddySuite
                     batchers : [ batcher ]
                 });
 
-                quad.vertices[0].texCoord.equals(new Vector(uv.x, uv.y)).should.be(true);
-                quad.vertices[1].texCoord.equals(new Vector(uv.w, uv.y)).should.be(true);
-                quad.vertices[2].texCoord.equals(new Vector(uv.w, uv.h)).should.be(true);
-
-                quad.vertices[3].texCoord.equals(new Vector(uv.x, uv.h)).should.be(true);
-                quad.vertices[4].texCoord.equals(new Vector(uv.x, uv.y)).should.be(true);
-                quad.vertices[5].texCoord.equals(new Vector(uv.w, uv.h)).should.be(true);
+                quad.vertices.length.should.be(4);
+                quad.vertices[0].texCoord.x.should.beCloseTo(uv.x);
+                quad.vertices[0].texCoord.y.should.beCloseTo(uv.h);
+                quad.vertices[1].texCoord.x.should.beCloseTo(uv.w);
+                quad.vertices[1].texCoord.y.should.beCloseTo(uv.h);
+                quad.vertices[2].texCoord.x.should.beCloseTo(uv.x);
+                quad.vertices[2].texCoord.y.should.beCloseTo(uv.y);
+                quad.vertices[3].texCoord.x.should.beCloseTo(uv.w);
+                quad.vertices[3].texCoord.y.should.beCloseTo(uv.y);
             });
 
             it('Allows resizing the quad using a vector', {
@@ -118,14 +148,15 @@ class QuadGeometryTests extends BuddySuite
                 });
 
                 quad.resize(size);
-
-                quad.vertices[0].position.equals(new Vector(     0,      0)).should.be(true);
-                quad.vertices[1].position.equals(new Vector(size.x,      0)).should.be(true);
-                quad.vertices[2].position.equals(new Vector(size.x, size.y)).should.be(true);
-
-                quad.vertices[3].position.equals(new Vector(     0, size.y)).should.be(true);
-                quad.vertices[4].position.equals(new Vector(     0,      0)).should.be(true);
-                quad.vertices[5].position.equals(new Vector(size.x, size.y)).should.be(true);
+                quad.vertices.length.should.be(4);
+                quad.vertices[0].position.x.should.beCloseTo(0);
+                quad.vertices[0].position.y.should.beCloseTo(size.y);
+                quad.vertices[1].position.x.should.beCloseTo(size.x);
+                quad.vertices[1].position.y.should.beCloseTo(size.y);
+                quad.vertices[2].position.x.should.beCloseTo(0);
+                quad.vertices[2].position.y.should.beCloseTo(0);
+                quad.vertices[3].position.x.should.beCloseTo(size.x);
+                quad.vertices[3].position.y.should.beCloseTo(0);
             });
 
             it('Allows resizing the quad using two floats', {
@@ -136,14 +167,15 @@ class QuadGeometryTests extends BuddySuite
                 });
 
                 quad.resize_xy(size.x, size.y);
-
-                quad.vertices[0].position.equals(new Vector(     0,      0)).should.be(true);
-                quad.vertices[1].position.equals(new Vector(size.x,      0)).should.be(true);
-                quad.vertices[2].position.equals(new Vector(size.x, size.y)).should.be(true);
-
-                quad.vertices[3].position.equals(new Vector(     0, size.y)).should.be(true);
-                quad.vertices[4].position.equals(new Vector(     0,      0)).should.be(true);
-                quad.vertices[5].position.equals(new Vector(size.x, size.y)).should.be(true);
+                quad.vertices.length.should.be(4);
+                quad.vertices[0].position.x.should.beCloseTo(0);
+                quad.vertices[0].position.y.should.beCloseTo(size.y);
+                quad.vertices[1].position.x.should.beCloseTo(size.x);
+                quad.vertices[1].position.y.should.beCloseTo(size.y);
+                quad.vertices[2].position.x.should.beCloseTo(0);
+                quad.vertices[2].position.y.should.beCloseTo(0);
+                quad.vertices[3].position.x.should.beCloseTo(size.x);
+                quad.vertices[3].position.y.should.beCloseTo(0);
             });
 
             it('Allows resizing and setting the position of the quad using a rectangle', {
@@ -154,16 +186,18 @@ class QuadGeometryTests extends BuddySuite
                 });
 
                 quad.set(rect);
+                quad.vertices.length.should.be(4);
+                quad.vertices[0].position.x.should.beCloseTo(0);
+                quad.vertices[0].position.y.should.beCloseTo(rect.h);
+                quad.vertices[1].position.x.should.beCloseTo(rect.w);
+                quad.vertices[1].position.y.should.beCloseTo(rect.h);
+                quad.vertices[2].position.x.should.beCloseTo(0);
+                quad.vertices[2].position.y.should.beCloseTo(0);
+                quad.vertices[3].position.x.should.beCloseTo(rect.w);
+                quad.vertices[3].position.y.should.beCloseTo(0);
 
-                quad.vertices[0].position.equals(new Vector(     0,      0)).should.be(true);
-                quad.vertices[1].position.equals(new Vector(rect.w,      0)).should.be(true);
-                quad.vertices[2].position.equals(new Vector(rect.w, rect.h)).should.be(true);
-
-                quad.vertices[3].position.equals(new Vector(     0, rect.h)).should.be(true);
-                quad.vertices[4].position.equals(new Vector(     0,      0)).should.be(true);
-                quad.vertices[5].position.equals(new Vector(rect.w, rect.h)).should.be(true);
-
-                quad.transformation.position.equals(new Vector(rect.x, rect.y));
+                quad.transformation.position.x.should.beCloseTo(rect.x);
+                quad.transformation.position.y.should.beCloseTo(rect.y);
             });
 
             it('Allows resizing and setting the position of the quad using four floats', {
@@ -174,16 +208,18 @@ class QuadGeometryTests extends BuddySuite
                 });
 
                 quad.set_xywh(rect.x, rect.y, rect.w, rect.h);
+                quad.vertices.length.should.be(4);
+                quad.vertices[0].position.x.should.beCloseTo(0);
+                quad.vertices[0].position.y.should.beCloseTo(rect.h);
+                quad.vertices[1].position.x.should.beCloseTo(rect.w);
+                quad.vertices[1].position.y.should.beCloseTo(rect.h);
+                quad.vertices[2].position.x.should.beCloseTo(0);
+                quad.vertices[2].position.y.should.beCloseTo(0);
+                quad.vertices[3].position.x.should.beCloseTo(rect.w);
+                quad.vertices[3].position.y.should.beCloseTo(0);
 
-                quad.vertices[0].position.equals(new Vector(     0,      0)).should.be(true);
-                quad.vertices[1].position.equals(new Vector(rect.w,      0)).should.be(true);
-                quad.vertices[2].position.equals(new Vector(rect.w, rect.h)).should.be(true);
-
-                quad.vertices[3].position.equals(new Vector(     0, rect.h)).should.be(true);
-                quad.vertices[4].position.equals(new Vector(     0,      0)).should.be(true);
-                quad.vertices[5].position.equals(new Vector(rect.w, rect.h)).should.be(true);
-
-                quad.transformation.position.equals(new Vector(rect.x, rect.y));
+                quad.transformation.position.x.should.beCloseTo(rect.x);
+                quad.transformation.position.y.should.beCloseTo(rect.y);
             });
 
             it('Allows setting normalized UV coordinates using a rectangle', {
@@ -194,14 +230,19 @@ class QuadGeometryTests extends BuddySuite
                 });
 
                 quad.uv(rect);
+                quad.vertices.length.should.be(4);
 
-                quad.vertices[0].texCoord.equals(new Vector(rect.x, rect.y)).should.be(true);
-                quad.vertices[1].texCoord.equals(new Vector(rect.w, rect.y)).should.be(true);
-                quad.vertices[2].texCoord.equals(new Vector(rect.w, rect.h)).should.be(true);
+                quad.vertices[0].texCoord.x.should.beCloseTo(rect.x);
+                quad.vertices[0].texCoord.y.should.beCloseTo(rect.h);
 
-                quad.vertices[3].texCoord.equals(new Vector(rect.x, rect.h)).should.be(true);
-                quad.vertices[4].texCoord.equals(new Vector(rect.x, rect.y)).should.be(true);
-                quad.vertices[5].texCoord.equals(new Vector(rect.w, rect.h)).should.be(true);
+                quad.vertices[1].texCoord.x.should.beCloseTo(rect.w);
+                quad.vertices[1].texCoord.y.should.beCloseTo(rect.h);
+
+                quad.vertices[2].texCoord.x.should.beCloseTo(rect.x);
+                quad.vertices[2].texCoord.y.should.beCloseTo(rect.y);
+
+                quad.vertices[3].texCoord.x.should.beCloseTo(rect.w);
+                quad.vertices[3].texCoord.y.should.beCloseTo(rect.y);
             });
 
             it('Allows setting normalized coordinates using four floats', {
@@ -212,14 +253,19 @@ class QuadGeometryTests extends BuddySuite
                 });
 
                 quad.uv_xyzw(rect.x, rect.y, rect.w, rect.h);
+                quad.vertices.length.should.be(4);
 
-                quad.vertices[0].texCoord.equals(new Vector(rect.x, rect.y)).should.be(true);
-                quad.vertices[1].texCoord.equals(new Vector(rect.w, rect.y)).should.be(true);
-                quad.vertices[2].texCoord.equals(new Vector(rect.w, rect.h)).should.be(true);
+                quad.vertices[0].texCoord.x.should.beCloseTo(rect.x);
+                quad.vertices[0].texCoord.y.should.beCloseTo(rect.h);
 
-                quad.vertices[3].texCoord.equals(new Vector(rect.x, rect.h)).should.be(true);
-                quad.vertices[4].texCoord.equals(new Vector(rect.x, rect.y)).should.be(true);
-                quad.vertices[5].texCoord.equals(new Vector(rect.w, rect.h)).should.be(true);
+                quad.vertices[1].texCoord.x.should.beCloseTo(rect.w);
+                quad.vertices[1].texCoord.y.should.beCloseTo(rect.h);
+
+                quad.vertices[2].texCoord.x.should.beCloseTo(rect.x);
+                quad.vertices[2].texCoord.y.should.beCloseTo(rect.y);
+
+                quad.vertices[3].texCoord.x.should.beCloseTo(rect.w);
+                quad.vertices[3].texCoord.y.should.beCloseTo(rect.y);
             });
 
             it('Allows setting texture space UV coordinates using a rectangle', {
@@ -230,14 +276,19 @@ class QuadGeometryTests extends BuddySuite
                 });
 
                 quad.uv(rect, false);
+                quad.vertices.length.should.be(4);
 
-                quad.vertices[0].texCoord.equals(new Vector(rect.x / texture.width, rect.y / texture.height)).should.be(true);
-                quad.vertices[1].texCoord.equals(new Vector(rect.w / texture.width, rect.y / texture.height)).should.be(true);
-                quad.vertices[2].texCoord.equals(new Vector(rect.w / texture.width, rect.h / texture.height)).should.be(true);
+                quad.vertices[0].texCoord.x.should.beCloseTo(rect.x / texture.width);
+                quad.vertices[0].texCoord.y.should.beCloseTo(rect.h / texture.height);
 
-                quad.vertices[3].texCoord.equals(new Vector(rect.x / texture.width, rect.h / texture.height)).should.be(true);
-                quad.vertices[4].texCoord.equals(new Vector(rect.x / texture.width, rect.y / texture.height)).should.be(true);
-                quad.vertices[5].texCoord.equals(new Vector(rect.w / texture.width, rect.h / texture.height)).should.be(true);
+                quad.vertices[1].texCoord.x.should.beCloseTo(rect.w / texture.width);
+                quad.vertices[1].texCoord.y.should.beCloseTo(rect.h / texture.height);
+
+                quad.vertices[2].texCoord.x.should.beCloseTo(rect.x / texture.width);
+                quad.vertices[2].texCoord.y.should.beCloseTo(rect.y / texture.height);
+
+                quad.vertices[3].texCoord.x.should.beCloseTo(rect.w / texture.width);
+                quad.vertices[3].texCoord.y.should.beCloseTo(rect.y / texture.height);
             });
 
             it('Allows setting texture space coordinates using four floats', {
@@ -248,14 +299,11 @@ class QuadGeometryTests extends BuddySuite
                 });
 
                 quad.uv_xyzw(rect.x, rect.y, rect.w, rect.h, false);
-
-                quad.vertices[0].texCoord.equals(new Vector(rect.x / texture.width, rect.y / texture.height)).should.be(true);
-                quad.vertices[1].texCoord.equals(new Vector(rect.w / texture.width, rect.y / texture.height)).should.be(true);
-                quad.vertices[2].texCoord.equals(new Vector(rect.w / texture.width, rect.h / texture.height)).should.be(true);
-
-                quad.vertices[3].texCoord.equals(new Vector(rect.x / texture.width, rect.h / texture.height)).should.be(true);
-                quad.vertices[4].texCoord.equals(new Vector(rect.x / texture.width, rect.y / texture.height)).should.be(true);
-                quad.vertices[5].texCoord.equals(new Vector(rect.w / texture.width, rect.h / texture.height)).should.be(true);
+                quad.vertices.length.should.be(4);
+                quad.vertices[0].texCoord.equals(new Vector(rect.x / texture.width, rect.h / texture.height)).should.be(true);
+                quad.vertices[1].texCoord.equals(new Vector(rect.w / texture.width, rect.h / texture.height)).should.be(true);
+                quad.vertices[2].texCoord.equals(new Vector(rect.x / texture.width, rect.y / texture.height)).should.be(true);
+                quad.vertices[3].texCoord.equals(new Vector(rect.w / texture.width, rect.y / texture.height)).should.be(true);
             });
         });
     }

@@ -1,12 +1,18 @@
 package tests.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Hash;
+import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Matrix;
+import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
+import uk.aidanlee.flurry.api.gpu.geometry.Blending;
 import uk.aidanlee.flurry.api.gpu.geometry.Color;
+import uk.aidanlee.flurry.api.gpu.geometry.Transformation;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
@@ -82,22 +88,71 @@ class BatcherTests extends BuddySuite
                 b.isDirty().should.be(true);
             });
 
-            // The following tests really need some mocking framework.
-            // Mockatoo has some functionality broken in haxe 4 preview 5
-            // non extern classes can no longer implement dynamic
-            // so we cannot set return values for mocked classes.
-
             it('Has a function to add geometry and dirty the batcher', {
-                //
+                var g = mock(Geometry);
+                g.batchers.returns([]);
+
+                var b = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
+                b.addGeometry(g);
+                b.isDirty().should.be(true);
             });
 
             it('Has a function to remove geometry and dirty the batcher', {
-                //
+                var g = mock(Geometry);
+                g.batchers.returns([]);
+
+                var b = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
+                b.removeGeometry(g);
+                b.isDirty().should.be(true);
             });
 
             describe('Batching', {
                 it('Can sort geometry to minimise the number of state changes needed to draw it', {
-                    //
+                    var shader = mock(ShaderResource);
+                    shader.id.returns('1');
+
+                    var texture1 = mock(ImageResource);
+                    var texture2 = mock(ImageResource);
+                    texture1.id.returns('1');
+                    texture2.id.returns('2');
+
+                    var camera = mock(Camera);
+                    camera.projection.returns(new Matrix());
+                    camera.viewInverted.returns(new Matrix());
+                    camera.viewport.returns(new Rectangle());
+
+                    var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
+                    var geometry1 = new Geometry({ batchers : [ batcher ], textures : [ texture1 ], vertices : mockVertexData() });
+                    var geometry2 = new Geometry({ batchers : [ batcher ], textures : [ texture2 ], vertices : mockVertexData() });
+                    var geometry3 = new Geometry({ batchers : [ batcher ], textures : [ texture1 ], vertices : mockVertexData() });
+
+                    var commands = batcher.batch();
+                    commands.length.should.be(2);
+
+                    var command = commands[0];
+                    command.geometry.length.should.be(2);
+                    command.geometry[0].id.should.be(geometry1.id);
+                    command.geometry[1].id.should.be(geometry3.id);
+                    command.vertices.should.be(6);
+                    command.indices.should.be(0);
+                    command.textures.length.should.be(1);
+                    command.textures[0].id.should.be(texture1.id);
+                    command.shader.should.not.be(null);
+                    command.shader.id.should.be(shader.id);
+                    command.target.should.be(null);
+                    command.isIndexed().should.be(false);
+
+                    var command = commands[1];
+                    command.geometry.length.should.be(1);
+                    command.geometry[0].id.should.be(geometry2.id);
+                    command.textures.length.should.be(1);
+                    command.textures[0].id.should.be(texture2.id);
+                    command.vertices.should.be(3);
+                    command.indices.should.be(0);
+                    command.shader.should.not.be(null);
+                    command.shader.id.should.be(shader.id);
+                    command.target.should.be(null);
+                    command.isIndexed().should.be(false);
                 });
 
                 it('Produces geometry draw commands describing how to draw a set of geometry at once', {
@@ -115,7 +170,16 @@ class BatcherTests extends BuddySuite
                 it('Removes immediate geometry from itself once it has been batched', {
                     //
                 });
+
+                it('Can sort geometry even when they have no vertex data', {
+                    //
+                });
             });
         });
+    }
+
+    private function mockVertexData() : Array<Vertex>
+    {
+        return [ mock(Vertex), mock(Vertex), mock(Vertex) ];
     }
 }

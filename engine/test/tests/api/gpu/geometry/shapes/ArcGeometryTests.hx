@@ -1,8 +1,6 @@
-package tests.gpu.api.geometry.shapes;
+package tests.api.gpu.geometry.shapes;
 
 import buddy.BuddySuite;
-
-using buddy.Should;
 
 class ArcGeometryTests extends BuddySuite
 {
