@@ -1,7 +1,9 @@
 package tests.api.maths;
 
+import uk.aidanlee.flurry.api.maths.Quaternion;
 import buddy.BuddySuite;
 import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Maths;
 
 using buddy.Should;
@@ -328,8 +330,30 @@ class VectorTests extends BuddySuite
             });
 
             describe('Transformations', {
-                it('Can transform itself by a matrix');
-                it('Can get the euler angles from a quaternion');
+                it('Can transform itself by a matrix', {
+                    var x =  3;
+                    var y = -5;
+                    var z =  7.2;
+                    var m = new Matrix().makeTranslation(7.2, 3, -5);
+                    var v = new Vector(x, y, z).transform(m);
+
+                    v.x.should.beCloseTo(m[0] * x + m[4] * y + m[ 8] * z + m[12]);
+                    v.y.should.beCloseTo(m[1] * x + m[5] * y + m[ 9] * z + m[13]);
+                    v.z.should.beCloseTo(m[2] * x + m[6] * y + m[10] * z + m[14]);
+                });
+
+                it('Can set itself to the euler angle from a quaternion', {
+                    var q = new Quaternion().setFromAxisAngle(new Vector(1, 0, 1), Maths.toRadians(45));
+                    var v = new Vector().setEulerFromQuaternion(q);
+
+                    var sqx = q.x * q.x;
+                    var sqy = q.y * q.y;
+                    var sqz = q.z * q.z;
+                    var sqw = q.w * q.w;
+                    v.x.should.beCloseTo(Maths.atan2(2 * (q.x * q.w - q.y * q.z), (sqw - sqx - sqy + sqz)));
+                    v.y.should.beCloseTo(Maths.asin(Maths.clamp(2 * (q.x * q.z + q.y * q.w), -1, 1)));
+                    v.z.should.beCloseTo(Maths.atan2(2 * (q.z * q.w - q.x * q.y), (sqw + sqx - sqy - sqz)));
+                });
             });
 
             describe('Overloaded Operators', {
