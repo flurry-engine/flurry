@@ -1,9 +1,9 @@
 package tests.api.maths;
 
-import uk.aidanlee.flurry.api.maths.Quaternion;
 import buddy.BuddySuite;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
+import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Maths;
 
 using buddy.Should;
