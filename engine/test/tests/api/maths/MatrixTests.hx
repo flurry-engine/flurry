@@ -3,6 +3,7 @@ package tests.api.maths;
 import buddy.BuddySuite;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Quaternion;
+import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Maths;
 
 using buddy.Should;
@@ -11,16 +12,52 @@ class MatrixTests extends BuddySuite
 {
     public function new()
     {
-        describe('Matrix', {
+        describe('Column Major Matrix', {
             describe('Constructor', {
-                it('Can create a default identity matrix');
-                it('Can create a custom matrix passing any number of the 16 elements');
-            });
+                it('Can create a default identity matrix', {
+                    var m = new Matrix();
+                    m[ 0].should.be(1);
+                    m[ 1].should.be(0);
+                    m[ 2].should.be(0);
+                    m[ 3].should.be(0);
 
-            describe('Properties', {
-                it('Can access the 16 elements through row getters');
-                it('Can set the 16 elements through row setters');
-                it('Can directly access element vector');
+                    m[ 4].should.be(0);
+                    m[ 5].should.be(1);
+                    m[ 6].should.be(0);
+                    m[ 7].should.be(0);
+
+                    m[ 8].should.be(0);
+                    m[ 9].should.be(0);
+                    m[10].should.be(1);
+                    m[11].should.be(0);
+
+                    m[12].should.be(0);
+                    m[13].should.be(0);
+                    m[14].should.be(0);
+                    m[15].should.be(1);
+                });
+                it('Can create a custom matrix passing any number of the 16 elements', {
+                    var m = new Matrix(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+                    m[ 0].should.be(0);
+                    m[ 1].should.be(4);
+                    m[ 2].should.be(8);
+                    m[ 3].should.be(12);
+
+                    m[ 4].should.be(1);
+                    m[ 5].should.be(5);
+                    m[ 6].should.be(9);
+                    m[ 7].should.be(13);
+
+                    m[ 8].should.be(2);
+                    m[ 9].should.be(6);
+                    m[10].should.be(10);
+                    m[11].should.be(14);
+
+                    m[12].should.be(3);
+                    m[13].should.be(7);
+                    m[14].should.be(11);
+                    m[15].should.be(15);
+                });
             });
 
             describe('General', {
@@ -54,8 +91,37 @@ class MatrixTests extends BuddySuite
             });
 
             describe('Transformations', {
-                it('Can set its position from a vector');
-                it('Can return the position as a vector');
+                it('Can set its position from a vector', {
+                    var v = new Vector(3, -5, 7.5);
+                    var m = new Matrix().setPosition(v);
+
+                    m[ 0].should.be(1);
+                    m[ 1].should.be(0);
+                    m[ 2].should.be(0);
+                    m[ 3].should.be(0);
+
+                    m[ 4].should.be(0);
+                    m[ 5].should.be(1);
+                    m[ 6].should.be(0);
+                    m[ 7].should.be(0);
+
+                    m[ 8].should.be(0);
+                    m[ 9].should.be(0);
+                    m[10].should.be(1);
+                    m[11].should.be(0);
+
+                    m[12].should.be(v.x);
+                    m[13].should.be(v.y);
+                    m[14].should.be(v.z);
+                    m[15].should.be(1);
+                });
+                it('Can return the position as a vector', {
+                    var m = new Matrix().setPosition(new Vector(3, -5, 7.5));
+                    var v = m.getPosition();
+                    v.x.should.be(3);
+                    v.y.should.be(-5);
+                    v.z.should.be(7.5);
+                });
                 it('Can create a look at matrix');
                 it('Can create an identity matrix');
                 it('Can create a matrix representing a 2D view');
