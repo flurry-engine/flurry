@@ -42,6 +42,9 @@
 -lib mockatoo
 -lib snow
 -lib haxe-concurrent
+
+--no-inline
+
 --macro snow.Set.assets("snow.core.native.assets.Assets")
 --macro snow.Set.runtime("snow.modules.sdl.Runtime")
 --macro snow.Set.audio("snow.modules.openal.Audio")

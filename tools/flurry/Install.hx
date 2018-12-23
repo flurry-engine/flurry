@@ -16,7 +16,7 @@ class Install extends Script
         System.runCommand(workingDirectory, 'haxelib git linc_opengl    https://github.com/Aidan63/linc_opengl gl-bindless-textures --quiet --never', []);
         System.runCommand(workingDirectory, 'haxelib git snow           https://github.com/Aidan63/snow           --quiet --never', []);
         System.runCommand(workingDirectory, 'haxelib git linc_directx   https://github.com/Aidan63/linc_directx   --quiet --never', []);
-        System.runCommand(workingDirectory, 'haxelib git linc_sdl       https://github.com/snowkit/linc_sdl       --quiet --never', []);
+        System.runCommand(workingDirectory, 'haxelib git linc_sdl       https://github.com/Aidan63/linc_sdl       --quiet --never', []);
         System.runCommand(workingDirectory, 'haxelib git linc_ogg       https://github.com/snowkit/linc_ogg       --quiet --never', []);
         System.runCommand(workingDirectory, 'haxelib git linc_stb       https://github.com/snowkit/linc_stb       --quiet --never', []);
         System.runCommand(workingDirectory, 'haxelib git linc_timestamp https://github.com/snowkit/linc_timestamp --quiet --never', []);
