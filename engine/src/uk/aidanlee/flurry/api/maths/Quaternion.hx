@@ -198,7 +198,7 @@ class Quaternion
      * @param _z Value for the z component.
      * @param _w Value for the w component.
      */
-    inline public function set_xyzw(_x : Float, _y : Float, _z : Float, _w : Float)
+    inline public function set_xyzw(_x : Float, _y : Float, _z : Float, _w : Float) : Quaternion
     {
         ignoreEuler = true;
 
@@ -211,6 +211,8 @@ class Quaternion
 
         // Defer updating the euler vector until all components have been set.
         updateEuler();
+
+        return this;
     }
 
     /**
@@ -219,7 +221,7 @@ class Quaternion
      * @param _y Value for the y component.
      * @param _z Value for the z component.
      */
-    inline public function set_xyz(_x : Float, _y : Float, _z : Float)
+    inline public function set_xyz(_x : Float, _y : Float, _z : Float) : Quaternion
     {
         ignoreEuler = true;
 
@@ -231,6 +233,8 @@ class Quaternion
 
         // Defer updating the euler vector until all components have been set.
         updateEuler();
+
+        return this;
     }
 
     // #region maths
