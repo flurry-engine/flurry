@@ -1,8 +1,9 @@
 -main Main
 
--cpp bin
+-js bin/js/engine-tests.js
 
 -D reporter=ColorReporter
+-D js-es5
 
 -lib buddy
 -lib flurry
@@ -17,6 +18,7 @@
 -lib linc_openal
 -lib snow
 -lib mockatoo
+-lib hxnodejs
 
 -resource assets/atlas/cavesofgallet.atlas@atlasData
 -resource assets/fonts/ubuntu.fnt@fntUbuntu
