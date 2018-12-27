@@ -16,7 +16,7 @@ class BatcherStateTests extends BuddySuite
 {
     public function new()
     {
-        describe('BatcherState tests', {
+        describe('BatcherState', {
             it('Can create a state for a batcher', {
                 var batcher = mock(Batcher);
                 batcher.id.returns(0);

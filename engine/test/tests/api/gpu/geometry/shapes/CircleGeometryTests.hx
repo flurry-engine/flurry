@@ -8,6 +8,22 @@ class CircleGeometryTests extends BuddySuite
 {
     public function new()
     {
-        describe('CircleGeometry', {});
+        describe('CircleGeometry', {
+            it('Can create a circle geometry with an x and y radius', {
+                //
+            });
+
+            it('Can create a circle geometry with a start and end angle', {
+                //
+            });
+
+            it('Can create a circle geometry with a specified smoothness', {
+                //
+            });
+
+            it('Can update all the circle geometries options from one function', {
+                //
+            });
+        });
     }
 }

@@ -8,6 +8,18 @@ class TextGeometryTests extends BuddySuite
 {
     public function new()
     {
-        describe('TextGeometry', {});
+        describe('TextGeometry', {
+            it('Can create a text geometry from an initial string and bitmap font data', {
+                //
+            });
+
+            it('Will re-create the geometry when the bitmap font has changed', {
+                //
+            });
+
+            it('Will re-create the geometry when the text has changed', {
+                //
+            });
+        });
     }
 }

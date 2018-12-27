@@ -3,13 +3,13 @@ package uk.aidanlee.flurry.api.resources;
 import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 
-typedef ResourceInfo   = { id : String, ?path : String }
-typedef ParcelInfo     = String;
-typedef BytesInfo      = ResourceInfo;
-typedef TextInfo       = ResourceInfo;
-typedef JSONInfo       = ResourceInfo;
-typedef ImageInfo      = ResourceInfo;
-typedef ShaderInfo     = {
+typedef ResourceInfo = { id : String, ?path : String }
+typedef ParcelInfo   = String;
+typedef BytesInfo    = ResourceInfo;
+typedef TextInfo     = ResourceInfo;
+typedef JSONInfo     = ResourceInfo;
+typedef ImageInfo    = ResourceInfo;
+typedef ShaderInfo   = {
     >ResourceInfo,
 
     ?webgl : {

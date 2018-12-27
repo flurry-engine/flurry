@@ -34,6 +34,14 @@ class TextGeometry extends Geometry
      */
     public var font : BitmapFontData;
 
+    inline function set_font(_font : BitmapFontData) : BitmapFontData {
+        font = _font;
+
+        generateGeometry();
+
+        return font;
+    }
+
     /**
      * The string to draw.
      */
@@ -46,11 +54,6 @@ class TextGeometry extends Geometry
 
         return text;
     }
-
-    /**
-     * Starting position for the text (top left aligned).
-     */
-    public var position : Vector;
     
     /**
      * Cursors position for creating quads.
@@ -67,9 +70,8 @@ class TextGeometry extends Geometry
 
         cursorPosition = _options.position.clone();
 
-        font     = _options.font;
-        position = _options.position;
-        text     = _options.text;
+        font = _options.font;
+        text = _options.text;
     }
 
     /**

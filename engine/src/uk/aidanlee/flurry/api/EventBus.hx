@@ -118,7 +118,8 @@ class EventBus
      * @param _properties Data to go with the event.
      * @return Listener ID
      */
-    @:generic public function queue<T>(_event : String, _properties : T = null) : Int
+    @:generic
+    public function queue<T>(_event : String, _properties : T = null) : Int
     {
         var id = Hash.uniqueHash();
 

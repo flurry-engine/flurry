@@ -6,6 +6,10 @@ class ArcGeometryTests extends BuddySuite
 {
     public function new()
     {
-        describe('ArcGeometry', {});
+        describe('ArcGeometry', {
+            it('Can create an arc geometry from circle options', {
+                //
+            });
+        });
     }
 }
