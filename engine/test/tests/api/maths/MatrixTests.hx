@@ -149,12 +149,12 @@ class MatrixTests extends BuddySuite
 
                     m[ 8].should.beCloseTo( 8);
                     m[ 9].should.beCloseTo( 9);
-                    m[10].should.beCloseTo(9);
+                    m[10].should.beCloseTo(10);
                     m[11].should.beCloseTo(11);
 
                     m[12].should.beCloseTo(12);
                     m[13].should.beCloseTo(13);
-                    m[14].should.beCloseTo(13);
+                    m[14].should.beCloseTo(14);
                     m[15].should.beCloseTo(15);
                 });
                 it('Can return an array containing all elements', {
@@ -165,10 +165,7 @@ class MatrixTests extends BuddySuite
                 });
                 it('Can print out a string with all the elements values to three decimal places', {
                     var m = new Matrix(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-                    var s = '{ 11:' + Maths.fixed(m[0], 3) + ', 12:' + Maths.fixed(m[4], 3)  + ', 13:' + Maths.fixed(m[ 8], 3)  + ', 14:' + Maths.fixed(m[12], 3) + ' }, ' +
-                            '{ 21:' + Maths.fixed(m[1], 3) + ', 22:' + Maths.fixed(m[5], 3)  + ', 23:' + Maths.fixed(m[ 9], 3)  + ', 24:' + Maths.fixed(m[13], 3) + ' }, ' +
-                            '{ 31:' + Maths.fixed(m[2], 3) + ', 32:' + Maths.fixed(m[6], 3)  + ', 33:' + Maths.fixed(m[10], 3)  + ', 34:' + Maths.fixed(m[14], 3) + ' }, ' +
-                            '{ 41:' + Maths.fixed(m[3], 3) + ', 42:' + Maths.fixed(m[7], 3)  + ', 43:' + Maths.fixed(m[11], 3)  + ', 44:' + Maths.fixed(m[15], 3) + ' }';
+                    var s = '{ 11:${Maths.fixed(m[0], 3)}, 12:${Maths.fixed(m[4], 3)}, 13:${Maths.fixed(m[ 8], 3)}, 14: ${Maths.fixed(m[12], 3)} }, { 21:${Maths.fixed(m[1], 3)}, 22:${Maths.fixed(m[5], 3)}, 23:${Maths.fixed(m[ 9], 3)}, 24: ${Maths.fixed(m[13], 3)} }, { 31:${Maths.fixed(m[2], 3)}, 32:${Maths.fixed(m[6], 3)}, 33:${Maths.fixed(m[10], 3)}, 34: ${Maths.fixed(m[14], 3)} }, { 41:${Maths.fixed(m[3], 3)}, 42:${Maths.fixed(m[7], 3)}, 43:${Maths.fixed(m[11], 3)}, 44: ${Maths.fixed(m[15], 3)} }';
 
                     m.toString().should.be(s);
                 });

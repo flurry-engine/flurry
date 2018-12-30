@@ -223,11 +223,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      */
     public inline function toString() : String
     {
-        var str = '{ 11:${this[0]}, 12:${this[4]}, 13:${this[ 8]}, 14: ${this[12]} }, ' +
-                  '{ 21:${this[1]}, 22:${this[5]}, 23:${this[ 9]}, 24: ${this[13]} }, ' +
-                  '{ 31:${this[2]}, 32:${this[6]}, 33:${this[10]}, 34: ${this[14]} }, ' +
-                  '{ 41:${this[3]}, 42:${this[7]}, 43:${this[11]}, 44: ${this[15]} }';
-        return str;
+        return '{ 11:${Maths.fixed(this[0], 3)}, 12:${Maths.fixed(this[4], 3)}, 13:${Maths.fixed(this[ 8], 3)}, 14: ${Maths.fixed(this[12], 3)} }, { 21:${Maths.fixed(this[1], 3)}, 22:${Maths.fixed(this[5], 3)}, 23:${Maths.fixed(this[ 9], 3)}, 24: ${Maths.fixed(this[13], 3)} }, { 31:${Maths.fixed(this[2], 3)}, 32:${Maths.fixed(this[6], 3)}, 33:${Maths.fixed(this[10], 3)}, 34: ${Maths.fixed(this[14], 3)} }, { 41:${Maths.fixed(this[3], 3)}, 42:${Maths.fixed(this[7], 3)}, 43:${Maths.fixed(this[11], 3)}, 44: ${Maths.fixed(this[15], 3)} }';
     }
 
     public inline function invert() : Matrix
