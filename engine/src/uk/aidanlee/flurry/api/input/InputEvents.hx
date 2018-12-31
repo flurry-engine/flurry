@@ -1,8 +1,9 @@
 package uk.aidanlee.flurry.api.input;
 
-import snow.types.Types.ModState;
-import snow.types.Types.TextEventType;
-import snow.types.Types.GamepadDeviceEventType;
+import haxe.EnumFlags;
+import uk.aidanlee.flurry.api.input.Types.KeyModifier;
+import uk.aidanlee.flurry.api.input.Types.TextEventType;
+import uk.aidanlee.flurry.api.input.Types.GamepadDeviceEventType;
 
 enum abstract InputEvents(String) from String to String
 {
@@ -39,9 +40,9 @@ class InputEventKeyUp
 
     public final repeat : Bool;
 
-    public final modifier : ModState;
+    public final modifier : EnumFlags<KeyModifier>;
 
-    public function new(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState)
+    public function new(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : EnumFlags<KeyModifier>)
     {
         keycode  = _keycode;
         scancode = _scancode;
@@ -58,9 +59,9 @@ class InputEventKeyDown
 
     public final repeat : Bool;
 
-    public final modifier : ModState;
+    public final modifier : EnumFlags<KeyModifier>;
 
-    public function new(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : ModState)
+    public function new(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : EnumFlags<KeyModifier>)
     {
         keycode  = _keycode;
         scancode = _scancode;

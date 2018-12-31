@@ -1,13 +1,13 @@
 package uk.aidanlee.flurry.utils.runtimes;
 
+import uk.aidanlee.flurry.api.input.Types.KeyModifier;
+import haxe.EnumFlags;
 import sdl.Haptic;
 import sdl.SDL;
 import sdl.Window;
 import snow.Snow;
 import snow.api.Debug.*;
 import snow.types.Types.WindowEventType;
-import snow.types.Types.TextEventType;
-import snow.types.Types.ModState;
 import snow.types.Types.Error;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.input.InputEvents;
@@ -152,18 +152,6 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
     {
         switch (_event.type) {
             case SDL_KEYUP:
-
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_key_up_event(
-                        _event.key.keysym.sym,
-                        _event.key.keysym.scancode,
-                        _event.key.repeat,
-                        toKeyMod(_event.key.keysym.mod),
-                        _event.key.timestamp / 1000,
-                        _event.key.windowID
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.KeyUp, new InputEventKeyUp(
                     _event.key.keysym.sym,
                     _event.key.keysym.scancode,
@@ -172,17 +160,6 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 ));
 
             case SDL_KEYDOWN:
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_key_down_event(
-                        _event.key.keysym.sym,
-                        _event.key.keysym.scancode,
-                        _event.key.repeat,
-                        toKeyMod(_event.key.keysym.mod),
-                        _event.key.timestamp / 1000,
-                        _event.key.windowID
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.KeyDown, new InputEventKeyDown(
                     _event.key.keysym.sym,
                     _event.key.keysym.scancode,
@@ -191,55 +168,22 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 ));
 
             case SDL_TEXTEDITING:
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_text_event(
-                        _event.edit.text,
-                        _event.edit.start,
-                        _event.edit.length,
-                        TextEventType.te_edit,
-                        _event.edit.timestamp / 1000,
-                        _event.edit.windowID
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.TextInput, new InputEventTextInput(
                     _event.edit.text,
                     _event.edit.start,
                     _event.edit.length,
-                    TextEventType.te_edit
+                    Edit
                 ));
 
             case SDL_TEXTINPUT:
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_text_event(
-                        _event.edit.text,
-                        0,
-                        0,
-                        TextEventType.te_input,
-                        _event.edit.timestamp / 1000,
-                        _event.edit.windowID
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.TextInput, new InputEventTextInput(
                     _event.edit.text,
                     0,
                     0,
-                    TextEventType.te_input
+                    Edit
                 ));
 
             case SDL_MOUSEMOTION:
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_mouse_move_event(
-                        _event.motion.x,
-                        _event.motion.y,
-                        _event.motion.xrel,
-                        _event.motion.yrel,
-                        _event.motion.timestamp / 1000,
-                        _event.motion.windowID
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.MouseMove, new InputEventMouseMove(
                     _event.motion.x,
                     _event.motion.y,
@@ -248,41 +192,12 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 ));
 
             case SDL_MOUSEBUTTONUP:
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_mouse_up_event(
-                        _event.button.x,
-                        _event.button.y,
-                        _event.button.button,
-                        _event.button.timestamp / 1000,
-                        _event.button.windowID
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.MouseUp, new InputEventMouseUp(_event.button.x, _event.button.y,  _event.button.button));
 
             case SDL_MOUSEBUTTONDOWN:
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_mouse_down_event(
-                        _event.button.x,
-                        _event.button.y,
-                        _event.button.button,
-                        _event.button.timestamp / 1000,
-                        _event.button.windowID
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.MouseDown, new InputEventMouseDown(_event.button.x, _event.button.y,  _event.button.button));
 
             case SDL_MOUSEWHEEL:
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_mouse_wheel_event(
-                        _event.wheel.x,
-                        _event.wheel.y,
-                        _event.wheel.timestamp / 1000,
-                        _event.wheel.windowID
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.MouseWheel, new InputEventMouseWheel(_event.wheel.x, _event.wheel.y));
 
             case SDL_JOYAXISMOTION:
@@ -293,44 +208,15 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 var val = (_event.jaxis.value + 32768) / (32767 + 32768);
                 var normalized_val = (-0.5 + val) * 2.0;
 
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_gamepad_axis_event(
-                        gp.slot,
-                        _event.jaxis.axis,
-                        normalized_val,
-                        _event.jaxis.timestamp / 1000
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.GamepadAxis, new InputEventGamepadAxis(gp.slot, _event.jaxis.axis, normalized_val));
 
             case SDL_JOYBUTTONUP:
-
                 var gp = gamepadInstanceSlotMapping[_event.jdevice.which];
-
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_gamepad_button_up_event(
-                        gp.slot,
-                        _event.jbutton.button,
-                        0,
-                        _event.jbutton.timestamp / 1000
-                    );
-                #end
 
                 flurry.events.fire(InputEvents.GamepadUp, new InputEventGamepadUp(gp.slot, _event.jbutton.button, 0));
 
             case SDL_JOYBUTTONDOWN:
-
                 var gp = gamepadInstanceSlotMapping[_event.jdevice.which];
-
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_gamepad_button_down_event(
-                        gp.slot,
-                        _event.jbutton.button,
-                        1,
-                        _event.jbutton.timestamp / 1000
-                    );
-                #end
 
                 flurry.events.fire(InputEvents.GamepadDown, new InputEventGamepadDown(gp.slot, _event.jbutton.button, 1));
 
@@ -363,19 +249,10 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
 
                 _debug('sdl / removed joystick ${_event.jdevice.which} from slot ${gp.slot}');
 
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_gamepad_device_event(
-                        gp.slot,
-                        SDL.gameControllerNameForIndex(_event.jdevice.which),
-                        ge_device_removed,
-                        _event.jdevice.timestamp / 1000
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.GamepadDevice, new InputEventGamepadDevice(
                     gp.slot,
                     SDL.gameControllerNameForIndex(_event.jdevice.which),
-                    ge_device_removed
+                    DeviceRemoved
                 ));
 
             case SDL_CONTROLLERAXISMOTION:
@@ -385,44 +262,17 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 var val = (_event.caxis.value + 32768) / (32767 + 32768);
                 var normalized_val = (-0.5 + val) * 2.0;
 
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_gamepad_axis_event(
-                        gp.slot,
-                        _event.caxis.axis,
-                        normalized_val,
-                        _event.caxis.timestamp / 1000
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.GamepadAxis, new InputEventGamepadAxis(gp.slot, _event.caxis.axis, normalized_val));
 
             case SDL_CONTROLLERBUTTONUP:
 
                 var gp = gamepadInstanceSlotMapping[_event.cdevice.which];
 
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_gamepad_button_up_event(
-                        gp.slot,
-                        _event.cbutton.button,
-                        0,
-                        _event.cbutton.timestamp / 1000
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.GamepadUp, new InputEventGamepadUp(gp.slot, _event.cbutton.button, 0));
 
             case SDL_CONTROLLERBUTTONDOWN:
 
                 var gp = gamepadInstanceSlotMapping[_event.cdevice.which];
-
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_gamepad_button_down_event(
-                        gp.slot,
-                        _event.cbutton.button,
-                        1,
-                        _event.cbutton.timestamp / 1000
-                    );
-                #end
 
                 flurry.events.fire(InputEvents.GamepadDown, new InputEventGamepadDown(gp.slot, _event.cbutton.button, 1));
 
@@ -444,19 +294,10 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
 
                 _debug('sdl / removed game controller ${gp.instanceID} from slot ${gp.slot}');
 
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_gamepad_device_event(
-                        gp.slot,
-                        SDL.gameControllerNameForIndex(gp.instanceID),
-                        ge_device_removed,
-                        0
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.GamepadDevice, new InputEventGamepadDevice(
                     gp.slot,
                     SDL.gameControllerNameForIndex(gp.instanceID),
-                    ge_device_removed
+                    DeviceRemoved
                 ));
 
             case _:
@@ -532,19 +373,6 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 case _:
             }
 
-            #if !flurry_no_snow_window_events
-                if (snowType != we_unknown)
-                {
-                    app.dispatch_window_event(
-                        snowType,
-                        _event.window.timestamp / 1000,
-                        _event.window.windowID,
-                        _event.window.data1,
-                        _event.window.data2
-                    );
-                }
-            #end
-
             if (flurryType != Unknown)
             {
                 flurry.events.fire(flurryType, new DisplayEventData(_event.window.data1, _event.window.data2));
@@ -552,29 +380,31 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
         }
     }
 
-    function toKeyMod(_mod : Int) : ModState
+    function toKeyMod(_mod : Int) : EnumFlags<KeyModifier>
     {
-        app.input.mod_state.none    = _mod == KMOD_NONE;
+        var flags = new EnumFlags();
 
-        app.input.mod_state.lshift  = _mod == KMOD_LSHIFT;
-        app.input.mod_state.rshift  = _mod == KMOD_RSHIFT;
-        app.input.mod_state.lctrl   = _mod == KMOD_LCTRL;
-        app.input.mod_state.rctrl   = _mod == KMOD_RCTRL;
-        app.input.mod_state.lalt    = _mod == KMOD_LALT;
-        app.input.mod_state.ralt    = _mod == KMOD_RALT;
-        app.input.mod_state.lmeta   = _mod == KMOD_LGUI;
-        app.input.mod_state.rmeta   = _mod == KMOD_RGUI;
+        if (_mod == KMOD_NONE) flags.set(None);
 
-        app.input.mod_state.num     = _mod == KMOD_NUM;
-        app.input.mod_state.caps    = _mod == KMOD_CAPS;
-        app.input.mod_state.mode    = _mod == KMOD_MODE;
+        if (_mod == KMOD_LSHIFT) flags.set(LeftShift);
+        if (_mod == KMOD_RSHIFT) flags.set(RightShift);
+        if (_mod == KMOD_LCTRL)  flags.set(LeftControl);
+        if (_mod == KMOD_RCTRL)  flags.set(RightControl);
+        if (_mod == KMOD_LALT)   flags.set(LeftAlt);
+        if (_mod == KMOD_RALT)   flags.set(RightAlt);
+        if (_mod == KMOD_LGUI)   flags.set(LeftMeta);
+        if (_mod == KMOD_RGUI)   flags.set(RightMeta);
 
-        app.input.mod_state.ctrl    = (_mod == KMOD_CTRL  || _mod == KMOD_LCTRL  || _mod == KMOD_RCTRL);
-        app.input.mod_state.shift   = (_mod == KMOD_SHIFT || _mod == KMOD_LSHIFT || _mod == KMOD_RSHIFT);
-        app.input.mod_state.alt     = (_mod == KMOD_ALT   || _mod == KMOD_LALT   || _mod == KMOD_RALT);
-        app.input.mod_state.meta    = (_mod == KMOD_GUI   || _mod == KMOD_LGUI   || _mod == KMOD_RGUI);
+        if (_mod == KMOD_NUM)    flags.set(NumLock);
+        if (_mod == KMOD_CAPS)   flags.set(CapsLock);
+        if (_mod == KMOD_MODE)   flags.set(Mode);
 
-        return app.input.mod_state;
+        if (_mod == KMOD_CTRL  || _mod == KMOD_LCTRL  || _mod == KMOD_RCTRL)  flags.set(Control);
+        if (_mod == KMOD_SHIFT || _mod == KMOD_LSHIFT || _mod == KMOD_RSHIFT) flags.set(Shift);
+        if (_mod == KMOD_ALT   || _mod == KMOD_LALT   || _mod == KMOD_RALT)   flags.set(Alt);
+        if (_mod == KMOD_GUI   || _mod == KMOD_LGUI   || _mod == KMOD_RGUI)   flags.set(Meta);
+
+        return flags;
     }
 
     function getFirstFreeGamepadSlot() : Int
@@ -622,19 +452,10 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 gamepadSlots[slot] = gp;
                 gamepadInstanceSlotMapping[jsID] = gp;
 
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_gamepad_device_event(
-                        slot,
-                        SDL.gameControllerNameForIndex(_deviceIndex),
-                        ge_device_added,
-                        0
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.GamepadDevice, new InputEventGamepadDevice(
                     slot,
                     SDL.gameControllerNameForIndex(_deviceIndex),
-                    ge_device_added
+                    DeviceAdded
                 ));
 
                 _debug('sdl / added joystick $jsID to slot $slot');
@@ -676,19 +497,10 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 gamepadSlots[slot] = gp;
                 gamepadInstanceSlotMapping[jsID] = gp;
 
-                #if !flurry_no_snow_input_events
-                    app.input.dispatch_gamepad_device_event(
-                        slot,
-                        SDL.gameControllerNameForIndex(_deviceIndex),
-                        ge_device_added,
-                        0
-                    );
-                #end
-
                 flurry.events.fire(InputEvents.GamepadDevice, new InputEventGamepadDevice(
                     slot,
                     SDL.gameControllerNameForIndex(_deviceIndex),
-                    ge_device_added
+                    DeviceAdded
                 ));
 
                 _debug('sdl / added game controller $jsID to slot ${gp.slot}');
