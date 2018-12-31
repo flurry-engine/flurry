@@ -30,7 +30,6 @@ class Main implements Buddy<[
     tests.api.gpu.geometry.shapes.RectangleGeometryTests,
     tests.api.gpu.geometry.shapes.RingGeometryTests,
     tests.api.gpu.geometry.shapes.TextGeometryTests,
-
     tests.api.gpu.batcher.BatcherStateTests,
     tests.api.gpu.batcher.BatcherTests,
 

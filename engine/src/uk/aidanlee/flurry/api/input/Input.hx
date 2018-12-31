@@ -46,13 +46,13 @@ class Input
         gamepadButtonsDown     = [ for (i in 0...MAX_CONTROLLERS) [] ];
         gamepadAxisValues      = [ for (i in 0...MAX_CONTROLLERS) [] ];
 
-        evKeyUp         = events.listen(InputEvents.KeyUp      , onKeyUp);
-        evKeyDown       = events.listen(InputEvents.KeyDown    , onKeyDown);
-        evMouseUp       = events.listen(InputEvents.MouseUp    , onMouseUp);
-        evMouseDown     = events.listen(InputEvents.MouseDown  , onMouseDown);
-        evGamepadUp     = events.listen(InputEvents.GamepadUp  , onGamepadUp);
-        evGamepadDown   = events.listen(InputEvents.GamepadDown, onGamepadDown);
-        evGamepadAxis   = events.listen(InputEvents.GamepadAxis, onGamepadAxis);
+        evKeyUp       = events.listen(InputEvents.KeyUp      , onKeyUp);
+        evKeyDown     = events.listen(InputEvents.KeyDown    , onKeyDown);
+        evMouseUp     = events.listen(InputEvents.MouseUp    , onMouseUp);
+        evMouseDown   = events.listen(InputEvents.MouseDown  , onMouseDown);
+        evGamepadUp   = events.listen(InputEvents.GamepadUp  , onGamepadUp);
+        evGamepadDown = events.listen(InputEvents.GamepadDown, onGamepadDown);
+        evGamepadAxis = events.listen(InputEvents.GamepadAxis, onGamepadAxis);
     }
 
     // #region polling commands
@@ -91,7 +91,12 @@ class Input
     {
         if (gamepadAxisValues[_gamepad].exists(_axis))
         {
-            return gamepadAxisValues[_gamepad].get(_axis);
+            if (gamepadAxisValues[_gamepad].exists(_axis))
+            {
+                return gamepadAxisValues[_gamepad].get(_axis);
+            }
+
+            return 0;
         }
 
         return 0;

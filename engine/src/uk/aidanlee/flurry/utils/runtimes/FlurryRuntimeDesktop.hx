@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.utils.runtimes;
 
-import uk.aidanlee.flurry.api.input.Types.KeyModifier;
 import haxe.EnumFlags;
 import sdl.Haptic;
 import sdl.SDL;
@@ -11,6 +10,7 @@ import snow.types.Types.WindowEventType;
 import snow.types.Types.Error;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.input.InputEvents;
+import uk.aidanlee.flurry.api.input.Types.KeyModifier;
 
 typedef RuntimeConfig = {}
 typedef WindowHandle  = Window;

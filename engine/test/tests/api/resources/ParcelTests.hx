@@ -7,7 +7,7 @@ class ParcelTests extends BuddySuite
     public function new()
     {
         describe('Parcel', {
-            it('Can create a new parcel which is owned byt a resource system', {
+            it('Can create a new parcel which is owned by a resource system', {
                 //
             });
 
