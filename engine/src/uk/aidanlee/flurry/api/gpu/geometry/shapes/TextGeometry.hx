@@ -37,7 +37,10 @@ class TextGeometry extends Geometry
     inline function set_font(_font : BitmapFontData) : BitmapFontData {
         font = _font;
 
-        generateGeometry();
+        if (autoUpdateGeometry)
+        {
+            generateGeometry();
+        }
 
         return font;
     }
@@ -50,7 +53,10 @@ class TextGeometry extends Geometry
     inline function set_text(_text : String) : String {
         text = _text;
 
-        generateGeometry();
+        if (autoUpdateGeometry)
+        {
+            generateGeometry();
+        }
 
         return text;
     }
@@ -61,6 +67,11 @@ class TextGeometry extends Geometry
     var cursorPosition : Vector;
 
     /**
+     * If the listeners should rebuild the geometry, is set to true for the constructor.
+     */
+    var autoUpdateGeometry : Bool;
+
+    /**
      * Create a new geometry object which will display text.
      * @param _options Text geometry options.
      */
@@ -68,10 +79,13 @@ class TextGeometry extends Geometry
     {
         super(_options);
 
-        cursorPosition = _options.position.clone();
-
-        font = _options.font;
+        cursorPosition     = _options.position.clone();
+        autoUpdateGeometry = false;
         text = _options.text;
+        font = _options.font;
+        autoUpdateGeometry = true;
+
+        generateGeometry();
     }
 
     /**
@@ -80,10 +94,7 @@ class TextGeometry extends Geometry
     function generateGeometry()
     {
         // Remove all verticies.
-        while (vertices.length > 0)
-        {
-            vertices.pop();
-        }
+        vertices.resize(0);
 
         // Generate all of the text geometry.
         for (line in text.split('\n'))
