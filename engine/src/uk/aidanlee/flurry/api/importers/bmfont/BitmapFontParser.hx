@@ -1,7 +1,6 @@
 package uk.aidanlee.flurry.api.importers.bmfont;
 
-import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontData;
-
+import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontData.Character;
 /**
  * Parses and returns an anonymous structure of font data based on a font file description.
  * Right now it can only read plain text .fnt BMFont files.
@@ -34,15 +33,15 @@ class BitmapFontParser
             null,
             0,
             0,
-            new Array<{ id : Int, file : String }>(),
+            [],
             0,
             0,
-            new Map<Int, Character>(),
+            [],
             0,
             new Map<Int, Map<Int, Float>>()
         );
 
-        var regex = new EReg('\\s+', 'gi');
+        var regex = ~/\s+/gi;
         for (line in lines)
         {
             // Parse each line, splitting by any amount of space characters

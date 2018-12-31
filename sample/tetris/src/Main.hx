@@ -1,4 +1,3 @@
-package;
 
 import snow.api.Timer;
 import uk.aidanlee.flurry.Flurry;

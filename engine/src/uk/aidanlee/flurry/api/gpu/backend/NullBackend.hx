@@ -26,17 +26,17 @@ class NullBackend implements IRendererBackend
         //
     }
 
-    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void
+    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>)
     {
         //
     }
 
-    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void
+    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>)
     {
         //
     }
 
-    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void
+    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true)
     {
         //
     }

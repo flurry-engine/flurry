@@ -5,7 +5,6 @@ import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.maths.Vector;
 
 typedef TextGeometryOptions = {
-    
     > GeometryOptions,
 
     /**
@@ -60,7 +59,7 @@ class TextGeometry extends Geometry
 
         return text;
     }
-    
+
     /**
      * Cursors position for creating quads.
      */

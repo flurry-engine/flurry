@@ -1,17 +1,10 @@
-package;
 
-import snow.api.Timer;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.maths.Vector;
-import uk.aidanlee.flurry.api.input.Keycodes;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.resources.Resource.TextResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlasParser;
-import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
-import uk.aidanlee.flurry.api.gpu.geometry.Color;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
 import uk.aidanlee.flurry.modules.imgui.ImGuiImpl;
@@ -72,13 +65,16 @@ class Main extends Flurry
         batcher = renderer.createBatcher({ shader : resources.get('std-shader-textured.json', ShaderResource), camera : camera });
 
         // Add some sprites.
+        var largeHaxe = 'assets/images/haxe.png';
+        var smallHaxe = 'assets/images/logo.png';
+
         sprites  = [];
         vectors  = [];
         numLogos = 10000;
         for (i in 0...numLogos)
         {
             var sprite = new QuadGeometry({
-                textures : [ resources.get('assets/images/haxe.png', ImageResource) ],
+                textures : [ resources.get(largeHaxe, ImageResource) ],
                 batchers : [ batcher ]
             });
             sprite.origin.set_xy(75, 75);
@@ -89,12 +85,12 @@ class Main extends Flurry
         }
 
         var logo = new QuadGeometry({
-            textures   : [ resources.get('assets/images/logo.png', ImageResource) ],
+            textures   : [ resources.get(smallHaxe, ImageResource) ],
             batchers   : [ batcher ],
             depth      : 2,
             unchanging : true
         });
-        logo.origin.set_xy(resources.get('assets/images/logo.png', ImageResource).width / 2, resources.get('assets/images/logo.png', ImageResource).height / 2);
+        logo.origin.set_xy(resources.get(smallHaxe, ImageResource).width / 2, resources.get(smallHaxe, ImageResource).height / 2);
         logo.position.set_xy(1600 / 2, 900 / 2);
     }
 
@@ -105,7 +101,7 @@ class Main extends Flurry
         {
             sprites[i].position.x += (vectors[i].x * 1000) * _dt;
             sprites[i].position.y += (vectors[i].y * 1000) * _dt;
-            
+
             if (sprites[i].position.x > 1600 + sprites[i].origin.x) vectors[i].x = -vectors[i].x;
             if (sprites[i].position.x <     0) vectors[i].x = -vectors[i].x;
             if (sprites[i].position.y >  900 + sprites[i].origin.y) vectors[i].y = -vectors[i].y;

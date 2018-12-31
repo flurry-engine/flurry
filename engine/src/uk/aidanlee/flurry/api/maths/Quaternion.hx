@@ -116,7 +116,7 @@ class Quaternion
      * @param _z The value of the z component. (default 0)
      * @param _w The value of the w component. (default 1)
      */
-    inline public function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 1)
+    public inline function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 1)
     {
         construct = true;
 
@@ -134,7 +134,7 @@ class Quaternion
     /**
      * Returns a formatted string representation of this quaternion.
      */
-    inline public function toString() : String
+    public inline function toString() : String
     {
         return ' { x : $x, y : $y, z : $z, w : $w } ';
     }
@@ -144,7 +144,7 @@ class Quaternion
      * @param _q Quaternion to check with.
      * @return Bool
      */
-    inline public function equals(_q : Quaternion) : Bool
+    public inline function equals(_q : Quaternion) : Bool
     {
         return (_q.x == x) && (_q.y == y) && (_q.z == z) && (_q.w == w);
     }
@@ -154,7 +154,7 @@ class Quaternion
      * @param _q Quaternion to copy.
      * @return Quaternion
      */
-    inline public function copy(_q : Quaternion) : Quaternion
+    public inline function copy(_q : Quaternion) : Quaternion
     {
         set_xyzw(_q.x, _q.y, _q.z, _q.w);
 
@@ -165,7 +165,7 @@ class Quaternion
      * Returns a new quaternion instance with the same component values as this.
      * @return Quaternion
      */
-    inline public function clone() : Quaternion
+    public inline function clone() : Quaternion
     {
         return new Quaternion(x, y, z, w);
     }
@@ -174,7 +174,7 @@ class Quaternion
      * Returns an array containing all four quaternion components.
      * @return Array<Float>
      */
-    inline public function toArray() : Array<Float>
+    public inline function toArray() : Array<Float>
     {
         return [ x, y, z, w ];
     }
@@ -184,7 +184,7 @@ class Quaternion
      * @param _a Array containing four elements for the quaternion components. Expected XYZW order.
      * @return Quaternion
      */
-    inline public function fromArray(_a : Array<Float>) : Quaternion
+    public inline function fromArray(_a : Array<Float>) : Quaternion
     {
         set_xyzw(_a[0], _a[1], _a[2], _a[3]);
 
@@ -198,7 +198,7 @@ class Quaternion
      * @param _z Value for the z component.
      * @param _w Value for the w component.
      */
-    inline public function set_xyzw(_x : Float, _y : Float, _z : Float, _w : Float) : Quaternion
+    public inline function set_xyzw(_x : Float, _y : Float, _z : Float, _w : Float) : Quaternion
     {
         ignoreEuler = true;
 
@@ -221,7 +221,7 @@ class Quaternion
      * @param _y Value for the y component.
      * @param _z Value for the z component.
      */
-    inline public function set_xyz(_x : Float, _y : Float, _z : Float) : Quaternion
+    public inline function set_xyz(_x : Float, _y : Float, _z : Float) : Quaternion
     {
         ignoreEuler = true;
 
@@ -243,7 +243,7 @@ class Quaternion
      * Normalize the components in this quaternion.
      * @return Quaternion
      */
-    inline public function normalize() : Quaternion
+    public inline function normalize() : Quaternion
     {
         var l = length;
         if (l == 0)
@@ -263,7 +263,7 @@ class Quaternion
      * Conjugates this quaternion.
      * @return Quaternion
      */
-    inline public function conjugate() : Quaternion
+    public inline function conjugate() : Quaternion
     {
         set_xyz(x * -1, y * -1, z * -1);
 
@@ -274,7 +274,7 @@ class Quaternion
      * Inverses this quaternion.
      * @return Quaternion
      */
-    inline public function inverse() : Quaternion
+    public inline function inverse() : Quaternion
     {
         return conjugate().normalize();
     }
@@ -284,7 +284,7 @@ class Quaternion
      * @param _other Other quaternion to use.
      * @return Float
      */
-    inline public function dot(_other : Quaternion) : Float
+    public inline function dot(_other : Quaternion) : Float
     {
         return x * _other.x + y * _other.y + z * _other.z + w * _other.w;
     }
@@ -298,7 +298,7 @@ class Quaternion
      * @param _s Scalar to add.
      * @return Quaternion
      */
-    inline public function addScalar(_s : Float) : Quaternion
+    public inline function addScalar(_s : Float) : Quaternion
     {
         set_xyzw(x + _s, y + _s, z + _s, w + _s);
 
@@ -310,7 +310,7 @@ class Quaternion
      * @param _q Quaternion to add.
      * @return Quaternion
      */
-    inline public function add(_q : Quaternion) : Quaternion
+    public inline function add(_q : Quaternion) : Quaternion
     {
         set_xyzw(x + _q.x, y + _q.y, z + _q.z, w + _q.w);
 
@@ -322,7 +322,7 @@ class Quaternion
      * @param _s Scalar value to multiply by.
      * @return Quaternion
      */
-    inline public function multiplyScalar(_s : Float) : Quaternion
+    public inline function multiplyScalar(_s : Float) : Quaternion
     {
         set_xyzw(x * _s, y * _s, z * _s, w * _s);
 
@@ -334,7 +334,7 @@ class Quaternion
      * @param _q The quaternion to multiply with.
      * @return Quaternion
      */
-    inline public function multiply(_q : Quaternion) : Quaternion
+    public inline function multiply(_q : Quaternion) : Quaternion
     {
         var qax = x;
         var qay = y;
@@ -366,7 +366,7 @@ class Quaternion
      * @param _order Order of components.
      * @return Quaternion
      */
-    inline public function setFromEuler(_euler : Vector, _order : ComponentOrder = XYZ) : Quaternion
+    public inline function setFromEuler(_euler : Vector, _order : ComponentOrder = XYZ) : Quaternion
     {
         var _x = x;
         var _y = y;
@@ -426,7 +426,7 @@ class Quaternion
      * @param _angle The angle value.
      * @return Quaternion
      */
-    inline public function setFromAxisAngle(_axis : Vector, _angle : Float) : Quaternion
+    public inline function setFromAxisAngle(_axis : Vector, _angle : Float) : Quaternion
     {
         var halfAngle = _angle / 2;
         var sin       = Maths.sin(halfAngle);
@@ -441,7 +441,7 @@ class Quaternion
      * @param _m Matrix to copy from.
      * @return Quaternion
      */
-    inline public function setFromRotationMatrix(_m : Matrix) : Quaternion
+    public inline function setFromRotationMatrix(_m : Matrix) : Quaternion
     {
         var m11 = _m[0], m12 = _m[4], m13 = _m[8];
         var m21 = _m[1], m22 = _m[5], m23 = _m[9];

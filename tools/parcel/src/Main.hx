@@ -1,4 +1,3 @@
-package;
 
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.Flurry;

@@ -8,7 +8,7 @@ class Install extends Script
     public function new()
     {
         super();
-        
+
         Log.info('Installing Core Engine Dependencies');
 
         System.runCommand(workingDirectory, 'haxelib install hxcpp           4.0.4 --quiet --never', []);

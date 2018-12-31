@@ -1,5 +1,5 @@
--main snow.App
--cpp sample/bin/linux64.build/cpp
+# This build file should give you full auto-completion in any area of the engine.
+
 -D no-compilation
 -D linux
 -D target-cpp
@@ -25,6 +25,8 @@
 -cp engine/test
 -cp sample/benchmark/src
 -cp sample/tetris/src
+-cp tools/parcel/src
+-cp tools/flurry
 -lib hxp
 -lib hxcpp
 -lib hxtelemetry
