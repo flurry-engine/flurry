@@ -21,6 +21,7 @@ addons:
       - libopenal-dev
       - libxrandr-dev
       - libxinerama-dev
+      - libasound2-dev
 
 install:
   - haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git;
@@ -37,12 +38,10 @@ install:
 
 script:
   # Build the flurry run file
-  - pushd tools/flurry;
-    haxe build.hxml; popd
+  #- pushd tools/flurry; haxe build.hxml; popd
 
   # Build the parcel tool
-  - pushd tools/parcel;
-    haxelib run flurry build; popd
+  #- pushd tools/parcel; haxelib run flurry build; popd
 
   # Run the engine tests
   - pushd engine/test;
@@ -51,5 +50,4 @@ script:
     popd
 
   # Build the samples
-  - pushd sample/benchmark;
-    haxelib run flurry run; popd
+  #- pushd sample/benchmark; haxelib run flurry run; popd
