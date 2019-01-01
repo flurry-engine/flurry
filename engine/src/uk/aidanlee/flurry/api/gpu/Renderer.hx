@@ -4,14 +4,7 @@ import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
-import uk.aidanlee.flurry.api.gpu.backend.WebGLBackend;
 import uk.aidanlee.flurry.api.gpu.backend.NullBackend;
-#if (cpp && !mac)
-import uk.aidanlee.flurry.api.gpu.backend.GL45Backend;
-#end
-#if windows
-import uk.aidanlee.flurry.api.gpu.backend.DX11Backend;
-#end
 
 enum RequestedBackend {
     WEBGL;
@@ -108,19 +101,19 @@ class Renderer
         {
             #if cpp
             case GL45:
-                backend = new GL45Backend(_events, stats, _options);
+                backend = new uk.aidanlee.flurry.api.gpu.backend.GL45Backend(_events, stats, _options);
                 api     = GL45;
+
+            case WEBGL:
+                backend = new uk.aidanlee.flurry.api.gpu.backend.WebGLBackend(_events, stats, _options);
+                api     = WEBGL;
             #end
 
             #if windows
             case DX11:
-                backend = new DX11Backend(_events, stats, _options);
+                backend = new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_events, stats, _options);
                 api     = DX11;
             #end
-
-            case WEBGL:
-                backend = new WebGLBackend(_events, stats, _options);
-                api     = WEBGL;
 
             default:
                 backend = new NullBackend();

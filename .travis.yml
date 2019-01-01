@@ -26,6 +26,11 @@ addons:
       - libasound2-dev
 
 install:
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+    brew update;
+    brew install glew;
+    brew install sdl2;
+    fi
   - haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git;
     pushd $(haxelib path hxcpp | head -1);
       pushd tools/hxcpp; haxe compile.hxml; popd;
