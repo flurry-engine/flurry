@@ -33,44 +33,44 @@ interface IRendererBackend
     /**
      * Clear the render target.
      */
-    public function clear() : Void;
+    function clear() : Void;
 
     /**
      * Will clear any unchanging geometry in the renderer.
      */
-    public function clearUnchanging() : Void;
+    function clearUnchanging() : Void;
 
     /**
      * Called before any draw() functions.
      */
-    public function preDraw() : Void;
+    function preDraw() : Void;
 
     /**
      * Upload geometries to the gpu VRAM.
      * @param _commands Array of commands to upload.
      */
-    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void;
+    function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void;
 
     /**
      * Upload buffer data to the gpu VRAM.
      * @param _commands Array of commands to upload.
      */
-    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void;
+    function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void;
 
     /**
      * Draw an array of commands. Command data must be uploaded to the GPU before being used.
      * @param _commands    Commands to draw.
      * @param _recordStats Record stats for this submit.
      */
-    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void;
+    function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void;
 
     /**
      * Called after all draw() functions.
      */
-    public function postDraw() : Void;
+    function postDraw() : Void;
 
     /**
      * Call when destroying the renderer. Will cleanup any resources used by the backend.
      */
-    public function cleanup() : Void;
+    function cleanup() : Void;
 }

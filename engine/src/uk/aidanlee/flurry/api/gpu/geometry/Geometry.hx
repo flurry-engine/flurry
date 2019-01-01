@@ -24,7 +24,7 @@ typedef GeometryOptions = {
     var ?transform  : Transformation;
     var ?shader     : ShaderResource;
     var ?textures   : Array<ImageResource>;
-    var ?depth      : Int;
+    var ?depth      : Float;
     var ?immediate  : Bool;
     var ?unchanging : Bool;
     var ?color      : Color;

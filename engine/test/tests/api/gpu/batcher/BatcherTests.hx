@@ -1,8 +1,8 @@
 package tests.api.gpu.batcher;
 
 import uk.aidanlee.flurry.api.maths.Vector;
-import uk.aidanlee.flurry.api.maths.Maths;
-import uk.aidanlee.flurry.api.maths.Hash;
+import uk.aidanlee.flurry.api.maths.Matrix;
+import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
 import uk.aidanlee.flurry.api.gpu.geometry.Color;
@@ -21,332 +21,303 @@ class BatcherTests extends BuddySuite
     public function new()
     {
         describe('Batcher', {
-            it('Can add geometry into the batcher', {
-                var batcher = new Batcher({
-                    camera : mock(Camera),
-                    shader : mock(ShaderResource)
-                });
+            it('Has a unique identifier for each batcher', {
+                var b1 = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
+                var b2 = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
+                var b3 = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
 
-                batcher.addGeometry(new Geometry({}));
-                batcher.addGeometry(new Geometry({}));
+                b1.id.should.not.be(b2.id);
+                b1.id.should.not.be(b3.id);
 
-                batcher.geometry.length.should.be(2);
+                b2.id.should.not.be(b1.id);
+                b2.id.should.not.be(b3.id);
+
+                b3.id.should.not.be(b1.id);
+                b3.id.should.not.be(b2.id);
             });
-            it('Can remove geometry from the batcher', {
-                var batcher = new Batcher({
-                    camera : mock(Camera),
-                    shader : mock(ShaderResource)
-                });
 
-                var g1 = new Geometry({});
-                var g2 = new Geometry({});
+            it('Has a depth which decides when the batcher contents is drawn', {
+                var b1 = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
+                var b2 = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource), depth : 3.2 });
 
-                batcher.addGeometry(g1);
-                batcher.addGeometry(g2);
-                batcher.geometry.length.should.be(2);
+                b1.depth.should.be(0);
+                b2.depth.should.be(3.2);
+            });
 
-                batcher.removeGeometry(g1);
-                batcher.geometry.length.should.be(1);
+            it('Has an array of geometry which it will batch', {
+                var g = mock(Geometry);
+                var b = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
+
+                b.geometry.should.containExactly([]);
+            });
+
+            it('Has a camera which it will get view and projection matrices from', {
+                var c = mock(Camera);
+                var b = new Batcher({ camera : c, shader : mock(ShaderResource) });
+
+                b.camera.should.be(c);
+            });
+
+            it('Has a shader which it will draw the geometry with', {
+                var s = mock(ShaderResource);
+                var b = new Batcher({ camera : mock(Camera), shader : s });
+
+                b.shader.should.be(s);
+            });
+
+            it('Has a target to allow drawing to a texture', {
+                var t = mock(ImageResource);
+
+                var b = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
+                b.target.should.be(null);
+
+                var b = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource), target : t });
+                b.target.should.be(t);
+            });
+
+            it('Can be set to dirty to trigger a geometry re-ordering', {
+                var b = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
+                b.isDirty().should.be(false);
+                b.setDirty();
+                b.isDirty().should.be(true);
+            });
+
+            it('Has a function to add geometry and dirty the batcher', {
+                var g = mock(Geometry);
+                g.batchers.returns([]);
+
+                var b = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
+                b.addGeometry(g);
+                b.isDirty().should.be(true);
+            });
+
+            it('Has a function to remove geometry and dirty the batcher', {
+                var g = mock(Geometry);
+                g.batchers.returns([]);
+
+                var b = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
+                b.removeGeometry(g);
+                b.isDirty().should.be(true);
             });
 
             describe('Batching', {
-                it('It can sort geometry to reduce the number of state changes', {
-                    // Mock some textures.
-                    var texture1 = mock(ImageResource);
-                    var texture2 = mock(ImageResource);
-                    texture1.id.returns('test_image_1');
-                    texture2.id.returns('test_image_2');
+                it('Produces geometry draw commands describing how to draw a set of geometry at once', {
+                    var shader = mock(ShaderResource);
+                    shader.id.returns('1');
 
-                    // Mock some geometry and get them to return depth and texture values.
-                    var geometry1 = createGeometry1();
-                    var geometry2 = createGeometry2();
-                    var geometry3 = createGeometry3();
-                    geometry1.depth = 1;
-                    geometry2.depth = 1;
-                    geometry3.depth = 1;
-                    geometry1.textures.push(texture1);
-                    geometry2.textures.push(texture2);
-                    geometry3.textures.push(texture1);
+                    var texture = mock(ImageResource);
+                    texture.id.returns('1');
 
-                    var batcher = new Batcher({
-                        camera : mock(Camera),
-                        shader : mock(ShaderResource)
-                    });
+                    var camera = mock(Camera);
+                    camera.projection.returns(new Matrix());
+                    camera.viewInverted.returns(new Matrix());
+                    camera.viewport.returns(new Rectangle());
 
-                    batcher.addGeometry(geometry1);
-                    batcher.addGeometry(geometry2);
-                    batcher.addGeometry(geometry3);
-                    batcher.batch();
+                    var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
+                    var geometry1 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData() });
+                    var geometry2 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData() });
+                    var geometry3 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData() });
 
-                    batcher.geometry.should.containExactly([ geometry1, geometry3, geometry2 ]);
-                });
-                it('Produces an array of geometry draw commands describing how to draw the contained geometry', {
-                    // Mock some textures.
-                    var texture1 = mock(ImageResource);
-                    var texture2 = mock(ImageResource);
-                    texture1.id.returns('test_image_1');
-                    texture2.id.returns('test_image_2');
-
-                    // Mock some geometry and get them to return depth and texture values.
-                    var geometry1 = createGeometry1();
-                    var geometry2 = createGeometry2();
-                    var geometry3 = createGeometry3();
-                    geometry1.depth = 1;
-                    geometry2.depth = 1;
-                    geometry3.depth = 1;
-                    geometry1.textures.push(texture1);
-                    geometry2.textures.push(texture2);
-                    geometry3.textures.push(texture1);
-
-                    var batcher = new Batcher({
-                        camera : mock(Camera),
-                        shader : mock(ShaderResource)
-                    });
-
-                    batcher.addGeometry(geometry1);
-                    batcher.addGeometry(geometry2);
-                    batcher.addGeometry(geometry3);
                     var commands = batcher.batch();
+                    commands.length.should.be(1);
 
-                    commands.length.should.be(2);
-
-                    commands[0].vertices.should.be(12);
-                    commands[0].geometry.length.should.be(2);
-                    commands[0].geometry[0].should.be(geometry1);
-                    commands[0].geometry[1].should.be(geometry3);
-
-                    commands[1].vertices.should.be(6);
-                    commands[1].geometry.length.should.be(1);
-                    commands[1].geometry[0].should.be(geometry2);
-                });
-                it('Produces draw commands which are either unchanging or dynamic', {
-                    // Mock some textures.
-                    var texture1 = mock(ImageResource);
-                    texture1.id.returns('test_image_1');
-
-                    // Mock some geometry and get them to return depth and texture values.
-                    var geometry1 = createGeometry1();
-                    var geometry2 = createGeometry2();
-                    var geometry3 = createGeometry3();
-                    geometry1.depth = 1;
-                    geometry2.depth = 1;
-                    geometry3.depth = 1;
-                    geometry1.textures.push(texture1);
-                    geometry2.textures.push(texture1);
-                    geometry3.textures.push(texture1);
-
-                    geometry2.unchanging = true;
-
-                    var batcher = new Batcher({
-                        camera : mock(Camera),
-                        shader : mock(ShaderResource)
-                    });
-
-                    batcher.addGeometry(geometry1);
-                    batcher.addGeometry(geometry2);
-                    batcher.addGeometry(geometry3);
-                    var commands = batcher.batch();
-
-                    commands[0].unchanging.should.be(false);
-                    commands[1].unchanging.should.not.be(false);
-                });
-                it('Transforms its geometries vertices and places them in a buffer', {
-                    // Mock some textures.
-                    var texture1 = mock(ImageResource);
-                    var texture2 = mock(ImageResource);
-                    texture1.id.returns('test_image_1');
-                    texture2.id.returns('test_image_2');
-
-                    // Mock some geometry and get them to return depth and texture values.
-                    var geometry1 = createGeometry1();
-                    var geometry2 = createGeometry2();
-                    var geometry3 = createGeometry3();
-                    geometry1.depth = 1;
-                    geometry2.depth = 1;
-                    geometry3.depth = 1;
-                    geometry1.textures.push(texture1);
-                    geometry2.textures.push(texture2);
-                    geometry3.textures.push(texture1);
-
-                    var batcher = new Batcher({
-                        camera : mock(Camera),
-                        shader : mock(ShaderResource)
-                    });
-
-                    batcher.addGeometry(geometry1);
-                    batcher.addGeometry(geometry2);
-                    batcher.addGeometry(geometry3);
+                    commands[0].geometry.length.should.be(3);
+                    commands[0].geometry[0].id.should.be(geometry1.id);
+                    commands[0].geometry[1].id.should.be(geometry2.id);
+                    commands[0].geometry[2].id.should.be(geometry3.id);
                     
-                    var transVector = new Vector();
-                    var commands    = batcher.batch();
+                    commands[0].textures.length.should.be(1);
+                    commands[0].textures[0].id.should.be(texture.id);
 
-                    // Command 0 contains geometry 1 and 3.
-                    // Command 1 contains geometry 2.
-                    // Check all 6 vertices of the 3 geometries to ensure they have been transformed correctly and inserted into the buffer.
-                    /*
-                    for (i in 0...6)
-                    {
-                        // Check geometry 1s vertex.
-                        var vertex = geometry1.vertices[i];
-                        var start  = commands[0].bufferStartIndex + (i * 9);
+                    commands[0].vertices.should.be(9);
+                    commands[0].indices.should.be(0);
 
-                        transVector.copyFrom(vertex.position).transform(geometry1.transformation.transformation);
-                        batcher.vertexBuffer[start + 0].should.beCloseTo(transVector.x, 4);
-                        batcher.vertexBuffer[start + 1].should.beCloseTo(transVector.y, 4);
-                        batcher.vertexBuffer[start + 2].should.beCloseTo(transVector.z, 4);
+                    commands[0].shader.should.not.be(null);
+                    commands[0].shader.id.should.be(shader.id);
 
-                        // Check geometry 2s vertex.
-                        var vertex = geometry2.vertices[i];
-                        var start  = commands[1].bufferStartIndex + (i * 9);
-
-                        transVector.copyFrom(vertex.position).transform(geometry2.transformation.transformation);
-                        batcher.vertexBuffer[start + 0].should.beCloseTo(transVector.x, 4);
-                        batcher.vertexBuffer[start + 1].should.beCloseTo(transVector.y, 4);
-                        batcher.vertexBuffer[start + 2].should.beCloseTo(transVector.z, 4);
-
-                        // Check geometry 3s vertex.
-                        var vertex = geometry3.vertices[i];
-                        var start  = commands[0].bufferStartIndex + (6 * 9) + (i * 9);
-
-                        transVector.copyFrom(vertex.position).transform(geometry3.transformation.transformation);
-                        batcher.vertexBuffer[start + 0].should.beCloseTo(transVector.x, 4);
-                        batcher.vertexBuffer[start + 1].should.beCloseTo(transVector.y, 4);
-                        batcher.vertexBuffer[start + 2].should.beCloseTo(transVector.z, 4);
-                    }
-                    */
+                    commands[0].target.should.be(null);
+                    commands[0].unchanging.should.be(false);
+                    commands[0].isIndexed().should.be(false);
                 });
-                it('Immediate geometry is dropped after being batched', {
-                    // Mock some textures.
+
+                it('Can sort geometry to minimise the number of state changes needed to draw it', {
+                    var shader = mock(ShaderResource);
+                    shader.id.returns('1');
+
                     var texture1 = mock(ImageResource);
                     var texture2 = mock(ImageResource);
-                    texture1.id.returns('test_image_1');
-                    texture2.id.returns('test_image_2');
+                    texture1.id.returns('1');
+                    texture2.id.returns('2');
 
-                    // Mock some geometry and get them to return depth and texture values.
-                    var geometry1 = createGeometry1();
-                    var geometry2 = createGeometry2();
-                    var geometry3 = createGeometry3();
-                    var geometry4 = createImmediateGeometry();
-                    geometry1.depth = 1;
-                    geometry2.depth = 1;
-                    geometry3.depth = 1;
-                    geometry4.depth = 1;
-                    geometry1.textures.push(texture1);
-                    geometry2.textures.push(texture2);
-                    geometry3.textures.push(texture1);
-                    geometry4.textures.push(texture2);
+                    var camera = mock(Camera);
+                    camera.projection.returns(new Matrix());
+                    camera.viewInverted.returns(new Matrix());
+                    camera.viewport.returns(new Rectangle());
 
-                    var batcher = new Batcher({
-                        camera : mock(Camera),
-                        shader : mock(ShaderResource)
-                    });
+                    var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
+                    var geometry1 = new Geometry({ batchers : [ batcher ], textures : [ texture1 ], vertices : mockVertexData() });
+                    var geometry2 = new Geometry({ batchers : [ batcher ], textures : [ texture2 ], vertices : mockVertexData() });
+                    var geometry3 = new Geometry({ batchers : [ batcher ], textures : [ texture1 ], vertices : mockVertexData() });
 
-                    batcher.addGeometry(geometry1);
-                    batcher.addGeometry(geometry2);
-                    batcher.addGeometry(geometry4);
-                    batcher.addGeometry(geometry3);
-
-                    // First batch, immediate geometry will be included.
                     var commands = batcher.batch();
-
                     commands.length.should.be(2);
 
-                    //commands[0].bufferStartIndex.should.be(0);
-                    //commands[0].bufferEndIndex.should.be(108);
-                    commands[0].vertices.should.be(12);
+                    var command = commands[0];
+                    command.geometry.length.should.be(2);
+                    command.geometry[0].id.should.be(geometry1.id);
+                    command.geometry[1].id.should.be(geometry3.id);
+                    command.vertices.should.be(6);
+                    command.indices.should.be(0);
+                    command.textures.length.should.be(1);
+                    command.textures[0].id.should.be(texture1.id);
+                    command.shader.should.not.be(null);
+                    command.shader.id.should.be(shader.id);
+                    command.target.should.be(null);
+                    command.unchanging.should.be(false);
+                    command.isIndexed().should.be(false);
 
-                    //commands[1].bufferStartIndex.should.be(108);
-                    //commands[1].bufferEndIndex.should.be(216);
-                    commands[1].vertices.should.be(12);
+                    var command = commands[1];
+                    command.geometry.length.should.be(1);
+                    command.geometry[0].id.should.be(geometry2.id);
+                    command.textures.length.should.be(1);
+                    command.textures[0].id.should.be(texture2.id);
+                    command.vertices.should.be(3);
+                    command.indices.should.be(0);
+                    command.shader.should.not.be(null);
+                    command.shader.id.should.be(shader.id);
+                    command.target.should.be(null);
+                    command.unchanging.should.be(false);
+                    command.isIndexed().should.be(false);
+                });
 
-                    // Second batch, immediate geometry will have been dropped.
+                it('Produces geometry draw commands which can be flagged as unchanging', {
+                    var shader = mock(ShaderResource);
+                    shader.id.returns('1');
+
+                    var texture = mock(ImageResource);
+                    texture.id.returns('1');
+
+                    var camera = mock(Camera);
+                    camera.projection.returns(new Matrix());
+                    camera.viewInverted.returns(new Matrix());
+                    camera.viewport.returns(new Rectangle());
+
+                    var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
+                    var geometry1 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData() });
+                    var geometry2 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData(), unchanging : true });
+
                     var commands = batcher.batch();
-
                     commands.length.should.be(2);
 
-                    //commands[0].bufferStartIndex.should.be(0);
-                    //commands[0].bufferEndIndex.should.be(108);
-                    commands[0].vertices.should.be(12);
+                    var command = commands[0];
+                    command.geometry.length.should.be(1);
+                    command.geometry[0].id.should.be(geometry1.id);
+                    command.vertices.should.be(3);
+                    command.indices.should.be(0);
+                    command.textures.length.should.be(1);
+                    command.textures[0].id.should.be(texture.id);
+                    command.shader.should.not.be(null);
+                    command.shader.id.should.be(shader.id);
+                    command.target.should.be(null);
+                    command.isIndexed().should.be(false);
+                    command.unchanging.should.be(false);
 
-                    //commands[1].bufferStartIndex.should.be(108);
-                    //commands[1].bufferEndIndex.should.be(162);
-                    commands[1].vertices.should.be(6);
+                    var command = commands[1];
+                    command.geometry.length.should.be(1);
+                    command.geometry[0].id.should.be(geometry2.id);
+                    command.textures.length.should.be(1);
+                    command.textures[0].id.should.be(texture.id);
+                    command.vertices.should.be(3);
+                    command.indices.should.be(0);
+                    command.shader.should.not.be(null);
+                    command.shader.id.should.be(shader.id);
+                    command.target.should.be(null);
+                    command.isIndexed().should.be(false);
+                    command.unchanging.should.be(true);
+                });
+
+                it('Produces geometry draw commands which are either indexed or non indexed', {
+                    var shader = mock(ShaderResource);
+                    shader.id.returns('1');
+
+                    var texture = mock(ImageResource);
+                    texture.id.returns('1');
+
+                    var camera = mock(Camera);
+                    camera.projection.returns(new Matrix());
+                    camera.viewInverted.returns(new Matrix());
+                    camera.viewport.returns(new Rectangle());
+
+                    var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
+                    var geometry1 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData() });
+                    var geometry2 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData(), indices : mockIndexData() });
+
+                    var commands = batcher.batch();
+                    commands.length.should.be(2);
+
+                    var command = commands[0];
+                    command.geometry.length.should.be(1);
+                    command.geometry[0].id.should.be(geometry1.id);
+                    command.vertices.should.be(3);
+                    command.indices.should.be(0);
+                    command.textures.length.should.be(1);
+                    command.textures[0].id.should.be(texture.id);
+                    command.shader.should.not.be(null);
+                    command.shader.id.should.be(shader.id);
+                    command.target.should.be(null);
+                    command.unchanging.should.be(false);
+                    command.isIndexed().should.be(false);
+
+                    var command = commands[1];
+                    command.geometry.length.should.be(1);
+                    command.geometry[0].id.should.be(geometry2.id);
+                    command.textures.length.should.be(1);
+                    command.textures[0].id.should.be(texture.id);
+                    command.vertices.should.be(3);
+                    command.indices.should.be(6);
+                    command.shader.should.not.be(null);
+                    command.shader.id.should.be(shader.id);
+                    command.target.should.be(null);
+                    command.unchanging.should.be(false);
+                    command.isIndexed().should.be(true);
+                });
+
+                it('Removes immediate geometry from itself once it has been batched', {
+                    var shader = mock(ShaderResource);
+                    shader.id.returns('1');
+
+                    var texture = mock(ImageResource);
+                    texture.id.returns('1');
+
+                    var camera = mock(Camera);
+                    camera.projection.returns(new Matrix());
+                    camera.viewInverted.returns(new Matrix());
+                    camera.viewport.returns(new Rectangle());
+
+                    var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
+                    var geometry1 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData() });
+                    var geometry2 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData(), immediate : true });
+
+                    var commands = batcher.batch();
+                    commands.length.should.be(1);
+                    commands[0].geometry.length.should.be(2);
+                    commands[0].geometry[0].id.should.be(geometry1.id);
+                    commands[0].geometry[1].id.should.be(geometry2.id);
+
+                    batcher.geometry.length.should.be(1);
+                    batcher.geometry[0].id.should.be(geometry1.id);
                 });
             });
         });
     }
 
-    inline static function createGeometry1() : Geometry
+    private function mockVertexData() : Array<Vertex>
     {
-        var mesh = new Geometry({ name : 'geom1' });
-
-        mesh.transformation.origin.set_xy(32, 32);
-        mesh.transformation.position.set_xy(32, 32);
-        mesh.transformation.scale.set_xy(2, 2);
-        mesh.transformation.rotation.setFromAxisAngle(new Vector(0, 0, 1), Maths.toRadians(45));
-
-        mesh.addVertex(new Vertex( new Vector( 0, 64), new Color(), new Vector(0, 1) ));
-        mesh.addVertex(new Vertex( new Vector(64, 64), new Color(), new Vector(1, 1) ));
-        mesh.addVertex(new Vertex( new Vector( 0,  0), new Color(), new Vector(0, 0) ));
-
-        mesh.addVertex(new Vertex( new Vector( 0,  0), new Color(), new Vector(0, 0) ));
-        mesh.addVertex(new Vertex( new Vector(64, 64), new Color(), new Vector(1, 1) ));
-        mesh.addVertex(new Vertex( new Vector(64,  0), new Color(), new Vector(1, 0) ));
-
-        return mesh;
+        return [ mock(Vertex), mock(Vertex), mock(Vertex) ];
     }
 
-    inline static function createGeometry2() : Geometry
+    private function mockIndexData() : Array<Int>
     {
-        var mesh = new Geometry({ name : 'geom2' });
-
-        mesh.transformation.position.set_xy(512, 256);
-        mesh.transformation.scale.set_xy(2, 2);
-
-        mesh.addVertex(new Vertex( new Vector( 0, 64), new Color(), new Vector(0, 1) ));
-        mesh.addVertex(new Vertex( new Vector(64, 64), new Color(), new Vector(1, 1) ));
-        mesh.addVertex(new Vertex( new Vector( 0,  0), new Color(), new Vector(0, 0) ));
-
-        mesh.addVertex(new Vertex( new Vector( 0,  0), new Color(), new Vector(0, 0) ));
-        mesh.addVertex(new Vertex( new Vector(64, 64), new Color(), new Vector(1, 1) ));
-        mesh.addVertex(new Vertex( new Vector(64,  0), new Color(), new Vector(1, 0) ));
-
-        return mesh;
-    }
-
-    inline static function createGeometry3() : Geometry
-    {
-        var mesh = new Geometry({});
-
-        mesh.transformation.position.set_xy(64, 32);
-        mesh.transformation.scale.set_xy(4, 4);
-
-        mesh.addVertex(new Vertex( new Vector( 0, 64), new Color(), new Vector(0, 1) ));
-        mesh.addVertex(new Vertex( new Vector(64, 64), new Color(), new Vector(1, 1) ));
-        mesh.addVertex(new Vertex( new Vector( 0,  0), new Color(), new Vector(0, 0) ));
-
-        mesh.addVertex(new Vertex( new Vector( 0,  0), new Color(), new Vector(0, 0) ));
-        mesh.addVertex(new Vertex( new Vector(64, 64), new Color(), new Vector(1, 1) ));
-        mesh.addVertex(new Vertex( new Vector(64,  0), new Color(), new Vector(1, 0) ));
-
-        return mesh;
-    }
-
-    inline static function createImmediateGeometry() : Geometry
-    {
-        var mesh = new Geometry({ immediate : true });
-
-        mesh.transformation.position.set_xy(256, 128);
-        mesh.transformation.scale.set_xy(2, 2);
-
-        mesh.addVertex(new Vertex( new Vector( 0, 64), new Color(), new Vector(0, 1) ));
-        mesh.addVertex(new Vertex( new Vector(64, 64), new Color(), new Vector(1, 1) ));
-        mesh.addVertex(new Vertex( new Vector( 0,  0), new Color(), new Vector(0, 0) ));
-
-        mesh.addVertex(new Vertex( new Vector( 0,  0), new Color(), new Vector(0, 0) ));
-        mesh.addVertex(new Vertex( new Vector(64, 64), new Color(), new Vector(1, 1) ));
-        mesh.addVertex(new Vertex( new Vector(64,  0), new Color(), new Vector(1, 0) ));
-
-        return mesh;
+        return [ 0, 1, 2, 0, 1, 2 ];
     }
 }

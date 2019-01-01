@@ -1,4 +1,3 @@
-package;
 
 import snow.api.Debug.def;
 import haxe.Json;
@@ -72,7 +71,7 @@ class ParcelTool
         // This chunck of asset loading and resource creation is basically identical to that found in the resource system.
         // Code could probably be shared.
 
-        var resources = new Array<Resource>();
+        var resources : Array<Resource> = [];
 
         var assets : Array<BytesInfo> = def(parcel.bytes, []);
         for (asset in assets)
@@ -166,7 +165,7 @@ class ParcelTool
     {
         if (_verbose)
         {
-            trace(_message);
+            Sys.println(_message);
         }
     }
 }

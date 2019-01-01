@@ -5,7 +5,6 @@ import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.maths.Vector;
 
 typedef TextGeometryOptions = {
-    
     > GeometryOptions,
 
     /**
@@ -34,6 +33,17 @@ class TextGeometry extends Geometry
      */
     public var font : BitmapFontData;
 
+    inline function set_font(_font : BitmapFontData) : BitmapFontData {
+        font = _font;
+
+        if (autoUpdateGeometry)
+        {
+            generateGeometry();
+        }
+
+        return font;
+    }
+
     /**
      * The string to draw.
      */
@@ -42,20 +52,23 @@ class TextGeometry extends Geometry
     inline function set_text(_text : String) : String {
         text = _text;
 
-        generateGeometry();
+        if (autoUpdateGeometry)
+        {
+            generateGeometry();
+        }
 
         return text;
     }
 
     /**
-     * Starting position for the text (top left aligned).
-     */
-    public var position : Vector;
-    
-    /**
      * Cursors position for creating quads.
      */
     var cursorPosition : Vector;
+
+    /**
+     * If the listeners should rebuild the geometry, is set to true for the constructor.
+     */
+    var autoUpdateGeometry : Bool;
 
     /**
      * Create a new geometry object which will display text.
@@ -65,11 +78,13 @@ class TextGeometry extends Geometry
     {
         super(_options);
 
-        cursorPosition = _options.position.clone();
+        cursorPosition     = _options.position.clone();
+        autoUpdateGeometry = false;
+        text = _options.text;
+        font = _options.font;
+        autoUpdateGeometry = true;
 
-        font     = _options.font;
-        position = _options.position;
-        text     = _options.text;
+        generateGeometry();
     }
 
     /**
@@ -78,10 +93,7 @@ class TextGeometry extends Geometry
     function generateGeometry()
     {
         // Remove all verticies.
-        while (vertices.length > 0)
-        {
-            vertices.pop();
-        }
+        vertices.resize(0);
 
         // Generate all of the text geometry.
         for (line in text.split('\n'))

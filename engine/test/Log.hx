@@ -70,18 +70,22 @@ class Log
      */
     public static inline function print(_message:String, ?_colour:String)
     {
-        if (Sys.systemName() == "Windows")
-        {
-            Sys.println(_message);
-        }
-        else
-        {
-            if (_colour == null)
+        #if sys
+            if (Sys.systemName() == "Windows")
             {
-                _colour = ansiColours["none"];
+                Sys.println(_message);
             }
+            else
+            {
+                if (_colour == null)
+                {
+                    _colour = ansiColours["none"];
+                }
 
-            Sys.println(_colour + _message + ansiColours["none"]);
-        }
+                Sys.println(_colour + _message + ansiColours["none"]);
+            }
+        #else
+            trace(_message);
+        #end
     }
 }

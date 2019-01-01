@@ -8,10 +8,9 @@ class Install extends Script
     public function new()
     {
         super();
-        
+
         Log.info('Installing Core Engine Dependencies');
 
-        System.runCommand(workingDirectory, 'haxelib install hxcpp           4.0.4 --quiet --never', []);
         System.runCommand(workingDirectory, 'haxelib install haxe-concurrent 2.0.1 --quiet --never', []);
         System.runCommand(workingDirectory, 'haxelib git linc_opengl    https://github.com/Aidan63/linc_opengl gl-bindless-textures --quiet --never', []);
         System.runCommand(workingDirectory, 'haxelib git snow           https://github.com/Aidan63/snow           --quiet --never', []);
@@ -26,7 +25,7 @@ class Install extends Script
         {
             Log.info('Installing Test Suite Dependencies');
 
-            System.runCommand(workingDirectory, 'haxelib git buddy    https://github.com/ciscoheat/buddy  --quiet --never', []);
+            System.runCommand(workingDirectory, 'haxelib install buddy --quiet --never', []);
             System.runCommand(workingDirectory, 'haxelib git mockatoo https://github.com/Aidan63/mockatoo --quiet --never', []);
         }
 

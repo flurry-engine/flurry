@@ -1,0 +1,24 @@
+-main Main
+
+-cpp bin/cpp
+
+-D reporter=ColorReporter
+
+-lib buddy
+-lib flurry
+-lib hxcpp
+-lib haxe-concurrent
+-lib linc_opengl
+-lib linc_directx
+-lib linc_sdl
+-lib linc_ogg
+-lib linc_stb
+-lib linc_timestamp
+-lib linc_openal
+-lib snow
+-lib mockatoo
+
+-resource assets/atlas/cavesofgallet.atlas@atlasData
+-resource assets/fonts/ubuntu.fnt@fntUbuntu
+
+--no-inline

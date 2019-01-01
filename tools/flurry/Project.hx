@@ -184,7 +184,11 @@ class Project extends Script
         hxmlSnow.close();
 
         // Build the project
-        System.runCommand(workingDirectory, 'haxe', [ Path.combine(_pathBuild, 'build.hxml')]);
+        var result = System.runCommand(workingDirectory, 'haxe', [ Path.combine(_pathBuild, 'build.hxml')]);
+        if (result != 0)
+        {
+            Sys.exit(result);
+        }
 
         // Copy files over
         for (src => dst in files)

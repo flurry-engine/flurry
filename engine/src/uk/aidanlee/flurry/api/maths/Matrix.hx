@@ -197,8 +197,8 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
 
         this[ 0] = _a[ 0]; this[ 1] = _a[ 1]; this[ 2] = _a[ 2]; this[ 3] = _a[ 3];
         this[ 4] = _a[ 4]; this[ 5] = _a[ 5]; this[ 6] = _a[ 6]; this[ 7] = _a[ 7];
-        this[ 8] = _a[ 8]; this[ 9] = _a[ 9]; this[10] = _a[ 9]; this[11] = _a[11];
-        this[12] = _a[12]; this[13] = _a[13]; this[14] = _a[13]; this[15] = _a[15];
+        this[ 8] = _a[ 8]; this[ 9] = _a[ 9]; this[10] = _a[10]; this[11] = _a[11];
+        this[12] = _a[12]; this[13] = _a[13]; this[14] = _a[14]; this[15] = _a[15];
 
         return this;
     }
@@ -223,11 +223,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      */
     public inline function toString() : String
     {
-        var str = '{ 11:' + Maths.fixed(this[0], 3) + ', 12:' + Maths.fixed(this[4], 3)  + ', 13:' + Maths.fixed(this[ 8], 3)  + ', 14:' + Maths.fixed(this[12], 3) + ' }, ' +
-                  '{ 21:' + Maths.fixed(this[1], 3) + ', 22:' + Maths.fixed(this[5], 3)  + ', 23:' + Maths.fixed(this[ 9], 3)  + ', 24:' + Maths.fixed(this[13], 3) + ' }, ' +
-                  '{ 31:' + Maths.fixed(this[2], 3) + ', 32:' + Maths.fixed(this[6], 3)  + ', 33:' + Maths.fixed(this[10], 3)  + ', 34:' + Maths.fixed(this[14], 3) + ' }, ' +
-                  '{ 41:' + Maths.fixed(this[3], 3) + ', 42:' + Maths.fixed(this[7], 3)  + ', 43:' + Maths.fixed(this[11], 3)  + ', 44:' + Maths.fixed(this[15], 3) + ' }';
-        return str;
+        return '{ 11:${Maths.fixed(this[0], 3)}, 12:${Maths.fixed(this[4], 3)}, 13:${Maths.fixed(this[ 8], 3)}, 14: ${Maths.fixed(this[12], 3)} }, { 21:${Maths.fixed(this[1], 3)}, 22:${Maths.fixed(this[5], 3)}, 23:${Maths.fixed(this[ 9], 3)}, 24: ${Maths.fixed(this[13], 3)} }, { 31:${Maths.fixed(this[2], 3)}, 32:${Maths.fixed(this[6], 3)}, 33:${Maths.fixed(this[10], 3)}, 34: ${Maths.fixed(this[14], 3)} }, { 41:${Maths.fixed(this[3], 3)}, 42:${Maths.fixed(this[7], 3)}, 43:${Maths.fixed(this[11], 3)}, 44: ${Maths.fixed(this[15], 3)} }';
     }
 
     public inline function invert() : Matrix
@@ -258,13 +254,11 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
 
         var det = me[ 0 ] * this[ 0 ] + me[ 1 ] * this[ 4 ] + me[ 2 ] * this[ 8 ] + me[ 3 ] * this[ 12 ];
 
-        if (det == 0) {
-
-            trace('Matrix.getInverse: cant invert matrix, determinant is 0');
-
+        if (det == 0)
+        {
             identity();
 
-        } //det == 0
+        }
 
         multiplyScalar( 1 / det );
 
@@ -380,7 +374,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _quaternion Optional quaternion to store the rotation in.
      * @param _scale      Optional vector to store the scale in.
      */
-    public inline function decompose(_position : Vector, _quaternion : Quaternion, _scale : Vector) : MatrixTransform
+    public inline function decompose(?_position : Vector, ?_quaternion : Quaternion, ?_scale : Vector) : MatrixTransform
     {
         var ax_x = this[0]; var ax_y = this[1]; var ax_z = this[ 2];
         var ay_x = this[4]; var ay_y = this[5]; var ay_z = this[ 6];
@@ -390,7 +384,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
         var ay_length = Maths.sqrt(ay_x * ay_x + ay_y * ay_y + ay_z * ay_z);
         var az_length = Maths.sqrt(az_x * az_x + az_y * az_y + az_z * az_z);
 
-        if(_quaternion == null)
+        if (_quaternion == null)
         {
             _quaternion = new Quaternion();
         }
@@ -622,14 +616,12 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      */
     public inline function identity() : Matrix
     {
-        set(
+        return set(
             1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
             0, 0, 0, 1
         );
-
-        return this;
     }
 
     /**
@@ -645,14 +637,12 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
         var c     = Maths.cos(theta);
         var s     = Maths.cos(theta);
 
-        set(
+        return set(
              c * _scale, s * _scale,  0, _x,
             -s * _scale, c * _scale,  0, _y,
                       0,          0,  1,  0,
                       0,          0,  0,  1
         );
-
-        return this;
     }
 
     /**
@@ -663,14 +653,12 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      */
     public inline function makeTranslation(_x : Float, _y : Float, _z : Float) : Matrix
     {
-        set(
+        return set(
             1, 0, 0, _x,
             0, 1, 0, _y,
             0, 0, 1, _z,
             0, 0, 0, 1
         );
-
-        return this;
     }
 
     /**
@@ -691,26 +679,24 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
         var tx = t * ax;
         var ty = t * ay;
 
-        set(
+        return set(
             (tx * ax + c)     ,   (tx * ay - s * az),   (tx * az + s * ay),   0,
             (tx * ay + s * az),   (ty * ay + c)     ,   (ty * az - s * ax),   0,
             (tx * az - s * ay),   (ty * az + s * ax),   (t * az * az + c) ,   0,
             0, 0, 0, 1
         );
-
-        return this;
     }
 
     /**
      * Make a rotation around the x axis.
      * @param _theta Angle radians.
      */
-    public inline function makeRotationX(_theta : Float)
+    public inline function makeRotationX(_theta : Float) : Matrix
     {
         var c = Maths.cos(_theta);
         var s = Maths.sin(_theta);
 
-        set(
+        return set(
             1,  0,  0,  0,
             0,  c, -s,  0,
             0,  s,  c,  0,
@@ -727,14 +713,12 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
         var c = Maths.cos(_theta);
         var s = Maths.sin(_theta);
 
-        set(
+        return set(
             c,  0,  s,  0,
             0,  1,  0,  0,
            -s,  0,  c,  0,
             0,  0,  0,  1
         );
-
-        return this;
     }
 
     /**
@@ -746,14 +730,12 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
         var c = Maths.cos(_theta);
         var s = Maths.sin(_theta);
 
-        set(
+        return set(
             c, -s,  0,  0,
             s,  c,  0,  0,
             0,  0,  1,  0,
             0,  0,  0,  1
         );
-
-        return this;
     }
 
     /**
@@ -764,14 +746,12 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      */
     public inline function makeScale(_x : Float, _y : Float, _z : Float) : Matrix
     {
-        set(
+        return set(
             _x,  0,  0,  0,
              0, _y,  0,  0,
              0,  0, _z,  0,
              0,  0,  0,  1
         );
-
-        return this;
     }
 
     /**
@@ -790,18 +770,18 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
         var c = Maths.cos(y), d = Maths.sin(y);
         var e = Maths.cos(z), f = Maths.sin(z);
 
-        switch(_order)
+        switch (_order)
         {
             case XYZ:
                 var ae = a * e, af = a * f, be = b * e, bf = b * f;
 
                 this[ 0] = c * e;
-                this[ 4] = - c * f;
+                this[ 4] = -c * f;
                 this[ 8] = d;
 
                 this[ 1] = af + be * d;
                 this[ 5] = ae - bf * d;
-                this[ 9] = - b * c;
+                this[ 9] = -b * c;
 
                 this[ 2] = bf - ae * d;
                 this[ 6] = be + af * d;
@@ -815,7 +795,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
 
                 this[ 1] = a * f;
                 this[ 5] = a * e;
-                this[ 9] = - b;
+                this[ 9] = -b;
 
                 this[ 2] = cf * b - de;
                 this[ 6] = df + ce * b;
@@ -824,14 +804,14 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
                 var ce = c * e, cf = c * f, de = d * e, df = d * f;
 
                 this[ 0] = ce - df * b;
-                this[ 4] = - a * f;
+                this[ 4] = -a * f;
                 this[ 8] = de + cf * b;
 
                 this[ 1] = cf + de * b;
                 this[ 5] = a * e;
                 this[ 9] = df - ce * b;
 
-                this[ 2] = - a * d;
+                this[ 2] = -a * d;
                 this[ 6] = b;
                 this[10] = a * c;
             case ZYX:
@@ -845,7 +825,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
                 this[ 5] = bf * d + ae;
                 this[ 9] = af * d - be;
 
-                this[ 2] = - d;
+                this[ 2] = -d;
                 this[ 6] = b * c;
                 this[10] = a * c;
             case YZX:
@@ -857,16 +837,16 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
 
                 this[ 1] = f;
                 this[ 5] = a * e;
-                this[ 9] = - b * e;
+                this[ 9] = -b * e;
 
-                this[ 2] = - d * e;
+                this[ 2] = -d * e;
                 this[ 6] = ad * f + bc;
                 this[10] = ac - bd * f;
             case XZY:
                 var ac = a * c, ad = a * d, bc = b * c, bd = b * d;
 
                 this[ 0] = c * e;
-                this[ 4] = - f;
+                this[ 4] = -f;
                 this[ 8] = d * e;
 
                 this[ 1] = ac * f + bd;

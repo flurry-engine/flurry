@@ -28,7 +28,7 @@ enum abstract GamepadButtons(Int) from Int to Int
     var GAMEPAD_AXIS_RIGHT_RIGHT = 106;
     var GAMEPAD_AXIS_RIGHT_UP    = 107;
     var GAMEPAD_AXIS_RIGHT_DOWN  = 108;
-    
+
     var GAMEPAD_TRIGGER_LEFT     = 109;
     var GAMEPAD_TRIGGER_RIGHT    = 110;
 }

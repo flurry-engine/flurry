@@ -1,0 +1,61 @@
+language: haxe
+
+os:
+  - linux
+  - osx
+
+dist: xenial
+
+osx_image: xcode10.1
+
+haxe:
+  - development
+
+neko: "2.2.0"
+
+addons:
+  apt:
+    packages:
+      - gcc-multilib
+      - g++-multilib
+      - libgl1-mesa-dev
+      - libglu1-mesa-dev
+      - libopenal-dev
+      - libxrandr-dev
+      - libxinerama-dev
+      - libasound2-dev
+      - libsdl2-dev
+
+install:
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+    brew update;
+    brew install glew;
+    brew install sdl2;
+    fi
+  - haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git;
+    pushd $(haxelib path hxcpp | head -1);
+      pushd tools/hxcpp; haxe compile.hxml; popd;
+      pushd project; neko build.n; popd;
+    popd
+  - haxelib git hxp https://github.com/openfl/hxp.git;
+  - haxelib git flurry https://github.com/Aidan63/Flurry.git features/tests;
+  - haxelib git hxtelemetry https://github.com/jcward/hxtelemetry.git;
+  - haxelib git linc_imgui https://github.com/Aidan63/linc_imgui.git;
+  - haxelib run flurry install;
+  - haxelib set hxp git
+
+script:
+  # Build the flurry run file
+  #- pushd tools/flurry; haxe build.hxml; popd
+
+  # Build the parcel tool
+  #- pushd tools/parcel; haxelib run flurry build; popd
+
+  # Run the engine tests
+  - pushd engine/test;
+    haxe build-cpp.hxml;
+    ./bin/cpp/Main;
+    popd
+
+  # Build the samples
+  #- pushd sample/benchmark; haxelib run flurry run; popd

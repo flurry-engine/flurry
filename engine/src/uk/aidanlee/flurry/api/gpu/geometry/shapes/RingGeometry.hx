@@ -57,7 +57,7 @@ class RingGeometry extends Geometry
      * @param _startAngle Start angle in degrees.
      * @param _endAngle   End angle in degrees.
      */
-    public function set(_x : Float, _y : Float, _rx : Float, _ry : Float, _steps : Int, _startAngle : Float, _endAngle : Float)
+    public function set(_x : Float, _y : Float, _rx : Float, _ry : Float, _steps : Int, _startAngle : Float = 0, _endAngle : Float = 360)
     {
         // Remove all verticies.
         while (vertices.length > 0)

@@ -7,7 +7,7 @@ package uk.aidanlee.flurry.api;
 enum abstract CoreEvents(String) from String to String
 {
     var Init          = 'flurry-core-ev-init';
-    
+
     var Ready         = 'flurry-core-ev-ready';
 
     var PreUpdate     = 'flurry-core-ev-pre-update';

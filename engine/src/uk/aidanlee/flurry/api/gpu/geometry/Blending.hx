@@ -56,7 +56,7 @@ class Blending
         dstRGB   = _dstRGB;
         dstAlpha = _dstAlpha;
     }
-    
+
     public function equals(_other : Blending) : Bool
     {
         return enabled  == _other.enabled  &&

@@ -118,10 +118,10 @@ class QuadGeometry extends Geometry
         var uv_w = _normalized ? _uv.w : _uv.w / textures[0].width;
         var uv_h = _normalized ? _uv.h : _uv.h / textures[0].height;
 
-        vertices[0].position.set_xy(uv_x, uv_h);
-        vertices[1].position.set_xy(uv_w, uv_h);
-        vertices[2].position.set_xy(uv_x, uv_y);
-        vertices[3].position.set_xy(uv_w, uv_y);
+        vertices[0].texCoord.set_xy(uv_x, uv_h);
+        vertices[1].texCoord.set_xy(uv_w, uv_h);
+        vertices[2].texCoord.set_xy(uv_x, uv_y);
+        vertices[3].texCoord.set_xy(uv_w, uv_y);
     }
 
     /**
@@ -140,9 +140,9 @@ class QuadGeometry extends Geometry
         var uv_w = _normalized ? _z : _z / textures[0].width;
         var uv_h = _normalized ? _w : _w / textures[0].height;
 
-        vertices[0].position.set_xy(uv_x, uv_h);
-        vertices[1].position.set_xy(uv_w, uv_h);
-        vertices[2].position.set_xy(uv_x, uv_y);
-        vertices[3].position.set_xy(uv_w, uv_y);
+        vertices[0].texCoord.set_xy(uv_x, uv_h);
+        vertices[1].texCoord.set_xy(uv_w, uv_h);
+        vertices[2].texCoord.set_xy(uv_x, uv_y);
+        vertices[3].texCoord.set_xy(uv_w, uv_y);
     }
 }

@@ -88,7 +88,7 @@ class Color
         }
         else
         {
-            function hue2rgb(_p : Float, _q : Float, _t : Float) {
+            function hue2rgb(_p : Float, _q : Float, _t : Float) : Float {
                 if (_t < 0) _t++;
                 if (_t > 1) _t--;
                 if (_t < 1 / 6) return _p + (_q - _p) * 6 * _t;

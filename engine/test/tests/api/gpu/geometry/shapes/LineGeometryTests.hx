@@ -1,4 +1,4 @@
-package tests.gpu.api.geometry.shapes;
+package tests.api.gpu.geometry.shapes;
 
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.LineGeometry;

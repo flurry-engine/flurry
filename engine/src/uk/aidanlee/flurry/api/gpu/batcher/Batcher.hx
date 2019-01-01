@@ -109,7 +109,7 @@ class Batcher
         depth    = def(_options.depth, 0);
 
         state = new BatcherState(this);
-        dirty = true;
+        dirty = false;
     }
 
     /**
@@ -118,6 +118,15 @@ class Batcher
     public function setDirty()
     {
         dirty = true;
+    }
+
+    /**
+     * Returns if this batcher is currently flagged as dirty.
+     * @return Bool
+     */
+    public function isDirty() : Bool
+    {
+        return dirty;
     }
 
     /**

@@ -23,7 +23,7 @@ class Circle
      * @param _y y position.
      * @param _r radius.
      */
-    inline public function new(_x : Float = 0, _y : Float = 0, _r : Float = 0)
+    public inline function new(_x : Float = 0, _y : Float = 0, _r : Float = 0)
     {
         x = _x;
         y = _y;
@@ -39,7 +39,7 @@ class Circle
      * @param _r radius.
      * @return Circle
      */
-    inline public function set(_x : Float, _y : Float, _r : Float) : Circle
+    public inline function set(_x : Float, _y : Float, _r : Float) : Circle
     {
         x = _x;
         y = _y;
@@ -53,7 +53,7 @@ class Circle
      * @param _other Circle to copy.
      * @return Circle
      */
-    inline public function copyFrom(_other : Circle) : Circle
+    public inline function copyFrom(_other : Circle) : Circle
     {
         x = _other.x;
         y = _other.y;
@@ -66,7 +66,7 @@ class Circle
      * Clones this circle.
      * @return Circle
      */
-    inline public function clone() : Circle
+    public inline function clone() : Circle
     {
         return new Circle(x, y, r);
     }
@@ -80,7 +80,7 @@ class Circle
      * @param _p Vector to check.
      * @return Bool
      */
-    inline public function containsPoint(_p : Vector) : Bool
+    public inline function containsPoint(_p : Vector) : Bool
     {
         var dx = _p.x - x;
         var dy = _p.y - y;

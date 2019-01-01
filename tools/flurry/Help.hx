@@ -10,7 +10,7 @@ class Help extends Script
     public function new()
     {
         super();
-        
+
         switch (command)
         {
             case 'install':

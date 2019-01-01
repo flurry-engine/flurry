@@ -1,4 +1,4 @@
-package tests.gpu.api.geometry.shapes;
+package tests.api.gpu.geometry.shapes;
 
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
