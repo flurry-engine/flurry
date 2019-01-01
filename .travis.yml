@@ -25,8 +25,8 @@ install:
     popd
   - haxelib git hxp https://github.com/openfl/hxp.git;
   - haxelib git flurry https://github.com/Aidan63/Flurry.git features/tests;
-  - haxelib run hxtelemetry https://github.com/jcward/hxtelemetry.git;
-  - haxelib run linc_imgui https://github.com/Aidan63/linc_imgui.git;
+  - haxelib git hxtelemetry https://github.com/jcward/hxtelemetry.git;
+  - haxelib git linc_imgui https://github.com/Aidan63/linc_imgui.git;
   - haxelib run flurry install;
 
 script:
