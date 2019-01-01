@@ -24,6 +24,7 @@ addons:
       - libxrandr-dev
       - libxinerama-dev
       - libasound2-dev
+      - libsdl2-dev
 
 install:
   - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
