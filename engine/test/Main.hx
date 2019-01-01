@@ -2,41 +2,39 @@ package;
 
 import buddy.*;
 
-typedef UserConfig = {};
+class Main implements Buddy<[
+    tests.api.maths.MathsTests,
+    tests.api.maths.VectorTests,
+    tests.api.maths.QuaternionTests,
+    tests.api.maths.MatrixTests,
+    tests.api.maths.RectangleTests,
+    tests.api.maths.CircleTests,
 
-class Main extends snow.App
+    tests.api.display.DisplayTests,
+
+    tests.api.importers.bmfont.BitmapFontParserTests,
+    tests.api.importers.textureatlas.TextureAtlasParserTests,
+
+    tests.api.input.InputTests,
+
+    tests.api.gpu.geometry.VertexTests,
+    tests.api.gpu.geometry.TransformationTests,
+    tests.api.gpu.geometry.BlendingTests,
+    tests.api.gpu.geometry.ColorTests,
+    tests.api.gpu.geometry.GeometryTests,
+    tests.api.gpu.geometry.shapes.ArcGeometryTests,
+    tests.api.gpu.geometry.shapes.CircleGeometryTests,
+    tests.api.gpu.geometry.shapes.LineGeometryTests,
+    tests.api.gpu.geometry.shapes.QuadGeometryTests,
+    tests.api.gpu.geometry.shapes.QuadPackGeometryTests,
+    tests.api.gpu.geometry.shapes.RectangleGeometryTests,
+    tests.api.gpu.geometry.shapes.RingGeometryTests,
+    tests.api.gpu.geometry.shapes.TextGeometryTests,
+    tests.api.gpu.batcher.BatcherStateTests,
+    tests.api.gpu.batcher.BatcherTests,
+
+    tests.api.EventBusTests
+]>
 {
-    public function new() {}
-
-    override function ready()
-    {
-        var runner = new SuitesRunner([
-            new tests.maths.MathsTests(),
-            new tests.maths.VectorTests(),
-            new tests.maths.QuaternionTests(),
-            new tests.maths.MatrixTests(),
-            new tests.maths.RectangleTests(),
-            new tests.maths.CircleTests(),
-            
-            new tests.importers.bmfont.BitmapFontParserTests(),
-            new tests.importers.textureatlas.TextureAtlasParserTests(),
-
-            new tests.gpu.batcher.BatcherTests(),
-            new tests.gpu.geometry.VertexTests(),
-            new tests.gpu.geometry.GeometryTests(),
-            new tests.gpu.geometry.ColorTests(),
-            new tests.gpu.geometry.shapes.ArcGeometryTests(),
-            new tests.gpu.geometry.shapes.LineGeometryTests(),
-            new tests.gpu.geometry.shapes.RingGeometryTests(),
-            new tests.gpu.geometry.shapes.QuadGeometryTests(),
-            new tests.gpu.geometry.shapes.TextGeometryTests(),
-            new tests.gpu.geometry.shapes.CircleGeometryTests(),
-            new tests.gpu.geometry.shapes.QuadPackGeometryTests(),
-            new tests.gpu.geometry.shapes.RectangleGeometryTests()
-        ], new ColorReporter());
-
-        runner.run();
-
-        app.shutdown();
-    }
+    //
 }

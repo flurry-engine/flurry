@@ -1,46 +1,21 @@
-package;
 
+import uk.aidanlee.flurry.FlurryConfig;
+import uk.aidanlee.flurry.Flurry;
 import tink.Cli;
 
 typedef UserConfig = {};
 
-class Main extends snow.App
+class Main extends Flurry
 {
-    public function new()
+    override function onConfig(_config : FlurryConfig) : FlurryConfig
     {
-        json         = '';
-        compress     = false;
-        ignoreHidden = false;
-        verbose      = false;
-        output       = 'output.parcel';
+        _config.renderer.backend = NULL;
+
+        return _config;
     }
 
-    override function ready()
+    override function onReady()
     {
-        Cli.process(Sys.args(), new Main()).handle(Cli.exit);
-    }
-
-    @:flag('-from-json')
-    public var json : String;
-
-    @:flag('-output')
-    public var output : String;
-
-    @:flag('--compress')
-    public var compress : Bool;
-
-    @:flag('--ignore-hidden')
-    public var ignoreHidden : Bool;
-
-    @:flag('--verbose')
-    public var verbose : Bool;
-
-    @:defaultCommand
-    public function create()
-    {
-        if (json != '')
-        {
-            ParcelTool.createFromJson(json, output, compress, verbose);
-        }
+        Cli.process(Sys.args(), new ParcelTool()).handle(Cli.exit);
     }
 }

@@ -1,5 +1,5 @@
--main snow.App
--cpp sample/bin/linux64.build/cpp
+# This build file should give you full auto-completion in any area of the engine.
+
 -D no-compilation
 -D linux
 -D target-cpp
@@ -21,22 +21,32 @@
 -D linc_sdl
 -D linc_opengl
 -D threads
--cp sample/bin/linux64.build/haxe
--cp src/
--cp sample/
+-cp engine/src
+-cp engine/test
+-cp sample/benchmark/src
+-cp sample/tetris/src
+-cp tools/parcel/src
+-cp tools/flurry
+-lib hxp
 -lib hxcpp
 -lib hxtelemetry
 -lib hxcpp
 -lib linc_imgui
 -lib linc_opengl
+-lib linc_directx
 -lib linc_sdl
 -lib linc_ogg
 -lib linc_stb
 -lib linc_timestamp
 -lib linc_openal
 -lib tink_cli
+-lib buddy
+-lib mockatoo
 -lib snow
 -lib haxe-concurrent
+
+--no-inline
+
 --macro snow.Set.assets("snow.core.native.assets.Assets")
 --macro snow.Set.runtime("snow.modules.sdl.Runtime")
 --macro snow.Set.audio("snow.modules.openal.Audio")

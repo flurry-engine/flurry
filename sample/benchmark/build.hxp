@@ -1,0 +1,27 @@
+
+import hxp.Path;
+
+class Build extends Project
+{
+    override function setup()
+    {
+        app.name      = 'Benchmark';
+        app.main      = 'Main';
+        app.output    = 'bin';
+        app.codepaths = [ '../../engine/src', 'src' ];
+
+        build.dependencies = [
+            'hxtelemetry' => null,
+            'linc_imgui'  => null
+        ];
+
+        build.defines = [
+            'HXCPP_STACK_TRACE',
+            'HXCPP_TELEMETRY'
+        ];
+
+        files = [
+            'assets' => 'assets'
+        ];
+    }
+}
