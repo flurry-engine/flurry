@@ -16,6 +16,11 @@ addons:
     packages:
       - gcc-multilib
       - g++-multilib
+      - libgl1-mesa-dev
+      - libglu1-mesa-dev
+      - libopenal-dev
+      - libxrandr-dev
+      - libxinerama-dev
 
 install:
   - haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git;
@@ -46,5 +51,5 @@ script:
     popd
 
   # Build the samples
-  - pushd samples/benchmark;
+  - pushd sample/benchmark;
     haxelib run flurry run; popd
