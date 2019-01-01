@@ -1,98 +1,54 @@
-# GPU Renderer
+# Flurry
 
-This repo contains a little GPU renderer mainly designed around 2D games. Geometry is batched together and sorted to try and minimise state changes for better performance. Currently included is a GL4.5 backend, a Directx 11 backend, and a backend built on snow's WebGL haxe class. This class allows the WebGL backend to work on native and web targets (Web targets are pretty much untested right now).
+[![Build Status](https://travis-ci.com/Aidan63/Flurry.svg?branch=master)](https://travis-ci.com/Aidan63/Flurry)
+[![Maintainability](https://api.codeclimate.com/v1/badges/6fbd4dda47e031b4cd84/maintainability)](https://codeclimate.com/github/Aidan63/Flurry/maintainability)
 
-Mainly created for my own personal use and learning experience, but others might find it useful as well. Wasn't sure what to call it so GPU will do for now!
+Flurry is a cross platform, 2D focused game engine written in the Haxe language. It currently supports Windows, Mac, and Linux with Web and WinRT / XBox support planned.
+This engine is currently WIP so nothing is set in stone or stable.
 
 ![WIP Game Project](resources/gpu2.gif)
 
 ![Provided Sample Project](resources/gpu1.gif)
 
-## Info
+## Features
 
 * Multiple Rendering Backends
     - OpenGL 4.5 backend takes use of persistently mapped buffers, bindless textures, SSBOs, and many other modern OpenGL techniques. This backend should be the fastest but also least supported (OSX and many intel iGPUs do not have OpenGL 4.5 support, AMDs Windows GL driver is also really bad).
     - Directx 11 will give good performance to pretty much all hardware on windows.
-    - WebGL backend is a fallback for very old hardware, OSX, and web targets.
+    - WebGL / GLES backend is a fallback for very old hardware, OSX, and web targets.
 
-* WIP
-    - Renderer is very much a work work in progess.
-    - CPU is the limiting factor right now, basically no checks are done before doing transformations, sorting, etc.
-
-* OpenGL and DirectX
-    - My OpenGL and DirectX bindings can be found below. My linc_opengl fork must be used right now as the changes I've made have not yet been merged into the main repo. linc_opengl bindings must also be built with GL_ARB_bindless_texture support. See `build.hxml` in the `gen` directory for info on adding that.
-    - [linc_opengl](https://github.com/aidan63/linc_opengl)
-    - [linc_directx](https://github.com/Aidan63/linc_directx)
+* First Class Shader Support
+    GLSL and HLSL shaders are fully supported.
+    
+* Batched Drawing
+    Geometries are batched together to minimise draw calls.
 
 * Sample Project Provided
-    - This repos sample directory contains a basic little snow based program showing you how to get stuff on the screen. The API is heavily inspired by luxe so anyone familiar with that should have no problem getting started.
-    - More documentation, tests, and samples will be added over time.
+    Handful of samples provided to show you how to get things drawing. More samples and guides / documentations on the way!
 
-* Currently Depends on Snow
-    - The project currently depends on snow, this is mainly due to the typed buffers, emitters, and the WebGL class. It should be fairly easy to remove this dependency though.
+## Planned Features
 
-## General Renderer TODO:
-
-* Batcher Sorting.
-    - Each batcher stores all its geometries in an array and before drawing the batcher will do a merge sort on the array. This is very expensive with lots of geometry and usually unneeded. The geometry list should only be sorted when the geometries properties change.
-    - A self balancing BST could be utilised in the same way luxe does. When a geometry wants to change a property it is removed from its batchers, the properties are set, then its re-inserted.
-
-* Anti-Aliasing
-    - Options should be provided to set how much MSAA to apply to the renderer
-
-* Separation of Shaders and their Uniforms
-    - Separating shaders and their uniform values would allow the backends to update the shaders and uniforms separately when possible.
-
-* Controllable Batcher
-    - The renderer backend should be able to specify how the draw commands are generated and what data is included. Eg. It might be more performant for backends which have multi draw indirect functionality (GL 4.5, Vulkan) to do model transformations on the GPU instead of CPU. With bindless texture support breaking batches on texture changes is no longer needed.
-    - Could also allow backends to specify to the bactchers to update the commands uniforms with a view and projection matrix instead of them included in the draw command. This would avoid the need of any "default" renderer uniforms and allow split screen functionality.
-
-* Texture Data
-    - Texture data is not currently updatable beyond its creation or being used as a render target. Being able to get and set texture data with an array of unit8s would be useful.
-
-* Pre-Compiled Shaders
-    - The create shader function or should contain a pre-compiled flag. This would allow the DX11 and GL / Vulkan backends to skip shader compilation.
-
-* Custom Vertex Layout
-    - All Geometry is currently passed to shaders and POSITION, COLOUR, TEXCOORD. The shader layout definition could contain an extra array for custom vertex layouts.
-    - Vertex texcoords should be able to hold multiple texcoords so the layout can reference them. There should also be some sort of generic data storage for user defined per vertex data.
-
-## WebGL Backend TODO:
-* Static Geometry
-    - Unchanging flag is currently ignored. A separate buffer or section of the buffer (same as gl 4.5 backend) could be used.
-* Core GL Profile Support
-    - On native targets the webGL backend will not run if the user specifies a core profile. This is probably due to the fact that core profiles require at least one VAO. This should be fixed for native platforms as compatibility profiles shouldn't be used (Many vendors only support core profiles or compatibility support is very low).
-* Ensure web targets are working.
-
-## OpenGL 4.5 Backend TODO:
-* Nothing Planned
-
-## DirectX 11 Backend TODO:
-* Static Geometry
-    - Unchanging flag is currently ignored. A separate buffer or section of the buffer (same as gl 4.5 backend) could be used.
-
-## Vulkan Backend TODO:
-* No Work Started
-    - Vulkan bindings need to be created for haxe.
-    - New linc_opengl bindings generator which reads from the official khronos registry could be adapted to easily create vulkan bindings.
-    - MoltenVK would allow this backend to work on OSX. Better performance and wouldn't rely on the now deprecated GL.
-
-## Other Work
-
-* Maths Listeners
-    - Add optional listener functions for the maths classes. Allows easy creation of dirty flags for other renderer parts.
-
-* Camera Matrices
-    - Camera currently recalculates it matrices each step. Dirty flag should be added to know when to recalulate. Relies on Matrix and Vector listeners.
-
-* Fonts / Text
-    - Multi page support for bitmaps
-    - Bounding box for text
-    - Bitmaps font size
-
-* Transformation
-    - move transformation into the maths section as it could be more useful in other non gpu cases
-    - add dirty flag so the transformation is not needlessly calculated
-
-* Tests
-    - Much work has been done since the renderer tests were created. Should be updated to reflect the current state of the renderer.
+* Web Target
+    WebGL rendering backend already ready but some parts of the engine require some reworking as they require thread and file system access.
+    
+* WinRT / Xbox
+    DX11 backend can be easily adapted to support WinRT, HxCPP also already supports WinRT. This should also give access to Xbox One development
+    
+* Vulkan Backend
+    A Vulkan backend is planned, MoltenVK could be used to give the Mac better performance than just GLES.
+    
+* Other Stuff
+    More planned features can be found on the project page https://github.com/Aidan63/Flurry/projects/1
+    
+## Dependencies
+- snow
+- linc_opengl (https://github.com/Aidan63/linc_opengl)
+- linc_directx (https://github.com/Aidan63/linc_directx)
+- linc_openal
+- linc_stb
+- linc_stb
+- linc_ogg
+- linc_sdl
+- linc_imgui
+- haxe_concurrent
+- haxe_strings
