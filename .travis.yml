@@ -1,0 +1,49 @@
+language: haxe
+
+os:
+  - linux
+  - osx
+
+dist: xenial
+
+haxe:
+  - development
+
+neko: "2.2.0"
+
+addons:
+  apt:
+    packages:
+      - gcc-multilib
+      - g++-multilib
+
+install:
+  - haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git;
+    pushd $(haxelib path hxcpp | head -1);
+      pushd tools/hxcpp; haxe compile.hxml; popd;
+      pushd project; neko build.n; popd;
+    popd
+  - haxelib git hxp https://github.com/openfl/hxp.git;
+  - haxelib git flurry https://github.com/Aidan63/Flurry.git features/tests;
+  - haxelib run hxtelemetry https://github.com/jcward/hxtelemetry.git;
+  - haxelib run linc_imgui https://github.com/Aidan63/linc_imgui.git;
+  - haxelib run flurry install;
+
+script:
+  # Build the flurry run file
+  - pushd tools/flurry;
+    haxe build.hxml; popd; popd;
+
+  # Build the parcel tool
+  - pushd tools/parcel;
+    haxelib run flurry build; popd; popd;
+
+  # Run the engine tests
+  - pushd engine/tests;
+    haxe build-cpp.hxml;
+    ./bin/cpp.Main;
+    popd; popd;
+
+  # Build the samples
+  - pushd samples/benchmark;
+    haxelib run flurry run; popd; popd;
