@@ -46,7 +46,7 @@ script:
   # Run the engine tests
   - pushd engine/test;
     haxe build-cpp.hxml;
-    ./bin/cpp.Main;
+    ./bin/cpp/Main;
     popd
 
   # Build the samples
