@@ -6,10 +6,9 @@ import hxp.Path;
 import hxp.Version;
 import hxp.Script;
 import hxp.HXML;
-import hxp.Log;
-import hxp.Haxelib;
 
 enum FlurryTarget {
+    Haxe;
     SnowDesktop;
     SnowWeb;
     SnowCLI;
@@ -56,15 +55,41 @@ class Project extends Script
         switch (command)
         {
             case 'build':
-                snowBuild(pathBuild, pathRelease);
+                switch (meta.target)
+                {
+                    case Haxe:
+                        haxeBuild(pathBuild, pathRelease);
+                    case SnowDesktop, SnowCLI:
+                        snowBuild(pathBuild, pathRelease);
+                    case _target:
+                        throw 'building for $_target is not yet implemented';
+                }
 
             case 'run':
-                snowBuild(pathBuild, pathRelease);
-                snowRun(pathRelease);
+                switch (meta.target)
+                {
+                    case Haxe:
+                        haxeBuild(pathBuild, pathRelease);
+                        haxeRun(pathRelease);
+                    case SnowDesktop, SnowCLI:
+                        snowBuild(pathBuild, pathRelease);
+                        snowRun(pathRelease);
+                    case _target:
+                        throw 'running for $_target is not yet implemented';
+                }
 
             case 'package':
-                snowBuild(pathBuild, pathRelease);
-                snowPackage(pathRelease);
+                switch (meta.target)
+                {
+                    case Haxe:
+                        haxeBuild(pathBuild, pathRelease);
+                        haxePackage(pathRelease);
+                    case SnowDesktop, SnowCLI:
+                        snowBuild(pathBuild, pathRelease);
+                        snowPackage(pathRelease);
+                    case _target:
+                        throw 'running for $_target is not yet implemented';
+                }
 
             case 'clean':
                 cleanOutputDirectory();
@@ -87,6 +112,114 @@ class Project extends Script
         System.removeDirectory(app.output);
     }
 
+    // #region haxe build
+
+    final function haxeBuild(_pathBuild : String, _pathRelease : String)
+    {
+        var user = new HXML();
+
+        FileSystem.createDirectory(_pathBuild);
+        FileSystem.createDirectory(_pathRelease);
+
+        user.main  = app.main;
+        user.cpp   = Path.combine(_pathBuild, 'cpp');
+        user.debug = build.debug;
+
+        for (codepath in app.codepaths)
+        {
+            user.cp(codepath);
+        }
+
+        // Add some defines for cpp target
+        user.define(System.hostPlatform);
+        user.define('target-cpp');
+        user.define('arch-64');
+        user.define('desktop');
+        user.define('hxcpp');
+
+        for (lib in build.dependencies.keys())
+        {
+            user.define(lib);
+        }
+
+        for (define in build.defines)
+        {
+            user.define(define);
+        }
+
+        user.lib('hxcpp', null);
+
+        for (lib => ver in build.dependencies)
+        {
+            user.lib(lib, ver);
+        }
+
+        for (mac in build.macros)
+        {
+            user.addMacro(mac);
+        }
+
+        var hxmlUser = File.write(Path.combine(_pathBuild, 'build.hxml'), false);
+        hxmlUser.writeString(user);
+        hxmlUser.close();
+
+        // Build the project
+        var result = System.runCommand(workingDirectory, 'haxe', [ Path.combine(_pathBuild, 'build.hxml')]);
+        if (result != 0)
+        {
+            Sys.exit(result);
+        }
+
+        // Copy files over
+        for (src => dst in files)
+        {
+            System.recursiveCopy(src, Path.combine(_pathRelease, dst));
+        }
+
+        // Rename the output executable and copy it over to the .build directory.
+        // Platform specific since file extensions change.
+        // If the script is called with the 'run' command i.e. `hxp .. build.hxp run` then the binary should be launched after building.
+        switch (System.hostPlatform)
+        {
+            case WINDOWS : {
+                FileSystem.rename(Path.join([ _pathBuild, 'cpp', '${app.main}.exe' ]), Path.join([ _pathBuild, 'cpp', '${app.name}.exe' ]));
+                System.copyFile(Path.join([ _pathBuild, 'cpp', '${app.name}.exe' ]), Path.combine(_pathRelease, '${app.name}.exe'));
+            }
+            case MAC : {
+                //
+            }
+            case LINUX : {
+                FileSystem.rename(Path.join([ _pathBuild, 'cpp', '${app.main}' ]), Path.join([ _pathBuild, 'cpp', app.name ]));
+                System.copyFile(Path.join([ _pathBuild, 'cpp', app.name ]), Path.combine(_pathRelease, app.name));
+
+                System.runCommand(workingDirectory, 'chmod a+x ${Path.join([ _pathBuild, 'cpp', app.name ])}', []);
+                System.runCommand(workingDirectory, 'chmod a+x ${Path.join([ _pathRelease, app.name ])}', []);
+            }
+        }
+    }
+
+    final function haxeRun(_pathRelease : String)
+    {
+        switch (System.hostPlatform)
+        {
+            case WINDOWS:
+                System.runCommand(workingDirectory, Path.combine(_pathRelease, '${app.name}.exe'), []);
+            
+            case MAC:
+                //
+
+            case LINUX:
+                System.runCommand(workingDirectory, Path.join([ _pathRelease, app.name ]), []);
+        }
+    }
+
+    final function haxePackage(_pathRelease : String)
+    {
+        System.compress(_pathRelease, Path.combine(app.output, '${app.name}-${System.hostPlatform}${System.hostArchitecture.getName()}.zip'));
+    }
+
+    // #endregion
+
     // #region snow build
 
     final function snowBuild(_pathBuild : String, _pathRelease : String)
@@ -98,8 +231,9 @@ class Project extends Script
         FileSystem.createDirectory(_pathRelease);
 
         // General snow settings
-        user.main = 'snow.App';
-        user.cpp  = Path.combine(_pathBuild, 'cpp');
+        user.main  = 'snow.App';
+        user.cpp   = Path.combine(_pathBuild, 'cpp');
+        user.debug = build.debug;
 
         for (codepath in app.codepaths)
         {
@@ -335,6 +469,11 @@ private class FlurryProjectApp
 
 private class FlurryProjectBuild
 {
+    /**
+     * If this build will be built in debug mode.
+     */
+    public var debug : Bool;
+
     /**
      * List of haxelib dependencies.
      * The key is the haxelib name and the value is the version.
