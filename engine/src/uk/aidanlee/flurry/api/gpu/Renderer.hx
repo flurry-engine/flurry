@@ -6,7 +6,7 @@ import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
 import uk.aidanlee.flurry.api.gpu.backend.WebGLBackend;
 import uk.aidanlee.flurry.api.gpu.backend.NullBackend;
-#if cpp
+#if (cpp && !mac)
 import uk.aidanlee.flurry.api.gpu.backend.GL45Backend;
 #end
 #if windows
