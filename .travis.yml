@@ -32,18 +32,18 @@ install:
 script:
   # Build the flurry run file
   - pushd tools/flurry;
-    haxe build.hxml; popd; popd;
+    haxe build.hxml; popd;
 
   # Build the parcel tool
   - pushd tools/parcel;
-    haxelib run flurry build; popd; popd;
+    haxelib run flurry build; popd;
 
   # Run the engine tests
   - pushd engine/tests;
     haxe build-cpp.hxml;
     ./bin/cpp.Main;
-    popd; popd;
+    popd;
 
   # Build the samples
   - pushd samples/benchmark;
-    haxelib run flurry run; popd; popd;
+    haxelib run flurry run; popd;
