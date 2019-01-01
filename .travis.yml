@@ -28,22 +28,23 @@ install:
   - haxelib git hxtelemetry https://github.com/jcward/hxtelemetry.git;
   - haxelib git linc_imgui https://github.com/Aidan63/linc_imgui.git;
   - haxelib run flurry install;
+  - haxelib set hxp git
 
 script:
   # Build the flurry run file
   - pushd tools/flurry;
-    haxe build.hxml; popd;
+    haxe build.hxml; popd
 
   # Build the parcel tool
   - pushd tools/parcel;
-    haxelib run flurry build; popd;
+    haxelib run flurry build; popd
 
   # Run the engine tests
-  - pushd engine/tests;
+  - pushd engine/test;
     haxe build-cpp.hxml;
     ./bin/cpp.Main;
-    popd;
+    popd
 
   # Build the samples
   - pushd samples/benchmark;
-    haxelib run flurry run; popd;
+    haxelib run flurry run; popd
