@@ -1,5 +1,7 @@
 package;
 
+import Xml;
+import sys.io.File;
 import haxe.CallStack.StackItem;
 import buddy.BuddySuite.Spec;
 import buddy.BuddySuite.Suite;
@@ -21,10 +23,26 @@ class ColorReporter implements Reporter
 
     var unknowns : Int;
 
-    public function new() {}
+    var xml : Xml;
+
+    var startTime : Float;
+
+    var endTime : Float;
+
+    public function new()
+    {
+        total    = 0;
+        passing  = 0;
+        failures = 0;
+        pending  = 0;
+        unknowns = 0;
+        xml      = Xml.createElement('assemblies');
+    }
 
     public function start() : Promise<Bool>
     {
+        startTime = Sys.time();
+
         return resolve(true);
     }
 
@@ -35,11 +53,15 @@ class ColorReporter implements Reporter
 
     public function done(_suites : Iterable<Suite>, _status : Bool) : Promise<Iterable<Suite>>
     {
+        endTime = Sys.time();
+
         for (suite in _suites)
         {
             countSuite(suite);
             printSuite(suite, -1);
         }
+
+        createReport(_suites);
 
         Log.print('[PASS] ' + Log.ansiColours['none'] + '${total - pending - failures} passing tests'  , Log.ansiColours['green' ]);
         Log.print('[PEND] ' + Log.ansiColours['none'] + '$pending pending tests', Log.ansiColours['yellow']);
@@ -60,6 +82,117 @@ class ColorReporter implements Reporter
     function indentString(_string : String, _indentLevel : Int) : String
     {
         return _string.lpad(' ', _string.length + (_indentLevel * 2));
+    }
+
+    function createReport(_suites : Iterable<Suite>)
+    {
+        var assembly = Xml.createElement('assembly');
+        assembly.set('name'          , '');
+        assembly.set('config-file'   , '');
+        assembly.set('test-framework', 'Buddy');
+        assembly.set('run-date', '${Date.now().getFullYear()}-${Date.now().getMonth()}-${Date.now().getDay()}');
+        assembly.set('run-date', '${Date.now().getHours()}-${Date.now().getMinutes()}-${Date.now().getSeconds()}');
+        assembly.set('time'    , Std.string(endTime - startTime));
+        assembly.set('total'   , Std.string(total));
+        assembly.set('passed'  , Std.string(passing));
+        assembly.set('failed'  , Std.string(failures));
+        assembly.set('skipped' , Std.string(pending));
+        assembly.set('errors'  , Std.string(0));
+
+        var collection = Xml.createElement('collection');
+        collection.set('name'    , 'engine-linux');
+        collection.set('time'    , Std.string(endTime - startTime));
+        collection.set('total'   , Std.string(total));
+        collection.set('passed'  , Std.string(passing));
+        collection.set('failed'  , Std.string(failures));
+        collection.set('skipped' , Std.string(pending));
+
+        for (suite in _suites)
+        {
+            reportSuite(suite, collection);
+        }
+
+        assembly.addChild(collection);
+        xml.addChild(assembly);
+
+        File.saveContent('test-engine.xml', xml.toString());
+    }
+
+    function reportSuite(_suite : Suite, _collection : Xml)
+    {
+        for (spec in _suite.specs)
+        {
+            if (spec.status == Unknown)
+            {
+                continue;
+            }
+
+            var test = Xml.createElement('test');
+            test.set('name', spec.description);
+            test.set('type', spec.fileName);
+            test.set('method', '');
+            test.set('time', '');
+
+            switch (spec.status)
+            {
+                case Passed:
+                    test.set('result', 'Pass');
+                case Pending:
+                    test.set('result', 'Skip');
+
+                    var reason = Xml.createElement('reason');
+                    reason.addChild(Xml.createCData('Pending Test'));
+
+                    test.addChild(reason);
+                case Failed:
+                    test.set('result', 'Fail');
+                    for (failure in spec.failures)
+                    {
+                        var failureElem = Xml.createElement('failure');
+                        failureElem.set('exception-type', '');
+                        
+                        var message = Xml.createElement('message');
+                        message.addChild(Xml.createCData(failure.error));
+
+                        var stacktrace = Xml.createElement('stack-track');
+                        stacktrace.addChild(Xml.createCData(formatStackTrace(failure.stack)));
+
+                        failureElem.addChild(message);
+                        failureElem.addChild(stacktrace);
+
+                        test.addChild(failureElem);
+                    }
+                case Unknown:
+                    //
+            }
+
+            _collection.addChild(test);
+        }
+
+        for (suite in _suite.suites)
+        {
+            reportSuite(suite, _collection);
+        }
+    }
+
+    function formatStackTrace(_stack : Array<StackItem>) : String
+    {
+        var buffer = new StringBuf();
+
+        for (item in _stack)
+        {
+            switch (item) {
+                case FilePos(s, file, line, column):
+                    if (line > 0 && file.indexOf('buddy/internal/') != 0 && file.indexOf('buddy.SuitesRunner') != 0)
+                    {
+                        buffer.add('@ $file:$line\n');
+                    }
+                default:
+                    //
+            }
+        }
+
+        return buffer.toString();
     }
 
     function countSuite(_suite : Suite)
