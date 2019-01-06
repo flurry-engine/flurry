@@ -25,8 +25,8 @@ install:
   - haxelib run flurry install;
 
 build_script:
-  - ps: $hxcpp_path = (haxelib path hxcpp) | select -First 1 | Out-String
-  - ps: $hxcpp_path = $hxcpp.replace("`n","").replace("`r", "")
+  - ps: haxelib path hxcpp
+  - ps: $hxcpp_path = (haxelib path hxcpp) | select -First 1 | Out-String -NoNewLine
   - ps: cd $hxcpp_path
   - ps: cd tools\run
   - ps: haxe compile.hxml
