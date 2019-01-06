@@ -25,12 +25,9 @@ install:
   - haxelib run flurry install;
 
 build_script:
-  - ps: haxelib path hxcpp
-  - ps: $hxcpp_path = (haxelib path hxcpp) | select -First 1 | Out-String -NoNewLine
-  - ps: cd $hxcpp_path
-  - ps: cd tools\run
+  - ps: cd C:/projects/haxelib/hxcpp/git/tools/run
   - ps: haxe compile.hxml
-  - ps: cd ..\hxcpp
+  - ps: cd ../hxcpp
   - ps: haxe compile.hxml
 
 test_script:
