@@ -22,7 +22,7 @@ install:
   - haxelib git flurry https://github.com/Aidan63/Flurry.git
   - haxelib git hxtelemetry https://github.com/jcward/hxtelemetry.git
   - haxelib git linc_imgui https://github.com/Aidan63/linc_imgui.git
-  - haxelib run flurry install;
+  - haxelib run flurry install
 
 build_script:
   - cd C:/projects/haxelib/hxcpp/git/tools/run
