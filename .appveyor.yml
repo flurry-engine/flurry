@@ -17,6 +17,7 @@ install:
   - mkdir "%HAXELIB_ROOT%"
   - haxelib setup "%HAXELIB_ROOT%"
 
+  - haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp
   - haxelib git hxp https://github.com/openfl/hxp.git
   - haxelib git flurry https://github.com/Aidan63/Flurry.git
   - haxelib git hxtelemetry https://github.com/jcward/hxtelemetry.git
