@@ -4,8 +4,8 @@ environment:
 
 install:
   - ps: Set-Service wuauserv -StartupType Manual
-  - cinst neko --version 2.0.0 -y
-  - cinst haxe --prerelease --ignore-dependencies -s 'https://ci.appveyor.com/nuget/haxe' -y
+  - cinst neko --prerelease --source 'https://ci.appveyor.com/nuget/neko' --yes
+  - cinst haxe --prerelease --source 'https://ci.appveyor.com/nuget/haxe' --yes
 
   - RefreshEnv
 
