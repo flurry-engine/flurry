@@ -25,10 +25,10 @@ install:
   - haxelib run flurry install;
 
 build_script:
-  - ps: cd C:/projects/haxelib/hxcpp/git/tools/run
-  - ps: haxe compile.hxml
-  - ps: cd ../hxcpp
-  - ps: haxe compile.hxml
+  - cd C:/projects/haxelib/hxcpp/git/tools/run
+  - haxe compile.hxml
+  - cd ../hxcpp
+  - haxe compile.hxml
 
 test_script:
   - cd %APPVEYOR_BUILD_FOLDER%
