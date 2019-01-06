@@ -1,3 +1,5 @@
+version: "{build}"
+
 environment:
   global:
     HAXELIB_ROOT: C:\projects\haxelib
@@ -5,7 +7,7 @@ environment:
 install:
   - ps: Set-Service wuauserv -StartupType Manual
   - choco install neko --yes
-  - cinst haxe --prerelease --source 'https://ci.appveyor.com/nuget/haxe' --yes
+  - choco install haxe --prerelease --source 'https://ci.appveyor.com/nuget/haxe' --yes
 
   - RefreshEnv
 
@@ -17,7 +19,6 @@ install:
   - haxelib git hxtelemetry https://github.com/jcward/hxtelemetry.git
   - haxelib git linc_imgui https://github.com/Aidan63/linc_imgui.git
   - haxelib run flurry install;
-  - haxelib set hxp git
 
 test_script:
   - cd "haxelib libpath hxcpp"
