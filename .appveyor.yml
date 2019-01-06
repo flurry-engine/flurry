@@ -22,7 +22,7 @@ install:
   - haxelib run flurry install;
 
 build_script:
-  - cd "haxelib libpath hxcpp"
+  - for /f %%i in ('haxelib libpath hxcpp') do cd %%i
   - cd tools\run
   - haxe compile.hxml
   - cd ..\hxcpp
