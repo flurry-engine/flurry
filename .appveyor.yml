@@ -3,6 +3,7 @@ version: "{build}"
 environment:
   global:
     HAXELIB_ROOT: C:\projects\haxelib
+    APPVEYOR_YML_DISABLE_PS_LINUX: true
 
 install:
   - ps: Set-Service wuauserv -StartupType Manual
