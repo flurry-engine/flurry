@@ -21,13 +21,14 @@ install:
   - haxelib git linc_imgui https://github.com/Aidan63/linc_imgui.git
   - haxelib run flurry install;
 
-test_script:
+build_script:
   - cd "haxelib libpath hxcpp"
   - cd tools\run
   - haxe compile.hxml
   - cd ..\hxcpp
   - haxe compile.hxml
 
+test_script:
   - cd %APPVEYOR_BUILD_FOLDER%
   - cd engine\test
   - haxe build-cpp.hxml
