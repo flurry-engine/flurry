@@ -9,8 +9,8 @@ install:
   - cmd: choco install neko --yes
   - cmd: choco install haxe --prerelease --source 'https://ci.appveyor.com/nuget/haxe' --yes
   - cmd: RefreshEnv
-  - cmd: mkdir C:/projects/haxelib
-  - cnd: haxelib setup C:/projects/haxelib
+  - cmd: mkdir C:\projects\haxelib
+  - cmd: haxelib setup C:\projects\haxelib
 
   # Linux Deps
   - sh: sudo add-apt-repository ppa:haxe/snapshots -y
@@ -27,9 +27,9 @@ install:
   - haxelib run flurry install
 
 build_script:
-  - cmd: cd C:/projects/haxelib/hxcpp/git/tools/run
+  - cmd: cd C:\projects\haxelib\hxcpp\git\tools\run
   - cmd: haxe compile.hxml
-  - cmd: cd ../hxcpp
+  - cmd: cd ..\hxcpp
   - cmd: haxe compile.hxml
 
   - sh: cd ~/haxelib/hxcpp/git/tools/run
@@ -39,9 +39,9 @@ build_script:
 
 test_script:
   - cmd: cd %APPVEYOR_BUILD_FOLDER%
-  - cmd: cd engine/test
+  - cmd: cd engine\test
   - cmd: haxe build-cpp.hxml
-  - cmd: ./bin/cpp/Main
+  - cmd: .\bin\cpp\Main
 
   - sh: cd $APPVEYOR_BUILD_FOLDER
   - sh: cd engine/test
