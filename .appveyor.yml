@@ -1,21 +1,23 @@
 version: "{build}"
 
-image: Visual Studio 2017
-
-environment:
-  global:
-    HAXELIB_ROOT: C:\projects\haxelib
-    APPVEYOR_YML_DISABLE_PS_LINUX: true
+image:
+  - Visual Studio 2017
+  - Ubuntu
 
 install:
-  - ps: Set-Service wuauserv -StartupType Manual
-  - choco install neko --yes
-  - choco install haxe --prerelease --source 'https://ci.appveyor.com/nuget/haxe' --yes
+  # Windows Deps
+  - cmd: choco install neko --yes
+  - cmd: choco install haxe --prerelease --source 'https://ci.appveyor.com/nuget/haxe' --yes
+  - cmd: RefreshEnv
+  - cmd: mkdir C:/projects/haxelib
+  - cnd: haxelib setup C:/projects/haxelib
 
-  - RefreshEnv
-
-  - mkdir "%HAXELIB_ROOT%"
-  - haxelib setup "%HAXELIB_ROOT%"
+  # Linux Deps
+  - sh: sudo add-apt-repository ppa:haxe/snapshots -y
+  - sh: sudo apt-get update
+  - sh: sudo apt-get install haxe gcc-multilib g++-multilib libgl1-mesa-dev libglu1-mesa-dev libopenal-dev libxrandr-dev libxinerama-dev libasound2-dev libsdl2-dev -y
+  - sh: mkdir ~/haxelib
+  - sh: haxelib setup ~/haxelib
 
   - haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp
   - haxelib git hxp https://github.com/openfl/hxp.git
@@ -25,16 +27,26 @@ install:
   - haxelib run flurry install
 
 build_script:
-  - cd C:/projects/haxelib/hxcpp/git/tools/run
-  - haxe compile.hxml
-  - cd ../hxcpp
-  - haxe compile.hxml
+  - cmd: cd C:/projects/haxelib/hxcpp/git/tools/run
+  - cmd: haxe compile.hxml
+  - cmd: cd ../hxcpp
+  - cmd: haxe compile.hxml
+
+  - sh: cd ~/haxelib/hxcpp/git/tools/run
+  - sh: haxe compile.hxml
+  - sh: cd ../hxcpp
+  - sh: haxe compile.hxml
 
 test_script:
-  - cd %APPVEYOR_BUILD_FOLDER%
-  - cd engine\test
-  - haxe build-cpp.hxml
-  - .\bin\cpp\Main.exe
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%
+  - cmd: cd engine/test
+  - cmd: haxe build-cpp.hxml
+  - cmd: ./bin/cpp/Main
+
+  - sh: cd $APPVEYOR_BUILD_FOLDER
+  - sh: cd engine/test
+  - sh: haxe build-cpp.hxml
+  - sh: ./bin/cpp/Main.exe
 
   - ps: $wc = New-Object 'System.Net.WebClient'
-  - ps: $wc.UploadFile("https://ci.appveyor.com/api/testresults/xunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\test-engine.xml))
+  - ps: $wc.UploadFile("https://ci.appveyor.com/api/testresults/xunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path ./test-engine.xml))
