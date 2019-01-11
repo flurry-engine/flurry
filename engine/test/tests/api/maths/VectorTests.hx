@@ -14,6 +14,7 @@ class VectorTests extends BuddySuite
     {
         describe('Vector', {
 
+            /*
             describe('Constructor', {
                 it('Can create a vector with all components zero', {
                     var v = new Vector();
@@ -543,6 +544,7 @@ class VectorTests extends BuddySuite
                     rs.equals(v2).should.be(false);
                 });
             });
+            */
         });
     }
 }
