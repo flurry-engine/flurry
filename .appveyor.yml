@@ -21,6 +21,7 @@ install:
   - sh: tar -xzf ~/haxe_latest.tar.gz -C ~/haxe --strip-components=1
   - sh: HAXE_STD_PATH=~/haxe/std
   - sh: PATH=${PATH}:~/haxe
+  - sh: echo ${PATH}
 
   - sh: mkdir ~/haxelib
   - sh: haxelib setup ~/haxelib
