@@ -10,7 +10,7 @@ steps:
 
 - bash: |
     choco install neko --yes
-    choco install haxe --prelease --source 'https://ci.appveyor.com/nuget/haxe' --yes
+    choco install haxe --prerelease --source 'https://ci.appveyor.com/nuget/haxe' --yes
   condition: eq( variables['Agent.OS'], 'Windows_NT' )
   displayName: Install haxe for windows
 
