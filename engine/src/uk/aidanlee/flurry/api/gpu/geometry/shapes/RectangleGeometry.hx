@@ -78,10 +78,10 @@ class RectangleGeometry extends Geometry
      * @param _w Width.
      * @param _h Height.
      */
-    public function set_xywh(_x : Float, _y : Float, _w : Float, _h : Float)
+    public function set_xywh(_x : Float, _y : Float, w : Float, _h : Float)
     {
-        vertices[1].position.set_xy(_w,  0);
-        vertices[2].position.set_xy(_w, _h);
+        vertices[1].position.set_xy( w,  0);
+        vertices[2].position.set_xy( w, _h);
         vertices[3].position.set_xy( 0, _h);
 
         transformation.position.set_xy(_x, _y);
