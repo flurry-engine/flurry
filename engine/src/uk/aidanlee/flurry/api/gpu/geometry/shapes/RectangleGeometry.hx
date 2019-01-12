@@ -75,14 +75,14 @@ class RectangleGeometry extends Geometry
      * Set the position and size of the geometry from four floats.
      * @param _x x position.
      * @param _y y position.
-     * @param _w Width.
-     * @param _h Height.
+     * @param _width Width.
+     * @param _height Height.
      */
-    public function set_xywh(_x : Float, _y : Float, w : Float, _h : Float)
+    public function set_xywh(_x : Float, _y : Float, _width : Float, _height : Float)
     {
-        vertices[1].position.set_xy( w,  0);
-        vertices[2].position.set_xy( w, _h);
-        vertices[3].position.set_xy( 0, _h);
+        vertices[1].position.set_xy( _width,  0);
+        vertices[2].position.set_xy( _width, _height);
+        vertices[3].position.set_xy(      0, _height);
 
         transformation.position.set_xy(_x, _y);
     }

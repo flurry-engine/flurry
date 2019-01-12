@@ -94,12 +94,12 @@ class QuadGeometry extends Geometry
      * @param _w New width of the quad.
      * @param _h New height of the quad.
      */
-    public function set_xywh(_x : Float, _y : Float, _w : Float, _h : Float)
+    public function set_xywh(_x : Float, _y : Float, _width : Float, _height : Float)
     {
-        vertices[0].position.set_xy( 0, _h);
-        vertices[1].position.set_xy(_w, _h);
-        vertices[2].position.set_xy( 0,  0);
-        vertices[3].position.set_xy(_w,  0);
+        vertices[0].position.set_xy(     0, _height);
+        vertices[1].position.set_xy(_width, _height);
+        vertices[2].position.set_xy(     0,  0);
+        vertices[3].position.set_xy(_width,  0);
 
         transformation.position.set_xy(_x, _y);
     }
