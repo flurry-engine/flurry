@@ -13,9 +13,15 @@ install:
   - cmd: haxelib setup C:\projects\haxelib
 
   # Linux Deps
-  - sh: sudo add-apt-repository ppa:haxe/snapshots -y
-  - sh: sudo apt-get update
   - sh: sudo apt-get install haxe gcc-multilib g++-multilib libgl1-mesa-dev libglu1-mesa-dev libopenal-dev libxrandr-dev libxinerama-dev libasound2-dev libsdl2-dev -y
+
+  # Install haxe
+  - sh: curl http://hxbuilds.s3-website-us-east-1.amazonaws.com/builds/haxe/linux64/haxe_latest.tar.gz -C ~/haxe_latest.tar.gz -# -L
+  - sh: mkdir ~/haxe
+  - sh: tar -xzf ~/haxe_latest.tar.gz -C ~/haxe --strip-components=1
+  - sh: HAXE_STD_PATH=~/haxe/std
+  - sh: PATH=${PATH}:~/haxe
+
   - sh: mkdir ~/haxelib
   - sh: haxelib setup ~/haxelib
 
