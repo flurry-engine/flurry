@@ -1,0 +1,39 @@
+strategy:
+  matrix:
+    windows:
+      imageName: 'vs2017-win2016'
+
+pool:
+  vmImage: $(imageName)
+
+steps:
+
+- bash: |
+    choco install neko --yes
+    choco install haxe --prelease --source 'https://ci.appveyor.com/nuget/haxe' --yes
+  condition: eq( variables['Agent.OS'], 'Linux' )
+  displayName: Install haxe for windows
+
+- script: |
+    mkdir ~/haxelib
+    haxelib setup ~/haxelib
+
+    haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp
+    haxelib git hxp https://github.com/openfl/hxp.git
+    haxelib git flurry https://github.com/Aidan63/Flurry.git
+    haxelib git hxtelemetry https://github.com/jcward/hxtelemetry.git
+    haxelib git linc_imgui https://github.com/Aidan63/linc_imgui.git
+    haxelib run flurry install
+
+    cd ~/haxelib/hxcpp/git/tools/run
+    haxe compile.hxml
+    cd ~/haxelib/hxcpp/git/tools/hxcpp
+    haxe compile.hxml
+  displayName: Install haxe dependencies
+
+- script: |
+    cd engine/test
+    haxe build-cpp.hxml
+    bin/cpp/Main
+  displayName: Run unit tests
+  workingDirectory: $(Agent.BuildDirectory)

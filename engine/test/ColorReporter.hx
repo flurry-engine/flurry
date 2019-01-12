@@ -1,21 +1,48 @@
 package;
 
+import Xml;
+import sys.io.File;
 import haxe.CallStack.StackItem;
-import buddy.reporting.Reporter;
 import buddy.BuddySuite.Spec;
 import buddy.BuddySuite.Suite;
+import buddy.reporting.Reporter;
 import promhx.Deferred;
 import promhx.Promise;
 
 using StringTools;
-using Lambda;
 
 class ColorReporter implements Reporter
 {
-    public function new() {}
+    var total : Int;
+
+    var passing : Int;
+
+    var failures : Int;
+
+    var pending : Int;
+
+    var unknowns : Int;
+
+    var xml : Xml;
+
+    var startTime : Float;
+
+    var endTime : Float;
+
+    public function new()
+    {
+        total    = 0;
+        passing  = 0;
+        failures = 0;
+        pending  = 0;
+        unknowns = 0;
+        xml      = Xml.createElement('assemblies');
+    }
 
     public function start() : Promise<Bool>
     {
+        startTime = Sys.time();
+
         return resolve(true);
     }
 
@@ -26,110 +53,15 @@ class ColorReporter implements Reporter
 
     public function done(_suites : Iterable<Suite>, _status : Bool) : Promise<Iterable<Suite>>
     {
-        var total    = 0;
-        var failures = 0;
-        var pending  = 0;
+        endTime = Sys.time();
 
-        var countTests : Suite -> Void = null;
-        var printTests : Suite -> Int -> Void = null;
+        for (suite in _suites)
+        {
+            countSuite(suite);
+            printSuite(suite, -1);
+        }
 
-        countTests = function(_s : Suite) {
-            if (_s.error != null) failures++;
-
-            for (sp in _s.steps)
-            {
-                switch (sp)
-                {
-                    case TSpec(sp):
-                        total++;
-                        if (sp.status == Failed)
-                        {
-                            failures++;
-                        }
-                        else if (sp.status == Pending)
-                        {
-                            pending++;
-                        }
-
-                    case TSuite(_s):
-                        countTests(_s);
-                }
-            }
-        };
-
-        printTests = function(_s : Suite, _indentLevel : Int) {
-
-            /**
-             * Pads the provided string according to the indent level of the test.
-             * @param _str String to pad.
-             * @return String
-             */
-            function padTest(_str : String) : String {
-                return _str.lpad(' ', _str.length + Std.int(Math.max(0, _indentLevel * 2)));
-            }
-
-            /**
-             * Logs the stack to the output.
-             * @param _indent Current indent level.
-             * @param _stack  Stack to print.
-             */
-            function logStack(_indent : String, _stack : Array<StackItem>) {
-                if (_stack == null || _stack.length == 0) return;
-                for (s in _stack) switch(s)
-                {
-                    case FilePos(_, file, line) if (line > 0 && file.indexOf('buddy/internal/') != 0 && file.indexOf('buddy.SuitesRunner') != 0):
-                        Log.print(padTest(_indent + '@ $file:$line'), Log.ansiColours['yellow']);
-                    case _:
-                        //
-                }
-            }
-
-            /**
-             * [Description]
-             * @param _spec - 
-             */
-            function logTraces(_spec : Spec) {
-                for (t in _spec.traces) Log.print(padTest('    ' + t), Log.ansiColours['yellow']);
-            }
-
-            if (_s.description.length > 0) Log.print(padTest(_s.description), Log.ansiColours['yellow']);
-            if (_s.error != null)
-            {
-                Log.error(padTest('ERROR: ' + _s.error));
-                logStack('    ', _s.stack);
-                return;
-            }
-
-            // Print the actual test results.
-            for (step in _s.steps) switch step
-            {
-                case TSpec(sp):
-                    if (sp.status == Failed)
-                    {
-                        Log.error(padTest('[FAIL] ' + Log.ansiColours['none'] + sp.description));
-                        for (failure in sp.failures)
-                        {
-                            Log.print(padTest('    ' + failure.error), Log.ansiColours['yellow']);
-                            logStack('    ', failure.stack);
-                        }
-                    }
-                    else
-                    {
-                        switch (sp.status)
-                        {
-                            case Passed  : Log.print(padTest('[PASS] ' + Log.ansiColours['none'] + sp.description), Log.ansiColours['green' ]);
-                            case Pending : Log.print(padTest('[PEND] ' + Log.ansiColours['none'] + sp.description), Log.ansiColours['yellow']);
-                            case _       : Log.print(padTest('[UNKN] ' + Log.ansiColours['none'] + sp.description), Log.ansiColours['grey'  ]);
-                        }
-                    }
-                    logTraces(sp);
-                case TSuite(s):
-                    printTests(s, _indentLevel + 1);
-            }
-        };
-
-        _suites.iter(countTests);
-        _suites.iter(printTests.bind(_, -1));
+        createReport(_suites);
 
         Log.print('[PASS] ' + Log.ansiColours['none'] + '${total - pending - failures} passing tests'  , Log.ansiColours['green' ]);
         Log.print('[PEND] ' + Log.ansiColours['none'] + '$pending pending tests', Log.ansiColours['yellow']);
@@ -145,5 +77,222 @@ class ColorReporter implements Reporter
 
         def.resolve(_o);
         return prm;
+    }
+
+    function indentString(_string : String, _indentLevel : Int) : String
+    {
+        return _string.lpad(' ', _string.length + (_indentLevel * 2));
+    }
+
+    function createReport(_suites : Iterable<Suite>)
+    {
+        var assembly = Xml.createElement('assembly');
+        assembly.set('name'          , '');
+        assembly.set('config-file'   , '');
+        assembly.set('test-framework', 'Buddy');
+        assembly.set('run-date', '${Date.now().getFullYear()}-${Date.now().getMonth()}-${Date.now().getDay()}');
+        assembly.set('run-date', '${Date.now().getHours()}-${Date.now().getMinutes()}-${Date.now().getSeconds()}');
+        assembly.set('time'    , Std.string(endTime - startTime));
+        assembly.set('total'   , Std.string(total));
+        assembly.set('passed'  , Std.string(passing));
+        assembly.set('failed'  , Std.string(failures));
+        assembly.set('skipped' , Std.string(pending));
+        assembly.set('errors'  , Std.string(0));
+
+        var collection = Xml.createElement('collection');
+        collection.set('name'    , 'engine-linux');
+        collection.set('time'    , Std.string(endTime - startTime));
+        collection.set('total'   , Std.string(total));
+        collection.set('passed'  , Std.string(passing));
+        collection.set('failed'  , Std.string(failures));
+        collection.set('skipped' , Std.string(pending));
+
+        for (suite in _suites)
+        {
+            reportSuite(suite, collection);
+        }
+
+        assembly.addChild(collection);
+        xml.addChild(assembly);
+
+        File.saveContent('test-engine.xml', xml.toString());
+    }
+
+    function reportSuite(_suite : Suite, _collection : Xml)
+    {
+        for (spec in _suite.specs)
+        {
+            if (spec.status == Unknown)
+            {
+                continue;
+            }
+
+            var test = Xml.createElement('test');
+            test.set('name', spec.description);
+            test.set('type', spec.fileName);
+            test.set('method', '');
+            test.set('time', '');
+
+            switch (spec.status)
+            {
+                case Passed:
+                    test.set('result', 'Pass');
+                case Pending:
+                    test.set('result', 'Skip');
+
+                    var reason = Xml.createElement('reason');
+                    reason.addChild(Xml.createCData('Pending Test'));
+
+                    test.addChild(reason);
+                case Failed:
+                    test.set('result', 'Fail');
+                    for (failure in spec.failures)
+                    {
+                        var failureElem = Xml.createElement('failure');
+                        failureElem.set('exception-type', '');
+                        
+                        var message = Xml.createElement('message');
+                        message.addChild(Xml.createCData(failure.error));
+
+                        var stacktrace = Xml.createElement('stack-track');
+                        stacktrace.addChild(Xml.createCData(formatStackTrace(failure.stack)));
+
+                        failureElem.addChild(message);
+                        failureElem.addChild(stacktrace);
+
+                        test.addChild(failureElem);
+                    }
+                case Unknown:
+                    //
+            }
+
+            _collection.addChild(test);
+        }
+
+        for (suite in _suite.suites)
+        {
+            reportSuite(suite, _collection);
+        }
+    }
+
+    function formatStackTrace(_stack : Array<StackItem>) : String
+    {
+        var buffer = new StringBuf();
+
+        for (item in _stack)
+        {
+            switch (item) {
+                case FilePos(s, file, line, column):
+                    if (line > 0 && file.indexOf('buddy/internal/') != 0 && file.indexOf('buddy.SuitesRunner') != 0)
+                    {
+                        buffer.add('@ $file:$line\n');
+                    }
+                default:
+                    //
+            }
+        }
+
+        return buffer.toString();
+    }
+
+    function countSuite(_suite : Suite)
+    {
+        if (_suite.error != null)
+        {
+            failures++;
+        }
+
+        for (step in _suite.steps)
+        {
+            switch (step)
+            {
+                case TSpec(step):
+                    total++;
+                    
+                    switch (step.status)
+                    {
+                        case Unknown: unknowns++;
+                        case Passed : passing++;
+                        case Pending: pending++;
+                        case Failed : failures++;
+                    }
+
+                case TSuite(step):
+                    countSuite(step);
+            }
+        }
+    }
+
+    function printSuite(_suite : Suite, _baseIndent : Int)
+    {
+        if (_suite.description.length > 0)
+        {
+            Log.print(indentString(_suite.description, _baseIndent), Log.ansiColours['yellow']);
+        }
+
+        if (_suite.error != null)
+        {
+            Log.error(indentString('ERROR: ${_suite.error}', _baseIndent));
+
+            printStack(_suite.stack, _baseIndent + 2);
+
+            return;
+        }
+
+        for (spec in _suite.specs)
+        {
+            printSpec(spec, _baseIndent + 1);
+        }
+
+        for (suite in _suite.suites)
+        {
+            printSuite(suite, _baseIndent + 1);
+        }
+    }
+
+    function printSpec(_spec : Spec, _baseIndent : Int)
+    {
+        switch (_spec.status)
+        {
+            case Unknown: Log.print(indentString('[UNKN] ' + Log.ansiColours['none'] + _spec.description, _baseIndent), Log.ansiColours['grey' ]);
+            case Passed : Log.print(indentString('[PASS] ' + Log.ansiColours['none'] + _spec.description, _baseIndent), Log.ansiColours['green']);
+            case Pending: Log.print(indentString('[PEND] ' + Log.ansiColours['none'] + _spec.description, _baseIndent), Log.ansiColours['yellow']);
+            case Failed :
+                Log.error(indentString('[FAIL] ${Log.ansiColours['none']}${_spec.description}', _baseIndent));
+
+                for (failure in _spec.failures)
+                {
+                    Log.print(indentString(failure.error, _baseIndent), Log.ansiColours['yellow']);
+
+                    printStack(failure.stack, _baseIndent);
+                }
+        }
+
+        for (line in _spec.traces)
+        {
+            Log.print(indentString(line, _baseIndent ), Log.ansiColours['yellow']);
+        }
+    }
+
+    function printStack(_stack : Array<StackItem>, _baseIndent : Int)
+    {
+        if (_stack == null || _stack.length == 0)
+        {
+            return;
+        }
+
+        for (item in _stack)
+        {
+            switch (item)
+            {
+                case FilePos(s, file, line, column):
+                    if (line > 0 && file.indexOf('buddy/internal/') != 0 && file.indexOf('buddy.SuitesRunner') != 0)
+                    {
+                        Log.print(indentString('@ $file:$line', _baseIndent + 1), Log.ansiColours['yellow']);
+                    }
+                default:
+                    //
+            }
+        }
     }
 }

@@ -1,0 +1,59 @@
+version: "{build}"
+
+image:
+  - Visual Studio 2017
+  #- Ubuntu
+
+install:
+  # Windows Deps
+  - cmd: choco install neko --yes
+  - cmd: choco install haxe --prerelease --source 'https://ci.appveyor.com/nuget/haxe' --yes
+  - cmd: RefreshEnv
+  - cmd: mkdir C:\projects\haxelib
+  - cmd: haxelib setup C:\projects\haxelib
+
+  # Linux Deps
+  - sh: sudo apt-get install haxe gcc-multilib g++-multilib libgl1-mesa-dev libglu1-mesa-dev libopenal-dev libxrandr-dev libxinerama-dev libasound2-dev libsdl2-dev -y
+
+  # Install haxe
+  - sh: curl http://hxbuilds.s3-website-us-east-1.amazonaws.com/builds/haxe/linux64/haxe_latest.tar.gz -o ~/haxe_latest.tar.gz -# -L
+  - sh: mkdir ~/haxe
+  - sh: tar -xzf ~/haxe_latest.tar.gz -C ~/haxe --strip-components=1
+  - sh: HAXE_STD_PATH=~/haxe/std
+  - sh: PATH=${PATH}:~/haxe
+  - sh: echo ${PATH}
+
+  - sh: mkdir ~/haxelib
+  - sh: haxelib setup ~/haxelib
+
+  - haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp
+  - haxelib git hxp https://github.com/openfl/hxp.git
+  - haxelib git flurry https://github.com/Aidan63/Flurry.git
+  - haxelib git hxtelemetry https://github.com/jcward/hxtelemetry.git
+  - haxelib git linc_imgui https://github.com/Aidan63/linc_imgui.git
+  - haxelib run flurry install
+
+build_script:
+  - cmd: cd C:\projects\haxelib\hxcpp\git\tools\run
+  - cmd: haxe compile.hxml
+  - cmd: cd ..\hxcpp
+  - cmd: haxe compile.hxml
+
+  - sh: cd ~/haxelib/hxcpp/git/tools/run
+  - sh: haxe compile.hxml
+  - sh: cd ../hxcpp
+  - sh: haxe compile.hxml
+
+test_script:
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%
+  - cmd: cd engine\test
+  - cmd: haxe build-cpp.hxml
+  - cmd: .\bin\cpp\Main
+
+  - sh: cd $APPVEYOR_BUILD_FOLDER
+  - sh: cd engine/test
+  - sh: haxe build-cpp.hxml
+  - sh: ./bin/cpp/Main.exe
+
+  - ps: $wc = New-Object 'System.Net.WebClient'
+  - ps: $wc.UploadFile("https://ci.appveyor.com/api/testresults/xunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path ./test-engine.xml))
