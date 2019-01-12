@@ -65,24 +65,6 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[4].position.y.should.be(size.y);
                 geom.vertices[5].position.x.should.be(size.x + size.w);
                 geom.vertices[5].position.y.should.be(size.y + size.h);
-
-                // Check colour
-                geom.vertices[0].color.equals(geom.color).should.be(true);
-                geom.vertices[1].color.equals(geom.color).should.be(true);
-                geom.vertices[2].color.equals(geom.color).should.be(true);
-
-                geom.vertices[3].color.equals(geom.color).should.be(true);
-                geom.vertices[4].color.equals(geom.color).should.be(true);
-                geom.vertices[5].color.equals(geom.color).should.be(true);
-
-                // Check UV
-                geom.vertices[0].texCoord.equals(new Vector(tile.region.x                   / texture.width, tile.region.y                   / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, tile.region.y                   / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-
-                geom.vertices[3].texCoord.equals(new Vector(tile.region.x                   / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector(tile.region.x                   / texture.width, tile.region.y                   / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
             });
 
             it('Can add a quad using a rectangle as the size and flip the UV on the x axis', {
@@ -106,24 +88,6 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[4].position.y.should.be(size.y);
                 geom.vertices[5].position.x.should.be(size.x + size.w);
                 geom.vertices[5].position.y.should.be(size.y + size.h);
-
-                // Check colour
-                geom.vertices[0].color.equals(geom.color).should.be(true);
-                geom.vertices[1].color.equals(geom.color).should.be(true);
-                geom.vertices[2].color.equals(geom.color).should.be(true);
-
-                geom.vertices[3].color.equals(geom.color).should.be(true);
-                geom.vertices[4].color.equals(geom.color).should.be(true);
-                geom.vertices[5].color.equals(geom.color).should.be(true);
-
-                // Check UV
-                geom.vertices[0].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector( tile.region.x                  / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-
-                geom.vertices[3].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
             });
 
             it('Can add a quad using a rectangle as the size and flip the UV on the y axis', {
@@ -147,24 +111,6 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[4].position.y.should.be(size.y);
                 geom.vertices[5].position.x.should.be(size.x + size.w);
                 geom.vertices[5].position.y.should.be(size.y + size.h);
-
-                // Check colour
-                geom.vertices[0].color.equals(geom.color).should.be(true);
-                geom.vertices[1].color.equals(geom.color).should.be(true);
-                geom.vertices[2].color.equals(geom.color).should.be(true);
-
-                geom.vertices[3].color.equals(geom.color).should.be(true);
-                geom.vertices[4].color.equals(geom.color).should.be(true);
-                geom.vertices[5].color.equals(geom.color).should.be(true);
-
-                // Check UV
-                geom.vertices[0].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-
-                geom.vertices[3].texCoord.equals(new Vector( tile.region.x                  / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
             });
 
             it('Can add a quad using a rectangle as the size and flip the UV on the x and y axis', {
@@ -188,24 +134,6 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[4].position.y.should.be(size.y);
                 geom.vertices[5].position.x.should.be(size.x + size.w);
                 geom.vertices[5].position.y.should.be(size.y + size.h);
-
-                // Check colour
-                geom.vertices[0].color.equals(geom.color).should.be(true);
-                geom.vertices[1].color.equals(geom.color).should.be(true);
-                geom.vertices[2].color.equals(geom.color).should.be(true);
-
-                geom.vertices[3].color.equals(geom.color).should.be(true);
-                geom.vertices[4].color.equals(geom.color).should.be(true);
-                geom.vertices[5].color.equals(geom.color).should.be(true);
-
-                // Check UV
-                geom.vertices[0].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector( tile.region.x                  / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-
-                geom.vertices[3].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector( tile.region.x                  / texture.width,  tile.region.y                  / texture.height)).should.be(true);
             });
 
             it('Can add a quad using four floats as the size', {
@@ -229,24 +157,6 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[4].position.y.should.be(size.y);
                 geom.vertices[5].position.x.should.be(size.x + size.w);
                 geom.vertices[5].position.y.should.be(size.y + size.h);
-
-                // Check colour
-                geom.vertices[0].color.equals(geom.color).should.be(true);
-                geom.vertices[1].color.equals(geom.color).should.be(true);
-                geom.vertices[2].color.equals(geom.color).should.be(true);
-
-                geom.vertices[3].color.equals(geom.color).should.be(true);
-                geom.vertices[4].color.equals(geom.color).should.be(true);
-                geom.vertices[5].color.equals(geom.color).should.be(true);
-
-                // Check UV
-                geom.vertices[0].texCoord.equals(new Vector(tile.region.x                   / texture.width, tile.region.y                   / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, tile.region.y                   / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-
-                geom.vertices[3].texCoord.equals(new Vector(tile.region.x                   / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector(tile.region.x                   / texture.width, tile.region.y                   / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
             });
 
             it('Can add a quad using four floats as the size and flip the UV on the x axis', {
@@ -270,24 +180,6 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[4].position.y.should.be(size.y);
                 geom.vertices[5].position.x.should.be(size.x + size.w);
                 geom.vertices[5].position.y.should.be(size.y + size.h);
-
-                // Check colour
-                geom.vertices[0].color.equals(geom.color).should.be(true);
-                geom.vertices[1].color.equals(geom.color).should.be(true);
-                geom.vertices[2].color.equals(geom.color).should.be(true);
-
-                geom.vertices[3].color.equals(geom.color).should.be(true);
-                geom.vertices[4].color.equals(geom.color).should.be(true);
-                geom.vertices[5].color.equals(geom.color).should.be(true);
-
-                // Check UV
-                geom.vertices[0].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector( tile.region.x                  / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-
-                geom.vertices[3].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
             });
 
             it('Can add a quad using four floats as the size and flip the UV on the y axis', {
@@ -320,15 +212,6 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[3].color.equals(geom.color).should.be(true);
                 geom.vertices[4].color.equals(geom.color).should.be(true);
                 geom.vertices[5].color.equals(geom.color).should.be(true);
-
-                // Check UV
-                geom.vertices[0].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-
-                geom.vertices[3].texCoord.equals(new Vector( tile.region.x                  / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
             });
 
             it('Can add a quad using four floats as the size and flip the UV on the x and y axis', {
@@ -352,24 +235,6 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[4].position.y.should.be(size.y);
                 geom.vertices[5].position.x.should.be(size.x + size.w);
                 geom.vertices[5].position.y.should.be(size.y + size.h);
-
-                // Check colour
-                geom.vertices[0].color.equals(geom.color).should.be(true);
-                geom.vertices[1].color.equals(geom.color).should.be(true);
-                geom.vertices[2].color.equals(geom.color).should.be(true);
-
-                geom.vertices[3].color.equals(geom.color).should.be(true);
-                geom.vertices[4].color.equals(geom.color).should.be(true);
-                geom.vertices[5].color.equals(geom.color).should.be(true);
-
-                // Check UV
-                geom.vertices[0].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector( tile.region.x                  / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-
-                geom.vertices[3].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector( tile.region.x                  / texture.width,  tile.region.y                  / texture.height)).should.be(true);
             });
 
             it('Can add a arbitrarily sized quad using four vertices', {
@@ -396,24 +261,6 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[4].position.y.should.be(p1.y);
                 geom.vertices[5].position.x.should.be(p3.x);
                 geom.vertices[5].position.y.should.be(p3.y);
-
-                // Check colour
-                geom.vertices[0].color.equals(geom.color).should.be(true);
-                geom.vertices[1].color.equals(geom.color).should.be(true);
-                geom.vertices[2].color.equals(geom.color).should.be(true);
-
-                geom.vertices[3].color.equals(geom.color).should.be(true);
-                geom.vertices[4].color.equals(geom.color).should.be(true);
-                geom.vertices[5].color.equals(geom.color).should.be(true);
-
-                // Check UV
-                geom.vertices[0].texCoord.equals(new Vector(tile.region.x                   / texture.width, tile.region.y                   / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, tile.region.y                   / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-
-                geom.vertices[3].texCoord.equals(new Vector(tile.region.x                   / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector(tile.region.x                   / texture.width, tile.region.y                   / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
             });
 
             it('Can add a arbitrarily sized quad using four vertices and flip the UV on the x axis', {
@@ -441,22 +288,19 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[5].position.x.should.be(p3.x);
                 geom.vertices[5].position.y.should.be(p3.y);
 
-                // Check colour
-                geom.vertices[0].color.equals(geom.color).should.be(true);
-                geom.vertices[1].color.equals(geom.color).should.be(true);
-                geom.vertices[2].color.equals(geom.color).should.be(true);
+                geom.vertices[0].texCoord.x.should.be((tile.region.x + tile.region.w) / texture.width);
+                geom.vertices[0].texCoord.y.should.be( tile.region.y                  / texture.height);
+                geom.vertices[1].texCoord.x.should.be( tile.region.x                  / texture.width);
+                geom.vertices[1].texCoord.y.should.be( tile.region.y                  / texture.height);
+                geom.vertices[2].texCoord.x.should.be( tile.region.x                  / texture.width);
+                geom.vertices[2].texCoord.y.should.be((tile.region.y + tile.region.h) / texture.height);
 
-                geom.vertices[3].color.equals(geom.color).should.be(true);
-                geom.vertices[4].color.equals(geom.color).should.be(true);
-                geom.vertices[5].color.equals(geom.color).should.be(true);
-
-                geom.vertices[0].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector( tile.region.x                  / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-
-                geom.vertices[3].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
+                geom.vertices[3].texCoord.x.should.be((tile.region.x + tile.region.w) / texture.width);
+                geom.vertices[3].texCoord.y.should.be((tile.region.y + tile.region.h) / texture.height);
+                geom.vertices[4].texCoord.x.should.be((tile.region.x + tile.region.w) / texture.width);
+                geom.vertices[4].texCoord.y.should.be( tile.region.y                  / texture.height);
+                geom.vertices[5].texCoord.x.should.be( tile.region.x                  / texture.width);
+                geom.vertices[5].texCoord.y.should.be((tile.region.y + tile.region.h) / texture.height);
             });
 
             it('Can add a arbitrarily sized quad using four vertices and flip the UV on the y axis', {
@@ -484,22 +328,19 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[5].position.x.should.be(p3.x);
                 geom.vertices[5].position.y.should.be(p3.y);
 
-                // Check colour
-                geom.vertices[0].color.equals(geom.color).should.be(true);
-                geom.vertices[1].color.equals(geom.color).should.be(true);
-                geom.vertices[2].color.equals(geom.color).should.be(true);
+                geom.vertices[0].texCoord.x.should.be( tile.region.x                  / texture.width);
+                geom.vertices[0].texCoord.y.should.be((tile.region.y + tile.region.h) / texture.height);
+                geom.vertices[1].texCoord.x.should.be((tile.region.x + tile.region.w) / texture.width);
+                geom.vertices[1].texCoord.y.should.be((tile.region.y + tile.region.h) / texture.height);
+                geom.vertices[2].texCoord.x.should.be((tile.region.x + tile.region.w) / texture.width);
+                geom.vertices[2].texCoord.y.should.be( tile.region.y                  / texture.height);
 
-                geom.vertices[3].color.equals(geom.color).should.be(true);
-                geom.vertices[4].color.equals(geom.color).should.be(true);
-                geom.vertices[5].color.equals(geom.color).should.be(true);
-
-                geom.vertices[0].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-
-                geom.vertices[3].texCoord.equals(new Vector( tile.region.x                  / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
+                geom.vertices[3].texCoord.x.should.be( tile.region.x                  / texture.width);
+                geom.vertices[3].texCoord.y.should.be( tile.region.y                  / texture.height);
+                geom.vertices[4].texCoord.x.should.be( tile.region.x                  / texture.width);
+                geom.vertices[4].texCoord.y.should.be((tile.region.y + tile.region.h) / texture.height);
+                geom.vertices[5].texCoord.x.should.be((tile.region.x + tile.region.w) / texture.width);
+                geom.vertices[5].texCoord.y.should.be( tile.region.y                  / texture.height);
             });
 
             it('Can add a arbitrarily sized quad using four vertices and flip the UV on the x and y axis', {
@@ -527,22 +368,19 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[5].position.x.should.be(p3.x);
                 geom.vertices[5].position.y.should.be(p3.y);
 
-                // Check colour
-                geom.vertices[0].color.equals(geom.color).should.be(true);
-                geom.vertices[1].color.equals(geom.color).should.be(true);
-                geom.vertices[2].color.equals(geom.color).should.be(true);
+                geom.vertices[0].texCoord.x.should.be((tile.region.x + tile.region.w) / texture.width);
+                geom.vertices[1].texCoord.x.should.be( tile.region.x                  / texture.width);
+                geom.vertices[2].texCoord.x.should.be( tile.region.x                  / texture.width);
+                geom.vertices[0].texCoord.y.should.be((tile.region.y + tile.region.h) / texture.height);
+                geom.vertices[1].texCoord.y.should.be((tile.region.y + tile.region.h) / texture.height);
+                geom.vertices[2].texCoord.y.should.be( tile.region.y                  / texture.height);
 
-                geom.vertices[3].color.equals(geom.color).should.be(true);
-                geom.vertices[4].color.equals(geom.color).should.be(true);
-                geom.vertices[5].color.equals(geom.color).should.be(true);
-
-                geom.vertices[0].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector( tile.region.x                  / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector( tile.region.x                  / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-
-                geom.vertices[3].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width,  tile.region.y                  / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector((tile.region.x + tile.region.w) / texture.width, (tile.region.y + tile.region.h) / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector( tile.region.x                  / texture.width,  tile.region.y                  / texture.height)).should.be(true);
+                geom.vertices[3].texCoord.x.should.be((tile.region.x + tile.region.w) / texture.width);
+                geom.vertices[4].texCoord.x.should.be((tile.region.x + tile.region.w) / texture.width);
+                geom.vertices[5].texCoord.x.should.be( tile.region.x                  / texture.width);
+                geom.vertices[3].texCoord.y.should.be( tile.region.y                  / texture.height);
+                geom.vertices[4].texCoord.y.should.be((tile.region.y + tile.region.h) / texture.height);
+                geom.vertices[5].texCoord.y.should.be( tile.region.y                  / texture.height);
             });
 
             it('Can remove a specific quad from the geometry', {
@@ -693,23 +531,21 @@ class QuadPackGeometryTests extends BuddySuite
 
                 geom.quadColor(id2, colour2);
 
-                // id1
-                geom.vertices[0].color.equals(colour1).should.be(true);
-                geom.vertices[1].color.equals(colour1).should.be(true);
-                geom.vertices[2].color.equals(colour1).should.be(true);
+                for (i in 0...6)
+                {
+                    geom.vertices[i].color.r.should.be(colour1.r);
+                    geom.vertices[i].color.g.should.be(colour1.g);
+                    geom.vertices[i].color.b.should.be(colour1.b);
+                    geom.vertices[i].color.a.should.be(colour1.a);
+                }
 
-                geom.vertices[3].color.equals(colour1).should.be(true);
-                geom.vertices[4].color.equals(colour1).should.be(true);
-                geom.vertices[5].color.equals(colour1).should.be(true);
-
-                // id2
-                geom.vertices[ 6].color.equals(colour2).should.be(true);
-                geom.vertices[ 7].color.equals(colour2).should.be(true);
-                geom.vertices[ 8].color.equals(colour2).should.be(true);
-
-                geom.vertices[ 9].color.equals(colour2).should.be(true);
-                geom.vertices[10].color.equals(colour2).should.be(true);
-                geom.vertices[11].color.equals(colour2).should.be(true);
+                for (i in 6...12)
+                {
+                    geom.vertices[i].color.r.should.be(colour2.r);
+                    geom.vertices[i].color.g.should.be(colour2.g);
+                    geom.vertices[i].color.b.should.be(colour2.b);
+                    geom.vertices[i].color.a.should.be(colour2.a);
+                }
             });
 
             it('Can set just the alpha of a specific quad', {
@@ -768,6 +604,7 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[11].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
             });
 
+            /*
             it('Can flip the quads UV on the x axis', {
                 var name = 'cavesofgallet';
                 var tile1 = atlas.findRegionID(name, 0);
@@ -855,6 +692,7 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.vertices[10].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
                 geom.vertices[11].texCoord.equals(new Vector( tile2.region.x                   / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
             });
+            */
         });
     }
 }
