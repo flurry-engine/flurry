@@ -47,18 +47,24 @@ class QuadPackGeometryTests extends BuddySuite
             it('Can add a quad using a rectangle as the size', {
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
-                var size = new Rectangle(32, 48, 64, 96);
+                var size = new Rectangle(32, 48, 62, 96);
 
                 geom.add(tile, size, geom.color);
 
                 // Check position
-                geom.vertices[0].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[1].position.equals(new Vector(size.x + size.w, size.y         )).should.be(true);
-                geom.vertices[2].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[0].position.x.should.be(size.x);
+                geom.vertices[0].position.y.should.be(size.y);
+                geom.vertices[1].position.x.should.be(size.x + size.w);
+                geom.vertices[1].position.y.should.be(size.y);
+                geom.vertices[2].position.x.should.be(size.x + size.w);
+                geom.vertices[2].position.y.should.be(size.y + size.h);
 
-                geom.vertices[3].position.equals(new Vector(size.x         , size.y + size.h)).should.be(true);
-                geom.vertices[4].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[5].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[3].position.x.should.be(size.x);
+                geom.vertices[3].position.y.should.be(size.y + size.h);
+                geom.vertices[4].position.x.should.be(size.x);
+                geom.vertices[4].position.y.should.be(size.y);
+                geom.vertices[5].position.x.should.be(size.x + size.w);
+                geom.vertices[5].position.y.should.be(size.y + size.h);
 
                 // Check colour
                 geom.vertices[0].color.equals(geom.color).should.be(true);
@@ -82,18 +88,24 @@ class QuadPackGeometryTests extends BuddySuite
             it('Can add a quad using a rectangle as the size and flip the UV on the x axis', {
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
-                var size = new Rectangle(32, 48, 64, 96);
+                var size = new Rectangle(32, 48, 62, 96);
 
                 geom.add(tile, size, geom.color, true);
 
                 // Check position
-                geom.vertices[0].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[1].position.equals(new Vector(size.x + size.w, size.y         )).should.be(true);
-                geom.vertices[2].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[0].position.x.should.be(size.x);
+                geom.vertices[0].position.y.should.be(size.y);
+                geom.vertices[1].position.x.should.be(size.x + size.w);
+                geom.vertices[1].position.y.should.be(size.y);
+                geom.vertices[2].position.x.should.be(size.x + size.w);
+                geom.vertices[2].position.y.should.be(size.y + size.h);
 
-                geom.vertices[3].position.equals(new Vector(size.x         , size.y + size.h)).should.be(true);
-                geom.vertices[4].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[5].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[3].position.x.should.be(size.x);
+                geom.vertices[3].position.y.should.be(size.y + size.h);
+                geom.vertices[4].position.x.should.be(size.x);
+                geom.vertices[4].position.y.should.be(size.y);
+                geom.vertices[5].position.x.should.be(size.x + size.w);
+                geom.vertices[5].position.y.should.be(size.y + size.h);
 
                 // Check colour
                 geom.vertices[0].color.equals(geom.color).should.be(true);
@@ -117,18 +129,24 @@ class QuadPackGeometryTests extends BuddySuite
             it('Can add a quad using a rectangle as the size and flip the UV on the y axis', {
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
-                var size = new Rectangle(32, 48, 64, 96);
+                var size = new Rectangle(32, 48, 62, 96);
 
                 geom.add(tile, size, geom.color, false, true);
 
                 // Check position
-                geom.vertices[0].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[1].position.equals(new Vector(size.x + size.w, size.y         )).should.be(true);
-                geom.vertices[2].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[0].position.x.should.be(size.x);
+                geom.vertices[0].position.y.should.be(size.y);
+                geom.vertices[1].position.x.should.be(size.x + size.w);
+                geom.vertices[1].position.y.should.be(size.y);
+                geom.vertices[2].position.x.should.be(size.x + size.w);
+                geom.vertices[2].position.y.should.be(size.y + size.h);
 
-                geom.vertices[3].position.equals(new Vector(size.x         , size.y + size.h)).should.be(true);
-                geom.vertices[4].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[5].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[3].position.x.should.be(size.x);
+                geom.vertices[3].position.y.should.be(size.y + size.h);
+                geom.vertices[4].position.x.should.be(size.x);
+                geom.vertices[4].position.y.should.be(size.y);
+                geom.vertices[5].position.x.should.be(size.x + size.w);
+                geom.vertices[5].position.y.should.be(size.y + size.h);
 
                 // Check colour
                 geom.vertices[0].color.equals(geom.color).should.be(true);
@@ -152,18 +170,24 @@ class QuadPackGeometryTests extends BuddySuite
             it('Can add a quad using a rectangle as the size and flip the UV on the x and y axis', {
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
-                var size = new Rectangle(32, 48, 64, 96);
+                var size = new Rectangle(32, 48, 62, 96);
 
                 geom.add(tile, size, geom.color, true, true);
 
                 // Check position
-                geom.vertices[0].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[1].position.equals(new Vector(size.x + size.w, size.y         )).should.be(true);
-                geom.vertices[2].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[0].position.x.should.be(size.x);
+                geom.vertices[0].position.y.should.be(size.y);
+                geom.vertices[1].position.x.should.be(size.x + size.w);
+                geom.vertices[1].position.y.should.be(size.y);
+                geom.vertices[2].position.x.should.be(size.x + size.w);
+                geom.vertices[2].position.y.should.be(size.y + size.h);
 
-                geom.vertices[3].position.equals(new Vector(size.x         , size.y + size.h)).should.be(true);
-                geom.vertices[4].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[5].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[3].position.x.should.be(size.x);
+                geom.vertices[3].position.y.should.be(size.y + size.h);
+                geom.vertices[4].position.x.should.be(size.x);
+                geom.vertices[4].position.y.should.be(size.y);
+                geom.vertices[5].position.x.should.be(size.x + size.w);
+                geom.vertices[5].position.y.should.be(size.y + size.h);
 
                 // Check colour
                 geom.vertices[0].color.equals(geom.color).should.be(true);
@@ -187,18 +211,24 @@ class QuadPackGeometryTests extends BuddySuite
             it('Can add a quad using four floats as the size', {
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
-                var size = new Rectangle(32, 48, 64, 96);
+                var size = new Rectangle(32, 48, 62, 96);
 
                 geom.add_xywh(tile, size.x, size.y, size.w, size.h, geom.color);
 
                 // Check position
-                geom.vertices[0].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[1].position.equals(new Vector(size.x + size.w, size.y         )).should.be(true);
-                geom.vertices[2].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[0].position.x.should.be(size.x);
+                geom.vertices[0].position.y.should.be(size.y);
+                geom.vertices[1].position.x.should.be(size.x + size.w);
+                geom.vertices[1].position.y.should.be(size.y);
+                geom.vertices[2].position.x.should.be(size.x + size.w);
+                geom.vertices[2].position.y.should.be(size.y + size.h);
 
-                geom.vertices[3].position.equals(new Vector(size.x         , size.y + size.h)).should.be(true);
-                geom.vertices[4].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[5].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[3].position.x.should.be(size.x);
+                geom.vertices[3].position.y.should.be(size.y + size.h);
+                geom.vertices[4].position.x.should.be(size.x);
+                geom.vertices[4].position.y.should.be(size.y);
+                geom.vertices[5].position.x.should.be(size.x + size.w);
+                geom.vertices[5].position.y.should.be(size.y + size.h);
 
                 // Check colour
                 geom.vertices[0].color.equals(geom.color).should.be(true);
@@ -222,18 +252,24 @@ class QuadPackGeometryTests extends BuddySuite
             it('Can add a quad using four floats as the size and flip the UV on the x axis', {
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
-                var size = new Rectangle(32, 48, 64, 96);
+                var size = new Rectangle(32, 48, 62, 96);
 
                 geom.add_xywh(tile, size.x, size.y, size.w, size.h, geom.color, true);
 
                 // Check position
-                geom.vertices[0].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[1].position.equals(new Vector(size.x + size.w, size.y         )).should.be(true);
-                geom.vertices[2].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[0].position.x.should.be(size.x);
+                geom.vertices[0].position.y.should.be(size.y);
+                geom.vertices[1].position.x.should.be(size.x + size.w);
+                geom.vertices[1].position.y.should.be(size.y);
+                geom.vertices[2].position.x.should.be(size.x + size.w);
+                geom.vertices[2].position.y.should.be(size.y + size.h);
 
-                geom.vertices[3].position.equals(new Vector(size.x         , size.y + size.h)).should.be(true);
-                geom.vertices[4].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[5].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[3].position.x.should.be(size.x);
+                geom.vertices[3].position.y.should.be(size.y + size.h);
+                geom.vertices[4].position.x.should.be(size.x);
+                geom.vertices[4].position.y.should.be(size.y);
+                geom.vertices[5].position.x.should.be(size.x + size.w);
+                geom.vertices[5].position.y.should.be(size.y + size.h);
 
                 // Check colour
                 geom.vertices[0].color.equals(geom.color).should.be(true);
@@ -257,18 +293,24 @@ class QuadPackGeometryTests extends BuddySuite
             it('Can add a quad using four floats as the size and flip the UV on the y axis', {
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
-                var size = new Rectangle(32, 48, 64, 96);
+                var size = new Rectangle(32, 48, 62, 96);
 
                 geom.add_xywh(tile, size.x, size.y, size.w, size.h, geom.color, false, true);
 
                 // Check position
-                geom.vertices[0].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[1].position.equals(new Vector(size.x + size.w, size.y         )).should.be(true);
-                geom.vertices[2].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[0].position.x.should.be(size.x);
+                geom.vertices[0].position.y.should.be(size.y);
+                geom.vertices[1].position.x.should.be(size.x + size.w);
+                geom.vertices[1].position.y.should.be(size.y);
+                geom.vertices[2].position.x.should.be(size.x + size.w);
+                geom.vertices[2].position.y.should.be(size.y + size.h);
 
-                geom.vertices[3].position.equals(new Vector(size.x         , size.y + size.h)).should.be(true);
-                geom.vertices[4].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[5].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[3].position.x.should.be(size.x);
+                geom.vertices[3].position.y.should.be(size.y + size.h);
+                geom.vertices[4].position.x.should.be(size.x);
+                geom.vertices[4].position.y.should.be(size.y);
+                geom.vertices[5].position.x.should.be(size.x + size.w);
+                geom.vertices[5].position.y.should.be(size.y + size.h);
 
                 // Check colour
                 geom.vertices[0].color.equals(geom.color).should.be(true);
@@ -292,18 +334,24 @@ class QuadPackGeometryTests extends BuddySuite
             it('Can add a quad using four floats as the size and flip the UV on the x and y axis', {
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
-                var size = new Rectangle(32, 48, 64, 96);
+                var size = new Rectangle(32, 48, 62, 96);
 
                 geom.add_xywh(tile, size.x, size.y, size.w, size.h, geom.color, true, true);
 
                 // Check position
-                geom.vertices[0].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[1].position.equals(new Vector(size.x + size.w, size.y         )).should.be(true);
-                geom.vertices[2].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[0].position.x.should.be(size.x);
+                geom.vertices[0].position.y.should.be(size.y);
+                geom.vertices[1].position.x.should.be(size.x + size.w);
+                geom.vertices[1].position.y.should.be(size.y);
+                geom.vertices[2].position.x.should.be(size.x + size.w);
+                geom.vertices[2].position.y.should.be(size.y + size.h);
 
-                geom.vertices[3].position.equals(new Vector(size.x         , size.y + size.h)).should.be(true);
-                geom.vertices[4].position.equals(new Vector(size.x         , size.y         )).should.be(true);
-                geom.vertices[5].position.equals(new Vector(size.x + size.w, size.y + size.h)).should.be(true);
+                geom.vertices[3].position.x.should.be(size.x);
+                geom.vertices[3].position.y.should.be(size.y + size.h);
+                geom.vertices[4].position.x.should.be(size.x);
+                geom.vertices[4].position.y.should.be(size.y);
+                geom.vertices[5].position.x.should.be(size.x + size.w);
+                geom.vertices[5].position.y.should.be(size.y + size.h);
 
                 // Check colour
                 geom.vertices[0].color.equals(geom.color).should.be(true);
@@ -328,20 +376,26 @@ class QuadPackGeometryTests extends BuddySuite
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
                 var p1   = new Vector(32, 32);
-                var p2   = new Vector(64, 32);
-                var p3   = new Vector(64, 96);
+                var p2   = new Vector(62, 32);
+                var p3   = new Vector(62, 96);
                 var p4   = new Vector(32, 48);
 
                 geom.add_quad(tile, p1, p2, p3, p4, geom.color);
 
                 // Check position
-                geom.vertices[0].position.equals(p1).should.be(true);
-                geom.vertices[1].position.equals(p2).should.be(true);
-                geom.vertices[2].position.equals(p3).should.be(true);
+                geom.vertices[0].position.x.should.be(p1.x);
+                geom.vertices[0].position.y.should.be(p1.y);
+                geom.vertices[1].position.x.should.be(p2.x);
+                geom.vertices[1].position.y.should.be(p2.y);
+                geom.vertices[2].position.x.should.be(p3.x);
+                geom.vertices[2].position.y.should.be(p3.y);
 
-                geom.vertices[3].position.equals(p4).should.be(true);
-                geom.vertices[4].position.equals(p1).should.be(true);
-                geom.vertices[5].position.equals(p3).should.be(true);
+                geom.vertices[3].position.x.should.be(p4.x);
+                geom.vertices[3].position.y.should.be(p4.y);
+                geom.vertices[4].position.x.should.be(p1.x);
+                geom.vertices[4].position.y.should.be(p1.y);
+                geom.vertices[5].position.x.should.be(p3.x);
+                geom.vertices[5].position.y.should.be(p3.y);
 
                 // Check colour
                 geom.vertices[0].color.equals(geom.color).should.be(true);
@@ -366,20 +420,26 @@ class QuadPackGeometryTests extends BuddySuite
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
                 var p1   = new Vector(32, 32);
-                var p2   = new Vector(64, 32);
-                var p3   = new Vector(64, 96);
+                var p2   = new Vector(62, 32);
+                var p3   = new Vector(62, 96);
                 var p4   = new Vector(32, 48);
 
                 geom.add_quad(tile, p1, p2, p3, p4, geom.color, true);
 
                 // Check position
-                geom.vertices[0].position.equals(p1).should.be(true);
-                geom.vertices[1].position.equals(p2).should.be(true);
-                geom.vertices[2].position.equals(p3).should.be(true);
+                geom.vertices[0].position.x.should.be(p1.x);
+                geom.vertices[0].position.y.should.be(p1.y);
+                geom.vertices[1].position.x.should.be(p2.x);
+                geom.vertices[1].position.y.should.be(p2.y);
+                geom.vertices[2].position.x.should.be(p3.x);
+                geom.vertices[2].position.y.should.be(p3.y);
 
-                geom.vertices[3].position.equals(p4).should.be(true);
-                geom.vertices[4].position.equals(p1).should.be(true);
-                geom.vertices[5].position.equals(p3).should.be(true);
+                geom.vertices[3].position.x.should.be(p4.x);
+                geom.vertices[3].position.y.should.be(p4.y);
+                geom.vertices[4].position.x.should.be(p1.x);
+                geom.vertices[4].position.y.should.be(p1.y);
+                geom.vertices[5].position.x.should.be(p3.x);
+                geom.vertices[5].position.y.should.be(p3.y);
 
                 // Check colour
                 geom.vertices[0].color.equals(geom.color).should.be(true);
@@ -403,20 +463,26 @@ class QuadPackGeometryTests extends BuddySuite
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
                 var p1   = new Vector(32, 32);
-                var p2   = new Vector(64, 32);
-                var p3   = new Vector(64, 96);
+                var p2   = new Vector(62, 32);
+                var p3   = new Vector(62, 96);
                 var p4   = new Vector(32, 48);
 
                 geom.add_quad(tile, p1, p2, p3, p4, geom.color, false, true);
 
                 // Check position
-                geom.vertices[0].position.equals(p1).should.be(true);
-                geom.vertices[1].position.equals(p2).should.be(true);
-                geom.vertices[2].position.equals(p3).should.be(true);
+                geom.vertices[0].position.x.should.be(p1.x);
+                geom.vertices[0].position.y.should.be(p1.y);
+                geom.vertices[1].position.x.should.be(p2.x);
+                geom.vertices[1].position.y.should.be(p2.y);
+                geom.vertices[2].position.x.should.be(p3.x);
+                geom.vertices[2].position.y.should.be(p3.y);
 
-                geom.vertices[3].position.equals(p4).should.be(true);
-                geom.vertices[4].position.equals(p1).should.be(true);
-                geom.vertices[5].position.equals(p3).should.be(true);
+                geom.vertices[3].position.x.should.be(p4.x);
+                geom.vertices[3].position.y.should.be(p4.y);
+                geom.vertices[4].position.x.should.be(p1.x);
+                geom.vertices[4].position.y.should.be(p1.y);
+                geom.vertices[5].position.x.should.be(p3.x);
+                geom.vertices[5].position.y.should.be(p3.y);
 
                 // Check colour
                 geom.vertices[0].color.equals(geom.color).should.be(true);
@@ -440,20 +506,26 @@ class QuadPackGeometryTests extends BuddySuite
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
                 var p1   = new Vector(32, 32);
-                var p2   = new Vector(64, 32);
-                var p3   = new Vector(64, 96);
+                var p2   = new Vector(62, 32);
+                var p3   = new Vector(62, 96);
                 var p4   = new Vector(32, 48);
 
                 geom.add_quad(tile, p1, p2, p3, p4, geom.color, true, true);
 
                 // Check position
-                geom.vertices[0].position.equals(p1).should.be(true);
-                geom.vertices[1].position.equals(p2).should.be(true);
-                geom.vertices[2].position.equals(p3).should.be(true);
+                geom.vertices[0].position.x.should.be(p1.x);
+                geom.vertices[0].position.y.should.be(p1.y);
+                geom.vertices[1].position.x.should.be(p2.x);
+                geom.vertices[1].position.y.should.be(p2.y);
+                geom.vertices[2].position.x.should.be(p3.x);
+                geom.vertices[2].position.y.should.be(p3.y);
 
-                geom.vertices[3].position.equals(p4).should.be(true);
-                geom.vertices[4].position.equals(p1).should.be(true);
-                geom.vertices[5].position.equals(p3).should.be(true);
+                geom.vertices[3].position.x.should.be(p4.x);
+                geom.vertices[3].position.y.should.be(p4.y);
+                geom.vertices[4].position.x.should.be(p1.x);
+                geom.vertices[4].position.y.should.be(p1.y);
+                geom.vertices[5].position.x.should.be(p3.x);
+                geom.vertices[5].position.y.should.be(p3.y);
 
                 // Check colour
                 geom.vertices[0].color.equals(geom.color).should.be(true);
@@ -475,7 +547,7 @@ class QuadPackGeometryTests extends BuddySuite
 
             it('Can remove a specific quad from the geometry', {
                 var name = 'cavesofgallet';
-                var id1  = geom.add(atlas.findRegion(name), new Rectangle(32, 32, 64, 64), geom.color);
+                var id1  = geom.add(atlas.findRegion(name), new Rectangle(32, 32, 62, 62), geom.color);
                 var id2  = geom.add(atlas.findRegion(name), new Rectangle(96, 32, 48, 48), geom.color);
 
                 geom.vertices.length.should.be(12);
@@ -486,7 +558,7 @@ class QuadPackGeometryTests extends BuddySuite
             it('Can remove all quads from the geometry', {
                 var name = 'cavesofgallet';
 
-                geom.add(atlas.findRegion(name), new Rectangle(32, 32, 64, 64), geom.color);
+                geom.add(atlas.findRegion(name), new Rectangle(32, 32, 62, 62), geom.color);
                 geom.add(atlas.findRegion(name), new Rectangle(96, 32, 48, 48), geom.color);
                 geom.clear();
 
@@ -495,7 +567,7 @@ class QuadPackGeometryTests extends BuddySuite
 
             it('Can set a specific quad invisible', {
                 var name = 'cavesofgallet';
-                var id1  = geom.add(atlas.findRegion(name), new Rectangle(32, 32, 64, 64), geom.color);
+                var id1  = geom.add(atlas.findRegion(name), new Rectangle(32, 32, 62, 62), geom.color);
                 var id2  = geom.add(atlas.findRegion(name), new Rectangle(96, 32, 48, 48), geom.color);
 
                 geom.quadVisible(id1, false);
@@ -517,7 +589,7 @@ class QuadPackGeometryTests extends BuddySuite
 
             it('Can set a specific quad visible', {
                 var name = 'cavesofgallet';
-                var id1  = geom.add(atlas.findRegion(name), new Rectangle(32, 32, 64, 64), geom.color);
+                var id1  = geom.add(atlas.findRegion(name), new Rectangle(32, 32, 62, 62), geom.color);
                 var id2  = geom.add(atlas.findRegion(name), new Rectangle(96, 32, 48, 48), geom.color);
 
                 geom.quadVisible(id1, false);
@@ -531,7 +603,7 @@ class QuadPackGeometryTests extends BuddySuite
 
             it('Can resize a specific quad', {
                 var name  = 'cavesofgallet';
-                var size1 = new Rectangle(32, 32, 64, 64);
+                var size1 = new Rectangle(32, 32, 62, 62);
                 var size2 = new Rectangle(96, 32, 48, 48);
 
                 var id1 = geom.add(atlas.findRegion(name), size1, geom.color);
@@ -540,28 +612,40 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.quadResize(id2, size2);
 
                 // id1
-                geom.vertices[0].position.equals(new Vector(size1.x          , size1.y          )).should.be(true);
-                geom.vertices[1].position.equals(new Vector(size1.x + size1.w, size1.y          )).should.be(true);
-                geom.vertices[2].position.equals(new Vector(size1.x + size1.w, size1.y + size1.h)).should.be(true);
+                geom.vertices[0].position.x.should.be(size1.x);
+                geom.vertices[0].position.y.should.be(size1.y);
+                geom.vertices[1].position.x.should.be(size1.x + size1.w);
+                geom.vertices[1].position.y.should.be(size1.y);
+                geom.vertices[2].position.x.should.be(size1.x + size1.w);
+                geom.vertices[2].position.y.should.be(size1.y + size1.h);
 
-                geom.vertices[3].position.equals(new Vector(size1.x          , size1.y + size1.h)).should.be(true);
-                geom.vertices[4].position.equals(new Vector(size1.x          , size1.y          )).should.be(true);
-                geom.vertices[5].position.equals(new Vector(size1.x + size1.w, size1.y + size1.h)).should.be(true);
+                geom.vertices[3].position.x.should.be(size1.x);
+                geom.vertices[3].position.y.should.be(size1.y + size1.h);
+                geom.vertices[4].position.x.should.be(size1.x);
+                geom.vertices[4].position.y.should.be(size1.y);
+                geom.vertices[5].position.x.should.be(size1.x + size1.w);
+                geom.vertices[5].position.y.should.be(size1.y + size1.h);
 
                 // id2
-                geom.vertices[ 6].position.equals(new Vector(size2.x          , size2.y          )).should.be(true);
-                geom.vertices[ 7].position.equals(new Vector(size2.x + size2.w, size2.y          )).should.be(true);
-                geom.vertices[ 8].position.equals(new Vector(size2.x + size2.w, size2.y + size2.h)).should.be(true);
+                geom.vertices[ 6].position.x.should.be(size2.x);
+                geom.vertices[ 6].position.y.should.be(size2.y);
+                geom.vertices[ 7].position.x.should.be(size2.x + size2.w);
+                geom.vertices[ 7].position.y.should.be(size2.y);
+                geom.vertices[ 8].position.x.should.be(size2.x + size2.w);
+                geom.vertices[ 8].position.y.should.be(size2.y + size2.h);
 
-                geom.vertices[ 9].position.equals(new Vector(size2.x          , size2.y + size2.h)).should.be(true);
-                geom.vertices[10].position.equals(new Vector(size2.x          , size2.y          )).should.be(true);
-                geom.vertices[11].position.equals(new Vector(size2.x + size2.w, size2.y + size2.h)).should.be(true);
+                geom.vertices[ 9].position.x.should.be(size2.x);
+                geom.vertices[ 9].position.y.should.be(size2.y + size2.h);
+                geom.vertices[10].position.x.should.be(size2.x);
+                geom.vertices[10].position.y.should.be(size2.y);
+                geom.vertices[11].position.x.should.be(size2.x + size2.w);
+                geom.vertices[11].position.y.should.be(size2.y + size2.h);
             });
 
             it('Can set the position of a specific quad', {
                 var name  = 'cavesofgallet';
-                var size1 = new Rectangle(32, 32, 64, 64);
-                var size2 = new Rectangle(96, 32, 64, 64);
+                var size1 = new Rectangle(32, 32, 62, 62);
+                var size2 = new Rectangle(96, 32, 62, 62);
 
                 var id1 = geom.add(atlas.findRegion(name), size1, geom.color);
                 var id2 = geom.add(atlas.findRegion(name), size1, geom.color);
@@ -569,22 +653,34 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.quadPosition(id2, new Vector(size2.x, size2.y));
 
                 // id1
-                geom.vertices[0].position.equals(new Vector(size1.x          , size1.y          )).should.be(true);
-                geom.vertices[1].position.equals(new Vector(size1.x + size1.w, size1.y          )).should.be(true);
-                geom.vertices[2].position.equals(new Vector(size1.x + size1.w, size1.y + size1.h)).should.be(true);
+                geom.vertices[0].position.x.should.be(size1.x);
+                geom.vertices[0].position.y.should.be(size1.y);
+                geom.vertices[1].position.x.should.be(size1.x + size1.w);
+                geom.vertices[1].position.y.should.be(size1.y);
+                geom.vertices[2].position.x.should.be(size1.x + size1.w);
+                geom.vertices[2].position.y.should.be(size1.y + size1.h);
 
-                geom.vertices[3].position.equals(new Vector(size1.x          , size1.y + size1.h)).should.be(true);
-                geom.vertices[4].position.equals(new Vector(size1.x          , size1.y          )).should.be(true);
-                geom.vertices[5].position.equals(new Vector(size1.x + size1.w, size1.y + size1.h)).should.be(true);
+                geom.vertices[3].position.x.should.be(size1.x);
+                geom.vertices[3].position.y.should.be(size1.y + size1.h);
+                geom.vertices[4].position.x.should.be(size1.x);
+                geom.vertices[4].position.y.should.be(size1.y);
+                geom.vertices[5].position.x.should.be(size1.x + size1.w);
+                geom.vertices[5].position.y.should.be(size1.y + size1.h);
 
                 // id2
-                geom.vertices[ 6].position.equals(new Vector(size2.x          , size2.y          )).should.be(true);
-                geom.vertices[ 7].position.equals(new Vector(size2.x + size2.w, size2.y          )).should.be(true);
-                geom.vertices[ 8].position.equals(new Vector(size2.x + size2.w, size2.y + size2.h)).should.be(true);
+                geom.vertices[ 6].position.x.should.be(size2.x);
+                geom.vertices[ 6].position.y.should.be(size2.y);
+                geom.vertices[ 7].position.x.should.be(size2.x + size2.w);
+                geom.vertices[ 7].position.y.should.be(size2.y);
+                geom.vertices[ 8].position.x.should.be(size2.x + size2.w);
+                geom.vertices[ 8].position.y.should.be(size2.y + size2.h);
 
-                geom.vertices[ 9].position.equals(new Vector(size2.x          , size2.y + size2.h)).should.be(true);
-                geom.vertices[10].position.equals(new Vector(size2.x          , size2.y          )).should.be(true);
-                geom.vertices[11].position.equals(new Vector(size2.x + size2.w, size2.y + size2.h)).should.be(true);
+                geom.vertices[ 9].position.x.should.be(size2.x);
+                geom.vertices[ 9].position.y.should.be(size2.y + size2.h);
+                geom.vertices[10].position.x.should.be(size2.x);
+                geom.vertices[10].position.y.should.be(size2.y);
+                geom.vertices[11].position.x.should.be(size2.x + size2.w);
+                geom.vertices[11].position.y.should.be(size2.y + size2.h);
             });
 
             it('Can set the entire colour of a specific quad', {
@@ -592,8 +688,8 @@ class QuadPackGeometryTests extends BuddySuite
                 var colour1 = geom.color;
                 var colour2 = new Color(1, 0, 0, 1);
 
-                var id1 = geom.add(atlas.findRegion(name), new Rectangle(32, 32, 64, 64), colour1);
-                var id2 = geom.add(atlas.findRegion(name), new Rectangle(96, 32, 64, 64), colour1);
+                var id1 = geom.add(atlas.findRegion(name), new Rectangle(32, 32, 62, 62), colour1);
+                var id2 = geom.add(atlas.findRegion(name), new Rectangle(96, 32, 62, 62), colour1);
 
                 geom.quadColor(id2, colour2);
 
@@ -618,8 +714,8 @@ class QuadPackGeometryTests extends BuddySuite
 
             it('Can set just the alpha of a specific quad', {
                 var name = 'cavesofgallet';
-                var id1  = geom.add(atlas.findRegion(name), new Rectangle(32, 32, 64, 64), geom.color);
-                var id2  = geom.add(atlas.findRegion(name), new Rectangle(96, 32, 64, 64), geom.color);
+                var id1  = geom.add(atlas.findRegion(name), new Rectangle(32, 32, 62, 62), geom.color);
+                var id2  = geom.add(atlas.findRegion(name), new Rectangle(96, 32, 62, 62), geom.color);
                 var alp  = 0.75;
 
                 geom.quadAlpha(id2, alp);
@@ -648,8 +744,8 @@ class QuadPackGeometryTests extends BuddySuite
                 var tile1 = atlas.findRegionID(name, 0);
                 var tile2 = atlas.findRegionID(name, 1);
 
-                var id1 = geom.add(tile1, new Rectangle(32, 32, 64, 64), geom.color);
-                var id2 = geom.add(tile1, new Rectangle(96, 32, 64, 64), geom.color);
+                var id1 = geom.add(tile1, new Rectangle(32, 32, 62, 62), geom.color);
+                var id2 = geom.add(tile1, new Rectangle(96, 32, 62, 62), geom.color);
 
                 geom.quadTile(id2, tile2);
 
@@ -677,8 +773,8 @@ class QuadPackGeometryTests extends BuddySuite
                 var tile1 = atlas.findRegionID(name, 0);
                 var tile2 = atlas.findRegionID(name, 1);
 
-                var id1 = geom.add(tile1, new Rectangle(32, 32, 64, 64), geom.color);
-                var id2 = geom.add(tile2, new Rectangle(96, 32, 64, 64), geom.color);
+                var id1 = geom.add(tile1, new Rectangle(32, 32, 62, 62), geom.color);
+                var id2 = geom.add(tile2, new Rectangle(96, 32, 62, 62), geom.color);
 
                 geom.quadFlipX(id2, true);
 
@@ -706,8 +802,8 @@ class QuadPackGeometryTests extends BuddySuite
                 var tile1 = atlas.findRegionID(name, 0);
                 var tile2 = atlas.findRegionID(name, 1);
 
-                var id1 = geom.add(tile1, new Rectangle(32, 32, 64, 64), geom.color);
-                var id2 = geom.add(tile2, new Rectangle(96, 32, 64, 64), geom.color);
+                var id1 = geom.add(tile1, new Rectangle(32, 32, 62, 62), geom.color);
+                var id2 = geom.add(tile2, new Rectangle(96, 32, 62, 62), geom.color);
 
                 geom.quadFlipY(id2, true);
 
@@ -735,8 +831,8 @@ class QuadPackGeometryTests extends BuddySuite
                 var tile1 = atlas.findRegionID(name, 0);
                 var tile2 = atlas.findRegionID(name, 1);
 
-                var id1 = geom.add(tile1, new Rectangle(32, 32, 64, 64), geom.color);
-                var id2 = geom.add(tile2, new Rectangle(96, 32, 64, 64), geom.color);
+                var id1 = geom.add(tile1, new Rectangle(32, 32, 62, 62), geom.color);
+                var id2 = geom.add(tile2, new Rectangle(96, 32, 62, 62), geom.color);
 
                 geom.quadFlipY(id2, true);
                 geom.quadFlipX(id2, true);
