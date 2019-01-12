@@ -10,11 +10,11 @@ steps:
 
 - bash: |
     choco install neko --yes
-    choco install haxe --prelease --source 'https://ci.appveyor.com/nuget/haxe' --yes
-  condition: eq( variables['Agent.OS'], 'Linux' )
+    choco install haxe --prerelease --source 'https://ci.appveyor.com/nuget/haxe' --yes
+  condition: eq( variables['Agent.OS'], 'Windows_NT' )
   displayName: Install haxe for windows
 
-- script: |
+- bash: |
     mkdir ~/haxelib
     haxelib setup ~/haxelib
 
@@ -31,7 +31,7 @@ steps:
     haxe compile.hxml
   displayName: Install haxe dependencies
 
-- script: |
+- bash: |
     cd engine/test
     haxe build-cpp.hxml
     bin/cpp/Main
