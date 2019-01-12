@@ -118,16 +118,16 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _x x value of the vector.
      * @param _y y value of the vector.
      * @param _z z value of the vector.
-     * @param _w w value of the vector.
+     * @param _t w value of the vector.
      */
-    public inline function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 0)
+    public inline function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _t : Float = 0)
     {
         this = new Float32Array(4);
 
         x = _x;
         y = _y;
         z = _z;
-        w = _w;
+        w = _t;
     }
 
     // #region overloaded operators
@@ -179,15 +179,15 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _x x value of the vector.
      * @param _y y value of the vector.
      * @param _z z value of the vector.
-     * @param _w w value of the vector.
+     * @param _t w value of the vector.
      * @return Vector
      */
-    public inline function set(_x : Float, _y : Float, _z : Float, _w : Float) : Vector
+    public inline function set(_x : Float, _y : Float, _z : Float, _t : Float) : Vector
     {
         x = _x;
         y = _y;
         z = _z;
-        w = _w;
+        w = _t;
 
         return this;
     }
