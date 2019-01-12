@@ -1,19 +1,39 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
-trigger:
-- master
+strategy:
+  matrix:
+    windows:
+      imageName: 'vs2017-win2016'
 
 pool:
-  vmImage: 'Ubuntu-16.04'
+  vmImage: $(imageName)
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+
+- bash: |
+    choco install neko --yes
+    choco install haxe --prelease --source 'https://ci.appveyor.com/nuget/haxe' --yes
+  condition: eq( variables['Agent.OS'], 'Linux' )
+  displayName: Install haxe for windows
 
 - script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+    mkdir ~/haxelib
+    haxelib setup ~/haxelib
+
+    haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp
+    haxelib git hxp https://github.com/openfl/hxp.git
+    haxelib git flurry https://github.com/Aidan63/Flurry.git
+    haxelib git hxtelemetry https://github.com/jcward/hxtelemetry.git
+    haxelib git linc_imgui https://github.com/Aidan63/linc_imgui.git
+    haxelib run flurry install
+
+    cd ~/haxelib/hxcpp/git/tools/run
+    haxe compile.hxml
+    cd ~/haxelib/hxcpp/git/tools/hxcpp
+    haxe compile.hxml
+  displayName: Install haxe dependencies
+
+- script: |
+    cd engine/test
+    haxe build-cpp.hxml
+    bin/cpp/Main
+  displayName: Run unit tests
+  workingDirectory: $(Agent.BuildDirectory)
