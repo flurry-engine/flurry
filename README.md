@@ -1,7 +1,6 @@
 # Flurry
 
-[![Build Status](https://travis-ci.com/Aidan63/Flurry.svg?branch=master)](https://travis-ci.com/Aidan63/Flurry)
-[![Maintainability](https://api.codeclimate.com/v1/badges/6fbd4dda47e031b4cd84/maintainability)](https://codeclimate.com/github/Aidan63/Flurry/maintainability)
+[![Build Status](https://dev.azure.com/aidanlee10789/Flurry/_apis/build/status/Aidan63.Flurry?branchName=master)](https://dev.azure.com/aidanlee10789/Flurry/_build/latest?definitionId=1?branchName=master)
 
 Flurry is a cross platform, 2D focused game engine written in the Haxe language. It currently supports Windows, Mac, and Linux with Web and WinRT / XBox support planned.
 This engine is currently WIP so nothing is set in stone or stable.
