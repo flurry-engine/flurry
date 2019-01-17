@@ -20,7 +20,6 @@ class Install extends Script
         System.runCommand(workingDirectory, 'haxelib git linc_stb       https://github.com/snowkit/linc_stb       --quiet --never', []);
         System.runCommand(workingDirectory, 'haxelib git linc_timestamp https://github.com/snowkit/linc_timestamp --quiet --never', []);
         System.runCommand(workingDirectory, 'haxelib git linc_openal    https://github.com/snowkit/linc_openal    --quiet --never', []);
-        System.runCommand(workingDirectory, 'haxelib git hxcpp          https://github.com/HaxeFoundation/hxcpp   --quiet --never', []);
 
         if (!flags.exists('no-test-deps'))
         {

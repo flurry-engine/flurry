@@ -5,67 +5,27 @@ import snow.api.buffers.Float32Array;
 /**
  * Vector class which contains an x, y, z, and w component.
  */
-abstract Vector(Float32Array) from Float32Array to Float32Array
+class Vector
 {
     /**
      * x component of this vector.
      */
-    public var x (get, set) : Float;
-
-    inline function get_x() : Float {
-        return this[0];
-    }
-
-    inline function set_x(_v : Float) : Float {
-        this[0] = _v;
-
-        return _v;
-    }
+    public var x : Float;
 
     /**
      * y component of this vector.
      */
-    public var y (get, set) : Float;
-
-    inline function get_y() : Float {
-        return this[1];
-    }
-
-    inline function set_y(_v : Float) : Float {
-        this[1] = _v;
-
-        return _v;
-    }
+    public var y : Float;
 
     /**
      * z component of this vector.
      */
-    public var z (get, set) : Float;
-
-    inline function get_z() : Float {
-        return this[2];
-    }
-
-    inline function set_z(_v : Float) : Float {
-        this[2] = _v;
-
-        return _v;
-    }
+    public var z : Float;
 
     /**
      * w component of this vector.
      */
-    public var w (get, set) : Float;
-
-    inline function get_w() : Float {
-        return this[3];
-    }
-
-    inline function set_w(_v : Float) : Float {
-        this[3] = _v;
-
-        return _v;
-    }
+    public var w : Float;
 
     /**
      * The length of this vector.
@@ -120,10 +80,8 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _z z value of the vector.
      * @param _w w value of the vector.
      */
-    public inline function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 0)
+    public function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 0)
     {
-        this = new Float32Array(4);
-
         x = _x;
         y = _y;
         z = _z;
@@ -132,42 +90,42 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
 
     // #region overloaded operators
 
-    @:op(A + B) public inline function opAdd(_rhs : Vector) : Vector
+    @:op(A + B) inline public function opAdd(_rhs : Vector) : Vector
     {
         return add(_rhs);
     }
 
-    @:op(A - B) public inline function opSubtract(_rhs : Vector) : Vector
+    @:op(A - B) inline public function opSubtract(_rhs : Vector) : Vector
     {
         return subtract(_rhs);
     }
 
-    @:op(A * B) public inline function opMultiply(_rhs : Vector) : Vector
+    @:op(A * B) inline public function opMultiply(_rhs : Vector) : Vector
     {
         return multiply(_rhs);
     }
 
-    @:op(A / B) public inline function opDivide(_rhs : Vector) : Vector
+    @:op(A / B) inline public function opDivide(_rhs : Vector) : Vector
     {
         return divide(_rhs);
     }
 
-    @:op(A + B) public inline function opAddScalar(_rhs : Float) : Vector
+    @:op(A + B) inline public function opAddScalar(_rhs : Float) : Vector
     {
         return addScalar(_rhs);
     }
 
-    @:op(A - B) public inline function opSubtractScalar(_rhs : Float) : Vector
+    @:op(A - B) inline public function opSubtractScalar(_rhs : Float) : Vector
     {
         return subtractScalar(_rhs);
     }
 
-    @:op(A * B) public inline function opMultiplyScalar(_rhs : Float) : Vector
+    @:op(A * B) inline public function opMultiplyScalar(_rhs : Float) : Vector
     {
         return multiplyScalar(_rhs);
     }
 
-    @:op(A / B) public inline function opDivideScalar(_rhs : Float) : Vector
+    @:op(A / B) inline public function opDivideScalar(_rhs : Float) : Vector
     {
         return divideScalar(_rhs);
     }
@@ -182,7 +140,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _w w value of the vector.
      * @return Vector
      */
-    public inline function set(_x : Float, _y : Float, _z : Float, _w : Float) : Vector
+    inline public function set(_x : Float, _y : Float, _z : Float, _w : Float) : Vector
     {
         x = _x;
         y = _y;
@@ -199,7 +157,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _z z value of the vector.
      * @return Vector
      */
-    public inline function set_xyz(_x : Float, _y : Float, _z : Float) : Vector
+    inline public function set_xyz(_x : Float, _y : Float, _z : Float) : Vector
     {
         x = _x;
         y = _y;
@@ -214,7 +172,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _y y value of the vector.
      * @return Vector
      */
-    public inline function set_xy(_x : Float, _y : Float) : Vector
+    inline public function set_xy(_x : Float, _y : Float) : Vector
     {
         x = _x;
         y = _y;
@@ -227,7 +185,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _other The vector to copy.
      * @return Vector
      */
-    public inline function copyFrom(_other : Vector) : Vector
+    inline public function copyFrom(_other : Vector) : Vector
     {
         set(_other.x, _other.y, _other.z, _other.w);
 
@@ -238,7 +196,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * Returns a string containing all four component values.
      * @return String
      */
-    public inline function toString() : String
+    inline public function toString() : String
     {
         return ' { x : $x, y : $y, z : $z, w : $w } ';
     }
@@ -248,7 +206,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _other The vector to check against.
      * @return Bool
      */
-    public inline function equals(_other : Vector) : Bool
+    inline public function equals(_other : Vector) : Bool
     {
         return (x == _other.x && y == _other.y && z == _other.z && w == _other.w);
     }
@@ -257,7 +215,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * Returns a copy of this vector.
      * @return Vector
      */
-    public inline function clone() : Vector
+    inline public function clone() : Vector
     {
         return new Vector(x, y, z, w);
     }
@@ -268,7 +226,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * Normalizes this vectors components.
      * @return Vector
      */
-    public inline function normalize() : Vector
+    inline public function normalize() : Vector
     {
         return divideScalar(length);
     }
@@ -278,7 +236,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _other The other vector.
      * @return Float
      */
-    public inline function dot(_other : Vector) : Float
+    inline public function dot(_other : Vector) : Float
     {
         return x * _other.x + y * _other.y + z * _other.z;
     }
@@ -289,7 +247,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _v2 Second vector.
      * @return Vector
      */
-    public inline function cross(_v1 : Vector, _v2 : Vector) : Vector
+    inline public function cross(_v1 : Vector, _v2 : Vector) : Vector
     {
         set_xyz(_v1.y * _v2.z - _v1.z * _v2.y,
                 _v1.z * _v2.x - _v1.x * _v2.z,
@@ -302,7 +260,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * Inverts the x, y, and z components of this vector.
      * @return Vector
      */
-    public inline function invert() : Vector
+    inline public function invert() : Vector
     {
         set_xyz(-x, -y, -z);
 
@@ -318,7 +276,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _other The vector to add.
      * @return Vector
      */
-    public inline function add(_other : Vector) : Vector
+    inline public function add(_other : Vector) : Vector
     {
         set_xyz(x + _other.x, y + _other.y, z + _other.z);
 
@@ -332,7 +290,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _z The value to add to the z component.
      * @return Vector
      */
-    public inline function add_xyz(_x : Float, _y : Float, _z : Float) : Vector
+    inline public function add_xyz(_x : Float, _y : Float, _z : Float) : Vector
     {
         set_xyz(x + _x, y + _y, z + _z);
 
@@ -344,7 +302,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _other The vector to subtract.
      * @return Vector
      */
-    public inline function subtract(_other : Vector) : Vector
+    inline public function subtract(_other : Vector) : Vector
     {
         set_xyz(x - _other.x, y - _other.y, z - _other.z);
 
@@ -358,7 +316,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _z The value to subtract from the z component.
      * @return Vector
      */
-    public inline function subtract_xyz(_x : Float, _y : Float, _z : Float) : Vector
+    inline public function subtract_xyz(_x : Float, _y : Float, _z : Float) : Vector
     {
         set_xyz(x - _x, y - _y, z - _z);
 
@@ -370,7 +328,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _other Vector to multiply by.
      * @return Vector
      */
-    public inline function multiply(_other : Vector) : Vector
+    inline public function multiply(_other : Vector) : Vector
     {
         set_xyz(x * _other.x, y * _other.y, z * _other.z);
 
@@ -384,7 +342,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _z Value to multiply the z component by.
      * @return Vector
      */
-    public inline function multiply_xyz(_x : Float, _y : Float, _z : Float) : Vector
+    inline public function multiply_xyz(_x : Float, _y : Float, _z : Float) : Vector
     {
         set_xyz(x * _x, y * _y, z * _z);
 
@@ -396,7 +354,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _other Vector to divide by.
      * @return Vector
      */
-    public inline function divide(_other : Vector) : Vector
+    inline public function divide(_other : Vector) : Vector
     {
         set_xyz(x / _other.x, y / _other.y, z / _other.z);
 
@@ -410,7 +368,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _z Value to divide the z component by.
      * @return Vector
      */
-    public inline function divide_xyz(_x : Float, _y : Float, _z : Float) : Vector
+    inline public function divide_xyz(_x : Float, _y : Float, _z : Float) : Vector
     {
         set_xyz(x / _x, y / _y, z / _z);
 
@@ -422,7 +380,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _v Constant scalar value.
      * @return Vector
      */
-    public inline function addScalar(_v : Float) : Vector
+    inline public function addScalar(_v : Float) : Vector
     {
         set_xyz(x + _v, y + _v, z + _v);
 
@@ -434,7 +392,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _v Constant scalar value.
      * @return Vector
      */
-    public inline function subtractScalar(_v : Float) : Vector
+    inline public function subtractScalar(_v : Float) : Vector
     {
         set_xyz(x - _v, y - _v, z - _v);
 
@@ -446,7 +404,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _v Scalar value to multiply by.
      * @return Vector
      */
-    public inline function multiplyScalar(_v : Float) : Vector
+    inline public function multiplyScalar(_v : Float) : Vector
     {
         set_xyz(x * _v, y * _v, z * _v);
 
@@ -459,7 +417,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _v Scalar value to divide by.
      * @return Vector
      */
-    public inline function divideScalar(_v : Float) : Vector
+    inline public function divideScalar(_v : Float) : Vector
     {
         if (_v != 0)
         {
@@ -482,7 +440,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _m Matrix to transform by.
      * @return Vector
      */
-    public inline function transform(_m : Matrix) : Vector
+    inline public function transform(_m : Matrix) : Vector
     {
         set_xyz(_m[0] * x + _m[4] * y + _m[ 8] * z + _m[12],
                 _m[1] * x + _m[5] * y + _m[ 9] * z + _m[13],
@@ -497,7 +455,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _order Order of the quaternions components. (default XYZ)
      * @return Vector
      */
-    public inline function setEulerFromQuaternion(_q : Quaternion, _order : ComponentOrder = XYZ) : Vector
+    inline public function setEulerFromQuaternion(_q : Quaternion, _order : ComponentOrder = XYZ) : Vector
     {
         var sqx = _q.x * _q.x;
         var sqy = _q.y * _q.y;
@@ -549,7 +507,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _v2 Second vector.
      * @return Vector
      */
-    public static inline function Add(_v1 : Vector, _v2 : Vector) : Vector
+    inline public static function Add(_v1 : Vector, _v2 : Vector) : Vector
     {
         return new Vector(_v1.x + _v2.x, _v1.y + _v2.y, _v1.z + _v2.z);
     }
@@ -561,7 +519,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _v2 Second vector.
      * @return Vector
      */
-    public static inline function Subtract(_v1 : Vector, _v2 : Vector) : Vector
+    inline public static function Subtract(_v1 : Vector, _v2 : Vector) : Vector
     {
         return new Vector(_v1.x - _v2.x, _v1.y - _v2.y, _v1.z - _v2.z);
     }
@@ -573,7 +531,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _v2 Second vector.
      * @return Vector
      */
-    public static inline function Multiply(_v1 : Vector, _v2 : Vector) : Vector
+    inline public static function Multiply(_v1 : Vector, _v2 : Vector) : Vector
     {
         return new Vector(_v1.x * _v2.x, _v1.y * _v2.y, _v1.z * _v2.z);
     }
@@ -585,7 +543,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _v2 Second vector.
      * @return Vector
      */
-    public static inline function Divide(_v1 : Vector, _v2 : Vector) : Vector
+    inline public static function Divide(_v1 : Vector, _v2 : Vector) : Vector
     {
         return new Vector(_v1.x / _v2.x, _v1.y / _v2.y, _v1.z / _v2.z);
     }
@@ -597,7 +555,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _f Scalar value.
      * @return Vector
      */
-    public static inline function AddScalar(_v : Vector, _f : Float) : Vector
+    inline public static function AddScalar(_v : Vector, _f : Float) : Vector
     {
         return new Vector(_v.x + _f, _v.y + _f, _v.z + _f);
     }
@@ -609,7 +567,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _f Scalar value.
      * @return Vector
      */
-    public static inline function SubtractScalar(_v : Vector, _f : Float) : Vector
+    inline public static function SubtractScalar(_v : Vector, _f : Float) : Vector
     {
         return new Vector(_v.x - _f, _v.y - _f, _v.z - _f);
     }
@@ -621,7 +579,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _f Scalar value.
      * @return Vector
      */
-    public static inline function MultiplyScalar(_v : Vector, _f : Float) : Vector
+    inline public static function MultiplyScalar(_v : Vector, _f : Float) : Vector
     {
         return new Vector(_v.x * _f, _v.y * _f, _v.z * _f);
     }
@@ -633,7 +591,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _f Scalar value.
      * @return Vector
      */
-    public static inline function DivideScalar(_v : Vector, _f : Float) : Vector
+    inline public static function DivideScalar(_v : Vector, _f : Float) : Vector
     {
         return new Vector(_v.x / _f, _v.y / _f, _v.z / _f);
     }
@@ -645,7 +603,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      * @param _v2 Second vector.
      * @return Vector
      */
-    public static inline function Cross(_v1 : Vector, _v2 : Vector) : Vector
+    inline public static function Cross(_v1 : Vector, _v2 : Vector) : Vector
     {
         return new Vector(_v1.y * _v2.z - _v1.z * _v2.y,
                           _v1.z * _v2.x - _v1.x * _v2.z,

@@ -114,7 +114,7 @@ class Main
 			className,
 			"-main", "hxp.Script",
 			"-D"   , "hxp=" + version,
-			"-cp"  , Path.join([ Haxelib.getPath(new Haxelib("hxp")), "src" ]),
+			"-L"   , "hxp",
 			"-cp"  , Path.join([ Haxelib.getPath(new Haxelib("flurry")), 'tools', 'flurry' ])
 		];
 		var runArgs = [ _command == '' ? 'default' : _command ].concat(arguments);

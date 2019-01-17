@@ -9,9 +9,6 @@
 -lib flurry
 -lib hxcpp
 -lib haxe-concurrent
--lib linc_opengl
--lib linc_directx
--lib linc_sdl
 -lib linc_ogg
 -lib linc_stb
 -lib linc_timestamp

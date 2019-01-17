@@ -37,6 +37,7 @@ class ColorReporter implements Reporter
         pending  = 0;
         unknowns = 0;
         xml      = Xml.createElement('assemblies');
+        xml.set('timestamp', '${getDate()} ${getTime()}');
     }
 
     public function start() : Promise<Bool>
@@ -87,11 +88,12 @@ class ColorReporter implements Reporter
     function createReport(_suites : Iterable<Suite>)
     {
         var assembly = Xml.createElement('assembly');
-        assembly.set('name'          , '');
-        assembly.set('config-file'   , '');
+        assembly.set('name'          , 'Main.hx');
+        assembly.set('config-file'   , 'build-cpp.hxml');
         assembly.set('test-framework', 'Buddy');
-        assembly.set('run-date', '${Date.now().getFullYear()}-${Date.now().getMonth()}-${Date.now().getDay()}');
-        assembly.set('run-date', '${Date.now().getHours()}-${Date.now().getMinutes()}-${Date.now().getSeconds()}');
+        assembly.set('environment', '');
+        assembly.set('run-date', getDate());
+        assembly.set('run-time', getTime());
         assembly.set('time'    , Std.string(endTime - startTime));
         assembly.set('total'   , Std.string(total));
         assembly.set('passed'  , Std.string(passing));
@@ -99,8 +101,10 @@ class ColorReporter implements Reporter
         assembly.set('skipped' , Std.string(pending));
         assembly.set('errors'  , Std.string(0));
 
+        var errors = Xml.createElement('errors');
+
         var collection = Xml.createElement('collection');
-        collection.set('name'    , 'engine-linux');
+        collection.set('name'    , 'test');
         collection.set('time'    , Std.string(endTime - startTime));
         collection.set('total'   , Std.string(total));
         collection.set('passed'  , Std.string(passing));
@@ -112,10 +116,13 @@ class ColorReporter implements Reporter
             reportSuite(suite, collection);
         }
 
+        assembly.addChild(errors);
         assembly.addChild(collection);
         xml.addChild(assembly);
 
-        File.saveContent('test-engine.xml', xml.toString());
+        var outxml = '<?xml version="1.0" encoding="utf-8"?>\r\n' + xml.toString();
+
+        File.saveContent('test-engine.xml', outxml);
     }
 
     function reportSuite(_suite : Suite, _collection : Xml)
@@ -130,8 +137,8 @@ class ColorReporter implements Reporter
             var test = Xml.createElement('test');
             test.set('name', spec.description);
             test.set('type', spec.fileName);
-            test.set('method', '');
-            test.set('time', '');
+            test.set('method', spec.description);
+            test.set('time', '0.1');
 
             switch (spec.status)
             {
@@ -294,5 +301,15 @@ class ColorReporter implements Reporter
                     //
             }
         }
+    }
+
+    function getDate() : String
+    {
+        return '${Std.string(Date.now().getFullYear()).lpad('0', 2)}/${Std.string(Date.now().getMonth() + 1).lpad('0', 2)}/${Std.string(Date.now().getDate()).lpad('0', 2)}';
+    }
+
+    function getTime() : String
+    {
+        return '${Std.string(Date.now().getHours()).lpad('0', 2)}/${Std.string(Date.now().getMinutes()).lpad('0', 2)}/${Std.string(Date.now().getSeconds()).lpad('0', 2)}';
     }
 }

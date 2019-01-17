@@ -10,7 +10,7 @@ class Main implements Buddy<[
     tests.api.maths.RectangleTests,
     tests.api.maths.CircleTests,
 
-    tests.api.display.DisplayTests,
+    //tests.api.display.DisplayTests,
 
     tests.api.importers.bmfont.BitmapFontParserTests,
     tests.api.importers.textureatlas.TextureAtlasParserTests,

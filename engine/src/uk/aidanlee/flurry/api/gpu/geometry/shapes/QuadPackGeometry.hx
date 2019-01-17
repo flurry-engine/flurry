@@ -75,17 +75,17 @@ class QuadPackGeometry extends Geometry
      * @param _flipY If the quads image should be flipped on its y axis. (defaults false)
      * @return Unique quad int ID.
      */
-    public function add_xywh(_frame : TextureAtlasFrame, _x : Float, _y : Float, _w : Float, _h : Float, _color : Color, _flipX : Bool = false, _flipY : Bool = false) : Int
+    public function add_xywh(_frame : TextureAtlasFrame, _x : Float, _y : Float, _width : Float, _height : Float, _color : Color, _flipX : Bool = false, _flipY : Bool = false) : Int
     {
         var id   = Hash.uniqueHash();
         var quad = new PackedQuad(id, [
-            new Vertex( new Vector(_x     , _y     ), _color.clone(), new Vector(0, 0) ),
-            new Vertex( new Vector(_x + _w, _y     ), _color.clone(), new Vector(0, 0) ),
-            new Vertex( new Vector(_x + _w, _y + _h), _color.clone(), new Vector(0, 0) ),
+            new Vertex( new Vector(_x         , _y          ), _color.clone(), new Vector(0, 0) ),
+            new Vertex( new Vector(_x + _width, _y          ), _color.clone(), new Vector(0, 0) ),
+            new Vertex( new Vector(_x + _width, _y + _height), _color.clone(), new Vector(0, 0) ),
 
-            new Vertex( new Vector(_x     , _y + _h), _color.clone(), new Vector(0, 0) ),
-            new Vertex( new Vector(_x     , _y     ), _color.clone(), new Vector(0, 0) ),
-            new Vertex( new Vector(_x + _w, _y + _h), _color.clone(), new Vector(0, 0) )
+            new Vertex( new Vector(_x         , _y + _height), _color.clone(), new Vector(0, 0) ),
+            new Vertex( new Vector(_x         , _y          ), _color.clone(), new Vector(0, 0) ),
+            new Vertex( new Vector(_x + _width, _y + _height), _color.clone(), new Vector(0, 0) )
         ]);
 
         applyUV(quad, _frame.region, _flipX, _flipY);

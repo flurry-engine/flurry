@@ -1,19 +1,40 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
-trigger:
-- master
+strategy:
+  matrix:
+    linux:
+      imageName: 'ubuntu-16.04'
+    mac:
+      imageName: 'macos-10.13'
 
 pool:
-  vmImage: 'Ubuntu-16.04'
+  vmImage: $(imageName)
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+- bash: ci/install.sh
+  displayName: Haxe Install
+  env:
+    AGENT_OS: $(Agent.OS)
+    SOURCE_DIR: $(Build.SourcesDirectory)
+    BASE_DIR: $(Agent.HomeDirectory)
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+- bash: |
+    export PATH=$PATH:$BASE_DIR/haxe
+    export PATH=$PATH:$BASE_DIR/neko
+    export HAXE_STD_PATH=$BASE_DIR/haxe/std
+    export LD_LIBRARY_PATH=$BASE_DIR/neko
+
+    cd engine/test
+    haxe build-cpp.hxml
+    ./bin/cpp/Main
+  displayName: Run unit tests
+  workingDirectory: $(Build.SourcesDirectory)
+  env:
+    BASE_DIR: $(Agent.HomeDirectory)
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: xUnit
+    testResultsFiles: engine/test/test-engine.xml
+    searchFolder: $(Build.SourcesDirectory)
+    testRunTitle: Engine Unit Tests
+    buildPlatform: $(Agent.OS)
+    failTaskOnFailedTests: true
