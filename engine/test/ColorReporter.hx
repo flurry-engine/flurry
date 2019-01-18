@@ -49,7 +49,7 @@ class ColorReporter implements Reporter
     static macro function isDefined(key : String) : haxe.macro.Expr
     {
         return macro $v{haxe.macro.Context.defined(key)};
-    }>
+    }
 
     static macro function getDefine(key : String) : haxe.macro.Expr
     {
