@@ -36,6 +36,6 @@ steps:
     testResultsFormat: xUnit
     testResultsFiles: engine/test/test-engine.xml
     searchFolder: $(Build.SourcesDirectory)
-    testRunTitle: Engine Unit Tests
+    testRunTitle: Engine Tests $(Agent.OS)
     buildPlatform: $(Agent.OS)
     failTaskOnFailedTests: true
