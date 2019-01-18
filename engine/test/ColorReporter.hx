@@ -1,6 +1,4 @@
-package;
 
-import Xml;
 import sys.io.File;
 import haxe.CallStack.StackItem;
 import buddy.BuddySuite.Spec;
@@ -13,6 +11,8 @@ using StringTools;
 
 class ColorReporter implements Reporter
 {
+    var reportName : String;
+    
     var total : Int;
 
     var passing : Int;
@@ -31,13 +31,29 @@ class ColorReporter implements Reporter
 
     public function new()
     {
-        total    = 0;
-        passing  = 0;
-        failures = 0;
-        pending  = 0;
-        unknowns = 0;
-        xml      = Xml.createElement('assemblies');
+        if (!isDefined('report-name'))
+        {
+            throw 'report-name not defined';
+        }
+
+        reportName = getDefine('report-name');
+        total      = 0;
+        passing    = 0;
+        failures   = 0;
+        pending    = 0;
+        unknowns   = 0;
+        xml        = Xml.createElement('assemblies');
         xml.set('timestamp', '${getDate()} ${getTime()}');
+    }
+
+    static macro function isDefined(key : String) : haxe.macro.Expr
+    {
+        return macro $v{haxe.macro.Context.defined(key)};
+    }>
+
+    static macro function getDefine(key : String) : haxe.macro.Expr
+    {
+        return macro $v{haxe.macro.Context.definedValue(key)};
     }
 
     public function start() : Promise<Bool>
@@ -104,7 +120,7 @@ class ColorReporter implements Reporter
         var errors = Xml.createElement('errors');
 
         var collection = Xml.createElement('collection');
-        collection.set('name'    , 'test');
+        collection.set('name'    , reportName);
         collection.set('time'    , Std.string(endTime - startTime));
         collection.set('total'   , Std.string(total));
         collection.set('passed'  , Std.string(passing));

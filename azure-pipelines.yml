@@ -23,8 +23,17 @@ steps:
     export LD_LIBRARY_PATH=$BASE_DIR/neko
 
     cd engine/test
-    haxe build-cpp.hxml
-    ./bin/cpp/Main
+
+    case "$AGENT_OS" in
+      "Linux")
+        haxe build-cpp.hxml -D report-name=engine-tests-linux
+        ./bin/cpp/Main
+        ;;
+      "Darwin")
+        haxe build-cpp.hxml -D report-name=engine-tests-osx
+        ./bin/cpp/Main
+        ;;
+    esac
   displayName: Run unit tests
   workingDirectory: $(Build.SourcesDirectory)
   env:

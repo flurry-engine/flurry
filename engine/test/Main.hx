@@ -1,6 +1,5 @@
-package;
 
-import buddy.*;
+import buddy.Buddy;
 
 class Main implements Buddy<[
     tests.api.maths.MathsTests,
