@@ -1,5 +1,7 @@
 #!/bin/bash
 
+node --version
+
 # Install linux specific dependencies
 if [ $AGENT_OS == 'Linux' ]; then
     sudo apt-get install -y gcc-multilib g++-multilib libgl1-mesa-dev libglu1-mesa-dev libopenal-dev libxrandr-dev libxinerama-dev libasound2-dev libsdl2-dev
