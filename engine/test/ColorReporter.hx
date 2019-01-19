@@ -1,6 +1,7 @@
 
 import sys.io.File;
 import haxe.CallStack.StackItem;
+import haxe.crypto.Sha256;
 import buddy.BuddySuite.Spec;
 import buddy.BuddySuite.Suite;
 import buddy.reporting.Reporter;
@@ -40,6 +41,7 @@ class ColorReporter implements Reporter
         failures   = 0;
         pending    = 0;
         unknowns   = 0;
+        totalTime  = 0;
         xml        = Xml.createElement('assemblies');
         xml.set('timestamp', '${getDate()} ${getTime()}');
     }
@@ -150,8 +152,8 @@ class ColorReporter implements Reporter
 
             var test = Xml.createElement('test');
             test.set('type'  , spec.fileName);
-            test.set('name'  , spec.description);
             test.set('method', spec.description);
+            test.set('name'  , Sha256.encode(spec.description));
             test.set('time'  , Std.string(spec.time));
 
             switch (spec.status)
