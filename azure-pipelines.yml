@@ -8,6 +8,10 @@ strategy:
 pool:
   vmImage: $(imageName)
 
+- task: NodeTool@0
+  inputs:
+    versionSpec: '10.15.x'
+
 steps:
 - bash: ci/install_lix.sh
   displayName: Haxe Install
