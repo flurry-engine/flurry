@@ -25,9 +25,7 @@ class ColorReporter implements Reporter
 
     var xml : Xml;
 
-    var startTime : Float;
-
-    var endTime : Float;
+    var totalTime : Float;
 
     public function new()
     {
@@ -58,8 +56,6 @@ class ColorReporter implements Reporter
 
     public function start() : Promise<Bool>
     {
-        startTime = Sys.time();
-
         return resolve(true);
     }
 
@@ -70,8 +66,6 @@ class ColorReporter implements Reporter
 
     public function done(_suites : Iterable<Suite>, _status : Bool) : Promise<Iterable<Suite>>
     {
-        endTime = Sys.time();
-
         for (suite in _suites)
         {
             countSuite(suite);
@@ -110,7 +104,6 @@ class ColorReporter implements Reporter
         assembly.set('environment', '');
         assembly.set('run-date', getDate());
         assembly.set('run-time', getTime());
-        assembly.set('time'    , Std.string(endTime - startTime));
         assembly.set('total'   , Std.string(total));
         assembly.set('passed'  , Std.string(passing));
         assembly.set('failed'  , Std.string(failures));
@@ -121,7 +114,6 @@ class ColorReporter implements Reporter
 
         var collection = Xml.createElement('collection');
         collection.set('name'    , reportName);
-        collection.set('time'    , Std.string(endTime - startTime));
         collection.set('total'   , Std.string(total));
         collection.set('passed'  , Std.string(passing));
         collection.set('failed'  , Std.string(failures));
@@ -131,6 +123,10 @@ class ColorReporter implements Reporter
         {
             reportSuite(suite, collection);
         }
+
+        // Set the time after reporting tests
+        collection.set('time', Std.string(totalTime));
+        assembly.set('time', Std.string(totalTime));
 
         assembly.addChild(errors);
         assembly.addChild(collection);
@@ -143,6 +139,8 @@ class ColorReporter implements Reporter
 
     function reportSuite(_suite : Suite, _collection : Xml)
     {
+        totalTime += _suite.time;
+
         for (spec in _suite.specs)
         {
             if (spec.status == Unknown)
@@ -151,10 +149,10 @@ class ColorReporter implements Reporter
             }
 
             var test = Xml.createElement('test');
-            test.set('name', spec.description);
-            test.set('type', spec.fileName);
+            test.set('name'  , spec.description);
+            test.set('type'  , spec.fileName);
             test.set('method', spec.description);
-            test.set('time', '0.1');
+            test.set('time'  , Std.string(spec.time));
 
             switch (spec.status)
             {
@@ -173,7 +171,7 @@ class ColorReporter implements Reporter
                     {
                         var failureElem = Xml.createElement('failure');
                         failureElem.set('exception-type', '');
-                        
+
                         var message = Xml.createElement('message');
                         message.addChild(Xml.createCData(failure.error));
 
@@ -326,6 +324,6 @@ class ColorReporter implements Reporter
 
     function getTime() : String
     {
-        return '${Std.string(Date.now().getHours()).lpad('0', 2)}/${Std.string(Date.now().getMinutes()).lpad('0', 2)}/${Std.string(Date.now().getSeconds()).lpad('0', 2)}';
+        return '${Std.string(Date.now().getHours()).lpad('0', 2)}:${Std.string(Date.now().getMinutes()).lpad('0', 2)}:${Std.string(Date.now().getSeconds()).lpad('0', 2)}';
     }
 }
