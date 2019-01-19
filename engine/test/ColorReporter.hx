@@ -149,7 +149,7 @@ class ColorReporter implements Reporter
             }
 
             var test = Xml.createElement('test');
-            test.set('name'  , 'new');
+            test.set('name'  , spec.fileName);
             test.set('type'  , spec.fileName);
             test.set('method', spec.description);
             test.set('time'  , Std.string(spec.time));
