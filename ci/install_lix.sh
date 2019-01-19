@@ -6,7 +6,7 @@ if [ $AGENT_OS == 'Linux' ]; then
 fi
 
 # Install lix and download flurry dependencies
-npm install git+https://git@github.com/starburst997/lix.client.git --global
+sudo npm install git+https://git@github.com/starburst997/lix.client.git --global
 
 lix download
 
