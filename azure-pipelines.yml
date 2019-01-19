@@ -4,6 +4,8 @@ strategy:
       imageName: 'ubuntu-16.04'
     mac:
       imageName: 'macos-10.13'
+    windows:
+      imageName: 'vs2017-win2016'
 
 pool:
   vmImage: $(imageName)
@@ -14,7 +16,7 @@ steps:
     versionSpec: '10.15.x'
 
 - bash: ci/install_lix.sh
-  displayName: Haxe Install
+  displayName: Install Dependencies
   workingDirectory: $(Build.SourcesDirectory)
   env:
     AGENT_OS: $(Agent.OS)
@@ -22,8 +24,12 @@ steps:
 - bash: |
     cd engine/test
     haxe build-cpp.hxml -D report-name=Engine-Tests-$AGENT_OS
-    ./bin/cpp/Main
-  displayName: Run unit tests
+    if [ $AGENT_OS == 'Windows_NT' ]; then
+      ./bin/cpp/Main.exe
+    else
+      ./bin/cpp/Main
+    fi
+  displayName: Run Engine Tests
   workingDirectory: $(Build.SourcesDirectory)
   env:
     AGENT_OS: $(Agent.OS)
