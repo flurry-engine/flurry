@@ -9,26 +9,19 @@ pool:
   vmImage: $(imageName)
 
 steps:
-- bash: ci/install.sh
+- bash: ci/install_lix.sh
   displayName: Haxe Install
+  workingDirectory: $(Build.SourcesDirectory)
   env:
     AGENT_OS: $(Agent.OS)
-    SOURCE_DIR: $(Build.SourcesDirectory)
-    BASE_DIR: $(Agent.HomeDirectory)
 
 - bash: |
-    export PATH=$PATH:$BASE_DIR/haxe
-    export PATH=$PATH:$BASE_DIR/neko
-    export HAXE_STD_PATH=$BASE_DIR/haxe/std
-    export LD_LIBRARY_PATH=$BASE_DIR/neko
-
     cd engine/test
     haxe build-cpp.hxml -D report-name=Engine-Tests-$AGENT_OS
     ./bin/cpp/Main
   displayName: Run unit tests
   workingDirectory: $(Build.SourcesDirectory)
   env:
-    BASE_DIR: $(Agent.HomeDirectory)
     AGENT_OS: $(Agent.OS)
 
 - task: PublishTestResults@2
