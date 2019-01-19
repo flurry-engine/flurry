@@ -121,6 +121,8 @@ class ColorReporter implements Reporter
 
         for (suite in _suites)
         {
+            totalTime += suite.time;
+
             reportSuite(suite, collection);
         }
 
@@ -139,8 +141,6 @@ class ColorReporter implements Reporter
 
     function reportSuite(_suite : Suite, _collection : Xml)
     {
-        totalTime += _suite.time;
-
         for (spec in _suite.specs)
         {
             if (spec.status == Unknown)
@@ -149,7 +149,7 @@ class ColorReporter implements Reporter
             }
 
             var test = Xml.createElement('test');
-            test.set('name'  , spec.description);
+            test.set('name'  , '');
             test.set('type'  , spec.fileName);
             test.set('method', spec.description);
             test.set('time'  , Std.string(spec.time));
@@ -184,7 +184,7 @@ class ColorReporter implements Reporter
                         test.addChild(failureElem);
                     }
                 case Unknown:
-                    //
+                    test.set('result', 'Skip');
             }
 
             _collection.addChild(test);
