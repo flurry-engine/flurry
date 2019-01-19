@@ -15,21 +15,14 @@ steps:
   inputs:
     versionSpec: '10.15.x'
 
-- bash: ci/install_lix.sh
+- bash: ci/install.sh
   displayName: Install Dependencies
   workingDirectory: $(Build.SourcesDirectory)
   env:
     AGENT_OS: $(Agent.OS)
 
-- bash: |
-    cd engine/test
-    haxe build-cpp.hxml -D report-name=Engine-Tests-$AGENT_OS
-    if [ $AGENT_OS == 'Windows_NT' ]; then
-      ./bin/cpp/Main.exe
-    else
-      ./bin/cpp/Main
-    fi
-  displayName: Run Engine Tests
+- bash: ci/test_engine.sh
+  displayName: Engine Tests
   workingDirectory: $(Build.SourcesDirectory)
   env:
     AGENT_OS: $(Agent.OS)
