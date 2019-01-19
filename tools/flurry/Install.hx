@@ -25,8 +25,10 @@ class Install extends Script
         {
             Log.info('Installing Test Suite Dependencies');
 
-            System.runCommand(workingDirectory, 'haxelib install buddy --quiet --never', []);
-            System.runCommand(workingDirectory, 'haxelib git mockatoo https://github.com/Aidan63/mockatoo --quiet --never', []);
+            System.runCommand(workingDirectory, 'haxelib install promhx     --quiet --never', []);
+            System.runCommand(workingDirectory, 'haxelib install asynctools --quiet --never', []);
+            System.runCommand(workingDirectory, 'haxelib git buddy    https://github.com/Aidan63/buddy test-times --quiet --never', []);
+            System.runCommand(workingDirectory, 'haxelib git mockatoo https://github.com/Aidan63/mockatoo         --quiet --never', []);
         }
 
         if (!flags.exists('no-build-tool-deps'))

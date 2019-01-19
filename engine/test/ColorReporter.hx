@@ -1,8 +1,7 @@
-package;
 
-import Xml;
 import sys.io.File;
 import haxe.CallStack.StackItem;
+import haxe.crypto.Sha256;
 import buddy.BuddySuite.Spec;
 import buddy.BuddySuite.Suite;
 import buddy.reporting.Reporter;
@@ -13,6 +12,8 @@ using StringTools;
 
 class ColorReporter implements Reporter
 {
+    var reportName : String;
+    
     var total : Int;
 
     var passing : Int;
@@ -25,25 +26,38 @@ class ColorReporter implements Reporter
 
     var xml : Xml;
 
-    var startTime : Float;
-
-    var endTime : Float;
+    var totalTime : Float;
 
     public function new()
     {
-        total    = 0;
-        passing  = 0;
-        failures = 0;
-        pending  = 0;
-        unknowns = 0;
-        xml      = Xml.createElement('assemblies');
+        if (!isDefined('report-name'))
+        {
+            throw 'report-name not defined';
+        }
+
+        reportName = getDefine('report-name');
+        total      = 0;
+        passing    = 0;
+        failures   = 0;
+        pending    = 0;
+        unknowns   = 0;
+        totalTime  = 0;
+        xml        = Xml.createElement('assemblies');
         xml.set('timestamp', '${getDate()} ${getTime()}');
+    }
+
+    static macro function isDefined(key : String) : haxe.macro.Expr
+    {
+        return macro $v{haxe.macro.Context.defined(key)};
+    }
+
+    static macro function getDefine(key : String) : haxe.macro.Expr
+    {
+        return macro $v{haxe.macro.Context.definedValue(key)};
     }
 
     public function start() : Promise<Bool>
     {
-        startTime = Sys.time();
-
         return resolve(true);
     }
 
@@ -54,8 +68,6 @@ class ColorReporter implements Reporter
 
     public function done(_suites : Iterable<Suite>, _status : Bool) : Promise<Iterable<Suite>>
     {
-        endTime = Sys.time();
-
         for (suite in _suites)
         {
             countSuite(suite);
@@ -94,7 +106,6 @@ class ColorReporter implements Reporter
         assembly.set('environment', '');
         assembly.set('run-date', getDate());
         assembly.set('run-time', getTime());
-        assembly.set('time'    , Std.string(endTime - startTime));
         assembly.set('total'   , Std.string(total));
         assembly.set('passed'  , Std.string(passing));
         assembly.set('failed'  , Std.string(failures));
@@ -104,8 +115,7 @@ class ColorReporter implements Reporter
         var errors = Xml.createElement('errors');
 
         var collection = Xml.createElement('collection');
-        collection.set('name'    , 'test');
-        collection.set('time'    , Std.string(endTime - startTime));
+        collection.set('name'    , reportName);
         collection.set('total'   , Std.string(total));
         collection.set('passed'  , Std.string(passing));
         collection.set('failed'  , Std.string(failures));
@@ -113,8 +123,14 @@ class ColorReporter implements Reporter
 
         for (suite in _suites)
         {
+            totalTime += suite.time;
+
             reportSuite(suite, collection);
         }
+
+        // Set the time after reporting tests
+        collection.set('time', Std.string(totalTime));
+        assembly.set('time', Std.string(totalTime));
 
         assembly.addChild(errors);
         assembly.addChild(collection);
@@ -135,10 +151,10 @@ class ColorReporter implements Reporter
             }
 
             var test = Xml.createElement('test');
-            test.set('name', spec.description);
-            test.set('type', spec.fileName);
+            test.set('type'  , spec.fileName);
             test.set('method', spec.description);
-            test.set('time', '0.1');
+            test.set('name'  , Sha256.encode(spec.description));
+            test.set('time'  , Std.string(spec.time));
 
             switch (spec.status)
             {
@@ -157,7 +173,7 @@ class ColorReporter implements Reporter
                     {
                         var failureElem = Xml.createElement('failure');
                         failureElem.set('exception-type', '');
-                        
+
                         var message = Xml.createElement('message');
                         message.addChild(Xml.createCData(failure.error));
 
@@ -170,7 +186,7 @@ class ColorReporter implements Reporter
                         test.addChild(failureElem);
                     }
                 case Unknown:
-                    //
+                    test.set('result', 'Skip');
             }
 
             _collection.addChild(test);
@@ -310,6 +326,6 @@ class ColorReporter implements Reporter
 
     function getTime() : String
     {
-        return '${Std.string(Date.now().getHours()).lpad('0', 2)}/${Std.string(Date.now().getMinutes()).lpad('0', 2)}/${Std.string(Date.now().getSeconds()).lpad('0', 2)}';
+        return '${Std.string(Date.now().getHours()).lpad('0', 2)}:${Std.string(Date.now().getMinutes()).lpad('0', 2)}:${Std.string(Date.now().getSeconds()).lpad('0', 2)}';
     }
 }

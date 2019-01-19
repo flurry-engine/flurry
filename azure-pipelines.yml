@@ -23,18 +23,19 @@ steps:
     export LD_LIBRARY_PATH=$BASE_DIR/neko
 
     cd engine/test
-    haxe build-cpp.hxml
+    haxe build-cpp.hxml -D report-name=Engine-Tests-$AGENT_OS
     ./bin/cpp/Main
   displayName: Run unit tests
   workingDirectory: $(Build.SourcesDirectory)
   env:
     BASE_DIR: $(Agent.HomeDirectory)
+    AGENT_OS: $(Agent.OS)
 
 - task: PublishTestResults@2
   inputs:
     testResultsFormat: xUnit
     testResultsFiles: engine/test/test-engine.xml
     searchFolder: $(Build.SourcesDirectory)
-    testRunTitle: Engine Unit Tests
+    testRunTitle: Engine Tests $(Agent.OS)
     buildPlatform: $(Agent.OS)
     failTaskOnFailedTests: true
