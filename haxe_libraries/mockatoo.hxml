@@ -1,0 +1,4 @@
+-D mockatoo=3.2.1
+# @install: lix --silent download "gh://github.com/aidan63/mockatoo#3d036409fcdf12beee6ee4b897ef2ce228c4d374" into mockatoo/3.2.1/github/3d036409fcdf12beee6ee4b897ef2ce228c4d374
+-lib mconsole
+-cp ${HAXE_LIBCACHE}/mockatoo/3.2.1/github/3d036409fcdf12beee6ee4b897ef2ce228c4d374/src

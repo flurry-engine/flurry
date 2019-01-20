@@ -1,21 +1,17 @@
 -main Main
 
--js bin/js/engine-tests.js
+-cp ./
+-cp ../src
 
--D reporter=ColorReporter
--D js-es5
+-cpp bin
 
 -lib buddy
--lib flurry
 -lib hxcpp
 -lib haxe-concurrent
--lib linc_ogg
--lib linc_stb
--lib linc_timestamp
--lib linc_openal
 -lib snow
 -lib mockatoo
--lib hxnodejs
+-lib promhx
+-lib asynctools
 
 -resource assets/atlas/cavesofgallet.atlas@atlasData
 -resource assets/fonts/ubuntu.fnt@fntUbuntu

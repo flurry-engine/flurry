@@ -1,0 +1,3 @@
+-D linc_sdl=0.0.0
+# @install: lix --silent download "gh://github.com/aidan63/linc_sdl#a03c632de5f11fde7aa6908ddf3af6cce153e037" into linc_sdl/0.0.0/github/a03c632de5f11fde7aa6908ddf3af6cce153e037
+-cp ${HAXE_LIBCACHE}/linc_sdl/0.0.0/github/a03c632de5f11fde7aa6908ddf3af6cce153e037/

@@ -66,7 +66,7 @@ class Main
 	 */
 	function doInstallCommand()
 	{
-		runHxpScript(Path.join([ Haxelib.getPath(new Haxelib("flurry")), 'tools', 'flurry', 'Install.hx' ]));
+		runHxpScript(Path.join([ Haxelib.getPath(new Haxelib("Flurry")), 'tools', 'flurry', 'Install.hx' ]));
 	}
 
 	/**
@@ -91,7 +91,7 @@ class Main
 	 */
 	function doHelpCommand()
 	{
-		var script  = Path.join([ Haxelib.getPath(new Haxelib("flurry")), 'tools', 'flurry', 'Help.hx' ]);
+		var script  = Path.join([ Haxelib.getPath(new Haxelib("Flurry")), 'tools', 'flurry', 'Help.hx' ]);
 		var command = arguments.length == 0 ? 'default' : arguments.shift();
 
 		runHxpScript(script, command);
@@ -115,7 +115,7 @@ class Main
 			"-main", "hxp.Script",
 			"-D"   , "hxp=" + version,
 			"-L"   , "hxp",
-			"-cp"  , Path.join([ Haxelib.getPath(new Haxelib("flurry")), 'tools', 'flurry' ])
+			"-cp"  , Path.join([ Haxelib.getPath(new Haxelib("Flurry")), 'tools', 'flurry' ])
 		];
 		var runArgs = [ _command == '' ? 'default' : _command ].concat(arguments);
 		

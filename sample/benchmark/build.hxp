@@ -1,6 +1,4 @@
 
-import hxp.Path;
-
 class Build extends Project
 {
     override function setup()
