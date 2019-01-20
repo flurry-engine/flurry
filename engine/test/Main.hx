@@ -12,7 +12,7 @@ class Main implements Buddy<[
     //tests.api.display.DisplayTests,
 
     tests.api.importers.bmfont.BitmapFontParserTests,
-    tests.api.importers.textureatlas.TextureAtlasParserTests,
+    //tests.api.importers.textureatlas.TextureAtlasParserTests,
 
     tests.api.input.InputTests,
 
