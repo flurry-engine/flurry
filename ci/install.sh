@@ -9,7 +9,6 @@ fi
 npm install git+https://git@github.com/starburst997/lix.client.git --global
 
 lix download
-lix use haxe nightly
 
 # Build the hxcpp tools
 cd $(haxelib path hxcpp | tail -1 | tr -d '\n')/tools/hxcpp

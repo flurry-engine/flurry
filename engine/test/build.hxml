@@ -3,17 +3,11 @@
 -cp ./
 -cp ../src
 
--cpp bin/cpp
-
--D reporter=ColorReporter
+-cpp bin
 
 -lib buddy
 -lib hxcpp
 -lib haxe-concurrent
--lib linc_ogg
--lib linc_stb
--lib linc_timestamp
--lib linc_openal
 -lib snow
 -lib mockatoo
 -lib promhx
