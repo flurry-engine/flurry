@@ -53,9 +53,6 @@ class Main
 			case 'clean':
 				doBuildCommand('clean');
 
-			case 'help':
-				doHelpCommand();
-
 			case _:
 				doHelpCommand();
 		}
@@ -109,13 +106,11 @@ class Main
 		var className = Path.withoutExtension(file);
 		className = className.substr(0, 1).toUpperCase() + className.substr(1);
 		
-		var version   = "1.0.5";
 		var buildArgs = [
 			className,
 			"-main", "hxp.Script",
-			"-D"   , "hxp=" + version,
-			"-L"   , "hxp",
-			"-cp"  , Path.join([ Haxelib.getPath(new Haxelib("Flurry")), 'tools', 'flurry' ])
+			"-p"   , Path.join([ Haxelib.getPath(new Haxelib("hxp")), "src" ]),
+			"-p"   , Path.join([ Haxelib.getPath(new Haxelib("Flurry")), 'tools', 'flurry' ])
 		];
 		var runArgs = [ _command == '' ? 'default' : _command ].concat(arguments);
 		
