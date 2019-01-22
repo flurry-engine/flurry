@@ -10,8 +10,6 @@
 -lib haxe-concurrent
 -lib snow
 -lib mockatoo
--lib promhx
--lib asynctools
 
 -resource assets/atlas/cavesofgallet.atlas@atlasData
 -resource assets/fonts/ubuntu.fnt@fntUbuntu
