@@ -234,9 +234,14 @@ class Project extends Script
         user.main  = 'snow.App';
         user.cpp   = Path.combine(_pathBuild, 'cpp');
 
-        if (user.debug)
+        if (build.debug)
         {
             user.debug = true;
+        }
+
+        if (build.noInline)
+        {
+            user.noInline = true;
         }
 
         for (codepath in app.codepaths)
@@ -340,11 +345,11 @@ class Project extends Script
         switch (System.hostPlatform)
         {
             case WINDOWS : {
-                FileSystem.rename(Path.join([ _pathBuild, 'cpp', 'App.exe' ]), Path.join([ _pathBuild, 'cpp', '${app.name}.exe' ]));
+                FileSystem.rename(Path.join([ _pathBuild, 'cpp', build.debug ? 'App-debug.exe' : 'App.exe' ]), Path.join([ _pathBuild, 'cpp', '${app.name}.exe' ]));
                 System.copyFile(Path.join([ _pathBuild, 'cpp', '${app.name}.exe' ]), Path.combine(_pathRelease, '${app.name}.exe'));
             }
             case MAC, LINUX : {
-                FileSystem.rename(Path.join([ _pathBuild, 'cpp', 'App' ]), Path.join([ _pathBuild, 'cpp', app.name ]));
+                FileSystem.rename(Path.join([ _pathBuild, 'cpp', build.debug ? 'App-debug' : 'App' ]), Path.join([ _pathBuild, 'cpp', app.name ]));
                 System.copyFile(Path.join([ _pathBuild, 'cpp', app.name ]), Path.combine(_pathRelease, app.name));
 
                 System.runCommand(workingDirectory, 'chmod a+x ${Path.join([ _pathBuild, 'cpp', app.name ])}', []);
@@ -471,6 +476,11 @@ private class FlurryProjectBuild
      * If this build will be built in debug mode.
      */
     public var debug : Bool;
+
+    /**
+     * If inlining will not be used in this project.
+     */
+    public var noInline : Bool;
 
     /**
      * List of haxelib dependencies.
