@@ -233,7 +233,11 @@ class Project extends Script
         // General snow settings
         user.main  = 'snow.App';
         user.cpp   = Path.combine(_pathBuild, 'cpp');
-        user.debug = build.debug;
+
+        if (user.debug)
+        {
+            user.debug = true;
+        }
 
         for (codepath in app.codepaths)
         {
@@ -339,10 +343,7 @@ class Project extends Script
                 FileSystem.rename(Path.join([ _pathBuild, 'cpp', 'App.exe' ]), Path.join([ _pathBuild, 'cpp', '${app.name}.exe' ]));
                 System.copyFile(Path.join([ _pathBuild, 'cpp', '${app.name}.exe' ]), Path.combine(_pathRelease, '${app.name}.exe'));
             }
-            case MAC : {
-                //
-            }
-            case LINUX : {
+            case MAC, LINUX : {
                 FileSystem.rename(Path.join([ _pathBuild, 'cpp', 'App' ]), Path.join([ _pathBuild, 'cpp', app.name ]));
                 System.copyFile(Path.join([ _pathBuild, 'cpp', app.name ]), Path.combine(_pathRelease, app.name));
 
@@ -359,10 +360,7 @@ class Project extends Script
             case WINDOWS:
                 System.runCommand(workingDirectory, Path.combine(_pathRelease, '${app.name}.exe'), []);
             
-            case MAC:
-                //
-
-            case LINUX:
+            case MAC, LINUX:
                 System.runCommand(workingDirectory, Path.join([ _pathRelease, app.name ]), []);
         }
     }
@@ -496,6 +494,7 @@ private class FlurryProjectBuild
 
     public function new()
     {
+        debug        = false;
         dependencies = [];
         macros       = [];
         defines      = [];
