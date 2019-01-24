@@ -123,7 +123,16 @@ class Project extends Script
 
         user.main  = app.main;
         user.cpp   = Path.combine(_pathBuild, 'cpp');
-        user.debug = build.debug;
+        
+        if (build.debug)
+        {
+            user.debug = true;
+        }
+
+        if (build.noInline)
+        {
+            user.noInline = true;
+        }
 
         for (codepath in app.codepaths)
         {
@@ -224,7 +233,7 @@ class Project extends Script
 
     final function snowBuild(_pathBuild : String, _pathRelease : String)
     {
-        var user = new HXML();
+        var user = new HXML({  });
         var snow = new HXML();
 
         FileSystem.createDirectory(_pathBuild);
