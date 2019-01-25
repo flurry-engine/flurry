@@ -5,7 +5,7 @@ cd engine/test
 haxe build.hxml -D reporter=XUnit2Reporter -D report-name=Engine-Tests-$AGENT_OS
 
 if [ $AGENT_OS == 'Windows_NT' ]; then
-    ./bin/Main-debug.exe
+    ./bin/Main.exe
 else
-    ./bin/Main-debug
+    ./bin/Main
 fi

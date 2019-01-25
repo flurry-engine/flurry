@@ -5,27 +5,67 @@ import snow.api.buffers.Float32Array;
 /**
  * Vector class which contains an x, y, z, and w component.
  */
-class Vector
+abstract Vector(Float32Array) from Float32Array to Float32Array
 {
     /**
      * x component of this vector.
      */
-    public var x : Float;
+    public var x (get, set) : Float;
+
+    inline function get_x() : Float {
+        return this[0];
+    }
+
+    inline function set_x(_x : Float) : Float {
+        this[0] = _x;
+
+        return this[0];
+    }
 
     /**
      * y component of this vector.
      */
-    public var y : Float;
+    public var y (get, set) : Float;
+
+    inline function get_y() : Float {
+        return this[1];
+    }
+
+    inline function set_y(_y : Float) : Float {
+        this[1] = _y;
+
+        return this[1];
+    }
 
     /**
      * z component of this vector.
      */
-    public var z : Float;
+    public var z (get, set) : Float;
+
+    inline function get_z() : Float {
+        return this[2];
+    }
+
+    inline function set_z(_z : Float) : Float {
+        this[2] = _z;
+
+        return this[2];
+    }
 
     /**
      * w component of this vector.
      */
-    public var w : Float;
+    public var w (get, set) : Float;
+
+    inline function get_w() : Float {
+        return this[3];
+    }
+
+    inline function set_w(_w : Float) : Float {
+        this[3] = _w;
+
+        return this[3];
+    }
 
     /**
      * The length of this vector.
@@ -82,6 +122,8 @@ class Vector
      */
     public function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 0)
     {
+        this = new Float32Array(4);
+
         x = _x;
         y = _y;
         z = _z;
