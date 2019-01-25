@@ -1,6 +1,6 @@
 -main Main
 
--cp ./
+-cp src
 -cp ../src
 
 -cpp bin
@@ -11,7 +11,9 @@
 -lib snow
 -lib mockatoo
 
--resource assets/atlas/cavesofgallet.atlas@atlasData
--resource assets/fonts/ubuntu.fnt@fntUbuntu
+-resource assets/atlas/cavesofgallet.atlas@atlas-data
+-resource assets/fonts/ubuntu.fnt@font-data
 
 --no-inline
+
+--debug

@@ -2,7 +2,6 @@ package tests.api.importers.textureatlas;
 
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas;
 import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlasParser;
 import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas.TextureAtlasFormat;
 import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas.TextureAtlasFilter;
@@ -13,16 +12,13 @@ using buddy.Should;
 
 class TextureAtlasParserTests extends BuddySuite
 {
-    var atlas : TextureAtlas;
-
     public function new()
     {
         describe('TextureAtlas Parser', {
-            beforeAll({
-                atlas = TextureAtlasParser.parse(haxe.Resource.getString('atlasData'));
-            });
 
             it('Can successfully parse a .atlas file', {
+                var atlas = TextureAtlasParser.parse(haxe.Resource.getString('atlas-data'));
+
                 atlas.name.should.be('cavesofgallet_atlas.png');
                 atlas.size.x.should.be(256);
                 atlas.size.y.should.be(64);
@@ -45,6 +41,7 @@ class TextureAtlasParserTests extends BuddySuite
             });
 
             it('Can find the first frame with a specific name', {
+                var atlas = TextureAtlasParser.parse(haxe.Resource.getString('atlas-data'));
                 var frame = atlas.findRegion('cavesofgallet');
                 frame.should.not.be(null);
                 frame.index.should.be(atlas.frames[0].index);
@@ -54,6 +51,7 @@ class TextureAtlasParserTests extends BuddySuite
             });
 
             it('Can find a frame with a specific name and index', {
+                var atlas = TextureAtlasParser.parse(haxe.Resource.getString('atlas-data'));
                 var frame = atlas.findRegionID('cavesofgallet', 29);
                 frame.should.not.be(null);
                 frame.index.should.be(29);
@@ -61,6 +59,7 @@ class TextureAtlasParserTests extends BuddySuite
             });
 
             it('Can find all frame with a specific name', {
+                var atlas  = TextureAtlasParser.parse(haxe.Resource.getString('atlas-data'));
                 var frames = atlas.findRegions('cavesofgallet');
                 frames.length.should.be(93);
             });

@@ -16,7 +16,7 @@ class TextGeometryTests extends BuddySuite
     {
         describe('TextGeometry', {
             it('Can create a text geometry from an initial string and bitmap font data', {
-                var ubuntuFont = haxe.Resource.getString('fntUbuntu');
+                var ubuntuFont = haxe.Resource.getString('font-data');
                 var fontData   = BitmapFontParser.parse(ubuntuFont);
                 var string     = 'hello world!';
                 var texture    = mock(ImageResource);
@@ -28,7 +28,7 @@ class TextGeometryTests extends BuddySuite
             });
 
             it('Will re-create the geometry when the bitmap font has changed', {
-                var ubuntuFont = haxe.Resource.getString('fntUbuntu');
+                var ubuntuFont = haxe.Resource.getString('font-data');
                 var fontData   = BitmapFontParser.parse(ubuntuFont);
                 var string     = 'hello world!';
                 var texture    = mock(ImageResource);
@@ -42,7 +42,7 @@ class TextGeometryTests extends BuddySuite
             });
 
             it('Will re-create the geometry when the text has changed', {
-                var ubuntuFont = haxe.Resource.getString('fntUbuntu');
+                var ubuntuFont = haxe.Resource.getString('font-data');
                 var fontData   = BitmapFontParser.parse(ubuntuFont);
                 var oldString  = 'hello world!';
                 var newString  = 'hello from flurry!';

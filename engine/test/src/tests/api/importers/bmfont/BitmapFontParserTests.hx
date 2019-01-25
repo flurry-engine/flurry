@@ -11,7 +11,7 @@ class BitmapFontParserTests extends BuddySuite
     {
         describe('BMFont Parser', {
             it('Can successfully parse a .fnt file', {
-                var ubuntuFont = haxe.Resource.getString('fntUbuntu');
+                var ubuntuFont = haxe.Resource.getString('font-data');
                 var fontData   = BitmapFontParser.parse(ubuntuFont);
 
                 fontData.face.should.be('Ubuntu');

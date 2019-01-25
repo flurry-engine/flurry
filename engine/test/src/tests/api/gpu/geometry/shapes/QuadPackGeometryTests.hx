@@ -23,7 +23,7 @@ class QuadPackGeometryTests extends BuddySuite
     {
         describe('QuadPackGeometry', {
 
-            var atlas   = TextureAtlasParser.parse(haxe.Resource.getString('atlasData'));
+            var atlas   = TextureAtlasParser.parse(haxe.Resource.getString('atlas-data'));
             var texture = mock(ImageResource);
             var batcher = new Batcher({
                 camera : mock(Camera),
