@@ -48,7 +48,12 @@ class TextureAtlasParser
 
     inline static function readFormat(_line : String) : TextureAtlasFormat
     {
-        return TextureAtlasFormat.createByName(_line.split(':')[1].trim());
+        var split = _line.split(':');
+        trace(split[0].trim());
+        trace(split[1].trim());
+        trace(TextureAtlasFormat.createByName(split[1].trim()));
+        
+        return TextureAtlasFormat.createByName(split[1].trim());
     }
 
     inline static function readFilter(_line : String) : Array<TextureAtlasFilter>

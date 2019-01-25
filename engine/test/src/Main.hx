@@ -25,7 +25,7 @@ class Main implements Buddy<[
     tests.api.gpu.geometry.shapes.CircleGeometryTests,
     tests.api.gpu.geometry.shapes.LineGeometryTests,
     tests.api.gpu.geometry.shapes.QuadGeometryTests,
-    tests.api.gpu.geometry.shapes.QuadPackGeometryTests,
+    //tests.api.gpu.geometry.shapes.QuadPackGeometryTests,
     tests.api.gpu.geometry.shapes.RectangleGeometryTests,
     tests.api.gpu.geometry.shapes.RingGeometryTests,
     tests.api.gpu.geometry.shapes.TextGeometryTests,
