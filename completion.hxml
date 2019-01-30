@@ -1,5 +1,7 @@
 # This build file should give you full auto-completion in any area of the engine.
 
+-cpp out
+
 -D no-compilation
 -D linux
 -D target-cpp

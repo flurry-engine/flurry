@@ -14,7 +14,8 @@ import opengl.WebGL;
 import snow.api.Debug.def;
 import snow.api.buffers.Float32Array;
 import snow.api.buffers.Uint16Array;
-import uk.aidanlee.flurry.api.gpu.Renderer.RendererOptions;
+import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
+import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderType;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderLayout;
@@ -242,25 +243,24 @@ class GL45Backend implements IRendererBackend
      * @param _dynamicVertices    The maximum number of dynamic vertices in the buffer.
      * @param _unchangingVertices The maximum number of static vertices in the buffer.
      */
-    public function new(_events : EventBus, _rendererStats : RendererStats, _options : RendererOptions)
+    public function new(_events : EventBus, _rendererStats : RendererStats, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
     {
-        createWindow(_options);
+        createWindow(_windowConfig);
 
         events           = _events;
         rendererStats    = _rendererStats;
-        _options.backend = def(_options.backend, {});
 
         // Check for ARB_bindless_texture support
-        bindless = def(_options.backend.bindless, false);
+        bindless = def(_rendererConfig.extra.bindless, false);
 
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
 
-        var totalBufferVerts  = _options.maxUnchangingVertices + (_options.maxDynamicVertices * 3);
+        var totalBufferVerts  = _rendererConfig.unchangingVertices + (_rendererConfig.dynamicVertices * 3);
         var totalBufferFloats = totalBufferVerts  * VERTEX_FLOAT_SIZE;
         var totalBufferBytes  = totalBufferFloats * Float32Array.BYTES_PER_ELEMENT;
 
-        var totalBufferIndices = _options.maxUnchangingIndices + (_options.maxDynamicIndices * 3);
+        var totalBufferIndices = _rendererConfig.unchangingIndices + (_rendererConfig.dynamicIndices * 3);
         var totalIndexBytes    = totalBufferIndices * Uint16Array.BYTES_PER_ELEMENT;
 
         // Create two empty buffers, for the vertex and index data
@@ -299,28 +299,28 @@ class GL45Backend implements IRendererBackend
         // These ranges will map into the array pointer.
         // Offset to ignore the unchanging region.
 
-        var floatSegmentSize = _options.maxDynamicVertices    * VERTEX_FLOAT_SIZE;
-        var floatOffsetSize  = _options.maxUnchangingVertices * VERTEX_FLOAT_SIZE;
+        var floatSegmentSize = _rendererConfig.dynamicVertices    * VERTEX_FLOAT_SIZE;
+        var floatOffsetSize  = _rendererConfig.unchangingVertices * VERTEX_FLOAT_SIZE;
 
         vertexBufferRangeIndex = 0;
         vertexBufferRanges = [
-            new BufferRange(floatOffsetSize                         , _options.maxUnchangingVertices),
-            new BufferRange(floatOffsetSize + floatSegmentSize      , _options.maxUnchangingVertices +  _options.maxDynamicVertices),
-            new BufferRange(floatOffsetSize + (floatSegmentSize * 2), _options.maxUnchangingVertices + (_options.maxDynamicVertices * 2))
+            new BufferRange(floatOffsetSize                         , _rendererConfig.unchangingVertices),
+            new BufferRange(floatOffsetSize + floatSegmentSize      , _rendererConfig.unchangingVertices +  _rendererConfig.dynamicVertices),
+            new BufferRange(floatOffsetSize + (floatSegmentSize * 2), _rendererConfig.unchangingVertices + (_rendererConfig.dynamicVertices * 2))
         ];
 
-        var shortSegmentSize = _options.maxDynamicIndices    * Uint16Array.BYTES_PER_ELEMENT;
-        var shortOffsetSize  = _options.maxUnchangingIndices * Uint16Array.BYTES_PER_ELEMENT;
+        var shortSegmentSize = _rendererConfig.dynamicIndices    * Uint16Array.BYTES_PER_ELEMENT;
+        var shortOffsetSize  = _rendererConfig.unchangingIndices * Uint16Array.BYTES_PER_ELEMENT;
 
         indexBufferRangeIndex = 0;
         indexBufferRanges = [
-            new BufferRange(shortOffsetSize                         , _options.maxUnchangingIndices),
-            new BufferRange(shortOffsetSize +  shortSegmentSize     , _options.maxUnchangingIndices +  _options.maxDynamicIndices),
-            new BufferRange(shortOffsetSize + (shortSegmentSize * 2), _options.maxUnchangingIndices + (_options.maxDynamicIndices * 2))
+            new BufferRange(shortOffsetSize                         , _rendererConfig.unchangingIndices),
+            new BufferRange(shortOffsetSize +  shortSegmentSize     , _rendererConfig.unchangingIndices +  _rendererConfig.dynamicIndices),
+            new BufferRange(shortOffsetSize + (shortSegmentSize * 2), _rendererConfig.unchangingIndices + (_rendererConfig.dynamicIndices * 2))
         ];
 
         // create a new storage container for holding unchaning commands.
-        unchangingStorage    = new UnchangingBuffer(_options.maxUnchangingVertices, _options.maxUnchangingIndices);
+        unchangingStorage    = new UnchangingBuffer(_rendererConfig.unchangingVertices, _rendererConfig.unchangingIndices);
         dynamicCommandRanges = new Map();
         transformationVector = new Vector();
 
@@ -335,7 +335,7 @@ class GL45Backend implements IRendererBackend
         var backbufferID = [ 0 ];
         glGetIntegerv(GL_FRAMEBUFFER, backbufferID);
 
-        backbuffer = new BackBuffer(_options.width, _options.height, _options.dpi, backbufferID[0]);
+        backbuffer = new BackBuffer(_windowConfig.width, _windowConfig.height, 1, backbufferID[0]);
 
         // Default blend mode
         // TODO : Move this to be a settable property in the geometry or renderer or something
@@ -343,7 +343,7 @@ class GL45Backend implements IRendererBackend
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
         // Set the clear colour
-        glClearColor(0.2, 0.2, 0.2, 1.0);
+        glClearColor(_rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a);
 
         // Default scissor test
         glEnable(GL_SCISSOR_TEST);
@@ -678,7 +678,7 @@ class GL45Backend implements IRendererBackend
 
     // #region SDL Window Management
 
-    function createWindow(_options : RendererOptions)
+    function createWindow(_options : FlurryWindowConfig)
     {        
         SDL.GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
         SDL.GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);

@@ -100,42 +100,15 @@ class Flurry extends App
         fixed_timestep = true;
         update_rate    = 1 / 60;
         
-        // Setup the renderer.
-        renderer = new Renderer(events, {
-
-            // The api you choose changes what shaders you need to provide
-            // Possible APIs are WEBGL, GL45, DX11, and NULL
-            api    : flurryConfig.renderer.backend,
-            width  : flurryConfig.window.width,
-            height : flurryConfig.window.height,
-            dpi    : 1,
-            maxUnchangingVertices : flurryConfig.renderer.unchangingVertices,
-            maxDynamicVertices    : flurryConfig.renderer.dynamicVertices,
-            maxUnchangingIndices  : flurryConfig.renderer.unchangingIndices,
-            maxDynamicIndices     : flurryConfig.renderer.dynamicIndices,
-            backend : { bindless : false }
-        });
-
-        // Pass the renderer backend to the resource system so GPU resources (textures, shaders) can be automatically managed.
-        // When loading and freeing parcels the needed GPU resources can then be created and destroyed as and when needed.
+        // Setup core api components
+        renderer  = new Renderer(events, flurryConfig.window, flurryConfig.renderer);
         resources = new ResourceSystem(events);
-
-        input   = new Input(events);
-        display = new Display(events, flurryConfig);
+        input     = new Input(events);
+        display   = new Display(events, flurryConfig);
 
         // Load the default parcel, this may contain the standard assets or user defined assets.
         // Once it has loaded the overridable onReady function is called.
-        resources.createParcel('preload', flurryConfig.resources.preload, function(_) {
-            loaded = true;
-
-            onReady();
-
-            // Once the preload resource have been loaded fire the ready event after the engine callback.
-            events.fire(Ready);
-
-        }, null, function(_error : String) {
-            trace('Error loading preload parcel : $_error');
-        }).load();
+        resources.createParcel('preload', flurryConfig.resources.preload, onPreloadParcelComplete, null, onPreloadParcelError).load();
 
         // Fire the init event once the engine has loaded all its components.
         events.fire(Init);
@@ -238,4 +211,18 @@ class Flurry extends App
     }
 
     // Functions internal to flurry's setup
+
+    final function onPreloadParcelComplete(_)
+    {
+        loaded = true;
+
+        onReady();
+
+        events.fire(Ready);
+    }
+
+    final function onPreloadParcelError(_error : String)
+    {
+        throw 'Error loading preload parcel : $_error';
+    }
 }

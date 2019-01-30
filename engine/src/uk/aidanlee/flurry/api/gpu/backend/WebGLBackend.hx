@@ -8,7 +8,8 @@ import snow.modules.opengl.GL;
 import snow.api.buffers.Uint8Array;
 import snow.api.buffers.Float32Array;
 import snow.api.buffers.Uint16Array;
-import uk.aidanlee.flurry.api.gpu.Renderer.RendererOptions;
+import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
+import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderType;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderLayout;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
@@ -165,12 +166,12 @@ class WebGLBackend implements IRendererBackend
 
     var glContext : GLContext;
 
-    public function new(_events : EventBus, _rendererStats : RendererStats, _options : RendererOptions)
+    public function new(_events : EventBus, _rendererStats : RendererStats, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
     {
         events        = _events;
         rendererStats = _rendererStats;
 
-        createWindow(_options);
+        createWindow(_windowConfig);
 
         shaderPrograms = new Map();
         shaderUniforms = new Map();
@@ -189,8 +190,8 @@ class WebGLBackend implements IRendererBackend
 
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
-        vertexBuffer = new Float32Array((_options.maxDynamicVertices + _options.maxUnchangingVertices) * VERTEX_FLOAT_SIZE);
-        indexBuffer  = new Uint16Array(_options.maxDynamicIndices + _options.maxUnchangingIndices);
+        vertexBuffer = new Float32Array((_rendererConfig.dynamicVertices + _rendererConfig.unchangingVertices) * VERTEX_FLOAT_SIZE);
+        indexBuffer  = new Uint16Array(_rendererConfig.dynamicIndices + _rendererConfig.unchangingIndices);
 
         #if cpp
 
@@ -219,7 +220,7 @@ class WebGLBackend implements IRendererBackend
         GL.vertexAttribPointer(2, 2, GL.FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
 
         // Create a representation of the backbuffer.
-        backbuffer = new BackBuffer(_options.width, _options.height, _options.dpi, GL.getParameter(GL.FRAMEBUFFER));
+        backbuffer = new BackBuffer(_windowConfig.width, _windowConfig.height, 1, GL.getParameter(GL.FRAMEBUFFER));
 
         // Default blend mode
         // TODO : Move this to be a settable property in the geometry or renderer or something
@@ -227,7 +228,7 @@ class WebGLBackend implements IRendererBackend
         GL.blendFuncSeparate(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA, GL.ONE, GL.ZERO);
 
         // Set the clear colour
-        GL.clearColor(0.2, 0.2, 0.2, 1.0);
+        GL.clearColor(_rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a);
 
         // Default scissor test
         GL.enable(GL.SCISSOR_TEST);
@@ -428,7 +429,7 @@ class WebGLBackend implements IRendererBackend
 
     // #region SDL Window Management
 
-    function createWindow(_options : RendererOptions)
+    function createWindow(_options : FlurryWindowConfig)
     {        
         SDL.GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
         SDL.GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);

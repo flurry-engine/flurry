@@ -1,7 +1,14 @@
 package uk.aidanlee.flurry;
 
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelList;
-import uk.aidanlee.flurry.api.gpu.Renderer.RequestedBackend;
+
+enum RendererBackend {
+    GLES;
+    GL45;
+    DX11;
+    NULL;
+    AUTO;
+}
 
 class FlurryConfig
 {
@@ -28,7 +35,7 @@ class FlurryConfig
     }
 }
 
-private class FlurryWindowConfig
+class FlurryWindowConfig
 {
     /**
      * If the window should be launched in fullscreen borderless mode. (Defaults false)
@@ -79,13 +86,13 @@ private class FlurryWindowConfig
     }
 }
 
-private class FlurryRendererConfig
+class FlurryRendererConfig
 {
     /**
      * Force the renderer to use a specific backend.
      * If left unchanged it will attempt to auto-select the best backend for the platform.
      */
-    public var backend : RequestedBackend;
+    public var backend : RendererBackend;
 
     /**
      * The maximum number of vertices allowed in the dynamic vertex buffer. (Defaults 1000000)
@@ -113,6 +120,11 @@ private class FlurryRendererConfig
     public final clearColour : { r : Float, g : Float, b : Float, a : Float };
 
     /**
+     * Any extra variables which might be used by specific backends
+     */
+    public final extra : Dynamic;
+
+    /**
      * Creates a new renderer config with the default settings.
      */
     public function new()
@@ -122,10 +134,11 @@ private class FlurryRendererConfig
         dynamicIndices     = 1000000;
         unchangingIndices  = 100000;
         clearColour        = { r : 0.2, g : 0.2, b : 0.2, a : 1.0 };
+        extra              = {};
     }
 }
 
-private class FlurryResourceConfig
+class FlurryResourceConfig
 {
     /**
      * If the standard shader parcel should not be loaded. (Defaults true).

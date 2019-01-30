@@ -1,67 +1,11 @@
 package uk.aidanlee.flurry.api.gpu;
 
 import haxe.ds.ArraySort;
+import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
 import uk.aidanlee.flurry.api.gpu.backend.NullBackend;
-
-enum RequestedBackend {
-    WEBGL;
-    GL45;
-    DX11;
-    NULL;
-}
-
-/**
- * Options provided to the renderer on creation.
- */
-typedef RendererOptions = {
-    /**
-     * The backend graphics api to use.
-     */
-    var api : RequestedBackend;
-
-    /**
-     * The initial width of the screen.
-     */
-    var width : Int;
-
-    /**
-     * The initial height of the screen.
-     */
-    var height : Int;
-
-    /**
-     * The DPI of the screen.
-     */
-    var dpi : Float;
-
-    /**
-     * Maximum number of unchanging vertices allowed in the unchanging vertex buffer.
-     */
-    var maxUnchangingVertices : Int;
-
-    /**
-     * Maximum number of dynamic vertices allowed in the dynamic vertex buffer.
-     */
-    var maxDynamicVertices : Int;
-    
-    /**
-     * The maximum number of indices allowed in the unchanging index buffer.
-     */
-    var maxUnchangingIndices : Int;
-
-    /**
-     * The maximum number of indices allowed in the dynamic index buffer.
-     */
-    var maxDynamicIndices : Int;
-
-    /**
-     * Optional settings for the chosen api backend.
-     */
-    var ?backend : Dynamic;
-}
 
 class Renderer
 {
@@ -73,7 +17,7 @@ class Renderer
     /**
      * API backend used by the renderer.
      */
-    public final api : RequestedBackend;
+    public final api : RendererBackend;
 
     /**
      * Class which will store information about the previous frame.
@@ -90,34 +34,30 @@ class Renderer
      */
     final queuedCommands : Array<DrawCommand>;
 
-    public function new(_events : EventBus, _options : RendererOptions)
+    public function new(_events : EventBus, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
     {
         queuedCommands = [];
         batchers       = [];
-        api            = _options.api;
+        api            = _rendererConfig.backend;
         stats          = new RendererStats();
 
         switch (api)
         {
             #if cpp
             case GL45:
-                backend = new uk.aidanlee.flurry.api.gpu.backend.GL45Backend(_events, stats, _options);
-                api     = GL45;
+                backend = new uk.aidanlee.flurry.api.gpu.backend.GL45Backend(_events, stats, _windowConfig, _rendererConfig);
 
-            case WEBGL:
-                backend = new uk.aidanlee.flurry.api.gpu.backend.WebGLBackend(_events, stats, _options);
-                api     = WEBGL;
+            case GLES:
+                backend = new uk.aidanlee.flurry.api.gpu.backend.WebGLBackend(_events, stats, _windowConfig, _rendererConfig);
             #end
 
             #if windows
             case DX11:
-                backend = new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_events, stats, _options);
-                api     = DX11;
+                backend = new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_events, stats, _windowConfig, _rendererConfig);
             #end
 
             default:
                 backend = new NullBackend();
-                api     = NULL;
         }
     }
 
@@ -162,8 +102,6 @@ class Renderer
         backend.clear();
     }
 
-    // #region Batcher Management
-
     /**
      * Create and return a batcher. The returned batcher is automatically added to the renderer.
      * @param _options Batcher options.
@@ -201,8 +139,6 @@ class Renderer
             batchers.remove(batcher);
         }
     }
-
-    // #endregion
 
     /**
      * Sort the batchers in depth order.
