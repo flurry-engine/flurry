@@ -58,7 +58,7 @@ class Main extends Flurry
         _config.window.width  = 1600;
         _config.window.height = 900;
 
-        _config.renderer.backend = GL45;
+        _config.renderer.backend = GLES;
 
         _config.resources.preload.images.push({ id : 'assets/images/shapes.png' });
         _config.resources.preload.texts.push({ id : 'assets/images/shapes.atlas' });
