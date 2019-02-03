@@ -352,7 +352,7 @@ class ResourceSystem
      * @param _type Class type of the resource.
      * @return T
      */
-    public function get<T>(_id : String, _type : Class<T>) : T
+    @:generic public function get<T : Resource>(_id : String, _type : Class<T>) : T
     {
         return cast resourceCache.get(_id);
     }
