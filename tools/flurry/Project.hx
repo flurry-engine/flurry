@@ -6,6 +6,7 @@ import hxp.Path;
 import hxp.Version;
 import hxp.Script;
 import hxp.HXML;
+import hxp.Log;
 
 enum FlurryTarget {
     Haxe;
@@ -94,8 +95,8 @@ class Project extends Script
             case 'clean':
                 cleanOutputDirectory();
 
-            case 'default':
-                // TODO : Error
+            case _:
+                Log.error('unknown command ${command}');
         }
     }
 

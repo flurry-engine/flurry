@@ -31,12 +31,7 @@ class Main
 			Sys.setCwd(arguments.pop());
 		}
 
-		if (arguments.length == 0)
-		{
-			doHelpCommand();
-		}
-
-		switch(arguments.shift())
+		switch (arguments.shift())
 		{
 			case 'install':
 				doInstallCommand();
@@ -63,7 +58,7 @@ class Main
 	 */
 	function doInstallCommand()
 	{
-		runHxpScript(Path.join([ Haxelib.getPath(new Haxelib("Flurry")), 'tools', 'flurry', 'Install.hx' ]));
+		runHxpScript(Path.join([ Haxelib.getPath(new Haxelib("Flurry")), "..", "..", 'tools', 'flurry', 'Install.hx' ]));
 	}
 
 	/**
@@ -88,7 +83,7 @@ class Main
 	 */
 	function doHelpCommand()
 	{
-		var script  = Path.join([ Haxelib.getPath(new Haxelib("Flurry")), 'tools', 'flurry', 'Help.hx' ]);
+		var script  = Path.join([ Haxelib.getPath(new Haxelib("Flurry")), "..", "..", 'tools', 'flurry', 'Help.hx' ]);
 		var command = arguments.length == 0 ? 'default' : arguments.shift();
 
 		runHxpScript(script, command);
@@ -100,24 +95,16 @@ class Main
 	 * @param _command Optional command for the script.
 	 */
 	function runHxpScript(_script : String, _command : String = '')
-	{	
-		var file      = Path.withoutDirectory(_script);
-		var directory = Path.directory(_script);
-		var className = Path.withoutExtension(file);
-		className = className.substr(0, 1).toUpperCase() + className.substr(1);
-		
+	{		
 		var buildArgs = [
-			className,
-			"-main", "hxp.Script",
-			"-p"   , Path.join([ Haxelib.getPath(new Haxelib("hxp")), "src" ]),
-			"-p"   , Path.join([ Haxelib.getPath(new Haxelib("Flurry")), 'tools', 'flurry' ])
+			"-cp", Path.join([ Haxelib.getPath(new Haxelib("hxp")), "src" ]),
+			"-cp", Path.join([ Haxelib.getPath(new Haxelib("Flurry")), "..", "..", 'tools', 'flurry' ])
 		];
-		var runArgs = [ _command == '' ? 'default' : _command ].concat(arguments);
 		
-		runArgs.push(className);
-		runArgs.push(Sys.getCwd());
+		if (_command != '') arguments.push(_command);
+		arguments.push(Sys.getCwd());
 		
-        System.runScript(_script, buildArgs, runArgs, directory);
+        System.runScript(_script, buildArgs, arguments, Path.directory(_script));
 	}
 
 	/**

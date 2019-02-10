@@ -24,6 +24,9 @@ class Help extends Script
 
             case 'package':
                 printPackageHelp();
+
+            case _:
+                printHelp();
         }
     }
 
