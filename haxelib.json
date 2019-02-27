@@ -1,9 +1,9 @@
 {
-    "name"      : "Flurry",
+    "name"      : "flurry",
     "license"   : "MIT",
     "version"   : "0.0.1",
-    "classPath" : "engine/src",
     "contributors": [
         "Aidan"
-    ]
+    ],
+    "classPath": "src"
 }
