@@ -1,6 +1,8 @@
 package uk.aidanlee.flurry.api.maths;
 
-import snow.api.buffers.Float32Array;
+import haxe.io.Float32Array;
+
+using haxe.io.Bytes;
 
 /**
  * 4x4 matrix class for transformations and perspective.
@@ -409,7 +411,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
             _scale.set_xyz(ax_length, ay_length, az_length);
         }
 
-        var matrix : Matrix = cast Float32Array.fromView(this);
+        var matrix : Matrix = cast Float32Array.fromData(this.getData());
 
         matrix[0] /= ax_length;
         matrix[1] /= ax_length;

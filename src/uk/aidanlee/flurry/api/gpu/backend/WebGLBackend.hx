@@ -4,10 +4,11 @@ import sdl.Window;
 import sdl.GLContext;
 import sdl.SDL;
 import haxe.ds.Map;
-import snow.modules.opengl.GL;
-import snow.api.buffers.Uint8Array;
-import snow.api.buffers.Float32Array;
-import snow.api.buffers.Uint16Array;
+import opengl.WebGL;
+import opengl.WebGL as GL;
+import haxe.io.UInt8Array;
+import haxe.io.Float32Array;
+import haxe.io.UInt16Array;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderType;
@@ -78,7 +79,7 @@ class WebGLBackend implements IRendererBackend
     /**
      * Index buffer used by this backend.
      */
-    final indexBuffer : Uint16Array;
+    final indexBuffer : UInt16Array;
 
     /**
      * Backbuffer display, default target if none is specified.
@@ -191,9 +192,7 @@ class WebGLBackend implements IRendererBackend
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
         vertexBuffer = new Float32Array((_rendererConfig.dynamicVertices + _rendererConfig.unchangingVertices) * VERTEX_FLOAT_SIZE);
-        indexBuffer  = new Uint16Array(_rendererConfig.dynamicIndices + _rendererConfig.unchangingIndices);
-
-        #if cpp
+        indexBuffer  = new UInt16Array(_rendererConfig.dynamicIndices + _rendererConfig.unchangingIndices);
 
         // Core OpenGL profiles require atleast one VAO is bound.
         // So if we're running on a native platform create and bind a VAO
@@ -202,15 +201,13 @@ class WebGLBackend implements IRendererBackend
         opengl.GL.glGenVertexArrays(1, vao);
         opengl.GL.glBindVertexArray(vao[0]);
 
-        #end
-
         glVbo = GL.createBuffer();
         GL.bindBuffer(GL.ARRAY_BUFFER, glVbo);
-        GL.bufferData(GL.ARRAY_BUFFER, vertexBuffer, GL.DYNAMIC_DRAW);
+        GL.bufferData(GL.ARRAY_BUFFER, vertexBuffer.view, GL.DYNAMIC_DRAW);
 
         glIbo = GL.createBuffer();
         GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, glIbo);
-        GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, indexBuffer, GL.DYNAMIC_DRAW);
+        GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, indexBuffer.view, GL.DYNAMIC_DRAW);
 
         GL.enableVertexAttribArray(0);
         GL.enableVertexAttribArray(1);
@@ -298,7 +295,7 @@ class WebGLBackend implements IRendererBackend
                 for (index in geom.indices)
                 {
                     indexBuffer[indexOffset++] = vertexOffset + index;
-                    indexByteOffset += Uint16Array.BYTES_PER_ELEMENT;
+                    indexByteOffset += UInt16Array.BYTES_PER_ELEMENT;
                 }
 
                 for (vertex in geom.vertices)
@@ -324,8 +321,8 @@ class WebGLBackend implements IRendererBackend
             }
         }
 
-        GL.bufferSubData(GL.ARRAY_BUFFER        , startVertexByteOffset, vertexBuffer.subarray(startVertexFloatOffset, vertexFloatOffset));
-        GL.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, startIndexByteOffset , indexBuffer.subarray(startIndexOffset, indexOffset));
+        GL.bufferSubData(GL.ARRAY_BUFFER, startVertexByteOffset, vertexBuffer.subarray(startVertexFloatOffset, vertexFloatOffset).view);
+        GL.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, startIndexByteOffset, indexBuffer.subarray(startIndexOffset, indexOffset).view);
     }
 
     /**
@@ -338,7 +335,7 @@ class WebGLBackend implements IRendererBackend
         {
             dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, 0, 0));
 
-            GL.bufferSubData(GL.ARRAY_BUFFER, vertexByteOffset, command.buffer.subarray(command.startIndex, command.endIndex));
+            GL.bufferSubData(GL.ARRAY_BUFFER, vertexByteOffset, command.buffer.subarray(command.startIndex, command.endIndex).view);
 
             vertexOffset      += command.vertices;
             vertexFloatOffset += command.vertices * VERTEX_FLOAT_SIZE;
@@ -589,7 +586,7 @@ class WebGLBackend implements IRendererBackend
         GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
         GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.NEAREST);
         GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.NEAREST);
-        GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, _resource.width, _resource.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, Uint8Array.fromArray(_resource.pixels));
+        opengl.GL.glTexImage2D(GL.TEXTURE_2D, 0, GL.RGBA, _resource.width, _resource.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, UInt8Array.fromArray(cast _resource.pixels).getData().bytes.getData());
 
         GL.bindTexture(GL.TEXTURE_2D, 0);
 
@@ -792,22 +789,11 @@ class WebGLBackend implements IRendererBackend
             {
                 switch (ShaderType.createByName(val.type)) {
                     case Matrix4: GL.uniformMatrix4fv(cache.uniformLocations[uniformIdx++], false, _command.shader.uniforms.matrix4.get(val.name));
-                    case Vector4: GL.uniform4fv(cache.uniformLocations[uniformIdx++], vectorToFloatArray(_command.shader.uniforms.vector4.get(val.name)));
+                    case Vector4: GL.uniform4fv(cache.uniformLocations[uniformIdx++], _command.shader.uniforms.vector4.get(val.name));
                     case Int    : GL.uniform1f(cache.uniformLocations[uniformIdx++], _command.shader.uniforms.int.get(val.name));
                 }
             }
         }
-    }
-
-    function vectorToFloatArray(_vector : Vector) : Float32Array
-    {
-        var array = new Float32Array(4);
-        array[0] = _vector.x;
-        array[1] = _vector.y;
-        array[2] = _vector.z;
-        array[3] = _vector.w;
-
-        return array;
     }
 
     function getBlendMode(_mode : BlendMode) : Int

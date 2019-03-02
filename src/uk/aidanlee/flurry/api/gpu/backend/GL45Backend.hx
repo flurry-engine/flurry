@@ -12,8 +12,8 @@ import opengl.GL.*;
 import opengl.GL.GLSync;
 import opengl.WebGL;
 import snow.api.Debug.def;
-import snow.api.buffers.Float32Array;
-import snow.api.buffers.Uint16Array;
+import haxe.io.Float32Array;
+import haxe.io.UInt16Array;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
@@ -261,7 +261,7 @@ class GL45Backend implements IRendererBackend
         var totalBufferBytes  = totalBufferFloats * Float32Array.BYTES_PER_ELEMENT;
 
         var totalBufferIndices = _rendererConfig.unchangingIndices + (_rendererConfig.dynamicIndices * 3);
-        var totalIndexBytes    = totalBufferIndices * Uint16Array.BYTES_PER_ELEMENT;
+        var totalIndexBytes    = totalBufferIndices * UInt16Array.BYTES_PER_ELEMENT;
 
         // Create two empty buffers, for the vertex and index data
         var buffers = [ 0, 0 ];
@@ -309,8 +309,8 @@ class GL45Backend implements IRendererBackend
             new BufferRange(floatOffsetSize + (floatSegmentSize * 2), _rendererConfig.unchangingVertices + (_rendererConfig.dynamicVertices * 2))
         ];
 
-        var shortSegmentSize = _rendererConfig.dynamicIndices    * Uint16Array.BYTES_PER_ELEMENT;
-        var shortOffsetSize  = _rendererConfig.unchangingIndices * Uint16Array.BYTES_PER_ELEMENT;
+        var shortSegmentSize = _rendererConfig.dynamicIndices    * UInt16Array.BYTES_PER_ELEMENT;
+        var shortOffsetSize  = _rendererConfig.unchangingIndices * UInt16Array.BYTES_PER_ELEMENT;
 
         indexBufferRangeIndex = 0;
         indexBufferRanges = [
@@ -489,7 +489,7 @@ class GL45Backend implements IRendererBackend
                     vertexBuffer[vertexFloatOffset++] = vertex.texCoord.y;
                 }
 
-                indexByteOffset  += geom.indices.length * Uint16Array.BYTES_PER_ELEMENT;
+                indexByteOffset  += geom.indices.length * UInt16Array.BYTES_PER_ELEMENT;
                 vertexOffset     += geom.vertices.length;
                 rangeIndexOffset += geom.vertices.length;
             }
@@ -1355,7 +1355,7 @@ private class UnchangingBuffer
     {
         if ((currentVertices + _command.vertices) <= maxVertices && (currentIndices + _command.indices) <= maxIndices)
         {
-            currentRanges.set(_command.id, new UnchangingRange(currentVertices, currentIndices * Uint16Array.BYTES_PER_ELEMENT));
+            currentRanges.set(_command.id, new UnchangingRange(currentVertices, currentIndices * UInt16Array.BYTES_PER_ELEMENT));
             currentVertices += _command.vertices;
             currentIndices  += _command.indices;
 

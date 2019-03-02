@@ -2,7 +2,7 @@ package uk.aidanlee.flurry.modules.imgui;
 
 import cpp.Pointer;
 import cpp.RawPointer;
-import snow.api.buffers.Float32Array;
+import haxe.io.Float32Array;
 import uk.aidanlee.flurry.api.CoreEvents;
 import uk.aidanlee.flurry.api.input.Keycodes;
 import uk.aidanlee.flurry.api.input.Scancodes;
