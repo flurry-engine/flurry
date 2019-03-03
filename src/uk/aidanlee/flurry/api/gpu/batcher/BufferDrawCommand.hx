@@ -6,7 +6,7 @@ import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry.PrimitiveType;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Matrix;
-import snow.api.buffers.Float32Array;
+import haxe.io.Float32Array;
 
 class BufferDrawCommand extends DrawCommand
 {

@@ -1,11 +1,13 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
+import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import haxe.io.Bytes;
 import haxe.ds.Map;
 import sdl.Window;
 import sdl.SDL;
 import snow.api.Debug.def;
-import snow.api.buffers.Float32Array;
+import haxe.io.Float32Array;
 import directx.DirectX;
 import dxgi.SwapChainDescription;
 import dxgi.SwapChain;
@@ -39,7 +41,6 @@ import d3d11.BlendState;
 import d3d11.SamplerState;
 import d3d11.SamplerDescription;
 import d3d11.Rect;
-import uk.aidanlee.flurry.api.gpu.Renderer.RendererOptions;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderType;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderLayout;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
@@ -193,13 +194,12 @@ class DX11Backend implements IRendererBackend
 
     var window : Window;
 
-    public function new(_events : EventBus, _rendererStats : RendererStats, _options : RendererOptions)
+    public function new(_events : EventBus, _rendererStats : RendererStats, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
     {
         events           = _events;
         rendererStats    = _rendererStats;
-        _options.backend = def(_options.backend, {});
 
-        createWindow(_options);
+        createWindow(_windowConfig);
 
         var success         = false;
         var adapterIdx      = 0;
@@ -244,8 +244,8 @@ class DX11Backend implements IRendererBackend
 
         // Create the device, context, and swapchain.
         var description = SwapChainDescription.create();
-        description.bufferDescription.width  = _options.width;
-        description.bufferDescription.height = _options.height;
+        description.bufferDescription.width  = _windowConfig.width;
+        description.bufferDescription.height = _windowConfig.height;
         description.bufferDescription.format = R8G8B8A8_UNORM;
         description.sampleDescription.count  = 1;
         description.outputWindow = hwnd;
@@ -269,7 +269,7 @@ class DX11Backend implements IRendererBackend
         output.release();
 
         // Create the backbuffer render target.
-        backbuffer = new BackBuffer(_options.width, _options.height, _options.dpi);
+        backbuffer = new BackBuffer(_windowConfig.width, _windowConfig.height, 1);
 
         var texture : Texture2D = null;
         if (swapchain.getBuffer(0, cast texture.addressOf()) != 0)
@@ -286,15 +286,15 @@ class DX11Backend implements IRendererBackend
         nativeView = Viewport.create();
         nativeView.topLeftX = 0;
         nativeView.topLeftY = 0;
-        nativeView.width    = _options.width;
-        nativeView.height   = _options.height;
+        nativeView.width    = _windowConfig.width;
+        nativeView.height   = _windowConfig.height;
 
         // Create the default clip
         nativeClip = Rect.create();
         nativeClip.top    = 0;
         nativeClip.left   = 0;
-        nativeClip.right  = _options.width;
-        nativeClip.bottom = _options.height;
+        nativeClip.right  = _windowConfig.width;
+        nativeClip.bottom = _windowConfig.height;
 
         // Setup the rasterizer state.
         rasterDescription = RasterizerDescription.create();
@@ -334,7 +334,7 @@ class DX11Backend implements IRendererBackend
 
         // Create our (initially) empty vertex buffer.
         var bufferDesc = BufferDescription.create();
-        bufferDesc.byteWidth      = (_options.maxDynamicVertices + _options.maxUnchangingVertices) * 9;
+        bufferDesc.byteWidth      = (_rendererConfig.dynamicVertices + _rendererConfig.unchangingVertices) * 9;
         bufferDesc.usage          = DYNAMIC;
         bufferDesc.bindFlags      = VERTEX_BUFFER;
         bufferDesc.cpuAccessFlags = WRITE;
@@ -362,8 +362,8 @@ class DX11Backend implements IRendererBackend
         dynamicCommandRanges = new Map();
 
         // Setup initial state tracker
-        viewport = new Rectangle(0, 0, _options.width, _options.height);
-        scissor  = new Rectangle(0, 0, _options.width, _options.height);
+        viewport = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
+        scissor  = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
         topology = PrimitiveType.Triangles;
         target   = null;
         shader   = null;
@@ -599,7 +599,7 @@ class DX11Backend implements IRendererBackend
 
     // #region SDL Window Management
 
-    function createWindow(_options : RendererOptions)
+    function createWindow(_options : FlurryWindowConfig)
     {        
         window = SDL.createWindow('Flurry', SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _options.width, _options.height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
     }

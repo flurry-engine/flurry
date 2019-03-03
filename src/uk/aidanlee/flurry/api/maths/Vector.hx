@@ -1,6 +1,6 @@
 package uk.aidanlee.flurry.api.maths;
 
-import snow.api.buffers.Float32Array;
+import haxe.io.Float32Array;
 
 /**
  * Vector class which contains an x, y, z, and w component.

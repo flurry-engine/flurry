@@ -2,6 +2,9 @@
 
 -cpp out
 
+-cp src
+-cp test
+
 -D no-compilation
 -D linux
 -D target-cpp
@@ -23,12 +26,7 @@
 -D linc_sdl
 -D linc_opengl
 -D threads
--cp engine/src
--cp engine/test
--cp sample/benchmark/src
--cp sample/tetris/src
--cp tools/parcel/src
--cp tools/flurry
+
 -lib hxp
 -lib hxcpp
 -lib hxtelemetry
