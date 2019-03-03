@@ -5,9 +5,19 @@ import haxe.io.BytesData;
 import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
-import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderLayout;
+
+enum ShaderType
+{
+    Matrix4;
+    Vector4;
+    Int;
+}
 
 typedef ShaderBackend = { vertex : String, fragment : String };
+
+typedef ShaderLayout = { textures : Array<String>, blocks : Array<ShaderBlock> };
+
+typedef ShaderBlock = { name : String, vals : Array<{ name : String, type : String }> };
 
 class Resource
 {

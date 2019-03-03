@@ -1,9 +1,10 @@
 package uk.aidanlee.flurry.api.resources;
 
-import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderBackend;
+import haxe.io.Bytes;
 
-typedef ResourceInfo = { id : String, ?path : String }
+typedef ResourceInfo = { id : String, path : Null<String> }
 typedef ParcelInfo   = String;
 typedef BytesInfo    = ResourceInfo;
 typedef TextInfo     = ResourceInfo;
@@ -12,33 +13,20 @@ typedef ImageInfo    = ResourceInfo;
 typedef ShaderInfo   = {
     >ResourceInfo,
 
-    ?webgl : {
-        vertex   : String,
-        fragment : String
-    },
+    webgl : Null<ShaderBackend>,
 
-    ?gl45 : {
-        vertex   : String,
-        fragment : String
-    },
+    gl45 : Null<ShaderBackend>,
 
-    ?hlsl : {
-        vertex   : String,
-        fragment : String
-    }
+    hlsl : Null<ShaderBackend>
 }
-typedef TextureAtlasInfo = ResourceInfo;
-typedef FontInfo         = ResourceInfo;
 
 typedef ParcelList = {
-    ?bytes   : Array<BytesInfo>,
-    ?texts   : Array<TextInfo>,
-    ?jsons   : Array<JSONInfo>,
-    ?images  : Array<ImageInfo>,
-    ?shaders : Array<ShaderInfo>,
-    ?parcels : Array<ParcelInfo>,
-    ?atlases : Array<TextureAtlasInfo>,
-    ?fonts   : Array<FontInfo>
+    ?bytes   : Null<Array<BytesInfo>>,
+    ?texts   : Null<Array<TextInfo>>,
+    ?jsons   : Null<Array<JSONInfo>>,
+    ?images  : Null<Array<ImageInfo>>,
+    ?shaders : Null<Array<ShaderInfo>>,
+    ?parcels : Null<Array<ParcelInfo>>,
 }
 
 typedef ParcelData = {

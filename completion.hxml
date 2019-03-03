@@ -44,6 +44,7 @@
 -lib mockatoo
 -lib snow
 -lib haxe-concurrent
+-lib safety
 
 --no-inline
 
