@@ -1,8 +1,10 @@
 package uk.aidanlee.flurry.api.resources;
 
+import sys.io.File;
 import haxe.Json;
 import haxe.Unserializer;
-import snow.api.Debug.def;
+import format.png.Tools;
+import format.png.Reader;
 import hx.concurrent.collection.Queue;
 import hx.concurrent.executor.Executor;
 import uk.aidanlee.flurry.api.resources.Parcel.ResourceInfo;
@@ -21,6 +23,8 @@ import uk.aidanlee.flurry.api.resources.Resource.TextResource;
 import uk.aidanlee.flurry.api.resources.Resource.BytesResource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents.ResourceEventRemoved;
 import uk.aidanlee.flurry.api.resources.ResourceEvents.ResourceEventCreated;
+
+using Safety;
 
 enum ParcelEventType
 {
@@ -193,7 +197,7 @@ class ResourceSystem
                 var totalResources = calculateTotalResources(parcel.list);
                 var loadedIndices  = 0;
 
-                var assets : Array<BytesInfo> = def(parcel.list.bytes, []);
+                var assets : Array<BytesInfo> = parcel.list.bytes.or([]);
                 for (asset in assets)
                 {
                     if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
@@ -206,7 +210,7 @@ class ResourceSystem
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
 
-                var assets : Array<TextInfo> = def(parcel.list.texts, []);
+                var assets : Array<TextInfo> = parcel.list.texts.or([]);
                 for (asset in assets)
                 {
                     if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
@@ -219,7 +223,7 @@ class ResourceSystem
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
 
-                var assets : Array<JSONInfo> = def(parcel.list.jsons, []);
+                var assets : Array<JSONInfo> = parcel.list.jsons.or([]);
                 for (asset in assets)
                 {
                     if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
@@ -232,7 +236,7 @@ class ResourceSystem
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
 
-                var assets : Array<ImageInfo> = def(parcel.list.images, []);
+                var assets : Array<ImageInfo> = parcel.list.images.or([]);
                 for (asset in assets)
                 {
                     if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
@@ -240,15 +244,17 @@ class ResourceSystem
                         throw 'ResourceSystemResourceNotFoundException failed to load ${asset.id}, ${getResourceInfoPath(asset)} does not exist';
                     }
 
-                    var bytes = sys.io.File.getBytes(getResourceInfoPath(asset));
-                    var info  = stb.Image.load_from_memory(bytes.getData(), bytes.length, 4);
+                    //var bytes = sys.io.File.getBytes(getResourceInfoPath(asset));
+                    //var info  = stb.Image.load_from_memory(bytes.getData(), bytes.length, 4);
+                    var info = new Reader(File.read(getResourceInfoPath(asset))).read();
+                    var head = Tools.getHeader(info);
 
-                    resources.push(new ImageResource(asset.id, info.w, info.h, info.bytes));
+                    resources.push(new ImageResource(asset.id, head.width, head.height, Tools.extract32(info).getData()));
 
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
 
-                var assets : Array<ShaderInfo> = def(parcel.list.shaders, []);
+                var assets : Array<ShaderInfo> = parcel.list.shaders.or([]);
                 for (asset in assets)
                 {
                     if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
@@ -268,7 +274,7 @@ class ResourceSystem
 
                 // Parcels contain serialized pre-existing resources.
 
-                var assets : Array<ParcelInfo> = def(parcel.list.parcels, []);
+                var assets : Array<ParcelInfo> = parcel.list.parcels.or([]);
                 for (asset in assets)
                 {
                     if (!sys.FileSystem.exists(asset))
@@ -387,22 +393,22 @@ class ResourceSystem
     {
         var total = 0;
         
-        var array : Array<Dynamic> = def(_list.bytes, []);
+        var array : Array<BytesInfo> = _list.bytes.or([]);
         total += array.length;
 
-        var array : Array<Dynamic> = def(_list.texts, []);
+        var array : Array<TextInfo> = _list.texts.or([]);
         total += array.length;
 
-        var array : Array<Dynamic> = def(_list.jsons, []);
+        var array : Array<JSONInfo> = _list.jsons.or([]);
         total += array.length;
 
-        var array : Array<Dynamic> = def(_list.images, []);
+        var array : Array<ImageInfo> = _list.images.or([]);
         total += array.length;
 
-        var array : Array<Dynamic> = def(_list.shaders, []);
+        var array : Array<ShaderInfo> = _list.shaders.or([]);
         total += array.length;
 
-        var array : Array<Dynamic> = def(_list.parcels, []);
+        var array : Array<ParcelInfo> = _list.parcels.or([]);
         total += array.length;
 
         return total;
