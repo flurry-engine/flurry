@@ -1,7 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
-import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import haxe.io.Bytes;
 import haxe.ds.Map;
 import sdl.Window;
@@ -40,6 +38,8 @@ import d3d11.BlendState;
 import d3d11.SamplerState;
 import d3d11.SamplerDescription;
 import d3d11.Rect;
+import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
+import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;

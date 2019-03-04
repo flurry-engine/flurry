@@ -11,7 +11,6 @@ import sdl.SDL;
 import opengl.GL.*;
 import opengl.GL.GLSync;
 import opengl.WebGL;
-import snow.api.Debug.def;
 import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
@@ -251,7 +250,7 @@ class GL45Backend implements IRendererBackend
         rendererStats    = _rendererStats;
 
         // Check for ARB_bindless_texture support
-        bindless = def(_rendererConfig.extra.bindless, false);
+        bindless = SDL.GL_ExtensionSupported('GL_ARB_bindless_texutre');
 
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
