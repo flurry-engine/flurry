@@ -1,3 +1,0 @@
--D linc_stb=0.0.0
-# @install: lix --submodules --silent download "git:git@github.com:snowkit/linc_stb#405675d8880a04cedf5daa2712a605734e61552a" into untitled/0.0.0/git/405675d8880a04cedf5daa2712a605734e61552a
--cp ${HAXE_LIBCACHE}/untitled/0.0.0/git/405675d8880a04cedf5daa2712a605734e61552a/
