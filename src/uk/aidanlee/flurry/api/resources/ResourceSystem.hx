@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.resources;
 
-import sys.io.File;
 import haxe.Json;
 import haxe.Unserializer;
 import format.png.Tools;
@@ -23,6 +22,7 @@ import uk.aidanlee.flurry.api.resources.Resource.TextResource;
 import uk.aidanlee.flurry.api.resources.Resource.BytesResource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents.ResourceEventRemoved;
 import uk.aidanlee.flurry.api.resources.ResourceEvents.ResourceEventCreated;
+import sys.io.abstractions.IFileSystem;
 
 using Safety;
 
@@ -39,6 +39,11 @@ class ResourceSystem
      * Event bus the resource system can fire events into as and when resources and created and removed.
      */
     final events : EventBus;
+
+    /**
+     * Access to the engines filesystem.
+     */
+    final fileSystem : IFileSystem;
 
     /**
      * All parcels loaded in this resource system.
@@ -79,9 +84,10 @@ class ResourceSystem
      * 
      * @param _threads Number of active threads for loading parcels (defaults 1).
      */
-    public function new(_events : EventBus, _threads : Int = 1)
+    public function new(_events : EventBus, _fileSystem : IFileSystem, _threads : Int = 1)
     {
         events             = _events;
+        fileSystem         = _fileSystem;
         parcels            = new Map();
         parcelResources    = new Map();
         resourceCache      = new Map();
@@ -200,12 +206,12 @@ class ResourceSystem
                 var assets : Array<BytesInfo> = parcel.list.bytes.or([]);
                 for (asset in assets)
                 {
-                    if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
+                    if (!fileSystem.file.exists(getResourceInfoPath(asset)))
                     {
                         throw 'ResourceSystemResourceNotFoundException failed to load ${asset.id}, ${getResourceInfoPath(asset)} does not exist';
                     }
 
-                    resources.push(new BytesResource(asset.id, sys.io.File.getBytes(getResourceInfoPath(asset))));
+                    resources.push(new BytesResource(asset.id, fileSystem.file.getBytes(getResourceInfoPath(asset))));
 
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
@@ -213,12 +219,12 @@ class ResourceSystem
                 var assets : Array<TextInfo> = parcel.list.texts.or([]);
                 for (asset in assets)
                 {
-                    if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
+                    if (!fileSystem.file.exists(getResourceInfoPath(asset)))
                     {
                         throw 'ResourceSystemResourceNotFoundException failed to load ${asset.id}, ${getResourceInfoPath(asset)} does not exist';
                     }
 
-                    resources.push(new TextResource(asset.id, sys.io.File.getContent(getResourceInfoPath(asset))));
+                    resources.push(new TextResource(asset.id, fileSystem.file.getText(getResourceInfoPath(asset))));
 
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
@@ -226,12 +232,12 @@ class ResourceSystem
                 var assets : Array<JSONInfo> = parcel.list.jsons.or([]);
                 for (asset in assets)
                 {
-                    if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
+                    if (!fileSystem.file.exists(getResourceInfoPath(asset)))
                     {
                         throw 'ResourceSystemResourceNotFoundException failed to load ${asset.id}, ${getResourceInfoPath(asset)} does not exist';
                     }
 
-                    resources.push(new JSONResource(asset.id, Json.parse(sys.io.File.getContent(getResourceInfoPath(asset)))));
+                    resources.push(new JSONResource(asset.id, Json.parse(fileSystem.file.getText(getResourceInfoPath(asset)))));
 
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }
@@ -239,12 +245,12 @@ class ResourceSystem
                 var assets : Array<ImageInfo> = parcel.list.images.or([]);
                 for (asset in assets)
                 {
-                    if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
+                    if (!fileSystem.file.exists(getResourceInfoPath(asset)))
                     {
                         throw 'ResourceSystemResourceNotFoundException failed to load ${asset.id}, ${getResourceInfoPath(asset)} does not exist';
                     }
 
-                    var info = new Reader(File.read(getResourceInfoPath(asset))).read();
+                    var info = new Reader(fileSystem.file.read(getResourceInfoPath(asset))).read();
                     var head = Tools.getHeader(info);
 
                     resources.push(new ImageResource(asset.id, head.width, head.height, Tools.extract32(info).getData()));
@@ -255,15 +261,15 @@ class ResourceSystem
                 var assets : Array<ShaderInfo> = parcel.list.shaders.or([]);
                 for (asset in assets)
                 {
-                    if (!sys.FileSystem.exists(getResourceInfoPath(asset)))
+                    if (!fileSystem.file.exists(getResourceInfoPath(asset)))
                     {
                         throw 'ResourceSystemResourceNotFoundException failed to load ${asset.id}, ${getResourceInfoPath(asset)} does not exist';
                     }
 
-                    var layout = Json.parse(sys.io.File.getContent(getResourceInfoPath(asset)));
-                    var sourceWebGL = asset.webgl == null ? null : { vertex : sys.io.File.getContent(asset.webgl.vertex), fragment : sys.io.File.getContent(asset.webgl.fragment) };
-                    var sourceGL45  = asset.gl45  == null ? null : { vertex : sys.io.File.getContent(asset.gl45.vertex) , fragment : sys.io.File.getContent(asset.gl45.fragment) };
-                    var sourceHLSL  = asset.hlsl  == null ? null : { vertex : sys.io.File.getContent(asset.hlsl.vertex) , fragment : sys.io.File.getContent(asset.hlsl.fragment) };
+                    var layout = Json.parse(fileSystem.file.getText(getResourceInfoPath(asset)));
+                    var sourceWebGL = asset.webgl == null ? null : { vertex : fileSystem.file.getText(asset.webgl.vertex), fragment : fileSystem.file.getText(asset.webgl.fragment) };
+                    var sourceGL45  = asset.gl45  == null ? null : { vertex : fileSystem.file.getText(asset.gl45.vertex) , fragment : fileSystem.file.getText(asset.gl45.fragment) };
+                    var sourceHLSL  = asset.hlsl  == null ? null : { vertex : fileSystem.file.getText(asset.hlsl.vertex) , fragment : fileSystem.file.getText(asset.hlsl.fragment) };
 
                     resources.push(new ShaderResource(asset.id, layout, sourceWebGL, sourceGL45, sourceHLSL));
 
@@ -275,13 +281,13 @@ class ResourceSystem
                 var assets : Array<ParcelInfo> = parcel.list.parcels.or([]);
                 for (asset in assets)
                 {
-                    if (!sys.FileSystem.exists(asset))
+                    if (!fileSystem.file.exists(asset))
                     {
                         throw 'ResourceSystemParcelNotFoundException ${asset} does not exist';
                     }
 
                     // Get the serialized resource array from the parcel bytes.
-                    var parcelData : ParcelData = Unserializer.run(sys.io.File.getBytes(asset).toString());
+                    var parcelData : ParcelData = Unserializer.run(fileSystem.file.getBytes(asset).toString());
                     if (parcelData.compressed)
                     {
                         parcelData.serializedArray = haxe.zip.Uncompress.run(parcelData.serializedArray);

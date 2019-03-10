@@ -43,5 +43,6 @@
 -lib haxe-concurrent
 -lib safety
 -lib format
+-lib sys.io.abstractions
 
 --no-inline
