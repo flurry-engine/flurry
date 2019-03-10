@@ -30,7 +30,7 @@ steps:
 - task: PublishTestResults@2
   inputs:
     testResultsFormat: xUnit
-    testResultsFiles: engine/test/test-engine.xml
+    testResultsFiles: test/test-engine.xml
     searchFolder: $(Build.SourcesDirectory)
     testRunTitle: Engine Tests $(Agent.OS)
     buildPlatform: $(Agent.OS)

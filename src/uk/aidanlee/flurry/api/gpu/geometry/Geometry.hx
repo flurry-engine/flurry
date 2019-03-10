@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
-import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Transformation;
 import uk.aidanlee.flurry.api.maths.Hash;
@@ -9,6 +8,8 @@ import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+
+using Safety;
 
 enum PrimitiveType {
     Points;
@@ -180,21 +181,21 @@ class Geometry
         id = Hash.uniqueHash();
 
         batchers       = [];
-        vertices       = def(_options.vertices  , []);
-        indices        = def(_options.indices   , []);
-        transformation = def(_options.transform , inline new Transformation());
-        clip           = def(_options.clip      , inline new Rectangle());
-        textures       = def(_options.textures  , []);
-        depth          = def(_options.depth     , 0);
-        unchanging     = def(_options.unchanging, false);
-        immediate      = def(_options.immediate , false);
-        primitive      = def(_options.primitive , Triangles);
-        color          = def(_options.color     , inline new Color());
-        blend          = def(_options.blend     , inline new Blending());
+        vertices       = _options.vertices  .or([]);
+        indices        = _options.indices   .or([]);
+        transformation = _options.transform .or(inline new Transformation());
+        clip           = _options.clip      .or(inline new Rectangle());
+        textures       = _options.textures  .or([]);
+        depth          = _options.depth     .or(0);
+        unchanging     = _options.unchanging.or(false);
+        immediate      = _options.immediate .or(false);
+        primitive      = _options.primitive .or(Triangles);
+        color          = _options.color     .or(inline new Color());
+        blend          = _options.blend     .or(inline new Blending());
         shader         = _options.shader;
 
         // Add to batchers.
-        for (batcher in def(_options.batchers  , []))
+        for (batcher in _options.batchers.or([]))
         {
             batcher.addGeometry(this);
         }

@@ -1,10 +1,7 @@
 package uk.aidanlee.flurry;
 
 import snow.App;
-import snow.api.Debug.log;
 import snow.types.Types.AppConfig;
-import snow.types.Types.WindowEventType;
-import snow.types.Types.SystemEvent;
 import uk.aidanlee.flurry.api.CoreEvents;
 import uk.aidanlee.flurry.api.EventBus;
 import uk.aidanlee.flurry.api.gpu.Renderer;
@@ -85,7 +82,7 @@ class Flurry extends App
 
         if (flurryConfig.resources.includeStdShaders)
         {
-            log('TODO : Load a default shader parcel');
+            trace('TODO : Load a default shader parcel');
         }
 
         return _config;

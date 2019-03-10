@@ -11,14 +11,11 @@ import sdl.SDL;
 import opengl.GL.*;
 import opengl.GL.GLSync;
 import opengl.WebGL;
-import snow.api.Debug.def;
 import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
-import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderType;
-import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend.ShaderLayout;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
@@ -26,6 +23,8 @@ import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
@@ -251,7 +250,7 @@ class GL45Backend implements IRendererBackend
         rendererStats    = _rendererStats;
 
         // Check for ARB_bindless_texture support
-        bindless = def(_rendererConfig.extra.bindless, false);
+        bindless = SDL.GL_ExtensionSupported('GL_ARB_bindless_texutre');
 
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.

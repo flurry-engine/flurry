@@ -1,12 +1,13 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
 import haxe.ds.ArraySort;
-import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.maths.Hash;
+
+using Safety;
 
 typedef BatcherOptions = {
     /**
@@ -23,13 +24,13 @@ typedef BatcherOptions = {
      * Optional render target for this batcher.
      * If not specified the backbuffer / default target will be used.
      */
-    var ?target : ImageResource;
+    var ?target : Null<ImageResource>;
 
     /**
      * Optional initial depth for this batcher.
      * If not specified the depth starts at 0.
      */
-    var ?depth : Float;
+    var ?depth : Null<Float>;
 }
 
 /**
@@ -106,7 +107,7 @@ class Batcher
         shader   = _options.shader;
         camera   = _options.camera;
         target   = _options.target;
-        depth    = def(_options.depth, 0);
+        depth    = _options.depth.or(0);
 
         state = new BatcherState(this);
         dirty = false;

@@ -44,8 +44,12 @@
 -lib mockatoo
 -lib snow
 -lib haxe-concurrent
+-lib safety
+-lib format
 
 --no-inline
+
+--macro Safety.safeNavigation('uk.aidanlee.flurry', true)
 
 --macro snow.Set.assets("snow.core.native.assets.Assets")
 --macro snow.Set.runtime("snow.modules.sdl.Runtime")

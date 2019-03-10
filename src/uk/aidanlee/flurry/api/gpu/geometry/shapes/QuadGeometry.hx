@@ -1,10 +1,11 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
-import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
+
+using Safety;
 
 typedef QuadGeometryOptions = {
     >GeometryOptions,
@@ -25,11 +26,11 @@ class QuadGeometry extends Geometry
     {
         super(_options);
 
-        _options.x  = def(_options.x, 0);
-        _options.y  = def(_options.y, 0);
-        _options.w  = def(_options.w, textures[0].width );
-        _options.h  = def(_options.h, textures[0].height);
-        _options.uv = def(_options.uv, new Rectangle(0, 0, 1, 1));
+        _options.x  = _options.x.or(0);
+        _options.y  = _options.y.or(0);
+        _options.w  = _options.w.or(textures[0].width );
+        _options.h  = _options.h.or(textures[0].height);
+        _options.uv = _options.uv.or( new Rectangle(0, 0, 1, 1));
 
         vertices.resize(4);
         vertices[0] = new Vertex( new Vector(         0, _options.h), color, new Vector(_options.uv.x, _options.uv.h) );

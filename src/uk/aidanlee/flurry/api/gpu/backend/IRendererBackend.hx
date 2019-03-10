@@ -5,26 +5,6 @@ import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 
 /**
- * Enum of all the shader types. These map onto whatever backend shader language types.
- * More will be added as and when needed.
- */
-enum ShaderType {
-    Matrix4;
-    Vector4;
-    Int;
-}
-
-/**
- * Describes the shader layout.
- */
-typedef ShaderLayout = { textures : Array<String>, blocks : Array<ShaderBlock> };
-
-/**
- * Describes the layout of a shader block.
- */
-typedef ShaderBlock  = { name : String, vals : Array<{ name : String, type : String }> };
-
-/**
  * Backend renderers should implements this interface.
  * Provides functions for drawing data and creating backend specific resources.
  */
