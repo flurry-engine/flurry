@@ -195,7 +195,7 @@ class Geometry
         shader         = _options.shader;
 
         // Add to batchers.
-        for (batcher in def(_options.batchers  , []))
+        for (batcher in _options.batchers.or([]))
         {
             batcher.addGeometry(this);
         }
