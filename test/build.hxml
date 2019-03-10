@@ -10,6 +10,7 @@
 -lib haxe-concurrent
 -lib snow
 -lib mockatoo
+-lib safety
 
 -resource assets/atlas/cavesofgallet.atlas@atlas-data
 -resource assets/fonts/ubuntu.fnt@font-data
