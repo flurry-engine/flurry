@@ -1,10 +1,11 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
-import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
+
+using Safety;
 
 typedef RectangleGeometryOptions = {
     >GeometryOptions,
@@ -21,7 +22,7 @@ class RectangleGeometry extends Geometry
     public function new(_options : RectangleGeometryOptions)
     {
         _options.primitive = LineStrip;
-        _options.r         = def(_options.r, new Rectangle(def(_options.x, 0), def(_options.y, 0), def(_options.w, 1), def(_options.h, 1)));
+        _options.r         = _options.r.or(new Rectangle(_options.x.or(0), _options.y.or(0), _options.w.or(1), _options.h.or(1)));
 
         super(_options);
 

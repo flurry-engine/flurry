@@ -1,11 +1,12 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
-import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+
+using Safety;
 
 /**
  * Stores all of the state properties for a batcher.
@@ -72,7 +73,7 @@ class BatcherState
      */
     public function requiresChange(_geom : Geometry) : Bool
     {
-        if (def(_geom.shader, batcher.shader) != shader) return true;
+        if (_geom.shader.or(batcher.shader) != shader) return true;
 
         if (_geom.textures.length != textures.length) return true;
 
@@ -96,7 +97,7 @@ class BatcherState
      */
     public function change(_geom : Geometry)
     {
-        shader = def(_geom.shader, batcher.shader);
+        shader = _geom.shader.or(batcher.shader);
 
         if (_geom.textures.length != textures.length)
         {

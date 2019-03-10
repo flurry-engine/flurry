@@ -244,8 +244,6 @@ class ResourceSystem
                         throw 'ResourceSystemResourceNotFoundException failed to load ${asset.id}, ${getResourceInfoPath(asset)} does not exist';
                     }
 
-                    //var bytes = sys.io.File.getBytes(getResourceInfoPath(asset));
-                    //var info  = stb.Image.load_from_memory(bytes.getData(), bytes.length, 4);
                     var info = new Reader(File.read(getResourceInfoPath(asset))).read();
                     var head = Tools.getHeader(info);
 

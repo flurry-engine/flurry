@@ -1,8 +1,9 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
-import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.maths.Vector;
+
+using Safety;
 
 typedef LineGeometryOptions = {
     
@@ -65,10 +66,10 @@ class LineGeometry extends Geometry
 
         super(_options);
 
-        point0 = def(_options.point0, new Vector(0, 0, 0));
-        point1 = def(_options.point1, new Vector(1, 1, 1));
-        color0 = def(_options.color0, color);
-        color1 = def(_options.color1, color);
+        point0 = _options.point0.or(new Vector(0, 0, 0));
+        point1 = _options.point1.or(new Vector(1, 1, 1));
+        color0 = _options.color0.or(color);
+        color1 = _options.color1.or(color);
 
         addVertex(new Vertex( point0, color0, new Vector() ));
         addVertex(new Vertex( point1, color1, new Vector() ));

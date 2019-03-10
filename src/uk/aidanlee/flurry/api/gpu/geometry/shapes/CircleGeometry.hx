@@ -1,9 +1,10 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
-import snow.api.Debug.def;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry.GeometryOptions;
+
+using Safety;
 
 typedef CircleGeometryOptions = {
 
@@ -34,14 +35,14 @@ class CircleGeometry extends Geometry
     {
         super(_options);
 
-        _options.endAngle   = def(_options.endAngle  , 360);
-        _options.startAngle = def(_options.startAngle,   0);
+        _options.endAngle   = _options.endAngle  .or(360);
+        _options.startAngle = _options.startAngle.or(  0);
 
-        var radiusX = def(_options.r, 32);
-        var radiusY = def(_options.r, 32);
+        var radiusX = _options.r.or(32);
+        var radiusY = _options.r.or(32);
 
-        radiusX = def(_options.rx, radiusX);
-        radiusY = def(_options.ry, radiusY);
+        radiusX = _options.rx.or(radiusX);
+        radiusY = _options.ry.or(radiusY);
 
         if (_options.steps == null)
         {
