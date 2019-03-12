@@ -403,23 +403,12 @@ class ResourceSystem
     {
         var total = 0;
         
-        var array : Array<BytesInfo> = _list.bytes.or([]);
-        total += array.length;
-
-        var array : Array<TextInfo> = _list.texts.or([]);
-        total += array.length;
-
-        var array : Array<JSONInfo> = _list.jsons.or([]);
-        total += array.length;
-
-        var array : Array<ImageInfo> = _list.images.or([]);
-        total += array.length;
-
-        var array : Array<ShaderInfo> = _list.shaders.or([]);
-        total += array.length;
-
-        var array : Array<ParcelInfo> = _list.parcels.or([]);
-        total += array.length;
+        total += _list.bytes.or([]).length;
+        total += _list.texts.or([]).length;
+        total += _list.jsons.or([]).length;
+        total += _list.images.or([]).length;
+        total += _list.shaders.or([]).length;
+        total += _list.parcels.or([]).length;
 
         return total;
     }
