@@ -8,6 +8,8 @@ import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.input.Input;
 import uk.aidanlee.flurry.api.display.Display;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
+import sys.io.abstractions.IFileSystem;
+import sys.io.abstractions.concrete.FileSystem;
 import hxtelemetry.HxTelemetry;
 
 class Flurry extends App
@@ -16,6 +18,11 @@ class Flurry extends App
      * Main events bus, engine components can fire events into this to communicate with each other.
      */
     public final events : EventBus;
+
+    /**
+     * Abstracted access to the devices file system.
+     */
+    public var fileSystem (default, null) : IFileSystem;
 
     /**
      * User config file.
@@ -98,10 +105,11 @@ class Flurry extends App
         update_rate    = 1 / 60;
         
         // Setup core api components
-        renderer  = new Renderer(events, flurryConfig.window, flurryConfig.renderer);
-        resources = new ResourceSystem(events);
-        input     = new Input(events);
-        display   = new Display(events, flurryConfig);
+        fileSystem = new FileSystem();
+        renderer   = new Renderer(events, flurryConfig.window, flurryConfig.renderer);
+        resources  = new ResourceSystem(events, fileSystem);
+        input      = new Input(events);
+        display    = new Display(events, flurryConfig);
 
         // Load the default parcel, this may contain the standard assets or user defined assets.
         // Once it has loaded the overridable onReady function is called.

@@ -36,27 +36,13 @@
 -lib linc_directx
 -lib linc_sdl
 -lib linc_ogg
--lib linc_stb
 -lib linc_timestamp
 -lib linc_openal
--lib tink_cli
 -lib buddy
 -lib mockatoo
--lib snow
 -lib haxe-concurrent
 -lib safety
 -lib format
+-lib sys.io.abstractions
 
 --no-inline
-
---macro Safety.safeNavigation('uk.aidanlee.flurry', true)
-
---macro snow.Set.assets("snow.core.native.assets.Assets")
---macro snow.Set.runtime("snow.modules.sdl.Runtime")
---macro snow.Set.audio("snow.modules.openal.Audio")
---macro snow.Set.io("snow.modules.sdl.IO")
-
---macro snow.Set.main("Main")
---macro snow.Set.ident("org.snowkit.flow_app")
-
---macro snow.Set.config("config.json")
