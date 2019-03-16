@@ -16,5 +16,6 @@
 
 -resource assets/atlas/cavesofgallet.atlas@atlas-data
 -resource assets/fonts/ubuntu.fnt@font-data
+-resource assets/images/dots.png@dots-data
 
 --no-inline

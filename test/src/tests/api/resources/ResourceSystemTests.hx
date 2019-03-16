@@ -68,13 +68,29 @@ class ResourceSystemTests extends SingleSuite
             it('can load a parcels resources into the system', {
 
                 var files = [
-                    '/home/user/text.txt' => MockFileData.fromText('hello world!'),
-                    '/home/user/byte.bin' => MockFileData.fromText('hello world!')
+                    '/home/user/text.txt'  => MockFileData.fromText('hello world!'),
+                    '/home/user/byte.bin'  => MockFileData.fromText('hello world!'),
+                    '/home/user/dots.png'  => MockFileData.fromBytes(haxe.Resource.getBytes('dots-data')),
+                    '/home/user/json.json' => MockFileData.fromText(' { "hello" : "world!" } '),
+                    '/home/user/shdr.json' => MockFileData.fromText(' { "textures" : [ "defaultTexture" ], "blocks" : [] } '),
+                    '/home/user/webgl_vertex.txt'   => MockFileData.fromText('webgl_vertex'),
+                    '/home/user/webgl_fragment.txt' => MockFileData.fromText('webgl_fragment'),
+                    '/home/user/gl45_vertex.txt'    => MockFileData.fromText('gl45_vertex'),
+                    '/home/user/gl45_fragment.txt'  => MockFileData.fromText('gl45_fragment'),
+                    '/home/user/hlsl_vertex.txt'    => MockFileData.fromText('hlsl_vertex'),
+                    '/home/user/hlsl_fragment.txt'  => MockFileData.fromText('hlsl_fragment')
                 ];
                 var system = new ResourceSystem(mock(EventBus), new MockFileSystem(files, []));
                 system.createParcel('myParcel', {
-                    texts: [ { id : 'text', path : '/home/user/text.txt' } ],
-                    bytes: [ { id : 'byte', path : '/home/user/byte.bin' } ]
+                    texts   : [ { id : 'text', path : '/home/user/text.txt' } ],
+                    bytes   : [ { id : 'byte', path : '/home/user/byte.bin' } ],
+                    images  : [ { id : 'dots', path : '/home/user/dots.png' } ],
+                    jsons   : [ { id : 'json', path : '/home/user/json.json' } ],
+                    shaders : [ { id : 'shdr', path : '/home/user/shdr.json',
+                        webgl : { vertex : '/home/user/webgl_vertex.txt', fragment : '/home/user/webgl_fragment.txt' },
+                        gl45  : { vertex : '/home/user/gl45_vertex.txt' , fragment : '/home/user/gl45_fragment.txt' },
+                        hlsl  : { vertex : '/home/user/hlsl_vertex.txt' , fragment : '/home/user/hlsl_fragment.txt' }
+                    } ]
                 }).load();
 
                 // Wait an amount of time then pump events.
@@ -90,6 +106,25 @@ class ResourceSystemTests extends SingleSuite
                 var res = system.get('byte', BytesResource);
                 res.id.should.be('byte');
                 res.bytes.toString().should.be('hello world!');
+
+                var res = system.get('dots', ImageResource);
+                res.id.should.be('dots');
+                res.width.should.be(2);
+                res.height.should.be(2);
+
+                var res = system.get('json', JSONResource);
+                res.id.should.be('json');
+
+                var res = system.get('shdr', ShaderResource);
+                res.id.should.be('shdr');
+                res.layout.textures.should.containExactly([ 'defaultTexture' ]);
+                res.layout.blocks.should.containExactly([ ]);
+                res.webgl.vertex.should.be('webgl_vertex');
+                res.webgl.fragment.should.be('webgl_fragment');
+                res.gl45.vertex.should.be('gl45_vertex');
+                res.gl45.fragment.should.be('gl45_fragment');
+                res.hlsl.vertex.should.be('hlsl_vertex');
+                res.hlsl.fragment.should.be('hlsl_fragment');
             });
 
             it('can remove a parcels resources from the system', {
