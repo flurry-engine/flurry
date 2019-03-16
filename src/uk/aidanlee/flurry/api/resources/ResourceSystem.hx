@@ -289,7 +289,7 @@ class ResourceSystem
                 {
                     if (!fileSystem.file.exists(asset))
                     {
-                        throw new ParcelNotFoundException(asset);
+                        throw new ResourceNotFoundException(asset, asset);
                     }
 
                     // Get the serialized resource array from the parcel bytes.
@@ -368,9 +368,20 @@ class ResourceSystem
      * @param _type Class type of the resource.
      * @return T
      */
-    @:generic public function get<T : Resource>(_id : String, _type : Class<T>) : T
+    public function get<T : Resource>(_id : String, _type : Class<T>) : T
     {
-        return cast resourceCache.get(_id);
+        if (resourceCache.exists(_id))
+        {
+            var res = resourceCache.get(_id);
+            if (Std.is(res, _type))
+            {
+                return cast res;
+            }
+
+            throw new InvalidResourceType(_id, Type.getClassName(_type));
+        }
+        
+        throw new ResourceNotFoundException(_id, _id);
     }
 
     /**
