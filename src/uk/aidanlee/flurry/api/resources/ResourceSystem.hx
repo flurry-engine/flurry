@@ -488,6 +488,44 @@ class ResourceSystem
     }
 }
 
+// #region exceptions
+
+class ParcelAlreadyLoadedException extends Exception
+{
+    public function new(_parcel : String)
+    {
+        super('parcel "$_parcel" alread loaded');
+    }
+}
+
+class ParcelNotAddedException extends Exception
+{
+    public function new(_parcel : String)
+    {
+        super('parcel "$_parcel" has not been added to this resource system');
+    }
+}
+
+class InvalidResourceType extends Exception
+{
+    public function new(_resource : String, _type : String)
+    {
+        super('resource $_resource is not a $_type');
+    }
+}
+
+class ResourceNotFoundException extends Exception
+{
+    public function new(_resource : String, _path : String)
+    {
+        super('failed to load "$_resource", "$_path" does not exist');
+    }
+}
+
+// #endregion
+
+// #region event classes
+
 /**
  * Base parcel event class. Parcel events emitted to the thread safe queue should inherit this type.
  */
@@ -557,34 +595,4 @@ private class ParcelFailedEvent extends ParcelEvent
     }
 }
 
-private class ResourceNotFoundException extends Exception
-{
-    public function new(_resource : String, _path : String)
-    {
-        super('failed to load "$_resource", "$_path" does not exist');
-    }
-}
-
-private class ParcelAlreadyLoadedException extends Exception
-{
-    public function new(_parcel : String)
-    {
-        super('parcel "$_parcel" alread loaded');
-    }
-}
-
-private class ParcelNotFoundException extends Exception
-{
-    public function new(_parcel : String)
-    {
-        super('parcel "$_parcel" not found');
-    }
-}
-
-private class ParcelNotAddedException extends Exception
-{
-    public function new(_parcel : String)
-    {
-        super('parcel "$_parcel" has not been added to this resource system');
-    }
-}
+// #endregion
