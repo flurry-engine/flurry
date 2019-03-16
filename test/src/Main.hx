@@ -9,7 +9,7 @@ class Main implements Buddy<[
     tests.api.maths.RectangleTests,
     tests.api.maths.CircleTests,
 
-    //tests.api.display.DisplayTests,
+    tests.api.display.DisplayTests,
 
     tests.api.importers.bmfont.BitmapFontParserTests,
     tests.api.importers.textureatlas.TextureAtlasParserTests,
@@ -25,12 +25,14 @@ class Main implements Buddy<[
     tests.api.gpu.geometry.shapes.CircleGeometryTests,
     tests.api.gpu.geometry.shapes.LineGeometryTests,
     tests.api.gpu.geometry.shapes.QuadGeometryTests,
-    //tests.api.gpu.geometry.shapes.QuadPackGeometryTests,
+    tests.api.gpu.geometry.shapes.QuadPackGeometryTests,
     tests.api.gpu.geometry.shapes.RectangleGeometryTests,
     tests.api.gpu.geometry.shapes.RingGeometryTests,
     tests.api.gpu.geometry.shapes.TextGeometryTests,
     tests.api.gpu.batcher.BatcherStateTests,
     tests.api.gpu.batcher.BatcherTests,
+
+    tests.api.resources.ResourceSystemTests,
 
     tests.api.EventBusTests
 ]>
