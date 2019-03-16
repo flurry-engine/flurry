@@ -4,7 +4,7 @@ import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBackend;
 import haxe.io.Bytes;
 
-typedef ResourceInfo = { id : String, path : Null<String> }
+typedef ResourceInfo = { id : String, ?path : Null<String> }
 typedef ParcelInfo   = String;
 typedef BytesInfo    = ResourceInfo;
 typedef TextInfo     = ResourceInfo;
@@ -13,11 +13,11 @@ typedef ImageInfo    = ResourceInfo;
 typedef ShaderInfo   = {
     >ResourceInfo,
 
-    webgl : Null<ShaderBackend>,
+    ?webgl : Null<ShaderBackend>,
 
-    gl45 : Null<ShaderBackend>,
+    ?gl45 : Null<ShaderBackend>,
 
-    hlsl : Null<ShaderBackend>
+    ?hlsl : Null<ShaderBackend>
 }
 
 typedef ParcelList = {
