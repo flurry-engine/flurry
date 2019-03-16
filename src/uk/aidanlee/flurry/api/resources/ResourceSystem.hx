@@ -89,12 +89,12 @@ class ResourceSystem
     {
         events             = _events;
         fileSystem         = _fileSystem;
-        parcels            = new Map();
-        parcelResources    = new Map();
-        resourceCache      = new Map();
-        resourceReferences = new Map();
-        queue    = new Queue();
-        executor = Executor.create(_threads);
+        parcels            = [];
+        parcelResources    = [];
+        resourceCache      = [];
+        resourceReferences = [];
+        queue              = new Queue();
+        executor           = Executor.create(_threads);
     }
 
     /**
