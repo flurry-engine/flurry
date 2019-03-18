@@ -1,12 +1,20 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import cpp.UInt16;
-import cpp.Float32;
-import cpp.Pointer;
 import haxe.io.UInt8Array;
 import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
+import cpp.UInt16;
+import cpp.Float32;
+import cpp.Pointer;
 import opengl.GL.*;
+import opengl.WebGL.getShaderParameter;
+import opengl.WebGL.shaderSource;
+import opengl.WebGL.getProgramParameter;
+import opengl.WebGL.getProgramInfoLog;
+import opengl.WebGL.getShaderInfoLog;
+import opengl.WebGL.uniformMatrix4fv;
+import opengl.WebGL.uniform4fv;
+import opengl.WebGL.uniform1f;
 import sdl.Window;
 import sdl.GLContext;
 import sdl.SDL;
@@ -512,34 +520,34 @@ class WebGLBackend implements IRendererBackend
         }
 
         // Create vertex shader.
-        var vertex = opengl.WebGL.createShader(GL_VERTEX_SHADER);
-        opengl.WebGL.shaderSource(vertex, _resource.webgl.vertex);
-        opengl.WebGL.compileShader(vertex);
+        var vertex = glCreateShader(GL_VERTEX_SHADER);
+        shaderSource(vertex, _resource.webgl.vertex);
+        glCompileShader(vertex);
 
-        if (opengl.WebGL.getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
+        if (getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
         {
-            throw 'WebGL Backend Exception : ${_resource.id} : Error compiling vertex shader : ${opengl.WebGL.getShaderInfoLog(vertex)}';
+            throw 'WebGL Backend Exception : ${_resource.id} : Error compiling vertex shader : ${getShaderInfoLog(vertex)}';
         }
 
         // Create fragment shader.
-        var fragment = opengl.WebGL.createShader(GL_FRAGMENT_SHADER);
-        opengl.WebGL.shaderSource(fragment, _resource.webgl.fragment);
-        opengl.WebGL.compileShader(fragment);
+        var fragment = glCreateShader(GL_FRAGMENT_SHADER);
+        shaderSource(fragment, _resource.webgl.fragment);
+        glCompileShader(fragment);
 
-        if (opengl.WebGL.getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
+        if (getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
         {
-            throw 'WebGL Backend Exception : ${_resource.id} : Error compiling fragment shader : ${opengl.WebGL.getShaderInfoLog(fragment)}';
+            throw 'WebGL Backend Exception : ${_resource.id} : Error compiling fragment shader : ${getShaderInfoLog(fragment)}';
         }
 
         // Link the shaders into a program.
-        var program = opengl.WebGL.createProgram();
+        var program = glCreateProgram();
         glAttachShader(program, vertex);
         glAttachShader(program, fragment);
         glLinkProgram(program);
 
-        if (opengl.WebGL.getProgramParameter(program, GL_LINK_STATUS) == 0)
+        if (getProgramParameter(program, GL_LINK_STATUS) == 0)
         {
-            throw 'WebGL Backend Exception : ${_resource.id} : Error linking program : ${opengl.WebGL.getProgramInfoLog(program)}';
+            throw 'WebGL Backend Exception : ${_resource.id} : Error linking program : ${getProgramInfoLog(program)}';
         }
 
         // Delete the shaders now that they're linked
@@ -788,8 +796,8 @@ class WebGLBackend implements IRendererBackend
         }
 
         // Write the default matrix uniforms
-        opengl.WebGL.uniformMatrix4fv(cache.uniformLocations[0], false, _command.projection);
-        opengl.WebGL.uniformMatrix4fv(cache.uniformLocations[1], false, _command.view);
+        uniformMatrix4fv(cache.uniformLocations[0], false, _command.projection);
+        uniformMatrix4fv(cache.uniformLocations[1], false, _command.view);
 
         // Start at uniform index 2 since the first two are the default matrix uniforms.
         var uniformIdx = 2;
@@ -798,9 +806,9 @@ class WebGLBackend implements IRendererBackend
             for (val in cache.layout.blocks[i].vals)
             {
                 switch (ShaderType.createByName(val.type)) {
-                    case Matrix4: opengl.WebGL.uniformMatrix4fv(cache.uniformLocations[uniformIdx++], false, _command.shader.uniforms.matrix4.get(val.name));
-                    case Vector4: opengl.WebGL.uniform4fv(cache.uniformLocations[uniformIdx++], _command.shader.uniforms.vector4.get(val.name));
-                    case Int    : opengl.WebGL.uniform1f(cache.uniformLocations[uniformIdx++], _command.shader.uniforms.int.get(val.name));
+                    case Matrix4: uniformMatrix4fv(cache.uniformLocations[uniformIdx++], false, _command.shader.uniforms.matrix4.get(val.name));
+                    case Vector4: uniform4fv(cache.uniformLocations[uniformIdx++], _command.shader.uniforms.vector4.get(val.name));
+                    case Int    : uniform1f(cache.uniformLocations[uniformIdx++], _command.shader.uniforms.int.get(val.name));
                 }
             }
         }
