@@ -292,13 +292,14 @@ class WebGLBackend implements IRendererBackend
         {
             dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexByteOffset));
 
+            var rangeIndexOffset = 0;
             for (geom in command.geometry)
             {
                 var matrix = geom.transformation.transformation;
 
                 for (index in geom.indices)
                 {
-                    idxDst[indexOffset++] = vertexOffset + index;
+                    idxDst[indexOffset++] = rangeIndexOffset + index;
                     indexByteOffset += UInt16Array.BYTES_PER_ELEMENT;
                 }
 
@@ -322,6 +323,8 @@ class WebGLBackend implements IRendererBackend
                     vertexOffset++;
                     vertexByteOffset += (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT);
                 }
+
+                rangeIndexOffset += geom.vertices.length;
             }
         }
 
