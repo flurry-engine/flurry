@@ -365,15 +365,13 @@ class WebGLBackend implements IRendererBackend
             // Draw the actual vertices
             if (range.indices > 0)
             {
-                trace('drawing ${range.indices} indicies starting at ${range.indexOffset}');
-
                 switch (command.primitive)
                 {
-                    case Points        : untyped __cpp__('glDrawElements({0}, {1}, {2}, (void*)(intptr_t){2})', GL_POINTS        , range.indices, GL_UNSIGNED_SHORT, range.indexOffset);
-                    case Lines         : untyped __cpp__('glDrawElements({0}, {1}, {2}, (void*)(intptr_t){2})', GL_LINES         , range.indices, GL_UNSIGNED_SHORT, range.indexOffset);
-                    case LineStrip     : untyped __cpp__('glDrawElements({0}, {1}, {2}, (void*)(intptr_t){2})', GL_LINE_STRIP    , range.indices, GL_UNSIGNED_SHORT, range.indexOffset);
-                    case Triangles     : untyped __cpp__('glDrawElements({0}, {1}, {2}, (void*)(intptr_t){2})', GL_TRIANGLES     , range.indices, GL_UNSIGNED_SHORT, range.indexOffset);
-                    case TriangleStrip : untyped __cpp__('glDrawElements({0}, {1}, {2}, (void*)(intptr_t){2})', GL_TRIANGLE_STRIP, range.indices, GL_UNSIGNED_SHORT, range.indexOffset);
+                    case Points        : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_POINTS        , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case Lines         : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINES         , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case LineStrip     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINE_STRIP    , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case Triangles     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLES     , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case TriangleStrip : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLE_STRIP, command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
                 }
             }
             else
@@ -910,13 +908,13 @@ private class DrawCommandRange
     /**
      * The number of bytes this command is offset into the current range.
      */
-    public final indexOffset : Int;
+    public final indexByteOffset : Int;
 
-    inline public function new(_vertices : Int, _vertexOffset : Int, _indices : Int, _indexOffset)
+    inline public function new(_vertices : Int, _vertexOffset : Int, _indices : Int, _indexByteOffset)
     {
-        vertices     = _vertices;
-        vertexOffset = _vertexOffset;
-        indices      = _indices;
-        indexOffset  = _indexOffset;
+        vertices        = _vertices;
+        vertexOffset    = _vertexOffset;
+        indices         = _indices;
+        indexByteOffset = _indexByteOffset;
     }
 }
