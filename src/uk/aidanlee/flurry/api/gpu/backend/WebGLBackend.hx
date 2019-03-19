@@ -183,13 +183,13 @@ class WebGLBackend implements IRendererBackend
 
         createWindow(_windowConfig);
 
-        shaderPrograms = new Map();
-        shaderUniforms = new Map();
-        textureObjects = new Map();
-        framebufferObjects = new Map();
+        shaderPrograms     = [];
+        shaderUniforms     = [];
+        textureObjects     = [];
+        framebufferObjects = [];
 
         transformationVector = new Vector();
-        dynamicCommandRanges = new Map();
+        dynamicCommandRanges = [];
 
         vertexOffset      = 0;
         vertexFloatOffset = 0;
