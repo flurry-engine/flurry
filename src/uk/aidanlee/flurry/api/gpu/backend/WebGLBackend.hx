@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import haxe.Exception;
 import haxe.io.UInt8Array;
 import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
@@ -509,14 +510,14 @@ class WebGLBackend implements IRendererBackend
      */
     function createShader(_resource : ShaderResource)
     {
-        if (_resource.webgl == null)
-        {
-            throw 'WebGL Backend Exception : ${_resource.id} : Attempting to create a shader from a resource which has no webgl shader source';
-        }
-
         if (shaderPrograms.exists(_resource.id))
         {
-            throw 'WebGL Backend Exception : ${_resource.id} : Attempting to create a shader which already exists';
+            return;
+        }
+
+        if (_resource.webgl == null)
+        {
+            throw new GL32NoShaderSourceException(_resource.id);
         }
 
         // Create vertex shader.
@@ -526,7 +527,7 @@ class WebGLBackend implements IRendererBackend
 
         if (getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
         {
-            throw 'WebGL Backend Exception : ${_resource.id} : Error compiling vertex shader : ${getShaderInfoLog(vertex)}';
+            throw new GL32VertexCompilationError(_resource.id, getShaderInfoLog(vertex));
         }
 
         // Create fragment shader.
@@ -536,7 +537,7 @@ class WebGLBackend implements IRendererBackend
 
         if (getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
         {
-            throw 'WebGL Backend Exception : ${_resource.id} : Error compiling fragment shader : ${getShaderInfoLog(fragment)}';
+            throw new GL32FragmentCompilationError(_resource.id, getShaderInfoLog(vertex));
         }
 
         // Link the shaders into a program.
@@ -547,7 +548,7 @@ class WebGLBackend implements IRendererBackend
 
         if (getProgramParameter(program, GL_LINK_STATUS) == 0)
         {
-            throw 'WebGL Backend Exception : ${_resource.id} : Error linking program : ${getProgramInfoLog(program)}';
+            throw new GL32ShaderLinkingException(_resource.id, getProgramInfoLog(program));
         }
 
         // Delete the shaders now that they're linked
@@ -696,7 +697,7 @@ class WebGLBackend implements IRendererBackend
 
                 if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
                 {
-                    throw 'WebGL Backend Exception : ${target.id} : Framebuffer not complete';
+                    throw new GL32IncompleteFramebufferException(target.id);
                 }
 
                 framebufferObjects.set(target.id, fbo[0]);
@@ -764,7 +765,7 @@ class WebGLBackend implements IRendererBackend
         // TODO : Store all bound texture IDs and check before binding textures.
         if (cache.layout.textures.length > _command.textures.length)
         {
-            throw 'Error : More textures required by the shader than are provided by the draw command';
+            throw new GL32NotEnoughTexturesException(_command.shader.id, _command.id, cache.layout.textures.length, _command.textures.length);
         }
         else
         {
@@ -927,5 +928,53 @@ private class DrawCommandRange
         vertexOffset    = _vertexOffset;
         indices         = _indices;
         indexByteOffset = _indexByteOffset;
+    }
+}
+
+private class GL32NoShaderSourceException extends Exception
+{
+    public function new(_id : String)
+    {
+        super('$_id does not contain source code for a openGL 3.2 shader');
+    }
+}
+
+private class GL32VertexCompilationError extends Exception
+{
+    public function new(_id : String, _error : String)
+    {
+        super('Unable to compile the vertex shader for $_id : $_error');
+    }
+}
+
+private class GL32FragmentCompilationError extends Exception
+{
+    public function new(_id : String, _error : String)
+    {
+        super('Unable to compile the fragment shader for $_id : $_error');
+    }
+}
+
+private class GL32ShaderLinkingException extends Exception
+{
+    public function new(_id : String, _error : String)
+    {
+        super('Unable to link a shader from $_id : $_error');
+    }
+}
+
+private class GL32IncompleteFramebufferException extends Exception
+{
+    public function new(_error : String)
+    {
+        super(_error);
+    }
+}
+
+private class GL32NotEnoughTexturesException extends Exception
+{
+    public function new(_shaderID : String, _drawCommandID : Int, _expected : Int, _actual : Int)
+    {
+        super('Shader $_shaderID expects $_expected textures but the draw command $_drawCommandID only provided $_actual');
     }
 }
