@@ -54,7 +54,7 @@ import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
 
-using cpp.Pointer;
+using cpp.Native;
 
 @:headerCode('
 #include <D3Dcompiler.h>
@@ -403,7 +403,7 @@ class DX11Backend implements IRendererBackend
         }
 
         // Get a buffer to float32s so we can copy our float32array over.
-        var ptr : Pointer<cpp.Float32> = Pointer.fromRaw(mappedBuffer.sysMem).reinterpret();
+        var ptr : cpp.Pointer<cpp.Float32> = cpp.Pointer.fromRaw(mappedBuffer.sysMem).reinterpret();
 
         for (command in _commands)
         {
@@ -452,7 +452,7 @@ class DX11Backend implements IRendererBackend
         }
 
         // Get a buffer to float32s so we can copy our float32array over.
-        var ptr : Pointer<cpp.Float32> = Pointer.fromRaw(mappedBuffer.sysMem).reinterpret();
+        var ptr : cpp.Pointer<cpp.Float32> = cpp.Pointer.fromRaw(mappedBuffer.sysMem).reinterpret();
 
         for (command in _commands)
         {
@@ -749,7 +749,7 @@ class DX11Backend implements IRendererBackend
                 throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to create cbuffer $i';
             }
 
-            resource.buffers.set(i + 1, cast buffer);
+            resource.buffers.set(i + 1, buffer);
             resource.bytes.push(bytesData);
         }
 
@@ -907,8 +907,8 @@ class DX11Backend implements IRendererBackend
             // This essentially disables clipping by clipping the entire backbuffer size.
             if (scissor.area() == 0)
             {
-                nativeClip.right  = cast backbuffer.width;
-                nativeClip.bottom = cast backbuffer.height;
+                nativeClip.right  = backbuffer.width;
+                nativeClip.bottom = backbuffer.height;
             }
 
             context.rsSetScissorRects([ nativeClip ]);
@@ -1023,14 +1023,14 @@ class DX11Backend implements IRendererBackend
             throw 'DirectX 11 Backend Exception : Failed to map the shader matrix cbuffer';
         }
 
-        var ptr : Pointer<cpp.Float32> = map.sysMem.fromRaw().reinterpret();
+        var ptr : cpp.Pointer<cpp.Float32> = cpp.Pointer.fromRaw(map.sysMem).reinterpret();
         var itr = 0;
 
-        for (el in cast (_command.projection, Float32Array))
+        for (el in (_command.projection : Float32Array))
         {
             ptr[itr++] = el;
         }
-        for (el in cast (_command.view, Float32Array))
+        for (el in (_command.view : Float32Array))
         {
             ptr[itr++] = el;
         }
@@ -1064,7 +1064,7 @@ class DX11Backend implements IRendererBackend
             }
 
             // TODO : Look into memcpy to simplify this code.
-            var ptr : Pointer<cpp.UInt8> = map.sysMem.fromRaw().reinterpret();
+            var ptr : cpp.Pointer<cpp.UInt8> = cpp.Pointer.fromRaw(map.sysMem).reinterpret();
             var itr = 0;
             for (int in shaderResource.bytes[i].getData())
             {
@@ -1089,7 +1089,7 @@ class DX11Backend implements IRendererBackend
     inline function writeMatrix4(_bytes : Bytes, _position : Int, _matrix : Matrix) : Int
     {
         var idx = 0;
-        for (el in cast (_matrix, Float32Array))
+        for (el in (_matrix : Float32Array))
         {
             _bytes.setFloat(_position + idx, el);
             idx += 4;
