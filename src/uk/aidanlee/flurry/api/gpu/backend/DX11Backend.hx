@@ -103,6 +103,11 @@ class DX11Backend implements IRendererBackend
     var vertexBuffer : Buffer;
 
     /**
+     * Single main index buffer.
+     */
+    var indexBuffer : Buffer;
+
+    /**
      * Native D3D viewport struct.
      */
     var nativeView : Viewport;
@@ -174,6 +179,11 @@ class DX11Backend implements IRendererBackend
      * Current vertex offset for writing into the vertex buffer.
      */
     var vertexOffset : Int;
+
+    /**
+     * Current index offset for writing into the vertex buffer.
+     */
+    var indexOffset : Int;
 
     // State trackers
     var viewport : Rectangle;
@@ -343,11 +353,23 @@ class DX11Backend implements IRendererBackend
             throw 'DirectX 11 Backend Exception : Failed to create vertex buffer';
         }
 
+        var bufferDesc = BufferDescription.create();
+        bufferDesc.byteWidth      = (_rendererConfig.dynamicIndices + _rendererConfig.unchangingIndices) * 2;
+        bufferDesc.usage          = DYNAMIC;
+        bufferDesc.bindFlags      = INDEX_BUFFER;
+        bufferDesc.cpuAccessFlags = WRITE;
+
+        if (device.createBuffer(cast bufferDesc.addressOf(), null, cast indexBuffer.addressOf()) != 0)
+        {
+            throw 'DirectX 11 Backend Exception : Failed to create index buffer';
+        }
+
         targetSequence++;
 
         // Set the initial context state.
         var stride = (9 * 4);
         var offset = 0;
+        context.iaSetIndexBuffer(indexBuffer, R16_UINT, offset);
         context.iaSetVertexBuffers(0, [ vertexBuffer ], [ stride ], [ offset ]);
         context.iaSetPrimitiveTopology(TRIANGLELIST);
         context.rsSetViewports([ nativeView ]);
@@ -357,6 +379,7 @@ class DX11Backend implements IRendererBackend
 
         floatOffset  = 0;
         vertexOffset = 0;
+        indexOffset  = 0;
         transformationVector = new Vector();
         dynamicCommandRanges = new Map();
 
@@ -387,6 +410,7 @@ class DX11Backend implements IRendererBackend
     {
         floatOffset  = 0;
         vertexOffset = 0;
+        indexOffset  = 0;
     }
 
     /**
@@ -396,14 +420,20 @@ class DX11Backend implements IRendererBackend
     public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void
     {
         // Map the buffer.
-        var mappedBuffer = MappedSubResource.create();
-        if (context.map(vertexBuffer, 0, WRITE_DISCARD, 0, cast mappedBuffer.addressOf()) != 0)
+        var mappedVtxBuffer = MappedSubResource.create();
+        if (context.map(vertexBuffer, 0, WRITE_DISCARD, 0, cast mappedVtxBuffer.addressOf()) != 0)
         {
             throw 'DirectX 11 Backend Exception : Failed to map vertex buffer';
         }
 
+        var mappedIdxBuffer = MappedSubResource.create();
+        if (context.map(indexBuffer, 0, WRITE_DISCARD, 0, cast mappedIdxBuffer.addressOf()) != 0)
+        {
+            throw 'DirectX 11 Backend Exception : Failed to map index buffer';
+        }
+
         // Get a buffer to float32s so we can copy our float32array over.
-        var ptr : cpp.Pointer<cpp.Float32> = cpp.Pointer.fromRaw(mappedBuffer.sysMem).reinterpret();
+        var vtx : cpp.Pointer<cpp.Float32> = cpp.Pointer.fromRaw(mappedVtxBuffer.sysMem).reinterpret();
 
         for (command in _commands)
         {
@@ -420,15 +450,15 @@ class DX11Backend implements IRendererBackend
                     transformationVector.copyFrom(vertex.position);
                     transformationVector.transform(matrix);
 
-                    ptr[floatOffset++] = transformationVector.x;
-                    ptr[floatOffset++] = transformationVector.y;
-                    ptr[floatOffset++] = transformationVector.z;
-                    ptr[floatOffset++] = vertex.color.r;
-                    ptr[floatOffset++] = vertex.color.g;
-                    ptr[floatOffset++] = vertex.color.b;
-                    ptr[floatOffset++] = vertex.color.a;
-                    ptr[floatOffset++] = vertex.texCoord.x;
-                    ptr[floatOffset++] = vertex.texCoord.y;
+                    vtx[floatOffset++] = transformationVector.x;
+                    vtx[floatOffset++] = transformationVector.y;
+                    vtx[floatOffset++] = transformationVector.z;
+                    vtx[floatOffset++] = vertex.color.r;
+                    vtx[floatOffset++] = vertex.color.g;
+                    vtx[floatOffset++] = vertex.color.b;
+                    vtx[floatOffset++] = vertex.color.a;
+                    vtx[floatOffset++] = vertex.texCoord.x;
+                    vtx[floatOffset++] = vertex.texCoord.y;
 
                     vertexOffset++;
                 }
@@ -436,6 +466,7 @@ class DX11Backend implements IRendererBackend
         }
 
         context.unmap(vertexBuffer, 0);
+        context.unmap(indexBuffer, 0);
     }
 
     /**
