@@ -171,17 +171,17 @@ class DX11Backend implements IRendererBackend
     var targetSequence : Int;
 
     /**
-     * Current float offset for writing into the vertex buffer.
-     */
-    var floatOffset : Int;
-
-    /**
-     * Current vertex offset for writing into the vertex buffer.
+     * The number of vertices that have been written into the vertex buffer this frame.
      */
     var vertexOffset : Int;
 
     /**
-     * Current index offset for writing into the vertex buffer.
+     * The number of 32bit floats that have been written into the vertex buffer this frame.
+     */
+    var vertexFloatOffset : Int;
+
+    /**
+     * The number of indices that have been written into the index buffer this frame.
      */
     var indexOffset : Int;
 
@@ -377,9 +377,10 @@ class DX11Backend implements IRendererBackend
         context.rsSetState(rasterState);
         context.omSetRenderTargets([ backbuffer.renderTargetView ], null);
 
-        floatOffset  = 0;
-        vertexOffset = 0;
-        indexOffset  = 0;
+        vertexOffset      = 0;
+        vertexFloatOffset = 0;
+        indexOffset       = 0;
+
         transformationVector = new Vector();
         dynamicCommandRanges = new Map();
 
@@ -408,9 +409,9 @@ class DX11Backend implements IRendererBackend
 
     public function preDraw()
     {
-        floatOffset  = 0;
-        vertexOffset = 0;
-        indexOffset  = 0;
+        vertexOffset      = 0;
+        vertexFloatOffset = 0;
+        indexOffset       = 0;
     }
 
     /**
@@ -434,14 +435,21 @@ class DX11Backend implements IRendererBackend
 
         // Get a buffer to float32s so we can copy our float32array over.
         var vtx : cpp.Pointer<cpp.Float32> = cpp.Pointer.fromRaw(mappedVtxBuffer.sysMem).reinterpret();
+        var idx : cpp.Pointer<cpp.UInt16>  = cpp.Pointer.fromRaw(mappedIdxBuffer.sysMem).reinterpret();
 
         for (command in _commands)
         {
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexOffset));
 
+            var rangeIndexOffset = 0;
             for (geom in command.geometry)
             {
                 var matrix = geom.transformation.transformation;
+
+                for (index in geom.indices)
+                {
+                    idx[indexOffset++] = rangeIndexOffset + index;
+                }
 
                 for (vertex in geom.vertices)
                 {
@@ -450,18 +458,19 @@ class DX11Backend implements IRendererBackend
                     transformationVector.copyFrom(vertex.position);
                     transformationVector.transform(matrix);
 
-                    vtx[floatOffset++] = transformationVector.x;
-                    vtx[floatOffset++] = transformationVector.y;
-                    vtx[floatOffset++] = transformationVector.z;
-                    vtx[floatOffset++] = vertex.color.r;
-                    vtx[floatOffset++] = vertex.color.g;
-                    vtx[floatOffset++] = vertex.color.b;
-                    vtx[floatOffset++] = vertex.color.a;
-                    vtx[floatOffset++] = vertex.texCoord.x;
-                    vtx[floatOffset++] = vertex.texCoord.y;
-
-                    vertexOffset++;
+                    vtx[vertexFloatOffset++] = transformationVector.x;
+                    vtx[vertexFloatOffset++] = transformationVector.y;
+                    vtx[vertexFloatOffset++] = transformationVector.z;
+                    vtx[vertexFloatOffset++] = vertex.color.r;
+                    vtx[vertexFloatOffset++] = vertex.color.g;
+                    vtx[vertexFloatOffset++] = vertex.color.b;
+                    vtx[vertexFloatOffset++] = vertex.color.a;
+                    vtx[vertexFloatOffset++] = vertex.texCoord.x;
+                    vtx[vertexFloatOffset++] = vertex.texCoord.y;
                 }
+
+                vertexOffset     += geom.vertices.length;
+                rangeIndexOffset += geom.vertices.length;
             }
         }
 
@@ -487,11 +496,11 @@ class DX11Backend implements IRendererBackend
 
         for (command in _commands)
         {
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, 0, 0));
 
             for (i in command.startIndex...command.endIndex)
             {
-                ptr[floatOffset++] = command.buffer[i];
+                ptr[vertexFloatOffset++] = command.buffer[i];
             }
 
             vertexOffset += command.vertices;
@@ -515,7 +524,14 @@ class DX11Backend implements IRendererBackend
             setState(command);
 
             // Draw
-            context.draw(range.vertices, range.vertexOffset);
+            if (command.indices > 0)
+            {
+                context.drawIndexed(command.indices, range.indexOffset, range.vertexOffset);
+            }
+            else
+            {
+                context.draw(range.vertices, range.vertexOffset);
+            }
 
             // Record stats
             if (_recordStats)
@@ -1331,15 +1347,36 @@ private class DXTargetInformation
     }
 }
 
+/**
+ * Stores the range of a draw command.
+ */
 private class DrawCommandRange
 {
+    /**
+     * The number of vertices in this draw command.
+     */
     public final vertices : Int;
 
+    /**
+     * The number of vertices this command is offset into the current range.
+     */
     public final vertexOffset : Int;
 
-    inline public function new(_vertices : Int, _vertexOffset : Int)
+    /**
+     * The number of indices in this draw command.
+     */
+    public final indices : Int;
+
+    /**
+     * The number of bytes this command is offset into the current range.
+     */
+    public final indexOffset : Int;
+
+    inline public function new(_vertices : Int, _vertexOffset : Int, _indices : Int, _indexOffset)
     {
         vertices     = _vertices;
         vertexOffset = _vertexOffset;
+        indices      = _indices;
+        indexOffset  = _indexOffset;
     }
 }
