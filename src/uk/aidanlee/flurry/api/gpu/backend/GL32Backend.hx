@@ -39,7 +39,7 @@ import uk.aidanlee.flurry.api.resources.ResourceEvents;
  * Uses snows openGL module so it can run on desktops and web platforms.
  * Allows targeting web, osx, and older integrated GPUs (anywhere where openGL 4.5 isn't supported).
  */
-class WebGLBackend implements IRendererBackend
+class GL32Backend implements IRendererBackend
 {
     /**
      * The number of floats in each vertex.

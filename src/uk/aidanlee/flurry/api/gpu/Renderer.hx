@@ -47,11 +47,11 @@ class Renderer
             case GL45:
                 backend = new uk.aidanlee.flurry.api.gpu.backend.GL45Backend(_events, stats, _windowConfig, _rendererConfig);
 
-            case GLES:
-                backend = new uk.aidanlee.flurry.api.gpu.backend.WebGLBackend(_events, stats, _windowConfig, _rendererConfig);
+            case GL32:
+                backend = new uk.aidanlee.flurry.api.gpu.backend.GL32Backend(_events, stats, _windowConfig, _rendererConfig);
             #end
 
-            #if windows
+            #if (cpp && windows)
             case DX11:
                 backend = new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_events, stats, _windowConfig, _rendererConfig);
             #end
