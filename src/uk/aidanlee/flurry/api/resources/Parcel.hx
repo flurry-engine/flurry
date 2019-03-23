@@ -13,7 +13,7 @@ typedef ImageInfo    = ResourceInfo;
 typedef ShaderInfo   = {
     >ResourceInfo,
 
-    ?webgl : Null<ShaderBackend>,
+    ?gl32 : Null<ShaderBackend>,
 
     ?gl45 : Null<ShaderBackend>,
 

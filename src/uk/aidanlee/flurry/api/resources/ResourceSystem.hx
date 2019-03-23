@@ -273,11 +273,11 @@ class ResourceSystem
                     }
 
                     var layout = Json.parse(fileSystem.file.getText(getResourceInfoPath(asset)));
-                    var sourceWebGL = asset.webgl == null ? null : { vertex : fileSystem.file.getText(asset.webgl.vertex), fragment : fileSystem.file.getText(asset.webgl.fragment) };
-                    var sourceGL45  = asset.gl45  == null ? null : { vertex : fileSystem.file.getText(asset.gl45.vertex) , fragment : fileSystem.file.getText(asset.gl45.fragment) };
-                    var sourceHLSL  = asset.hlsl  == null ? null : { vertex : fileSystem.file.getText(asset.hlsl.vertex) , fragment : fileSystem.file.getText(asset.hlsl.fragment) };
+                    var sourceGL32 = asset.gl32 == null ? null : { vertex : fileSystem.file.getText(asset.gl32.vertex), fragment : fileSystem.file.getText(asset.gl32.fragment) };
+                    var sourceGL45 = asset.gl45 == null ? null : { vertex : fileSystem.file.getText(asset.gl45.vertex), fragment : fileSystem.file.getText(asset.gl45.fragment) };
+                    var sourceHLSL = asset.hlsl == null ? null : { vertex : fileSystem.file.getText(asset.hlsl.vertex), fragment : fileSystem.file.getText(asset.hlsl.fragment) };
 
-                    resources.push(new ShaderResource(asset.id, layout, sourceWebGL, sourceGL45, sourceHLSL));
+                    resources.push(new ShaderResource(asset.id, layout, sourceGL32, sourceGL45, sourceHLSL));
 
                     queue.push(new ParcelProgressEvent(_parcel, Progress, ++loadedIndices / totalResources ));
                 }

@@ -1,14 +1,24 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import sdl.Window;
-import sdl.GLContext;
-import sdl.SDL;
-import haxe.ds.Map;
-import opengl.WebGL;
-import opengl.WebGL as GL;
+import haxe.Exception;
 import haxe.io.UInt8Array;
 import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
+import cpp.UInt16;
+import cpp.Float32;
+import cpp.Pointer;
+import opengl.GL.*;
+import opengl.WebGL.getShaderParameter;
+import opengl.WebGL.shaderSource;
+import opengl.WebGL.getProgramParameter;
+import opengl.WebGL.getProgramInfoLog;
+import opengl.WebGL.getShaderInfoLog;
+import opengl.WebGL.uniformMatrix4fv;
+import opengl.WebGL.uniform4fv;
+import opengl.WebGL.uniform1f;
+import sdl.Window;
+import sdl.GLContext;
+import sdl.SDL;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
@@ -29,7 +39,7 @@ import uk.aidanlee.flurry.api.resources.ResourceEvents;
  * Uses snows openGL module so it can run on desktops and web platforms.
  * Allows targeting web, osx, and older integrated GPUs (anywhere where openGL 4.5 isn't supported).
  */
-class WebGLBackend implements IRendererBackend
+class GL32Backend implements IRendererBackend
 {
     /**
      * The number of floats in each vertex.
@@ -64,12 +74,12 @@ class WebGLBackend implements IRendererBackend
     /**
      * The single VBO used by the backend.
      */
-    final glVbo : GLBuffer;
+    final glVbo : Int;
 
     /**
      * The single index buffer used by the backend.
      */
-    final glIbo : GLBuffer;
+    final glIbo : Int;
 
     /**
      * Vertex buffer used by this backend.
@@ -174,13 +184,13 @@ class WebGLBackend implements IRendererBackend
 
         createWindow(_windowConfig);
 
-        shaderPrograms = new Map();
-        shaderUniforms = new Map();
-        textureObjects = new Map();
-        framebufferObjects = new Map();
+        shaderPrograms     = [];
+        shaderUniforms     = [];
+        textureObjects     = [];
+        framebufferObjects = [];
 
         transformationVector = new Vector();
-        dynamicCommandRanges = new Map();
+        dynamicCommandRanges = [];
 
         vertexOffset      = 0;
         vertexFloatOffset = 0;
@@ -195,41 +205,47 @@ class WebGLBackend implements IRendererBackend
         indexBuffer  = new UInt16Array(_rendererConfig.dynamicIndices + _rendererConfig.unchangingIndices);
 
         // Core OpenGL profiles require atleast one VAO is bound.
-        // So if we're running on a native platform create and bind a VAO
-
         var vao = [ 0 ];
-        opengl.GL.glGenVertexArrays(1, vao);
-        opengl.GL.glBindVertexArray(vao[0]);
+        glGenVertexArrays(1, vao);
+        glBindVertexArray(vao[0]);
 
-        glVbo = GL.createBuffer();
-        GL.bindBuffer(GL.ARRAY_BUFFER, glVbo);
-        GL.bufferData(GL.ARRAY_BUFFER, vertexBuffer.view, GL.DYNAMIC_DRAW);
+        var vbos = [ 0 ];
+        glGenBuffers(1, vbos);
+        glVbo = vbos[0];
 
-        glIbo = GL.createBuffer();
-        GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, glIbo);
-        GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, indexBuffer.view, GL.DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, glVbo);
+        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.view.byteLength, vertexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
 
-        GL.enableVertexAttribArray(0);
-        GL.enableVertexAttribArray(1);
-        GL.enableVertexAttribArray(2);
-        GL.vertexAttribPointer(0, 3, GL.FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_POS);
-        GL.vertexAttribPointer(1, 4, GL.FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_COL);
-        GL.vertexAttribPointer(2, 2, GL.FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
+        var ibos = [ 0 ];
+        glGenBuffers(1, ibos);
+        glIbo = ibos[0];
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIbo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer.view.byteLength, indexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
+        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 0, 3, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_POS);
+        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 1, 4, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_COL);
+        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 2, 2, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
 
         // Create a representation of the backbuffer.
-        backbuffer = new BackBuffer(_windowConfig.width, _windowConfig.height, 1, GL.getParameter(GL.FRAMEBUFFER));
+        var backbufferID = [ 0 ];
+        glGetIntegerv(GL_FRAMEBUFFER, backbufferID);
+        backbuffer = new BackBuffer(_windowConfig.width, _windowConfig.height, 1, backbufferID[0]);
 
         // Default blend mode
         // TODO : Move this to be a settable property in the geometry or renderer or something
-        GL.blendEquationSeparate(GL.FUNC_ADD, GL.FUNC_ADD);
-        GL.blendFuncSeparate(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA, GL.ONE, GL.ZERO);
+        glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
         // Set the clear colour
-        GL.clearColor(_rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a);
+        glClearColor(_rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a);
 
         // Default scissor test
-        GL.enable(GL.SCISSOR_TEST);
-        GL.scissor(0, 0, backbuffer.width, backbuffer.height);
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(0, 0, backbuffer.width, backbuffer.height);
 
         // default state
         viewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
@@ -252,9 +268,9 @@ class WebGLBackend implements IRendererBackend
     {
         // Disable the clip to clear the entire target.
         clip.set(0, 0, backbuffer.width, backbuffer.height);
-        GL.scissor(0, 0, backbuffer.width, backbuffer.height);
+        glScissor(0, 0, backbuffer.width, backbuffer.height);
 
-        GL.clear(GL.COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT);
     }
 
     public function clearUnchanging()
@@ -278,24 +294,21 @@ class WebGLBackend implements IRendererBackend
      */
     public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void
     {
-        var startVertexByteOffset  = vertexByteOffset;
-        var startVertexFloatOffset = vertexFloatOffset;
-
-        var startIndexOffset     = indexOffset;
-        var startIndexByteOffset = indexByteOffset;
+        var vtxDst : Pointer<Float32> = Pointer.fromRaw(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
+        var idxDst : Pointer<UInt16>  = Pointer.fromRaw(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
 
         for (command in _commands)
         {
             dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexByteOffset));
 
+            var rangeIndexOffset = 0;
             for (geom in command.geometry)
             {
                 var matrix = geom.transformation.transformation;
 
                 for (index in geom.indices)
                 {
-                    indexBuffer[indexOffset++] = vertexOffset + index;
-                    indexByteOffset += UInt16Array.BYTES_PER_ELEMENT;
+                    idxDst[indexOffset++] = rangeIndexOffset + index;
                 }
 
                 for (vertex in geom.vertices)
@@ -305,24 +318,26 @@ class WebGLBackend implements IRendererBackend
                     transformationVector.copyFrom(vertex.position);
                     transformationVector.transform(matrix);
 
-                    vertexBuffer[vertexFloatOffset++] = transformationVector.x;
-                    vertexBuffer[vertexFloatOffset++] = transformationVector.y;
-                    vertexBuffer[vertexFloatOffset++] = transformationVector.z;
-                    vertexBuffer[vertexFloatOffset++] = vertex.color.r;
-                    vertexBuffer[vertexFloatOffset++] = vertex.color.g;
-                    vertexBuffer[vertexFloatOffset++] = vertex.color.b;
-                    vertexBuffer[vertexFloatOffset++] = vertex.color.a;
-                    vertexBuffer[vertexFloatOffset++] = vertex.texCoord.x;
-                    vertexBuffer[vertexFloatOffset++] = vertex.texCoord.y;
-
-                    vertexOffset++;
-                    vertexByteOffset += (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT);
+                    vtxDst[vertexFloatOffset++] = transformationVector.x;
+                    vtxDst[vertexFloatOffset++] = transformationVector.y;
+                    vtxDst[vertexFloatOffset++] = transformationVector.z;
+                    vtxDst[vertexFloatOffset++] = vertex.color.r;
+                    vtxDst[vertexFloatOffset++] = vertex.color.g;
+                    vtxDst[vertexFloatOffset++] = vertex.color.b;
+                    vtxDst[vertexFloatOffset++] = vertex.color.a;
+                    vtxDst[vertexFloatOffset++] = vertex.texCoord.x;
+                    vtxDst[vertexFloatOffset++] = vertex.texCoord.y;
                 }
+
+                vertexOffset     += geom.vertices.length;
+                vertexByteOffset += (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT) * geom.vertices.length;
+                indexByteOffset  += UInt16Array.BYTES_PER_ELEMENT * geom.indices.length;
+                rangeIndexOffset += geom.vertices.length;
             }
         }
 
-        GL.bufferSubData(GL.ARRAY_BUFFER, startVertexByteOffset, vertexBuffer.subarray(startVertexFloatOffset, vertexFloatOffset).view);
-        GL.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, startIndexByteOffset, indexBuffer.subarray(startIndexOffset, indexOffset).view);
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
     }
 
     /**
@@ -335,11 +350,16 @@ class WebGLBackend implements IRendererBackend
         {
             dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, 0, 0));
 
-            GL.bufferSubData(GL.ARRAY_BUFFER, vertexByteOffset, command.buffer.subarray(command.startIndex, command.endIndex).view);
+            var vtxDst : Pointer<Float32> = Pointer.fromRaw(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
+            for (i in command.startIndex...command.endIndex)
+            {
+                vtxDst[vertexFloatOffset++] = command.buffer[i];
+            }
 
             vertexOffset      += command.vertices;
-            vertexFloatOffset += command.vertices * VERTEX_FLOAT_SIZE;
-            vertexByteOffset  += command.vertices * VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT;
+            vertexByteOffset  += command.vertices * (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT);
+
+            glUnmapBuffer(GL_ARRAY_BUFFER);
         }
     }
 
@@ -362,22 +382,22 @@ class WebGLBackend implements IRendererBackend
             {
                 switch (command.primitive)
                 {
-                    case Points        : GL.drawElements(GL.POINTS        , range.indices, GL.UNSIGNED_SHORT, range.indexOffset);
-                    case Lines         : GL.drawElements(GL.LINES         , range.indices, GL.UNSIGNED_SHORT, range.indexOffset);
-                    case LineStrip     : GL.drawElements(GL.LINE_STRIP    , range.indices, GL.UNSIGNED_SHORT, range.indexOffset);
-                    case Triangles     : GL.drawElements(GL.TRIANGLES     , range.indices, GL.UNSIGNED_SHORT, range.indexOffset);
-                    case TriangleStrip : GL.drawElements(GL.TRIANGLE_STRIP, range.indices, GL.UNSIGNED_SHORT, range.indexOffset);
+                    case Points        : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_POINTS        , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case Lines         : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINES         , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case LineStrip     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINE_STRIP    , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case Triangles     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLES     , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
+                    case TriangleStrip : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLE_STRIP, command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
                 }
             }
             else
             {
                 switch (command.primitive)
                 {
-                    case Points        : GL.drawArrays(GL.POINTS        , range.vertexOffset, range.vertices);
-                    case Lines         : GL.drawArrays(GL.LINES         , range.vertexOffset, range.vertices);
-                    case LineStrip     : GL.drawArrays(GL.LINE_STRIP    , range.vertexOffset, range.vertices);
-                    case Triangles     : GL.drawArrays(GL.TRIANGLES     , range.vertexOffset, range.vertices);
-                    case TriangleStrip : GL.drawArrays(GL.TRIANGLE_STRIP, range.vertexOffset, range.vertices);
+                    case Points        : glDrawArrays(GL_POINTS        , range.vertexOffset, range.vertices);
+                    case Lines         : glDrawArrays(GL_LINES         , range.vertexOffset, range.vertices);
+                    case LineStrip     : glDrawArrays(GL_LINE_STRIP    , range.vertexOffset, range.vertices);
+                    case Triangles     : glDrawArrays(GL_TRIANGLES     , range.vertexOffset, range.vertices);
+                    case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, range.vertexOffset, range.vertices);
                 }
             }            
 
@@ -402,7 +422,7 @@ class WebGLBackend implements IRendererBackend
     {
         for (shaderID in shaderPrograms.keys())
         {
-            GL.deleteProgram(shaderPrograms.get(shaderID));
+            glDeleteProgram(shaderPrograms.get(shaderID));
 
             shaderPrograms.remove(shaderID);
             shaderUniforms.remove(shaderID);
@@ -410,12 +430,12 @@ class WebGLBackend implements IRendererBackend
 
         for (textureID in textureObjects.keys())
         {
-            GL.deleteTexture(textureObjects.get(textureID));
+            glDeleteTextures(1, [ textureObjects.get(textureID) ]);
             textureObjects.remove(textureID);
 
             if (framebufferObjects.exists(textureID))
             {
-                GL.deleteFramebuffer(framebufferObjects.get(textureID));
+                glDeleteFramebuffers(1, [ framebufferObjects.get(textureID) ]);
                 framebufferObjects.remove(textureID);
             }
         }
@@ -493,63 +513,63 @@ class WebGLBackend implements IRendererBackend
      */
     function createShader(_resource : ShaderResource)
     {
-        if (_resource.webgl == null)
-        {
-            throw 'WebGL Backend Exception : ${_resource.id} : Attempting to create a shader from a resource which has no webgl shader source';
-        }
-
         if (shaderPrograms.exists(_resource.id))
         {
-            throw 'WebGL Backend Exception : ${_resource.id} : Attempting to create a shader which already exists';
+            return;
+        }
+
+        if (_resource.webgl == null)
+        {
+            throw new GL32NoShaderSourceException(_resource.id);
         }
 
         // Create vertex shader.
-        var vertex = GL.createShader(GL.VERTEX_SHADER);
-        GL.shaderSource(vertex, _resource.webgl.vertex);
-        GL.compileShader(vertex);
+        var vertex = glCreateShader(GL_VERTEX_SHADER);
+        shaderSource(vertex, _resource.webgl.vertex);
+        glCompileShader(vertex);
 
-        if (GL.getShaderParameter(vertex, GL.COMPILE_STATUS) == 0)
+        if (getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
         {
-            throw 'WebGL Backend Exception : ${_resource.id} : Error compiling vertex shader : ${GL.getShaderInfoLog(vertex)}';
+            throw new GL32VertexCompilationError(_resource.id, getShaderInfoLog(vertex));
         }
 
         // Create fragment shader.
-        var fragment = GL.createShader(GL.FRAGMENT_SHADER);
-        GL.shaderSource(fragment, _resource.webgl.fragment);
-        GL.compileShader(fragment);
+        var fragment = glCreateShader(GL_FRAGMENT_SHADER);
+        shaderSource(fragment, _resource.webgl.fragment);
+        glCompileShader(fragment);
 
-        if (GL.getShaderParameter(fragment, GL.COMPILE_STATUS) == 0)
+        if (getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
         {
-            throw 'WebGL Backend Exception : ${_resource.id} : Error compiling fragment shader : ${GL.getShaderInfoLog(fragment)}';
+            throw new GL32FragmentCompilationError(_resource.id, getShaderInfoLog(vertex));
         }
 
         // Link the shaders into a program.
-        var program = GL.createProgram();
-        GL.attachShader(program, vertex);
-        GL.attachShader(program, fragment);
-        GL.linkProgram(program);
+        var program = glCreateProgram();
+        glAttachShader(program, vertex);
+        glAttachShader(program, fragment);
+        glLinkProgram(program);
 
-        if (GL.getProgramParameter(program, GL.LINK_STATUS) == 0)
+        if (getProgramParameter(program, GL_LINK_STATUS) == 0)
         {
-            throw 'WebGL Backend Exception : ${_resource.id} : Error linking program : ${GL.getProgramInfoLog(program)}';
+            throw new GL32ShaderLinkingException(_resource.id, getProgramInfoLog(program));
         }
 
         // Delete the shaders now that they're linked
-        GL.deleteShader(vertex);
-        GL.deleteShader(fragment);
+        glDeleteShader(vertex);
+        glDeleteShader(fragment);
 
         // WebGL has no uniform blocks so all inner values are converted to uniforms
         var textureLocations = [];
-        var uniformLocations = [ GL.getUniformLocation(program, 'projection'), GL.getUniformLocation(program, 'view') ];
+        var uniformLocations = [ glGetUniformLocation(program, 'projection'), glGetUniformLocation(program, 'view') ];
         for (texture in _resource.layout.textures)
         {
-            textureLocations.push(GL.getUniformLocation(program, texture));
+            textureLocations.push(glGetUniformLocation(program, texture));
         }
         for (block in _resource.layout.blocks)
         {
             for (uniform in block.vals)
             {
-                uniformLocations.push(GL.getUniformLocation(program, uniform.name));
+                uniformLocations.push(glGetUniformLocation(program, uniform.name));
             }
         }
 
@@ -563,7 +583,7 @@ class WebGLBackend implements IRendererBackend
      */
     function removeShader(_resource : ShaderResource)
     {
-        GL.deleteProgram(shaderPrograms.get(_resource.id));
+        glDeleteProgram(shaderPrograms.get(_resource.id));
 
         shaderPrograms.remove(_resource.id);
         shaderUniforms.remove(_resource.id);
@@ -579,18 +599,19 @@ class WebGLBackend implements IRendererBackend
      */
     function createTexture(_resource : ImageResource)
     {
-        var id = GL.createTexture();
-        GL.bindTexture(GL.TEXTURE_2D, id);
+        var id = [ 0 ];
+        glGenTextures(1, id);
+        glBindTexture(GL_TEXTURE_2D, id[0]);
 
-        GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
-        GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
-        GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.NEAREST);
-        GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.NEAREST);
-        opengl.GL.glTexImage2D(GL.TEXTURE_2D, 0, GL.RGBA, _resource.width, _resource.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, UInt8Array.fromArray(cast _resource.pixels).getData().bytes.getData());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _resource.width, _resource.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, UInt8Array.fromArray(cast _resource.pixels).getData().bytes.getData());
 
-        GL.bindTexture(GL.TEXTURE_2D, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
-        textureObjects.set(_resource.id, id);
+        textureObjects.set(_resource.id, id[0]);
     }
 
     /**
@@ -599,7 +620,7 @@ class WebGLBackend implements IRendererBackend
      */
     function removeTexture(_resource : ImageResource)
     {
-        GL.deleteTexture(textureObjects.get(_resource.id));
+        glDeleteTextures(1, [ textureObjects.get(_resource.id) ]);
         textureObjects.remove(_resource.id);
     }
 
@@ -626,7 +647,7 @@ class WebGLBackend implements IRendererBackend
 
             // OpenGL works 0x0 is bottom left so we need to flip the y.
             y = (target == null ? backbuffer.height : target.height) - (y + h);
-            GL.viewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
+            glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
 
             if (!_disableStats)
             {
@@ -654,7 +675,7 @@ class WebGLBackend implements IRendererBackend
 
             // OpenGL works 0x0 is bottom left so we need to flip the y.
             y = (target == null ? backbuffer.height : target.height) - (y + h);
-            GL.scissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
+            glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
 
             if (!_disableStats)
             {
@@ -672,21 +693,22 @@ class WebGLBackend implements IRendererBackend
             if (target != null && !framebufferObjects.exists(target.id))
             {
                 // Create the framebuffer
-                var fbo = GL.createFramebuffer();
-                GL.bindFramebuffer(GL.FRAMEBUFFER, fbo);
-                GL.framebufferTexture2D(GL.FRAMEBUFFER, GL.COLOR_ATTACHMENT0, GL.TEXTURE_2D, textureObjects.get(target.id), 0);
+                var fbo = [ 0 ];
+                glCreateFramebuffers(1, fbo);
+                glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureObjects.get(target.id), 0);
 
-                if (GL.checkFramebufferStatus(GL.FRAMEBUFFER) != GL.FRAMEBUFFER_COMPLETE)
+                if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
                 {
-                    throw 'WebGL Backend Exception : ${target.id} : Framebuffer not complete';
+                    throw new GL32IncompleteFramebufferException(target.id);
                 }
 
-                framebufferObjects.set(target.id, fbo);
+                framebufferObjects.set(target.id, fbo[0]);
 
-                GL.bindFramebuffer(GL.FRAMEBUFFER, 0);
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
             }
 
-            GL.bindFramebuffer(GL.FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebufferObject);
+            glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebufferObject);
 
             if (!_disableStats)
             {
@@ -698,7 +720,7 @@ class WebGLBackend implements IRendererBackend
         if (shader != _command.shader)
         {
             shader = _command.shader;
-            GL.useProgram(shaderPrograms.get(shader.id));
+            glUseProgram(shaderPrograms.get(shader.id));
 
             if (!_disableStats)
             {
@@ -713,8 +735,8 @@ class WebGLBackend implements IRendererBackend
         // Set the blending
         if (_command.blending)
         {
-            GL.enable(GL.BLEND);
-            GL.blendFuncSeparate(getBlendMode(_command.srcRGB), getBlendMode(_command.dstRGB), getBlendMode(_command.srcAlpha), getBlendMode(_command.dstAlpha));
+            glEnable(GL_BLEND);
+            glBlendFuncSeparate(getBlendMode(_command.srcRGB), getBlendMode(_command.dstRGB), getBlendMode(_command.srcAlpha), getBlendMode(_command.dstAlpha));
 
             if (!_disableStats)
             {
@@ -723,7 +745,7 @@ class WebGLBackend implements IRendererBackend
         }
         else
         {
-            GL.disable(GL.BLEND);
+            glDisable(GL_BLEND);
 
             if (!_disableStats)
             {
@@ -746,7 +768,7 @@ class WebGLBackend implements IRendererBackend
         // TODO : Store all bound texture IDs and check before binding textures.
         if (cache.layout.textures.length > _command.textures.length)
         {
-            throw 'Error : More textures required by the shader than are provided by the draw command';
+            throw new GL32NotEnoughTexturesException(_command.shader.id, _command.id, cache.layout.textures.length, _command.textures.length);
         }
         else
         {
@@ -762,10 +784,10 @@ class WebGLBackend implements IRendererBackend
                 var glTextureID  = textureObjects.get(_command.textures[i].id);
                 if (glTextureID != boundTextures[i])
                 {
-                    GL.activeTexture(GL.TEXTURE0 + i);
-                    GL.bindTexture(GL.TEXTURE_2D, textureObjects.get(_command.textures[i].id));
+                    glActiveTexture(GL_TEXTURE0 + i);
+                    glBindTexture(GL_TEXTURE_2D, textureObjects.get(_command.textures[i].id));
 
-                    GL.uniform1i(cache.textureLocations[i], i);
+                    glUniform1i(cache.textureLocations[i], i);
 
                     boundTextures[i] = glTextureID;
 
@@ -778,8 +800,8 @@ class WebGLBackend implements IRendererBackend
         }
 
         // Write the default matrix uniforms
-        GL.uniformMatrix4fv(cache.uniformLocations[0], false, _command.projection);
-        GL.uniformMatrix4fv(cache.uniformLocations[1], false, _command.view);
+        uniformMatrix4fv(cache.uniformLocations[0], false, _command.projection);
+        uniformMatrix4fv(cache.uniformLocations[1], false, _command.view);
 
         // Start at uniform index 2 since the first two are the default matrix uniforms.
         var uniformIdx = 2;
@@ -788,9 +810,9 @@ class WebGLBackend implements IRendererBackend
             for (val in cache.layout.blocks[i].vals)
             {
                 switch (ShaderType.createByName(val.type)) {
-                    case Matrix4: GL.uniformMatrix4fv(cache.uniformLocations[uniformIdx++], false, _command.shader.uniforms.matrix4.get(val.name));
-                    case Vector4: GL.uniform4fv(cache.uniformLocations[uniformIdx++], _command.shader.uniforms.vector4.get(val.name));
-                    case Int    : GL.uniform1f(cache.uniformLocations[uniformIdx++], _command.shader.uniforms.int.get(val.name));
+                    case Matrix4: uniformMatrix4fv(cache.uniformLocations[uniformIdx++], false, _command.shader.uniforms.matrix4.get(val.name));
+                    case Vector4: uniform4fv(cache.uniformLocations[uniformIdx++], _command.shader.uniforms.vector4.get(val.name));
+                    case Int    : uniform1f(cache.uniformLocations[uniformIdx++], _command.shader.uniforms.int.get(val.name));
                 }
             }
         }
@@ -800,17 +822,17 @@ class WebGLBackend implements IRendererBackend
     {
         return switch (_mode)
         {
-            case Zero             : GL.ZERO;
-            case One              : GL.ONE;
-            case SrcAlphaSaturate : GL.SRC_ALPHA_SATURATE;
-            case SrcColor         : GL.SRC_COLOR;
-            case OneMinusSrcColor : GL.ONE_MINUS_SRC_COLOR;
-            case SrcAlpha         : GL.SRC_ALPHA;
-            case OneMinusSrcAlpha : GL.ONE_MINUS_SRC_ALPHA;
-            case DstAlpha         : GL.DST_ALPHA;
-            case OneMinusDstAlpha : GL.ONE_MINUS_DST_ALPHA;
-            case DstColor         : GL.DST_COLOR;
-            case OneMinusDstColor : GL.ONE_MINUS_DST_COLOR;
+            case Zero             : GL_ZERO;
+            case One              : GL_ONE;
+            case SrcAlphaSaturate : GL_SRC_ALPHA_SATURATE;
+            case SrcColor         : GL_SRC_COLOR;
+            case OneMinusSrcColor : GL_ONE_MINUS_SRC_COLOR;
+            case SrcAlpha         : GL_SRC_ALPHA;
+            case OneMinusSrcAlpha : GL_ONE_MINUS_SRC_ALPHA;
+            case DstAlpha         : GL_DST_ALPHA;
+            case OneMinusDstAlpha : GL_ONE_MINUS_DST_ALPHA;
+            case DstColor         : GL_DST_COLOR;
+            case OneMinusDstColor : GL_ONE_MINUS_DST_COLOR;
             case _: 0;
         }
     }
@@ -863,14 +885,14 @@ private class ShaderLocations
     /**
      * Location of all texture uniforms.
      */
-    public final textureLocations : Array<GLUniformLocation>;
+    public final textureLocations : Array<Int>;
 
     /**
      * Location of all non texture uniforms.
      */
-    public final uniformLocations : Array<GLUniformLocation>;
+    public final uniformLocations : Array<Int>;
 
-    public function new(_layout : ShaderLayout, _textureLocations : Array<GLUniformLocation>, _uniformLocations : Array<GLUniformLocation>)
+    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _uniformLocations : Array<Int>)
     {
         layout           = _layout;
         textureLocations = _textureLocations;
@@ -901,13 +923,61 @@ private class DrawCommandRange
     /**
      * The number of bytes this command is offset into the current range.
      */
-    public final indexOffset : Int;
+    public final indexByteOffset : Int;
 
-    inline public function new(_vertices : Int, _vertexOffset : Int, _indices : Int, _indexOffset)
+    inline public function new(_vertices : Int, _vertexOffset : Int, _indices : Int, _indexByteOffset)
     {
-        vertices     = _vertices;
-        vertexOffset = _vertexOffset;
-        indices      = _indices;
-        indexOffset  = _indexOffset;
+        vertices        = _vertices;
+        vertexOffset    = _vertexOffset;
+        indices         = _indices;
+        indexByteOffset = _indexByteOffset;
+    }
+}
+
+private class GL32NoShaderSourceException extends Exception
+{
+    public function new(_id : String)
+    {
+        super('$_id does not contain source code for a openGL 3.2 shader');
+    }
+}
+
+private class GL32VertexCompilationError extends Exception
+{
+    public function new(_id : String, _error : String)
+    {
+        super('Unable to compile the vertex shader for $_id : $_error');
+    }
+}
+
+private class GL32FragmentCompilationError extends Exception
+{
+    public function new(_id : String, _error : String)
+    {
+        super('Unable to compile the fragment shader for $_id : $_error');
+    }
+}
+
+private class GL32ShaderLinkingException extends Exception
+{
+    public function new(_id : String, _error : String)
+    {
+        super('Unable to link a shader from $_id : $_error');
+    }
+}
+
+private class GL32IncompleteFramebufferException extends Exception
+{
+    public function new(_error : String)
+    {
+        super(_error);
+    }
+}
+
+private class GL32NotEnoughTexturesException extends Exception
+{
+    public function new(_shaderID : String, _drawCommandID : Int, _expected : Int, _actual : Int)
+    {
+        super('Shader $_shaderID expects $_expected textures but the draw command $_drawCommandID only provided $_actual');
     }
 }
