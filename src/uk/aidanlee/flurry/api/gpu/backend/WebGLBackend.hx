@@ -309,7 +309,6 @@ class WebGLBackend implements IRendererBackend
                 for (index in geom.indices)
                 {
                     idxDst[indexOffset++] = rangeIndexOffset + index;
-                    indexByteOffset += UInt16Array.BYTES_PER_ELEMENT;
                 }
 
                 for (vertex in geom.vertices)
@@ -328,11 +327,11 @@ class WebGLBackend implements IRendererBackend
                     vtxDst[vertexFloatOffset++] = vertex.color.a;
                     vtxDst[vertexFloatOffset++] = vertex.texCoord.x;
                     vtxDst[vertexFloatOffset++] = vertex.texCoord.y;
-
-                    vertexOffset++;
-                    vertexByteOffset += (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT);
                 }
 
+                vertexOffset     += geom.vertices.length;
+                vertexByteOffset += (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT) * geom.vertices.length;
+                indexByteOffset  += UInt16Array.BYTES_PER_ELEMENT * geom.indices.length;
                 rangeIndexOffset += geom.vertices.length;
             }
         }
@@ -351,12 +350,16 @@ class WebGLBackend implements IRendererBackend
         {
             dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, 0, 0));
 
-            var buffer = command.buffer.subarray(command.startIndex, command.endIndex);
-            glBufferSubData(GL_ARRAY_BUFFER, vertexByteOffset, buffer.view.byteLength, buffer.view.buffer.getData());
+            var vtxDst : Pointer<Float32> = Pointer.fromRaw(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
+            for (i in command.startIndex...command.endIndex)
+            {
+                vtxDst[vertexFloatOffset++] = command.buffer[i];
+            }
 
             vertexOffset      += command.vertices;
-            vertexFloatOffset += command.vertices * VERTEX_FLOAT_SIZE;
-            vertexByteOffset  += command.vertices * VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT;
+            vertexByteOffset  += command.vertices * (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT);
+
+            glUnmapBuffer(GL_ARRAY_BUFFER);
         }
     }
 
