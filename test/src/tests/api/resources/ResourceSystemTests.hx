@@ -73,12 +73,12 @@ class ResourceSystemTests extends SingleSuite
                     '/home/user/dots.png'  => MockFileData.fromBytes(haxe.Resource.getBytes('dots-data')),
                     '/home/user/json.json' => MockFileData.fromText(' { "hello" : "world!" } '),
                     '/home/user/shdr.json' => MockFileData.fromText(' { "textures" : [ "defaultTexture" ], "blocks" : [] } '),
-                    '/home/user/webgl_vertex.txt'   => MockFileData.fromText('webgl_vertex'),
-                    '/home/user/webgl_fragment.txt' => MockFileData.fromText('webgl_fragment'),
-                    '/home/user/gl45_vertex.txt'    => MockFileData.fromText('gl45_vertex'),
-                    '/home/user/gl45_fragment.txt'  => MockFileData.fromText('gl45_fragment'),
-                    '/home/user/hlsl_vertex.txt'    => MockFileData.fromText('hlsl_vertex'),
-                    '/home/user/hlsl_fragment.txt'  => MockFileData.fromText('hlsl_fragment')
+                    '/home/user/gl32_vertex.txt'   => MockFileData.fromText('gl32_vertex'),
+                    '/home/user/gl32_fragment.txt' => MockFileData.fromText('gl32_fragment'),
+                    '/home/user/gl45_vertex.txt'   => MockFileData.fromText('gl45_vertex'),
+                    '/home/user/gl45_fragment.txt' => MockFileData.fromText('gl45_fragment'),
+                    '/home/user/hlsl_vertex.txt'   => MockFileData.fromText('hlsl_vertex'),
+                    '/home/user/hlsl_fragment.txt' => MockFileData.fromText('hlsl_fragment')
                 ];
                 var system = new ResourceSystem(mock(EventBus), new MockFileSystem(files, []));
                 system.createParcel('myParcel', {
@@ -87,9 +87,9 @@ class ResourceSystemTests extends SingleSuite
                     images  : [ { id : 'dots', path : '/home/user/dots.png' } ],
                     jsons   : [ { id : 'json', path : '/home/user/json.json' } ],
                     shaders : [ { id : 'shdr', path : '/home/user/shdr.json',
-                        webgl : { vertex : '/home/user/webgl_vertex.txt', fragment : '/home/user/webgl_fragment.txt' },
-                        gl45  : { vertex : '/home/user/gl45_vertex.txt' , fragment : '/home/user/gl45_fragment.txt' },
-                        hlsl  : { vertex : '/home/user/hlsl_vertex.txt' , fragment : '/home/user/hlsl_fragment.txt' }
+                        gl32 : { vertex : '/home/user/gl32_vertex.txt', fragment : '/home/user/gl32_fragment.txt' },
+                        gl45 : { vertex : '/home/user/gl45_vertex.txt', fragment : '/home/user/gl45_fragment.txt' },
+                        hlsl : { vertex : '/home/user/hlsl_vertex.txt', fragment : '/home/user/hlsl_fragment.txt' }
                     } ]
                 }).load();
 
