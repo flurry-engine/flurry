@@ -54,7 +54,7 @@ import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
 
-using cpp.Pointer;
+using cpp.Native;
 
 @:headerCode('
 #include <D3Dcompiler.h>
@@ -101,6 +101,11 @@ class DX11Backend implements IRendererBackend
      * Single main vertex buffer.
      */
     var vertexBuffer : Buffer;
+
+    /**
+     * Single main index buffer.
+     */
+    var indexBuffer : Buffer;
 
     /**
      * Native D3D viewport struct.
@@ -166,14 +171,19 @@ class DX11Backend implements IRendererBackend
     var targetSequence : Int;
 
     /**
-     * Current float offset for writing into the vertex buffer.
-     */
-    var floatOffset : Int;
-
-    /**
-     * Current vertex offset for writing into the vertex buffer.
+     * The number of vertices that have been written into the vertex buffer this frame.
      */
     var vertexOffset : Int;
+
+    /**
+     * The number of 32bit floats that have been written into the vertex buffer this frame.
+     */
+    var vertexFloatOffset : Int;
+
+    /**
+     * The number of indices that have been written into the index buffer this frame.
+     */
+    var indexOffset : Int;
 
     // State trackers
     var viewport : Rectangle;
@@ -343,11 +353,23 @@ class DX11Backend implements IRendererBackend
             throw 'DirectX 11 Backend Exception : Failed to create vertex buffer';
         }
 
+        var bufferDesc = BufferDescription.create();
+        bufferDesc.byteWidth      = (_rendererConfig.dynamicIndices + _rendererConfig.unchangingIndices) * 2;
+        bufferDesc.usage          = DYNAMIC;
+        bufferDesc.bindFlags      = INDEX_BUFFER;
+        bufferDesc.cpuAccessFlags = WRITE;
+
+        if (device.createBuffer(cast bufferDesc.addressOf(), null, cast indexBuffer.addressOf()) != 0)
+        {
+            throw 'DirectX 11 Backend Exception : Failed to create index buffer';
+        }
+
         targetSequence++;
 
         // Set the initial context state.
         var stride = (9 * 4);
         var offset = 0;
+        context.iaSetIndexBuffer(indexBuffer, R16_UINT, offset);
         context.iaSetVertexBuffers(0, [ vertexBuffer ], [ stride ], [ offset ]);
         context.iaSetPrimitiveTopology(TRIANGLELIST);
         context.rsSetViewports([ nativeView ]);
@@ -355,8 +377,10 @@ class DX11Backend implements IRendererBackend
         context.rsSetState(rasterState);
         context.omSetRenderTargets([ backbuffer.renderTargetView ], null);
 
-        floatOffset  = 0;
-        vertexOffset = 0;
+        vertexOffset      = 0;
+        vertexFloatOffset = 0;
+        indexOffset       = 0;
+
         transformationVector = new Vector();
         dynamicCommandRanges = new Map();
 
@@ -385,8 +409,9 @@ class DX11Backend implements IRendererBackend
 
     public function preDraw()
     {
-        floatOffset  = 0;
-        vertexOffset = 0;
+        vertexOffset      = 0;
+        vertexFloatOffset = 0;
+        indexOffset       = 0;
     }
 
     /**
@@ -396,22 +421,35 @@ class DX11Backend implements IRendererBackend
     public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void
     {
         // Map the buffer.
-        var mappedBuffer = MappedSubResource.create();
-        if (context.map(vertexBuffer, 0, WRITE_DISCARD, 0, cast mappedBuffer.addressOf()) != 0)
+        var mappedVtxBuffer = MappedSubResource.create();
+        if (context.map(vertexBuffer, 0, WRITE_DISCARD, 0, cast mappedVtxBuffer.addressOf()) != 0)
         {
             throw 'DirectX 11 Backend Exception : Failed to map vertex buffer';
         }
 
+        var mappedIdxBuffer = MappedSubResource.create();
+        if (context.map(indexBuffer, 0, WRITE_DISCARD, 0, cast mappedIdxBuffer.addressOf()) != 0)
+        {
+            throw 'DirectX 11 Backend Exception : Failed to map index buffer';
+        }
+
         // Get a buffer to float32s so we can copy our float32array over.
-        var ptr : Pointer<cpp.Float32> = Pointer.fromRaw(mappedBuffer.sysMem).reinterpret();
+        var vtx : cpp.Pointer<cpp.Float32> = cpp.Pointer.fromRaw(mappedVtxBuffer.sysMem).reinterpret();
+        var idx : cpp.Pointer<cpp.UInt16>  = cpp.Pointer.fromRaw(mappedIdxBuffer.sysMem).reinterpret();
 
         for (command in _commands)
         {
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexOffset));
 
+            var rangeIndexOffset = 0;
             for (geom in command.geometry)
             {
                 var matrix = geom.transformation.transformation;
+
+                for (index in geom.indices)
+                {
+                    idx[indexOffset++] = rangeIndexOffset + index;
+                }
 
                 for (vertex in geom.vertices)
                 {
@@ -420,22 +458,24 @@ class DX11Backend implements IRendererBackend
                     transformationVector.copyFrom(vertex.position);
                     transformationVector.transform(matrix);
 
-                    ptr[floatOffset++] = transformationVector.x;
-                    ptr[floatOffset++] = transformationVector.y;
-                    ptr[floatOffset++] = transformationVector.z;
-                    ptr[floatOffset++] = vertex.color.r;
-                    ptr[floatOffset++] = vertex.color.g;
-                    ptr[floatOffset++] = vertex.color.b;
-                    ptr[floatOffset++] = vertex.color.a;
-                    ptr[floatOffset++] = vertex.texCoord.x;
-                    ptr[floatOffset++] = vertex.texCoord.y;
-
-                    vertexOffset++;
+                    vtx[vertexFloatOffset++] = transformationVector.x;
+                    vtx[vertexFloatOffset++] = transformationVector.y;
+                    vtx[vertexFloatOffset++] = transformationVector.z;
+                    vtx[vertexFloatOffset++] = vertex.color.r;
+                    vtx[vertexFloatOffset++] = vertex.color.g;
+                    vtx[vertexFloatOffset++] = vertex.color.b;
+                    vtx[vertexFloatOffset++] = vertex.color.a;
+                    vtx[vertexFloatOffset++] = vertex.texCoord.x;
+                    vtx[vertexFloatOffset++] = vertex.texCoord.y;
                 }
+
+                vertexOffset     += geom.vertices.length;
+                rangeIndexOffset += geom.vertices.length;
             }
         }
 
         context.unmap(vertexBuffer, 0);
+        context.unmap(indexBuffer, 0);
     }
 
     /**
@@ -452,15 +492,15 @@ class DX11Backend implements IRendererBackend
         }
 
         // Get a buffer to float32s so we can copy our float32array over.
-        var ptr : Pointer<cpp.Float32> = Pointer.fromRaw(mappedBuffer.sysMem).reinterpret();
+        var ptr : cpp.Pointer<cpp.Float32> = cpp.Pointer.fromRaw(mappedBuffer.sysMem).reinterpret();
 
         for (command in _commands)
         {
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset));
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, 0, 0));
 
             for (i in command.startIndex...command.endIndex)
             {
-                ptr[floatOffset++] = command.buffer[i];
+                ptr[vertexFloatOffset++] = command.buffer[i];
             }
 
             vertexOffset += command.vertices;
@@ -484,7 +524,14 @@ class DX11Backend implements IRendererBackend
             setState(command);
 
             // Draw
-            context.draw(range.vertices, range.vertexOffset);
+            if (command.indices > 0)
+            {
+                context.drawIndexed(command.indices, range.indexOffset, range.vertexOffset);
+            }
+            else
+            {
+                context.draw(range.vertices, range.vertexOffset);
+            }
 
             // Record stats
             if (_recordStats)
@@ -749,7 +796,7 @@ class DX11Backend implements IRendererBackend
                 throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to create cbuffer $i';
             }
 
-            resource.buffers.set(i + 1, cast buffer);
+            resource.buffers.set(i + 1, buffer);
             resource.bytes.push(bytesData);
         }
 
@@ -907,8 +954,8 @@ class DX11Backend implements IRendererBackend
             // This essentially disables clipping by clipping the entire backbuffer size.
             if (scissor.area() == 0)
             {
-                nativeClip.right  = cast backbuffer.width;
-                nativeClip.bottom = cast backbuffer.height;
+                nativeClip.right  = backbuffer.width;
+                nativeClip.bottom = backbuffer.height;
             }
 
             context.rsSetScissorRects([ nativeClip ]);
@@ -1023,14 +1070,14 @@ class DX11Backend implements IRendererBackend
             throw 'DirectX 11 Backend Exception : Failed to map the shader matrix cbuffer';
         }
 
-        var ptr : Pointer<cpp.Float32> = map.sysMem.fromRaw().reinterpret();
+        var ptr : cpp.Pointer<cpp.Float32> = cpp.Pointer.fromRaw(map.sysMem).reinterpret();
         var itr = 0;
 
-        for (el in cast (_command.projection, Float32Array))
+        for (el in (_command.projection : Float32Array))
         {
             ptr[itr++] = el;
         }
-        for (el in cast (_command.view, Float32Array))
+        for (el in (_command.view : Float32Array))
         {
             ptr[itr++] = el;
         }
@@ -1064,7 +1111,7 @@ class DX11Backend implements IRendererBackend
             }
 
             // TODO : Look into memcpy to simplify this code.
-            var ptr : Pointer<cpp.UInt8> = map.sysMem.fromRaw().reinterpret();
+            var ptr : cpp.Pointer<cpp.UInt8> = cpp.Pointer.fromRaw(map.sysMem).reinterpret();
             var itr = 0;
             for (int in shaderResource.bytes[i].getData())
             {
@@ -1089,7 +1136,7 @@ class DX11Backend implements IRendererBackend
     inline function writeMatrix4(_bytes : Bytes, _position : Int, _matrix : Matrix) : Int
     {
         var idx = 0;
-        for (el in cast (_matrix, Float32Array))
+        for (el in (_matrix : Float32Array))
         {
             _bytes.setFloat(_position + idx, el);
             idx += 4;
@@ -1300,15 +1347,36 @@ private class DXTargetInformation
     }
 }
 
+/**
+ * Stores the range of a draw command.
+ */
 private class DrawCommandRange
 {
+    /**
+     * The number of vertices in this draw command.
+     */
     public final vertices : Int;
 
+    /**
+     * The number of vertices this command is offset into the current range.
+     */
     public final vertexOffset : Int;
 
-    inline public function new(_vertices : Int, _vertexOffset : Int)
+    /**
+     * The number of indices in this draw command.
+     */
+    public final indices : Int;
+
+    /**
+     * The number of bytes this command is offset into the current range.
+     */
+    public final indexOffset : Int;
+
+    inline public function new(_vertices : Int, _vertexOffset : Int, _indices : Int, _indexOffset)
     {
         vertices     = _vertices;
         vertexOffset = _vertexOffset;
+        indices      = _indices;
+        indexOffset  = _indexOffset;
     }
 }
