@@ -119,8 +119,8 @@ class ResourceSystemTests extends SingleSuite
                 res.id.should.be('shdr');
                 res.layout.textures.should.containExactly([ 'defaultTexture' ]);
                 res.layout.blocks.should.containExactly([ ]);
-                res.webgl.vertex.should.be('webgl_vertex');
-                res.webgl.fragment.should.be('webgl_fragment');
+                res.webgl.vertex.should.be('gl32_vertex');
+                res.webgl.fragment.should.be('gl32_fragment');
                 res.gl45.vertex.should.be('gl45_vertex');
                 res.gl45.fragment.should.be('gl45_fragment');
                 res.hlsl.vertex.should.be('hlsl_vertex');
