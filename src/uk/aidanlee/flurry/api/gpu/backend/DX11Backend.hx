@@ -844,7 +844,7 @@ class DX11Backend implements IRendererBackend
         imgDesc.height    = _resource.height;
         imgDesc.mipLevels = 1;
         imgDesc.arraySize = 1;
-        imgDesc.format    = R8G8B8A8_UNORM;
+        imgDesc.format    = B8G8R8A8_UNORM;
         imgDesc.sampleDesc.count   = 1;
         imgDesc.sampleDesc.quality = 0;
         imgDesc.usage          = DEFAULT;

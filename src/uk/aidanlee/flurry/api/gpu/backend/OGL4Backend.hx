@@ -862,7 +862,7 @@ class OGL4Backend implements IRendererBackend
         glTextureParameteri(ids[0], GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
         glTextureStorage2D(ids[0], 1, GL_RGBA8, _resource.width, _resource.height);
-        glTextureSubImage2D(ids[0], 0, 0, 0, _resource.width, _resource.height, GL_RGBA, GL_UNSIGNED_BYTE, _resource.pixels);
+        glTextureSubImage2D(ids[0], 0, 0, 0, _resource.width, _resource.height, GL_BGRA, GL_UNSIGNED_BYTE, _resource.pixels);
 
         textureObjects.set(_resource.id, ids[0]);
 
