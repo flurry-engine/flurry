@@ -41,7 +41,7 @@ import uk.aidanlee.flurry.api.resources.ResourceEvents;
  * - ARB_buffer_storage      (made core in 4.4)
  * - ARB_texture_storage     (made core in 4.2)
  */
-class GL45Backend implements IRendererBackend
+class OGL4Backend implements IRendererBackend
 {
     /**
      * The number of floats in each vertex.
@@ -741,7 +741,7 @@ class GL45Backend implements IRendererBackend
      */
     function createShader(_resource : ShaderResource)
     {
-        if (_resource.gl45 == null)
+        if (_resource.ogl4 == null)
         {
             throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Attempting to create a shader from a resource which has no gl45 shader source';
         }
@@ -753,7 +753,7 @@ class GL45Backend implements IRendererBackend
 
         // Create vertex shader.
         var vertex = glCreateShader(GL_VERTEX_SHADER);
-        WebGL.shaderSource(vertex, _resource.gl45.vertex);
+        WebGL.shaderSource(vertex, _resource.ogl4.vertex);
         glCompileShader(vertex);
 
         if (WebGL.getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
@@ -763,7 +763,7 @@ class GL45Backend implements IRendererBackend
 
         // Create fragment shader.
         var fragment = glCreateShader(GL_FRAGMENT_SHADER);
-        WebGL.shaderSource(fragment, _resource.gl45.fragment);
+        WebGL.shaderSource(fragment, _resource.ogl4.fragment);
         glCompileShader(fragment);
 
         if (WebGL.getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)

@@ -39,7 +39,7 @@ import uk.aidanlee.flurry.api.resources.ResourceEvents;
  * Uses snows openGL module so it can run on desktops and web platforms.
  * Allows targeting web, osx, and older integrated GPUs (anywhere where openGL 4.5 isn't supported).
  */
-class GL32Backend implements IRendererBackend
+class OGL3Backend implements IRendererBackend
 {
     /**
      * The number of floats in each vertex.
@@ -449,7 +449,7 @@ class GL32Backend implements IRendererBackend
     function createWindow(_options : FlurryWindowConfig)
     {        
         SDL.GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-        SDL.GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+        SDL.GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
         SDL.GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
         window    = SDL.createWindow('Flurry', SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _options.width, _options.height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
@@ -518,14 +518,14 @@ class GL32Backend implements IRendererBackend
             return;
         }
 
-        if (_resource.webgl == null)
+        if (_resource.ogl3 == null)
         {
             throw new GL32NoShaderSourceException(_resource.id);
         }
 
         // Create vertex shader.
         var vertex = glCreateShader(GL_VERTEX_SHADER);
-        shaderSource(vertex, _resource.webgl.vertex);
+        shaderSource(vertex, _resource.ogl3.vertex);
         glCompileShader(vertex);
 
         if (getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
@@ -535,7 +535,7 @@ class GL32Backend implements IRendererBackend
 
         // Create fragment shader.
         var fragment = glCreateShader(GL_FRAGMENT_SHADER);
-        shaderSource(fragment, _resource.webgl.fragment);
+        shaderSource(fragment, _resource.ogl3.fragment);
         glCompileShader(fragment);
 
         if (getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)

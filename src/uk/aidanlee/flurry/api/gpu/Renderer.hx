@@ -44,11 +44,11 @@ class Renderer
         switch (api)
         {
             #if cpp
-            case GL45:
-                backend = new uk.aidanlee.flurry.api.gpu.backend.GL45Backend(_events, stats, _windowConfig, _rendererConfig);
+            case OGL4:
+                backend = new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_events, stats, _windowConfig, _rendererConfig);
 
-            case GL32:
-                backend = new uk.aidanlee.flurry.api.gpu.backend.GL32Backend(_events, stats, _windowConfig, _rendererConfig);
+            case OGL3:
+                backend = new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_events, stats, _windowConfig, _rendererConfig);
 
                 #if windows
                 case DX11:

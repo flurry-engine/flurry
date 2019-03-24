@@ -87,21 +87,21 @@ class ShaderResource extends Resource
 {
     public final layout : ShaderLayout;
 
-    public final webgl : ShaderBackend;
+    public final ogl3 : ShaderBackend;
 
-    public final gl45 : ShaderBackend;
+    public final ogl4 : ShaderBackend;
 
     public final hlsl : ShaderBackend;
 
     public final uniforms : Uniforms;
 
-    public function new(_id : String, _layout : ShaderLayout, _webgl : ShaderBackend = null, _gl45 : ShaderBackend = null, _hlsl : ShaderBackend = null)
+    public function new(_id : String, _layout : ShaderLayout, _ogl3 : ShaderBackend = null, _ogl4 : ShaderBackend = null, _hlsl : ShaderBackend = null)
     {
         super(_id);
 
         layout   = _layout;
-        webgl    = _webgl;
-        gl45     = _gl45;
+        ogl3     = _ogl3;
+        ogl4     = _ogl4;
         hlsl     = _hlsl;
         uniforms = new Uniforms();
     }

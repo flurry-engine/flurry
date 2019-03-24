@@ -3,8 +3,8 @@ package uk.aidanlee.flurry;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelList;
 
 enum RendererBackend {
-    GL32;
-    GL45;
+    OGL3;
+    OGL4;
     DX11;
     NULL;
     AUTO;

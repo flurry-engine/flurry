@@ -35,4 +35,3 @@ steps:
     testRunTitle: Engine Tests $(Agent.OS)
     buildPlatform: $(Agent.OS)
     failTaskOnFailedTests: true
-    condition: always()

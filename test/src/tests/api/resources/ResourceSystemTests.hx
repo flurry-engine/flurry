@@ -73,10 +73,10 @@ class ResourceSystemTests extends SingleSuite
                     '/home/user/dots.png'  => MockFileData.fromBytes(haxe.Resource.getBytes('dots-data')),
                     '/home/user/json.json' => MockFileData.fromText(' { "hello" : "world!" } '),
                     '/home/user/shdr.json' => MockFileData.fromText(' { "textures" : [ "defaultTexture" ], "blocks" : [] } '),
-                    '/home/user/gl32_vertex.txt'   => MockFileData.fromText('gl32_vertex'),
-                    '/home/user/gl32_fragment.txt' => MockFileData.fromText('gl32_fragment'),
-                    '/home/user/gl45_vertex.txt'   => MockFileData.fromText('gl45_vertex'),
-                    '/home/user/gl45_fragment.txt' => MockFileData.fromText('gl45_fragment'),
+                    '/home/user/ogl3_vertex.txt'   => MockFileData.fromText('ogl3_vertex'),
+                    '/home/user/ogl3_fragment.txt' => MockFileData.fromText('ogl3_fragment'),
+                    '/home/user/ogl4_vertex.txt'   => MockFileData.fromText('ogl4_vertex'),
+                    '/home/user/ogl4_fragment.txt' => MockFileData.fromText('ogl4_fragment'),
                     '/home/user/hlsl_vertex.txt'   => MockFileData.fromText('hlsl_vertex'),
                     '/home/user/hlsl_fragment.txt' => MockFileData.fromText('hlsl_fragment')
                 ];
@@ -87,8 +87,8 @@ class ResourceSystemTests extends SingleSuite
                     images  : [ { id : 'dots', path : '/home/user/dots.png' } ],
                     jsons   : [ { id : 'json', path : '/home/user/json.json' } ],
                     shaders : [ { id : 'shdr', path : '/home/user/shdr.json',
-                        gl32 : { vertex : '/home/user/gl32_vertex.txt', fragment : '/home/user/gl32_fragment.txt' },
-                        gl45 : { vertex : '/home/user/gl45_vertex.txt', fragment : '/home/user/gl45_fragment.txt' },
+                        ogl3 : { vertex : '/home/user/ogl3_vertex.txt', fragment : '/home/user/ogl3_fragment.txt' },
+                        ogl4 : { vertex : '/home/user/ogl4_vertex.txt', fragment : '/home/user/ogl4_fragment.txt' },
                         hlsl : { vertex : '/home/user/hlsl_vertex.txt', fragment : '/home/user/hlsl_fragment.txt' }
                     } ]
                 }).load();
@@ -119,10 +119,10 @@ class ResourceSystemTests extends SingleSuite
                 res.id.should.be('shdr');
                 res.layout.textures.should.containExactly([ 'defaultTexture' ]);
                 res.layout.blocks.should.containExactly([ ]);
-                res.webgl.vertex.should.be('gl32_vertex');
-                res.webgl.fragment.should.be('gl32_fragment');
-                res.gl45.vertex.should.be('gl45_vertex');
-                res.gl45.fragment.should.be('gl45_fragment');
+                res.ogl3.vertex.should.be('ogl3_vertex');
+                res.ogl3.fragment.should.be('ogl3_fragment');
+                res.ogl4.vertex.should.be('ogl4_vertex');
+                res.ogl4.fragment.should.be('ogl4_fragment');
                 res.hlsl.vertex.should.be('hlsl_vertex');
                 res.hlsl.fragment.should.be('hlsl_fragment');
             });
