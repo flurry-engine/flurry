@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.maths.Matrix;
+import haxe.io.Bytes;
 import haxe.Exception;
 import haxe.io.UInt8Array;
 import haxe.io.Float32Array;
@@ -558,23 +560,72 @@ class OGL3Backend implements IRendererBackend
         glDeleteShader(vertex);
         glDeleteShader(fragment);
 
-        // WebGL has no uniform blocks so all inner values are converted to uniforms
+        // Get the location of all textures and storage blocks in the gl program.
+        var currentBindingLocation = 0;
         var textureLocations = [];
-        var uniformLocations = [ glGetUniformLocation(program, 'projection'), glGetUniformLocation(program, 'view') ];
+        var blockLocations   = [ glGetUniformBlockIndex(program, 'defaultMatrices') ];
+        var blockBindings    = [ currentBindingLocation++ ];
+
+        glUniformBlockBinding(program, blockLocations[0], blockBindings[0]);
+
         for (texture in _resource.layout.textures)
         {
             textureLocations.push(glGetUniformLocation(program, texture));
         }
-        for (block in _resource.layout.blocks)
+        // for (i in 0..._resource.layout.blocks.length)
+        // {
+        //     blockLocations.push(glGetUniformBlockIndex(program, _resource.layout.blocks[i].name));
+        //     blockBindings.push(currentBindingLocation++);
+
+        //     glUniformBlockBinding(program, blockLocations[i], blockBindings[i]);
+        // }
+
+        // Setup haxe bytes and gl buffers for all storage blocks.
+        var blockBytes   = new Array<Bytes>();
+        var blockBuffers = new Array<Int>();
+
+        // Allocate for the default matrices block.
+        var data = Bytes.alloc(128);
+        var ubo  = [ 0 ];
+        glCreateBuffers(1, ubo);
+        glBindBuffer(GL_UNIFORM_BUFFER, ubo[0]);
+        glBufferData(GL_UNIFORM_BUFFER, 128, data.getData(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+        glBindBufferBase(GL_UNIFORM_BUFFER, blockBindings[0], ubo[0]);
+
+        blockBuffers.push(ubo[0]);
+        blockBytes.push(data);
+
+        // Create a GL buffer and allocate bytes for each user defined bytes.
+        for (i in 0..._resource.layout.blocks.length)
         {
-            for (uniform in block.vals)
+            var bytesSize = 0;
+            for (val in _resource.layout.blocks[i].vals)
             {
-                uniformLocations.push(glGetUniformLocation(program, uniform.name));
+                switch (ShaderType.createByName(val.type))
+                {
+                    case Matrix4: bytesSize += 64;
+                    case Vector4: bytesSize += 16;
+                    case Int    : bytesSize +=  4;
+                }
             }
+            
+            var bytesData = Bytes.alloc(bytesSize);
+            var ubo       = [ 0 ];
+            glCreateBuffers(1, ubo);
+            glBindBuffer(GL_UNIFORM_BUFFER, ubo[0]);
+            glBufferData(GL_UNIFORM_BUFFER, 128, bytesData.getData(), GL_DYNAMIC_DRAW);
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+            glBindBufferBase(GL_UNIFORM_BUFFER, blockBindings[i], ubo[0]);
+
+            blockBuffers.push(ubo[0]);
+            blockBytes.push(bytesData);
         }
 
         shaderPrograms.set(_resource.id, program);
-        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, uniformLocations));
+        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockLocations, blockBuffers, blockBytes));
     }
 
     /**
@@ -799,23 +850,93 @@ class OGL3Backend implements IRendererBackend
             }
         }
 
-        // Write the default matrix uniforms
-        uniformMatrix4fv(cache.uniformLocations[0], false, _command.projection);
-        uniformMatrix4fv(cache.uniformLocations[1], false, _command.view);
+        // TEMP : Always writing all uniform values into SSBOs.
+        // TODO : Only update SSBOs when values have actually changed.
+        
+        // Write the default matrices into the ssbo.
+        var pos = 0;
+        for (el in cast (_command.projection, Float32Array))
+        {
+            cache.blockBytes[0].setFloat(pos, el);
+            pos += 4;
+        }
+        for (el in cast (_command.view, Float32Array))
+        {
+            cache.blockBytes[0].setFloat(pos, el);
+            pos += 4;
+        }
 
-        // Start at uniform index 2 since the first two are the default matrix uniforms.
-        var uniformIdx = 2;
+        glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[0]);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, cache.blockBytes[0].length, cache.blockBytes[0].getData());
+
+        // Write user data into the blocks.
+        // Some arrays are incremented by 1 to access the correct data since the default block is stored.
+        // This is not true for the blocks in the layout since they store user defined ones.
         for (i in 0...cache.layout.blocks.length)
         {
+            var bytePosition = 0;
             for (val in cache.layout.blocks[i].vals)
             {
                 switch (ShaderType.createByName(val.type)) {
-                    case Matrix4: uniformMatrix4fv(cache.uniformLocations[uniformIdx++], false, _command.shader.uniforms.matrix4.get(val.name));
-                    case Vector4: uniform4fv(cache.uniformLocations[uniformIdx++], _command.shader.uniforms.vector4.get(val.name));
-                    case Int    : uniform1f(cache.uniformLocations[uniformIdx++], _command.shader.uniforms.int.get(val.name));
+                    case Matrix4: bytePosition += writeMatrix4(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.matrix4.get(val.name));
+                    case Vector4: bytePosition += writeVector4(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.vector4.get(val.name));
+                    case Int    : bytePosition +=    writeInt(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.int.get(val.name));
                 }
             }
+
+            glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[i]);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
         }
+    }
+
+    /**
+     * Write a matrix into a byte buffer.
+     * @param _bytes    Bytes to write into.
+     * @param _position Starting bytes offset.
+     * @param _matrix   Matrix to write.
+     * @return Number of bytes written.
+     */
+    function writeMatrix4(_bytes : Bytes, _position : Int, _matrix : Matrix) : Int
+    {
+        var idx = 0;
+        for (el in cast (_matrix, Float32Array))
+        {
+            _bytes.setFloat(_position + idx, el);
+            idx += 4;
+        }
+
+        return 64;
+    }
+
+    /**
+     * Write a vector into a byte buffer.
+     * @param _bytes    Bytes to write into.
+     * @param _position Starting bytes offset.
+     * @param _vector   Vector to write.
+     * @return Number of bytes written.
+     */
+    function writeVector4(_bytes : Bytes, _position : Int, _vector : Vector) : Int
+    {
+        _bytes.setFloat(_position +  0, _vector.x);
+        _bytes.setFloat(_position +  4, _vector.y);
+        _bytes.setFloat(_position +  8, _vector.z);
+        _bytes.setFloat(_position + 12, _vector.w);
+
+        return 16;
+    }
+
+    /**
+     * Write a 32bit integer into a byte buffer.
+     * @param _bytes    Bytes to write into.
+     * @param _position Starting bytes offset.
+     * @param _int      Int to write.
+     * @return Number of bytes written.
+     */
+    function writeInt(_bytes : Bytes, _position : Int, _int : Int) : Int
+    {
+        _bytes.setInt32(_position, _int);
+
+        return 4;
     }
 
     function getBlendMode(_mode : BlendMode) : Int
@@ -888,15 +1009,27 @@ private class ShaderLocations
     public final textureLocations : Array<Int>;
 
     /**
-     * Location of all non texture uniforms.
+     * Location of all shader blocks.
      */
-    public final uniformLocations : Array<Int>;
+    public final blockLocations : Array<Int>;
 
-    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _uniformLocations : Array<Int>)
+    /**
+     * SSBO buffer objects.
+     */
+    public final blockBuffers : Array<Int>;
+
+    /**
+     * Bytes for each SSBO buffer.
+     */
+    public final blockBytes : Array<Bytes>;
+
+    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockLocations : Array<Int>, _blockBuffers : Array<Int>, _blockBytes : Array<Bytes>)
     {
         layout           = _layout;
         textureLocations = _textureLocations;
-        uniformLocations = _uniformLocations;
+        blockLocations   = _blockLocations;
+        blockBuffers     = _blockBuffers;
+        blockBytes       = _blockBytes;
     }
 }
 
