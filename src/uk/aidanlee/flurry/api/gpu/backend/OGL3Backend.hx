@@ -641,7 +641,8 @@ class OGL3Backend implements IRendererBackend
         var blockSize = 0;
         for (val in _block.vals)
         {
-            switch (ShaderType.createByName(val.type)) {
+            switch (ShaderType.createByName(val.type))
+            {
                 case Matrix4: blockSize += 64;
                 case Vector4: blockSize += 16;
                 case Int, Float: blockSize += 4;
