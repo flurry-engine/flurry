@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import haxe.io.Bytes;
 import haxe.Exception;
@@ -15,9 +16,6 @@ import opengl.WebGL.shaderSource;
 import opengl.WebGL.getProgramParameter;
 import opengl.WebGL.getProgramInfoLog;
 import opengl.WebGL.getShaderInfoLog;
-import opengl.WebGL.uniformMatrix4fv;
-import opengl.WebGL.uniform4fv;
-import opengl.WebGL.uniform1f;
 import sdl.Window;
 import sdl.GLContext;
 import sdl.SDL;
@@ -560,69 +558,21 @@ class OGL3Backend implements IRendererBackend
         glDeleteShader(vertex);
         glDeleteShader(fragment);
 
-        // Get the location of all textures and storage blocks in the gl program.
-        var currentBindingLocation = 0;
-        var textureLocations = [];
-        var blockLocations   = [ glGetUniformBlockIndex(program, 'defaultMatrices') ];
-        var blockBindings    = [ currentBindingLocation++ ];
+        // Fetch the location of all the shaders texture and interface blocks, also bind blocks to a binding point.
+        var textureLocations = [ for (t in _resource.layout.textures) glGetUniformLocation(program, t) ];
+        var blockLocations   = [ for (b in _resource.layout.blocks) glGetUniformBlockIndex(program, b.name) ];
+        var blockBindings    = [ for (i in 0..._resource.layout.blocks.length) i ];
 
-        glUniformBlockBinding(program, blockLocations[0], blockBindings[0]);
-
-        for (texture in _resource.layout.textures)
-        {
-            textureLocations.push(glGetUniformLocation(program, texture));
-        }
-        // for (i in 0..._resource.layout.blocks.length)
-        // {
-        //     blockLocations.push(glGetUniformBlockIndex(program, _resource.layout.blocks[i].name));
-        //     blockBindings.push(currentBindingLocation++);
-
-        //     glUniformBlockBinding(program, blockLocations[i], blockBindings[i]);
-        // }
-
-        // Setup haxe bytes and gl buffers for all storage blocks.
-        var blockBytes   = new Array<Bytes>();
-        var blockBuffers = new Array<Int>();
-
-        // Allocate for the default matrices block.
-        var data = Bytes.alloc(128);
-        var ubo  = [ 0 ];
-        glCreateBuffers(1, ubo);
-        glBindBuffer(GL_UNIFORM_BUFFER, ubo[0]);
-        glBufferData(GL_UNIFORM_BUFFER, 128, data.getData(), GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-        glBindBufferBase(GL_UNIFORM_BUFFER, blockBindings[0], ubo[0]);
-
-        blockBuffers.push(ubo[0]);
-        blockBytes.push(data);
-
-        // Create a GL buffer and allocate bytes for each user defined bytes.
         for (i in 0..._resource.layout.blocks.length)
         {
-            var bytesSize = 0;
-            for (val in _resource.layout.blocks[i].vals)
-            {
-                switch (ShaderType.createByName(val.type))
-                {
-                    case Matrix4: bytesSize += 64;
-                    case Vector4: bytesSize += 16;
-                    case Int    : bytesSize +=  4;
-                }
-            }
-            
-            var bytesData = Bytes.alloc(bytesSize);
-            var ubo       = [ 0 ];
-            glCreateBuffers(1, ubo);
-            glBindBuffer(GL_UNIFORM_BUFFER, ubo[0]);
-            glBufferData(GL_UNIFORM_BUFFER, 128, bytesData.getData(), GL_DYNAMIC_DRAW);
-            glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-            glBindBufferBase(GL_UNIFORM_BUFFER, blockBindings[i], ubo[0]);
-
-            blockBuffers.push(ubo[0]);
-            blockBytes.push(bytesData);
+            glUniformBlockBinding(program, blockLocations[i], blockBindings[i]);
         }
+
+        // Generate gl buffers and haxe byte objects for all our blocks
+
+        var blockBuffers = [ for (i in 0..._resource.layout.blocks.length) 0 ];
+        glGenBuffers(blockBuffers.length, blockBuffers);
+        var blockBytes = [ for (i in 0..._resource.layout.blocks.length) generateUniformBlock(_resource.layout.blocks[i], blockBuffers[i], blockBindings[i]) ];
 
         shaderPrograms.set(_resource.id, program);
         shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockLocations, blockBuffers, blockBytes));
@@ -673,6 +623,35 @@ class OGL3Backend implements IRendererBackend
     {
         glDeleteTextures(1, [ textureObjects.get(_resource.id) ]);
         textureObjects.remove(_resource.id);
+    }
+
+    /**
+     * Calculates the size of a shader block, creates the OpenGL object, and returns haxe bytes of the needed size.
+     * @param _block   Shader block to initialise.
+     * @param _buffer  OpenGL UBO buffer ID.
+     * @param _binding OpenGL UBO binding position.
+     * @return Bytes
+     */
+    function generateUniformBlock(_block : ShaderBlock, _buffer : Int, _binding : Int) : Bytes
+    {
+        var blockSize = 0;
+        for (val in _block.vals)
+        {
+            switch (ShaderType.createByName(val.type)) {
+                case Matrix4: blockSize += 64;
+                case Vector4: blockSize += 16;
+                case Int    : blockSize += 4;
+            }
+        }
+
+        var bytes = Bytes.alloc(blockSize);
+
+        glBindBuffer(GL_UNIFORM_BUFFER, _buffer);
+        glBufferData(GL_UNIFORM_BUFFER, blockSize, bytes.getData(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glBindBufferBase(GL_UNIFORM_BUFFER, _binding, _buffer);
+
+        return bytes;
     }
 
     //  #endregion
@@ -850,40 +829,39 @@ class OGL3Backend implements IRendererBackend
             }
         }
 
-        // TEMP : Always writing all uniform values into SSBOs.
-        // TODO : Only update SSBOs when values have actually changed.
-        
-        // Write the default matrices into the ssbo.
-        var pos = 0;
-        for (el in cast (_command.projection, Float32Array))
-        {
-            cache.blockBytes[0].setFloat(pos, el);
-            pos += 4;
-        }
-        for (el in cast (_command.view, Float32Array))
-        {
-            cache.blockBytes[0].setFloat(pos, el);
-            pos += 4;
-        }
-
-        glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[0]);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, cache.blockBytes[0].length, cache.blockBytes[0].getData());
-
-        // Write user data into the blocks.
-        // Some arrays are incremented by 1 to access the correct data since the default block is stored.
-        // This is not true for the blocks in the layout since they store user defined ones.
         for (i in 0...cache.layout.blocks.length)
         {
-            var bytePosition = 0;
-            for (val in cache.layout.blocks[i].vals)
+            if (cache.layout.blocks[i].name == 'defaultMatrices')
             {
-                switch (ShaderType.createByName(val.type)) {
-                    case Matrix4: bytePosition += writeMatrix4(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.matrix4.get(val.name));
-                    case Vector4: bytePosition += writeVector4(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.vector4.get(val.name));
-                    case Int    : bytePosition +=    writeInt(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.int.get(val.name));
+                // If the block is named 'defaultMatrices' copy the view and projecton matrix over before uploading
+                var pos = 0;
+                for (el in (_command.projection : Float32Array))
+                {
+                    cache.blockBytes[i].setFloat(pos, el);
+                    pos += 4;
+                }
+                for (el in (_command.view : Float32Array))
+                {
+                    cache.blockBytes[i].setFloat(pos, el);
+                    pos += 4;
                 }
             }
-
+            else
+            {
+                // Otherwise upload all user specified uniform values.
+                // TODO : We should have some sort of error checking if the expected uniforms are not found.
+                var pos = 0;
+                for (val in cache.layout.blocks[i].vals)
+                {
+                    switch (ShaderType.createByName(val.type))
+                    {
+                        case Matrix4 : pos += writeMatrix4(cache.blockBytes[i], pos, _command.shader.uniforms.matrix4.get(val.name));
+                        case Vector4 : pos += writeVector4(cache.blockBytes[i], pos, _command.shader.uniforms.vector4.get(val.name));
+                        case Int : pos += writeInt(cache.blockBytes[i], pos, _command.shader.uniforms.int.get(val.name));
+                    }
+                }
+            }
+            
             glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[i]);
             glBufferSubData(GL_UNIFORM_BUFFER, 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
         }
