@@ -11,6 +11,7 @@ enum ShaderType
     Matrix4;
     Vector4;
     Int;
+    Float;
 }
 
 typedef ShaderBackend = { vertex : String, fragment : String };
@@ -111,14 +112,17 @@ private class Uniforms
 {
     public final int : Map<String, Int>;
 
+    public final float : Map<String, Float>;
+
     public final vector4 : Map<String, Vector>;
 
     public final matrix4 : Map<String, Matrix>;
 
     public function new()
     {
-        int     = new Map();
-        vector4 = new Map();
-        matrix4 = new Map();
+        int     = [];
+        float   = [];
+        vector4 = [];
+        matrix4 = [];
     }
 }

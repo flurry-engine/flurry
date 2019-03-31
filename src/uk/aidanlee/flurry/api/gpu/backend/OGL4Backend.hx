@@ -820,7 +820,7 @@ class OGL4Backend implements IRendererBackend
                 {
                     case Matrix4: bytesSize += 64;
                     case Vector4: bytesSize += 16;
-                    case Int    : bytesSize +=  4;
+                    case Int, Float : bytesSize +=  4;
                 }
             }
             var bytesData = Bytes.alloc(bytesSize);
@@ -1086,6 +1086,7 @@ class OGL4Backend implements IRendererBackend
                     case Matrix4: bytePosition += writeMatrix4(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.matrix4.get(val.name));
                     case Vector4: bytePosition += writeVector4(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.vector4.get(val.name));
                     case Int    : bytePosition +=    writeInt(cache.blockBytes[i + 1], bytePosition, _command.shader.uniforms.int.get(val.name));
+                    case Float:
                 }
             }
 

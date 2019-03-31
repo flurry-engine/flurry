@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import cpp.UInt8;
+import cpp.Int32;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import haxe.io.Bytes;
@@ -33,6 +35,8 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
+
+using cpp.NativeArray;
 
 /**
  * WebGL backend written against the webGL 1.0 spec (openGL ES 2.0).
@@ -640,7 +644,7 @@ class OGL3Backend implements IRendererBackend
             switch (ShaderType.createByName(val.type)) {
                 case Matrix4: blockSize += 64;
                 case Vector4: blockSize += 16;
-                case Int    : blockSize += 4;
+                case Int, Float: blockSize += 4;
             }
         }
 
@@ -831,20 +835,14 @@ class OGL3Backend implements IRendererBackend
 
         for (i in 0...cache.layout.blocks.length)
         {
+            glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[i]);
+
+            var ptr : Pointer<UInt8> = Pointer.fromRaw(glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY)).reinterpret();
+
             if (cache.layout.blocks[i].name == 'defaultMatrices')
             {
-                // If the block is named 'defaultMatrices' copy the view and projecton matrix over before uploading
-                var pos = 0;
-                for (el in (_command.projection : Float32Array))
-                {
-                    cache.blockBytes[i].setFloat(pos, el);
-                    pos += 4;
-                }
-                for (el in (_command.view : Float32Array))
-                {
-                    cache.blockBytes[i].setFloat(pos, el);
-                    pos += 4;
-                }
+                cpp.Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
+                cpp.Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
             }
             else
             {
@@ -855,66 +853,26 @@ class OGL3Backend implements IRendererBackend
                 {
                     switch (ShaderType.createByName(val.type))
                     {
-                        case Matrix4 : pos += writeMatrix4(cache.blockBytes[i], pos, _command.shader.uniforms.matrix4.get(val.name));
-                        case Vector4 : pos += writeVector4(cache.blockBytes[i], pos, _command.shader.uniforms.vector4.get(val.name));
-                        case Int : pos += writeInt(cache.blockBytes[i], pos, _command.shader.uniforms.int.get(val.name));
+                        case Matrix4:
+                            cpp.Stdlib.memcpy(ptr.incBy(pos), (_command.shader.uniforms.matrix4.get(val.name) : Float32Array).view.buffer.getData().address(0), 64);
+                            pos += 64;
+                        case Vector4:
+                            cpp.Stdlib.memcpy(ptr.incBy(pos), (_command.shader.uniforms.vector4.get(val.name) : Float32Array).view.buffer.getData().address(0), 16);
+                            pos += 16;
+                        case Int:
+                            var dst : Pointer<Int32> = ptr.reinterpret();
+                            dst.setAt(Std.int(pos / 4), _command.shader.uniforms.int.get(val.name));
+                            pos += 4;
+                        case Float:
+                            var dst : Pointer<Float32> = ptr.reinterpret();
+                            dst.setAt(Std.int(pos / 4), _command.shader.uniforms.float.get(val.name));
+                            pos += 4;
                     }
                 }
             }
             
-            glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[i]);
-            glBufferSubData(GL_UNIFORM_BUFFER, 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
+            glUnmapBuffer(GL_UNIFORM_BUFFER);
         }
-    }
-
-    /**
-     * Write a matrix into a byte buffer.
-     * @param _bytes    Bytes to write into.
-     * @param _position Starting bytes offset.
-     * @param _matrix   Matrix to write.
-     * @return Number of bytes written.
-     */
-    function writeMatrix4(_bytes : Bytes, _position : Int, _matrix : Matrix) : Int
-    {
-        var idx = 0;
-        for (el in cast (_matrix, Float32Array))
-        {
-            _bytes.setFloat(_position + idx, el);
-            idx += 4;
-        }
-
-        return 64;
-    }
-
-    /**
-     * Write a vector into a byte buffer.
-     * @param _bytes    Bytes to write into.
-     * @param _position Starting bytes offset.
-     * @param _vector   Vector to write.
-     * @return Number of bytes written.
-     */
-    function writeVector4(_bytes : Bytes, _position : Int, _vector : Vector) : Int
-    {
-        _bytes.setFloat(_position +  0, _vector.x);
-        _bytes.setFloat(_position +  4, _vector.y);
-        _bytes.setFloat(_position +  8, _vector.z);
-        _bytes.setFloat(_position + 12, _vector.w);
-
-        return 16;
-    }
-
-    /**
-     * Write a 32bit integer into a byte buffer.
-     * @param _bytes    Bytes to write into.
-     * @param _position Starting bytes offset.
-     * @param _int      Int to write.
-     * @return Number of bytes written.
-     */
-    function writeInt(_bytes : Bytes, _position : Int, _int : Int) : Int
-    {
-        _bytes.setInt32(_position, _int);
-
-        return 4;
     }
 
     function getBlendMode(_mode : BlendMode) : Int
