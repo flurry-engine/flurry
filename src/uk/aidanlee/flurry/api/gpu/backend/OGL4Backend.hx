@@ -1,10 +1,11 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
+import cpp.UInt8;
 import haxe.io.Bytes;
 import haxe.ds.Map;
 import cpp.Float32;
 import cpp.UInt16;
+import cpp.Int32;
 import cpp.Pointer;
 import sdl.GLContext;
 import sdl.Window;
@@ -22,13 +23,15 @@ import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
-import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
+
+using cpp.NativeArray;
 
 /**
  * OpenGL 4.5 renderer. Makes use of DSA, named buffers, persistent mapping, and (hopefully) eventually stuff like SSBOs and bindless textures.
@@ -800,6 +803,8 @@ class OGL4Backend implements IRendererBackend
         glCreateBuffers(blockBuffers.length, blockBuffers);
         var blockBytes = [ for (i in 0..._resource.layout.blocks.length) generateUniformBlock(_resource.layout.blocks[i], blockBuffers[i], blockBindings[i]) ];
 
+        glBindBuffersBase(GL_SHADER_STORAGE_BUFFER, blockBindings[0], blockBindings.length, blockBuffers);
+
         shaderPrograms.set(_resource.id, program);
         shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockLocations, blockBuffers, blockBytes));
     }
@@ -875,7 +880,7 @@ class OGL4Backend implements IRendererBackend
 
         var bytes = Bytes.alloc(blockSize);
         glNamedBufferData(_buffer, bytes.length, bytes.getData(), GL_DYNAMIC_DRAW);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, _binding, _buffer);
+        //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, _binding, _buffer);
         
         return bytes;
     }
@@ -1043,100 +1048,75 @@ class OGL4Backend implements IRendererBackend
                 }
             }
         }
-
-        // TEMP : Always writing all uniform values into SSBOs.
-        // TODO : Only update SSBOs when values have actually changed.
         
         for (i in 0...cache.layout.blocks.length)
         {
+            var ptr : Pointer<UInt8> = Pointer.fromRaw(glMapNamedBuffer(cache.blockBuffers[i], GL_WRITE_ONLY)).reinterpret();
+
             if (cache.layout.blocks[i].name == 'defaultMatrices')
             {
-                var pos = 0;
-                for (el in cast (_command.projection, Float32Array))
-                {
-                    cache.blockBytes[0].setFloat(pos, el);
-                    pos += 4;
-                }
-                for (el in cast (_command.view, Float32Array))
-                {
-                    cache.blockBytes[0].setFloat(pos, el);
-                    pos += 4;
-                }
+                cpp.Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
+                cpp.Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
             }
             else
             {
-                var bytePosition = 0;
+                // Otherwise upload all user specified uniform values.
+                // TODO : We should have some sort of error checking if the expected uniforms are not found.
+                var pos = 0;
                 for (val in cache.layout.blocks[i].vals)
                 {
                     switch (ShaderType.createByName(val.type))
                     {
-                        case Matrix4: bytePosition += writeMatrix4(cache.blockBytes[i], bytePosition, _command.shader.uniforms.matrix4.get(val.name));
-                        case Vector4: bytePosition += writeVector4(cache.blockBytes[i], bytePosition, _command.shader.uniforms.vector4.get(val.name));
-                        case Int    : bytePosition += writeInt(cache.blockBytes[i], bytePosition, _command.shader.uniforms.int.get(val.name));
-                        case Float  : bytePosition += writeFloat(cache.blockBytes[i], bytePosition, _command.shader.uniforms.float.get(val.name));
+                        case Matrix4:
+                            cpp.Stdlib.memcpy(ptr.incBy(pos), (_command.shader.uniforms.matrix4.get(val.name) : Float32Array).view.buffer.getData().address(0), 64);
+                            pos += 64;
+                        case Vector4:
+                            cpp.Stdlib.memcpy(ptr.incBy(pos), (_command.shader.uniforms.vector4.get(val.name) : Float32Array).view.buffer.getData().address(0), 16);
+                            pos += 16;
+                        case Int:
+                            var dst : Pointer<Int32> = ptr.reinterpret();
+                            dst.setAt(Std.int(pos / 4), _command.shader.uniforms.int.get(val.name));
+                            pos += 4;
+                        case Float:
+                            var dst : Pointer<Float32> = ptr.reinterpret();
+                            dst.setAt(Std.int(pos / 4), _command.shader.uniforms.float.get(val.name));
+                            pos += 4;
                     }
                 }
             }
 
-            glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
+            glUnmapNamedBuffer(cache.blockBuffers[i]);
+            // if (cache.layout.blocks[i].name == 'defaultMatrices')
+            // {
+            //     var pos = 0;
+            //     for (el in cast (_command.projection, Float32Array))
+            //     {
+            //         cache.blockBytes[0].setFloat(pos, el);
+            //         pos += 4;
+            //     }
+            //     for (el in cast (_command.view, Float32Array))
+            //     {
+            //         cache.blockBytes[0].setFloat(pos, el);
+            //         pos += 4;
+            //     }
+            // }
+            // else
+            // {
+            //     var bytePosition = 0;
+            //     for (val in cache.layout.blocks[i].vals)
+            //     {
+            //         switch (ShaderType.createByName(val.type))
+            //         {
+            //             case Matrix4: bytePosition += writeMatrix4(cache.blockBytes[i], bytePosition, _command.shader.uniforms.matrix4.get(val.name));
+            //             case Vector4: bytePosition += writeVector4(cache.blockBytes[i], bytePosition, _command.shader.uniforms.vector4.get(val.name));
+            //             case Int    : bytePosition += writeInt(cache.blockBytes[i], bytePosition, _command.shader.uniforms.int.get(val.name));
+            //             case Float  : bytePosition += writeFloat(cache.blockBytes[i], bytePosition, _command.shader.uniforms.float.get(val.name));
+            //         }
+            //     }
+            // }
+
+            // glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
         }
-    }
-
-    /**
-     * Write a matrix into a byte buffer.
-     * @param _bytes    Bytes to write into.
-     * @param _position Starting bytes offset.
-     * @param _matrix   Matrix to write.
-     * @return Number of bytes written.
-     */
-    function writeMatrix4(_bytes : Bytes, _position : Int, _matrix : Matrix) : Int
-    {
-        var idx = 0;
-        for (el in cast (_matrix, Float32Array))
-        {
-            _bytes.setFloat(_position + idx, el);
-            idx += 4;
-        }
-
-        return 64;
-    }
-
-    /**
-     * Write a vector into a byte buffer.
-     * @param _bytes    Bytes to write into.
-     * @param _position Starting bytes offset.
-     * @param _vector   Vector to write.
-     * @return Number of bytes written.
-     */
-    function writeVector4(_bytes : Bytes, _position : Int, _vector : Vector) : Int
-    {
-        _bytes.setFloat(_position +  0, _vector.x);
-        _bytes.setFloat(_position +  4, _vector.y);
-        _bytes.setFloat(_position +  8, _vector.z);
-        _bytes.setFloat(_position + 12, _vector.w);
-
-        return 16;
-    }
-
-    /**
-     * Write a 32bit integer into a byte buffer.
-     * @param _bytes    Bytes to write into.
-     * @param _position Starting bytes offset.
-     * @param _int      Int to write.
-     * @return Number of bytes written.
-     */
-    function writeInt(_bytes : Bytes, _position : Int, _int : Int) : Int
-    {
-        _bytes.setInt32(_position, _int);
-
-        return 4;
-    }
-
-    function writeFloat(_bytes : Bytes, _position : Int, _float : Float) : Int
-    {
-        _bytes.setFloat(_position, _float);
-
-        return 4;
     }
 
     /**

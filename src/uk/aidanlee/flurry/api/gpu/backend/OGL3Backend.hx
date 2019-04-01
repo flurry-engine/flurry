@@ -2,8 +2,6 @@ package uk.aidanlee.flurry.api.gpu.backend;
 
 import cpp.UInt8;
 import cpp.Int32;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
-import uk.aidanlee.flurry.api.maths.Matrix;
 import haxe.io.Bytes;
 import haxe.Exception;
 import haxe.io.UInt8Array;
@@ -34,6 +32,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
 using cpp.NativeArray;
