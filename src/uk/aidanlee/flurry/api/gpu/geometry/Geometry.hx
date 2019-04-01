@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Transformation;
 import uk.aidanlee.flurry.api.maths.Hash;
@@ -33,6 +34,7 @@ typedef GeometryOptions = {
     var ?primitive  : PrimitiveType;
     var ?batchers   : Array<Batcher>;
     var ?blend      : Blending;
+    var ?uniforms   : Uniforms;
 }
 
 /**
@@ -93,9 +95,14 @@ class Geometry
      * The specific shader for the geometry.
      * If null the batchers shader is used.
      */
-    public var shader (default, set) : ShaderResource;
+    public var shader (default, set) : Null<ShaderResource>;
 
-    inline function set_shader(_shader : ShaderResource) : ShaderResource {
+    /**
+     * Individual uniform values to override the shaders defaults.
+     */
+    public var uniforms : Null<Uniforms>;
+
+    inline function set_shader(_shader : Null<ShaderResource>) : Null<ShaderResource> {
         dirtyBatchers();
 
         return shader = _shader;
@@ -193,6 +200,7 @@ class Geometry
         color          = _options.color     .or(new Color());
         blend          = _options.blend     .or(new Blending());
         shader         = _options.shader;
+        uniforms       = _options.uniforms;
 
         // Add to batchers.
         for (batcher in _options.batchers.or([]))

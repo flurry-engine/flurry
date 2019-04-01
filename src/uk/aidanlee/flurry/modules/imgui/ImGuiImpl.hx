@@ -239,7 +239,7 @@ class ImGuiImpl
                     vtxOffset += 9;
                 }
 
-                commands.push(new BufferDrawCommand(buffer, start, vtxOffset, Hash.uniqueHash(), false, camera.projection, camera.viewInverted, cmd.elemCount, 0, camera.viewport, Triangles, null, flurry.resources.get('std-shader-textured.json', ShaderResource), [ t.ref ], clip, true, SrcAlpha, OneMinusSrcAlpha, One, Zero));
+                commands.push(new BufferDrawCommand(buffer, start, vtxOffset, Hash.uniqueHash(), false, camera.projection, camera.viewInverted, cmd.elemCount, 0, camera.viewport, Triangles, null, flurry.resources.get('std-shader-textured.json', ShaderResource), null, [ t.ref ], clip, true, SrcAlpha, OneMinusSrcAlpha, One, Zero));
 
                 idxOffset += cmd.elemCount;
             }
