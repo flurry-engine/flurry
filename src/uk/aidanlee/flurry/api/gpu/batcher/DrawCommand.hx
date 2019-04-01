@@ -69,7 +69,7 @@ class DrawCommand
     /**
      * If provided uniform values are fetch from here before the shader defaults.
      */
-    public final uniforms : Null<Uniforms>;
+    public final uniforms : Uniforms;
 
     /**
      * Textures (if any) to draw with this data.
@@ -105,7 +105,7 @@ class DrawCommand
         _primitive  : PrimitiveType,
         _target     : ImageResource,
         _shader     : ShaderResource,
-        _uniforms   : Null<Uniforms>,
+        _uniforms   : Uniforms,
         _textures   : Array<ImageResource>,
         _clip       : Rectangle,
         _blending   : Bool,

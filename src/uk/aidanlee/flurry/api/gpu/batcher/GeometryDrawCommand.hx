@@ -28,7 +28,7 @@ class GeometryDrawCommand extends DrawCommand
         _primitive  : PrimitiveType,
         _target     : ImageResource,
         _shader     : ShaderResource,
-        _uniforms   : Null<Uniforms>,
+        _uniforms   : Uniforms,
         _textures   : Array<ImageResource>,
         _clip       : Rectangle,
         _blending   : Bool,

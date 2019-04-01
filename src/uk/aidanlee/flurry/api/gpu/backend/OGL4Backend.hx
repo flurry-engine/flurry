@@ -31,6 +31,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
+using Safety;
 using cpp.NativeArray;
 
 /**
@@ -1021,6 +1022,7 @@ class OGL4Backend implements IRendererBackend
     function setUniforms(_command : DrawCommand, _disableStats : Bool)
     {
         var cache = shaderUniforms.get(_command.shader.id);
+        var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
 
         // TEMP : Set all textures all the time.
         // TODO : Store all bound texture IDs and check before binding textures.
@@ -1068,54 +1070,26 @@ class OGL4Backend implements IRendererBackend
                     switch (ShaderType.createByName(val.type))
                     {
                         case Matrix4:
-                            cpp.Stdlib.memcpy(ptr.incBy(pos), (_command.shader.uniforms.matrix4.get(val.name) : Float32Array).view.buffer.getData().address(0), 64);
+                            var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
+                            cpp.Stdlib.memcpy(ptr.incBy(pos), (mat : Float32Array).view.buffer.getData().address(0), 64);
                             pos += 64;
                         case Vector4:
-                            cpp.Stdlib.memcpy(ptr.incBy(pos), (_command.shader.uniforms.vector4.get(val.name) : Float32Array).view.buffer.getData().address(0), 16);
+                            var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
+                            cpp.Stdlib.memcpy(ptr.incBy(pos), (vec : Float32Array).view.buffer.getData().address(0), 16);
                             pos += 16;
                         case Int:
                             var dst : Pointer<Int32> = ptr.reinterpret();
-                            dst.setAt(Std.int(pos / 4), _command.shader.uniforms.int.get(val.name));
+                            dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
                             pos += 4;
                         case Float:
                             var dst : Pointer<Float32> = ptr.reinterpret();
-                            dst.setAt(Std.int(pos / 4), _command.shader.uniforms.float.get(val.name));
+                            dst.setAt(Std.int(pos / 4), preferedUniforms.float.exists(val.name) ? preferedUniforms.float.get(val.name) : _command.shader.uniforms.float.get(val.name));
                             pos += 4;
                     }
                 }
             }
 
             glUnmapNamedBuffer(cache.blockBuffers[i]);
-            // if (cache.layout.blocks[i].name == 'defaultMatrices')
-            // {
-            //     var pos = 0;
-            //     for (el in cast (_command.projection, Float32Array))
-            //     {
-            //         cache.blockBytes[0].setFloat(pos, el);
-            //         pos += 4;
-            //     }
-            //     for (el in cast (_command.view, Float32Array))
-            //     {
-            //         cache.blockBytes[0].setFloat(pos, el);
-            //         pos += 4;
-            //     }
-            // }
-            // else
-            // {
-            //     var bytePosition = 0;
-            //     for (val in cache.layout.blocks[i].vals)
-            //     {
-            //         switch (ShaderType.createByName(val.type))
-            //         {
-            //             case Matrix4: bytePosition += writeMatrix4(cache.blockBytes[i], bytePosition, _command.shader.uniforms.matrix4.get(val.name));
-            //             case Vector4: bytePosition += writeVector4(cache.blockBytes[i], bytePosition, _command.shader.uniforms.vector4.get(val.name));
-            //             case Int    : bytePosition += writeInt(cache.blockBytes[i], bytePosition, _command.shader.uniforms.int.get(val.name));
-            //             case Float  : bytePosition += writeFloat(cache.blockBytes[i], bytePosition, _command.shader.uniforms.float.get(val.name));
-            //         }
-            //     }
-            // }
-
-            // glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
         }
     }
 
