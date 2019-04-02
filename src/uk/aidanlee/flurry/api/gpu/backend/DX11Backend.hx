@@ -2,6 +2,9 @@ package uk.aidanlee.flurry.api.gpu.backend;
 
 import haxe.io.Bytes;
 import haxe.ds.Map;
+import cpp.Float32;
+import cpp.Int32;
+import cpp.Pointer;
 import sdl.Window;
 import sdl.SDL;
 import haxe.io.Float32Array;
@@ -54,9 +57,12 @@ import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
 
+using Safety;
+using cpp.NativeArray;
 using cpp.Native;
 
 @:headerCode('
+#include <comdef.h>
 #include <D3Dcompiler.h>
 #include "SDL_syswm.h"
 ')
@@ -745,59 +751,41 @@ class DX11Backend implements IRendererBackend
         vertexBytecode.release();
         pixelBytecode.release();
 
-        // Create a initial cbuffer to store our two required matricies in them.
-        var bufferDesc = BufferDescription.create();
-        bufferDesc.byteWidth      = (64 * 2);
-        bufferDesc.usage          = DYNAMIC;
-        bufferDesc.bindFlags      = CONSTANT_BUFFER;
-        bufferDesc.cpuAccessFlags = WRITE;
-
-        var defaultBuffer : Buffer = null;
-        if (device.createBuffer(bufferDesc, null, cast defaultBuffer.addressOf()) != 0)
-        {
-            throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to create default matrix cbuffer';
-        }
-
         // Create our shader and a class to store its resources.
         var resource = new DXShaderInformation();
-        resource.layout  = _resource.layout;
-        resource.vertex  = vertexShader;
-        resource.pixel   = pixelShader;
-        resource.input   = inputLayout;
+        resource.layout = _resource.layout;
+        resource.vertex = vertexShader;
+        resource.pixel  = pixelShader;
+        resource.input  = inputLayout;
 
-        resource.bytes   = [];
-        resource.buffers = new Map();
-        resource.buffers.set(0, defaultBuffer);
-        
-        // Create a D3D cbuffer for each of our user defined blocks
         for (i in 0..._resource.layout.blocks.length)
         {
-            var bytesSize = 0;
+            var blockSize = 0;
             for (val in _resource.layout.blocks[i].vals)
             {
                 switch (ShaderType.createByName(val.type))
                 {
-                    case Matrix4: bytesSize += 64;
-                    case Vector4: bytesSize += 16;
-                    case Int    : bytesSize +=  4;
+                    case Matrix4: blockSize += 64;
+                    case Vector4: blockSize += 16;
+                    case Int, Float: blockSize += 4;
                 }
             }
 
-            var bytesData  = Bytes.alloc(bytesSize);
-            var bufferDesc = BufferDescription.create();
-            bufferDesc.byteWidth      = bytesSize;
-            bufferDesc.usage          = DYNAMIC;
-            bufferDesc.bindFlags      = CONSTANT_BUFFER;
-            bufferDesc.cpuAccessFlags = WRITE;
+            var blockBytes       = Bytes.alloc(blockSize);
+            var blockDescription = BufferDescription.create();
+            blockDescription.byteWidth      = blockSize;
+            blockDescription.usage          = DYNAMIC;
+            blockDescription.bindFlags      = CONSTANT_BUFFER;
+            blockDescription.cpuAccessFlags = WRITE;
 
-            var buffer : Buffer = null;
-            if (device.createBuffer(bufferDesc, null, cast buffer.addressOf()) != 0)
+            var block : Buffer = null;
+            if (device.createBuffer(cast blockDescription.addressOf(), null, cast block.addressOf()) != 0)
             {
-                throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to create cbuffer $i';
+                throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to create cbuffer for block ${_resource.layout.blocks[i].name}';
             }
 
-            resource.buffers.set(i + 1, buffer);
-            resource.bytes.push(bytesData);
+            resource.buffers.set(i, block);
+            resource.bytes.set(i, blockBytes);
         }
 
         shaderResources.set(_resource.id, resource);
@@ -1044,6 +1032,7 @@ class DX11Backend implements IRendererBackend
     inline function setShaderValues(_command : DrawCommand)
     {
         var shaderResource = shaderResources.get(_command.shader.id);
+        var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
 
         // Set all textures.
         if (shaderResource.layout.textures.length > _command.textures.length)
@@ -1062,67 +1051,58 @@ class DX11Backend implements IRendererBackend
             }
         }
 
-        // Update our default cbuffer since its values are retreived from the command and not shader class.
-
-        var map = MappedSubResource.create();
-        if (context.map(shaderResource.buffers.get(0), 0, WRITE_DISCARD, 0, map) != 0)
-        {
-            throw 'DirectX 11 Backend Exception : Failed to map the shader matrix cbuffer';
-        }
-
-        var ptr : cpp.Pointer<cpp.Float32> = cpp.Pointer.fromRaw(map.sysMem).reinterpret();
-        var itr = 0;
-
-        for (el in (_command.projection : Float32Array))
-        {
-            ptr[itr++] = el;
-        }
-        for (el in (_command.view : Float32Array))
-        {
-            ptr[itr++] = el;
-        }
-
-        context.unmap(shaderResource.buffers.get(0), 0);
-
-        var buffer = shaderResource.buffers.get(0);
-        context.vsSetConstantBuffers(0, [ buffer ]);
-        context.psSetConstantBuffers(0, [ buffer ]);
-
         // Update the user defined shader blocks.
         // Data is packed into haxe bytes then copied over.
 
         for (i in 0...shaderResource.layout.blocks.length)
         {
-            var bytePosition = 0;
-            for (val in shaderResource.layout.blocks[i].vals)
+            var map = MappedSubResource.create();
+            if (context.map(shaderResource.buffers[i], 0, WRITE_DISCARD, 0, map) != 0)
             {
-                switch (ShaderType.createByName(val.type)) {
-                    case Matrix4: bytePosition += writeMatrix4(shaderResource.bytes[i], bytePosition, _command.shader.uniforms.matrix4.get(val.name));
-                    case Vector4: bytePosition += writeVector4(shaderResource.bytes[i], bytePosition, _command.shader.uniforms.vector4.get(val.name));
-                    case Int    : bytePosition +=     writeInt(shaderResource.bytes[i], bytePosition, _command.shader.uniforms.int.get(val.name));
+                throw 'DirectX 11 Backend Exception : Failed to map shader cbuffer ${shaderResource.layout.blocks[i].name}';
+            }
+
+            var ptr : cpp.Pointer<cpp.UInt8> = cpp.Pointer.fromRaw(map.sysMem).reinterpret();
+
+            if (shaderResource.layout.blocks[i].name == 'defaultMatrices')
+            {
+                cpp.Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
+                cpp.Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
+            }
+            else
+            {
+                // Otherwise upload all user specified uniform values.
+                // TODO : We should have some sort of error checking if the expected uniforms are not found.
+                var pos = 0;
+                for (val in shaderResource.layout.blocks[i].vals)
+                {
+                    switch (ShaderType.createByName(val.type))
+                    {
+                        case Matrix4:
+                            var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
+                            cpp.Stdlib.memcpy(ptr.incBy(pos), (mat : Float32Array).view.buffer.getData().address(0), 64);
+                            pos += 64;
+                        case Vector4:
+                            var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
+                            cpp.Stdlib.memcpy(ptr.incBy(pos), (vec : Float32Array).view.buffer.getData().address(0), 16);
+                            pos += 16;
+                        case Int:
+                            var dst : Pointer<Int32> = ptr.reinterpret();
+                            dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
+                            pos += 4;
+                        case Float:
+                            var dst : Pointer<Float32> = ptr.reinterpret();
+                            dst.setAt(Std.int(pos / 4), preferedUniforms.float.exists(val.name) ? preferedUniforms.float.get(val.name) : _command.shader.uniforms.float.get(val.name));
+                            pos += 4;
+                    }
                 }
             }
 
-            // Map and memcpy the bytes to the subresource data.
-            var map = MappedSubResource.create();
-            if (context.map(shaderResource.buffers.get(i + 1), 0, WRITE_DISCARD, 0, map) != 0)
-            {
-                throw 'DirectX 11 Backend Exception : Failed to map shader cbuffer $i';
-            }
+            context.unmap(shaderResource.buffers[i], 0);
 
-            // TODO : Look into memcpy to simplify this code.
-            var ptr : cpp.Pointer<cpp.UInt8> = cpp.Pointer.fromRaw(map.sysMem).reinterpret();
-            var itr = 0;
-            for (int in shaderResource.bytes[i].getData())
-            {
-                ptr[itr++] = int;
-            }
-
-            context.unmap(shaderResource.buffers.get(i + 1), 0);
-
-            var buffer = shaderResource.buffers.get(i + 1);
-            context.vsSetConstantBuffers(i + 1, [ buffer ]);
-            context.psSetConstantBuffers(i + 1, [ buffer ]);
+            var buffer = shaderResource.buffers.get(i);
+            context.vsSetConstantBuffers(i, [ buffer ]);
+            context.psSetConstantBuffers(i, [ buffer ]);
         }
     }
 
@@ -1212,6 +1192,12 @@ class DX11Backend implements IRendererBackend
             case Triangles     : TRIANGLELIST;
             case TriangleStrip : TRIANGLESTRIP;
         }
+    }
+
+    function printHRESULT(_hresult : Int)
+    {
+        untyped __cpp__('_com_error err({0})', _hresult);
+        untyped __cpp__('printf(err.ErrorMessage())');
     }
 }
 
@@ -1303,16 +1289,17 @@ private class DXShaderInformation
      * Map to all D3D11 cbuffers used in this shader.
      * Array cannot be used since hxcpp doesn't like array of pointers.
      */
-    public var buffers : Map<Int, Buffer>;
+    public final buffers : Map<Int, Buffer>;
 
     /**
      * Array of all bytes for user the corresponding buffer.
      */
-    public var bytes : Array<Bytes>;
+    public final bytes : Map<Int, Bytes>;
 
     public function new()
     {
-        //
+        buffers = [];
+        bytes   = [];
     }
 }
 
