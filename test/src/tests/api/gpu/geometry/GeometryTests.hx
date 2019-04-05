@@ -3,6 +3,7 @@ package tests.api.gpu.geometry;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Quaternion;
+import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
@@ -14,6 +15,7 @@ import buddy.BuddySuite;
 import mockatoo.Mockatoo.*;
 
 using buddy.Should;
+using mockatoo.Mockatoo;
 
 class GeometryTests extends BuddySuite
 {
@@ -126,6 +128,16 @@ class GeometryTests extends BuddySuite
                 g.shader.should.be(s);
             });
 
+            it('Has a uniform for overriding the shaders default', {
+                var u = mock(Uniforms);
+
+                var g = new Geometry({});
+                g.uniforms.should.be(null);
+
+                var g = new Geometry({ uniforms : u });
+                g.uniforms.should.be(u);
+            });
+
             it('Has a depth to decide when it should be drawn', {
                 var g = new Geometry({});
                 g.depth.should.be(0);
@@ -151,7 +163,14 @@ class GeometryTests extends BuddySuite
             });
 
             it('Will dirty any batchers its in when adding a texture', {
-                var b = new Batcher({ shader : mock(ShaderResource), camera : mock(Camera) });
+                var u = mock(Uniforms);
+                var s = mock(ShaderResource);
+                
+                u.id.returns(0);
+                s.id.returns(0);
+                s.uniforms.returns(u);
+
+                var b = new Batcher({ shader : s, camera : mock(Camera) });
                 var g = new Geometry({ batchers : [ b ] });
 
                 // Batching is required to clear the dirty state set when the geometry was added.
@@ -162,8 +181,15 @@ class GeometryTests extends BuddySuite
             });
 
             it('Will dirty any batchers its in when removing a texture', {
+                var u = mock(Uniforms);
+                var s = mock(ShaderResource);
                 var t = mock(ImageResource);
-                var b = new Batcher({ shader : mock(ShaderResource), camera : mock(Camera) });
+                
+                u.id.returns(0);
+                s.id.returns(0);
+                s.uniforms.returns(u);
+                
+                var b = new Batcher({ shader : s, camera : mock(Camera) });
                 var g = new Geometry({ batchers : [ b ], textures: [ t ] });
 
                 // Batching is required to clear the dirty state set when the geometry was added.
@@ -185,8 +211,15 @@ class GeometryTests extends BuddySuite
             });
 
             it('Contains a convenience function to dirty all the batchers it is in', {
-                var b1 = new Batcher({ shader : mock(ShaderResource), camera : mock(Camera) });
-                var b2 = new Batcher({ shader : mock(ShaderResource), camera : mock(Camera) });
+                var u = mock(Uniforms);
+                var s = mock(ShaderResource);
+                
+                u.id.returns(0);
+                s.id.returns(0);
+                s.uniforms.returns(u);
+
+                var b1 = new Batcher({ shader : s, camera : mock(Camera) });
+                var b2 = new Batcher({ shader : s, camera : mock(Camera) });
 
                 var g = new Geometry({ batchers : [ b1, b2 ] });
 

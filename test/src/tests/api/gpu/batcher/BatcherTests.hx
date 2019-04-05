@@ -3,6 +3,7 @@ package tests.api.gpu.batcher;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
 import uk.aidanlee.flurry.api.gpu.geometry.Color;
@@ -102,8 +103,12 @@ class BatcherTests extends BuddySuite
 
             describe('Batching', {
                 it('Produces geometry draw commands describing how to draw a set of geometry at once', {
+                    var uniforms = mock(Uniforms);
+                    uniforms.id.returns(0);
+
                     var shader = mock(ShaderResource);
                     shader.id.returns('1');
+                    shader.uniforms.returns(uniforms);
 
                     var texture = mock(ImageResource);
                     texture.id.returns('1');
@@ -141,8 +146,12 @@ class BatcherTests extends BuddySuite
                 });
 
                 it('Can sort geometry to minimise the number of state changes needed to draw it', {
+                    var uniforms = mock(Uniforms);
+                    uniforms.id.returns(0);
+
                     var shader = mock(ShaderResource);
                     shader.id.returns('1');
+                    shader.uniforms.returns(uniforms);
 
                     var texture1 = mock(ImageResource);
                     var texture2 = mock(ImageResource);
@@ -191,8 +200,12 @@ class BatcherTests extends BuddySuite
                 });
 
                 it('Produces geometry draw commands which can be flagged as unchanging', {
+                    var uniforms = mock(Uniforms);
+                    uniforms.id.returns(0);
+
                     var shader = mock(ShaderResource);
                     shader.id.returns('1');
+                    shader.uniforms.returns(uniforms);
 
                     var texture = mock(ImageResource);
                     texture.id.returns('1');
@@ -237,8 +250,12 @@ class BatcherTests extends BuddySuite
                 });
 
                 it('Produces geometry draw commands which are either indexed or non indexed', {
+                    var uniforms = mock(Uniforms);
+                    uniforms.id.returns(0);
+
                     var shader = mock(ShaderResource);
                     shader.id.returns('1');
+                    shader.uniforms.returns(uniforms);
 
                     var texture = mock(ImageResource);
                     texture.id.returns('1');
@@ -283,8 +300,12 @@ class BatcherTests extends BuddySuite
                 });
 
                 it('Removes immediate geometry from itself once it has been batched', {
+                    var uniforms = mock(Uniforms);
+                    uniforms.id.returns(0);
+
                     var shader = mock(ShaderResource);
                     shader.id.returns('1');
+                    shader.uniforms.returns(uniforms);
 
                     var texture = mock(ImageResource);
                     texture.id.returns('1');

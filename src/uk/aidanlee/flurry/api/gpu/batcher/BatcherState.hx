@@ -79,6 +79,11 @@ class BatcherState
      */
     public function requiresChange(_geom : Geometry) : Bool
     {
+        if (shader == null)
+        {
+            return true;
+        }
+
         var usedShader = _geom.shader.or(batcher.shader);
 
         if (usedShader.id != shader.id) return true;
