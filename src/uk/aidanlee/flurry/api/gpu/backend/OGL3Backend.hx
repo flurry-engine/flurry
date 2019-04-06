@@ -352,18 +352,27 @@ class OGL3Backend implements IRendererBackend
     {
         for (command in _commands)
         {
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, 0, 0));
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexByteOffset));
 
             var vtxDst : Pointer<Float32> = Pointer.fromRaw(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
-            for (i in command.startIndex...command.endIndex)
+            var idxDst : Pointer<UInt16>  = Pointer.fromRaw(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
+
+            for (i in command.vtxStartIndex...command.vtxEndIndex)
             {
-                vtxDst[vertexFloatOffset++] = command.buffer[i];
+                vtxDst[vertexFloatOffset++] = command.vtxData[i];
             }
 
-            vertexOffset      += command.vertices;
-            vertexByteOffset  += command.vertices * (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT);
+            for (i in command.idxStartIndex...command.idxEndIndex)
+            {
+                idxDst[indexOffset++] = command.idxData[i];
+            }
+
+            vertexOffset     += command.vertices;
+            vertexByteOffset += command.vertices * (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT);
+            indexByteOffset  += command.indices * UInt16Array.BYTES_PER_ELEMENT;
 
             glUnmapBuffer(GL_ARRAY_BUFFER);
+            glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
         }
     }
 
