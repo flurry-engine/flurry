@@ -54,7 +54,7 @@ class BytesPacker
                 else
                 {
                     // Can't fit into the register, pad the buffer to fill the current register and start a new one.
-                    bufferByteSize += 16 - bufferByteSize;
+                    bufferByteSize += 16 - registerByteSize;
 
                     if (val.name == _requested)
                     {
@@ -102,7 +102,7 @@ class BytesPacker
                 else
                 {
                     // Can't fit into the register, pad the buffer to fill the current register and start a new one.
-                    bufferByteSize += 16 - bufferByteSize;
+                    bufferByteSize += 16 - registerByteSize;
                     bufferByteSize += typeSize;
 
                     registerByteSize = 0;
