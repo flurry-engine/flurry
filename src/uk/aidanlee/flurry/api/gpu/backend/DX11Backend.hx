@@ -4,6 +4,7 @@ import haxe.io.Bytes;
 import haxe.ds.Map;
 import cpp.Float32;
 import cpp.Int32;
+import cpp.UInt8;
 import cpp.Pointer;
 import sdl.Window;
 import sdl.SDL;
@@ -55,7 +56,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
-import uk.aidanlee.flurry.api.maths.Matrix;
+import uk.aidanlee.flurry.utils.BytesPacker;
 
 using Safety;
 using cpp.NativeArray;
@@ -760,20 +761,9 @@ class DX11Backend implements IRendererBackend
 
         for (i in 0..._resource.layout.blocks.length)
         {
-            var blockSize = 0;
-            for (val in _resource.layout.blocks[i].vals)
-            {
-                switch (ShaderType.createByName(val.type))
-                {
-                    case Matrix4: blockSize += 64;
-                    case Vector4: blockSize += 16;
-                    case Int, Float: blockSize += 4;
-                }
-            }
-
-            var blockBytes       = Bytes.alloc(blockSize);
+            var blockBytes       = BytesPacker.allocateBytes(Dx11, _resource.layout.blocks[i].vals);
             var blockDescription = BufferDescription.create();
-            blockDescription.byteWidth      = blockSize;
+            blockDescription.byteWidth      = blockBytes.length;
             blockDescription.usage          = DYNAMIC;
             blockDescription.bindFlags      = CONSTANT_BUFFER;
             blockDescription.cpuAccessFlags = WRITE;
@@ -1062,7 +1052,7 @@ class DX11Backend implements IRendererBackend
                 throw 'DirectX 11 Backend Exception : Failed to map shader cbuffer ${shaderResource.layout.blocks[i].name}';
             }
 
-            var ptr : cpp.Pointer<cpp.UInt8> = cpp.Pointer.fromRaw(map.sysMem).reinterpret();
+            var ptr : Pointer<UInt8> = Pointer.fromRaw(map.sysMem).reinterpret();
 
             if (shaderResource.layout.blocks[i].name == 'defaultMatrices')
             {
@@ -1073,27 +1063,24 @@ class DX11Backend implements IRendererBackend
             {
                 // Otherwise upload all user specified uniform values.
                 // TODO : We should have some sort of error checking if the expected uniforms are not found.
-                var pos = 0;
                 for (val in shaderResource.layout.blocks[i].vals)
                 {
+                    var pos = BytesPacker.getPosition(Dx11, shaderResource.layout.blocks[i].vals, val.name);
+
                     switch (ShaderType.createByName(val.type))
                     {
                         case Matrix4:
                             var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
                             cpp.Stdlib.memcpy(ptr.incBy(pos), (mat : Float32Array).view.buffer.getData().address(0), 64);
-                            pos += 64;
                         case Vector4:
                             var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
                             cpp.Stdlib.memcpy(ptr.incBy(pos), (vec : Float32Array).view.buffer.getData().address(0), 16);
-                            pos += 16;
                         case Int:
                             var dst : Pointer<Int32> = ptr.reinterpret();
                             dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
-                            pos += 4;
                         case Float:
                             var dst : Pointer<Float32> = ptr.reinterpret();
                             dst.setAt(Std.int(pos / 4), preferedUniforms.float.exists(val.name) ? preferedUniforms.float.get(val.name) : _command.shader.uniforms.float.get(val.name));
-                            pos += 4;
                     }
                 }
             }
@@ -1104,56 +1091,6 @@ class DX11Backend implements IRendererBackend
             context.vsSetConstantBuffers(i, [ buffer ]);
             context.psSetConstantBuffers(i, [ buffer ]);
         }
-    }
-
-    /**
-     * Write a matrix into a byte buffer.
-     * @param _bytes    Bytes to write into.
-     * @param _position Starting bytes offset.
-     * @param _matrix   Matrix to write.
-     * @return Number of bytes written.
-     */
-    inline function writeMatrix4(_bytes : Bytes, _position : Int, _matrix : Matrix) : Int
-    {
-        var idx = 0;
-        for (el in (_matrix : Float32Array))
-        {
-            _bytes.setFloat(_position + idx, el);
-            idx += 4;
-        }
-
-        return 64;
-    }
-
-    /**
-     * Write a vector into a byte buffer.
-     * @param _bytes    Bytes to write into.
-     * @param _position Starting bytes offset.
-     * @param _vector   Vector to write.
-     * @return Number of bytes written.
-     */
-    inline function writeVector4(_bytes : Bytes, _position : Int, _vector : Vector) : Int
-    {
-        _bytes.setFloat(_position +  0, _vector.x);
-        _bytes.setFloat(_position +  4, _vector.y);
-        _bytes.setFloat(_position +  8, _vector.z);
-        _bytes.setFloat(_position + 12, _vector.w);
-
-        return 16;
-    }
-
-    /**
-     * Write a 32bit integer into a byte buffer.
-     * @param _bytes    Bytes to write into.
-     * @param _position Starting bytes offset.
-     * @param _int      Int to write.
-     * @return Number of bytes written.
-     */
-    inline function writeInt(_bytes : Bytes, _position : Int, _int : Int) : Int
-    {
-        _bytes.setInt32(_position, _int);
-
-        return 4;
     }
 
     /**
