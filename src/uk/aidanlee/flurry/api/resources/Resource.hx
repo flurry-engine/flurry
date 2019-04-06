@@ -3,14 +3,14 @@ package uk.aidanlee.flurry.api.resources;
 import haxe.Json;
 import haxe.io.BytesData;
 import haxe.io.Bytes;
-import uk.aidanlee.flurry.api.maths.Vector;
-import uk.aidanlee.flurry.api.maths.Matrix;
+import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 
 enum ShaderType
 {
     Matrix4;
     Vector4;
     Int;
+    Float;
 }
 
 typedef ShaderBackend = { vertex : String, fragment : String };
@@ -104,21 +104,5 @@ class ShaderResource extends Resource
         ogl4     = _ogl4;
         hlsl     = _hlsl;
         uniforms = new Uniforms();
-    }
-}
-
-private class Uniforms
-{
-    public final int : Map<String, Int>;
-
-    public final vector4 : Map<String, Vector>;
-
-    public final matrix4 : Map<String, Matrix>;
-
-    public function new()
-    {
-        int     = new Map();
-        vector4 = new Map();
-        matrix4 = new Map();
     }
 }

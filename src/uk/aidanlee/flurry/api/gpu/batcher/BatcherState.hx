@@ -3,6 +3,7 @@ package uk.aidanlee.flurry.api.gpu.batcher;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending;
+import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 
@@ -27,6 +28,11 @@ class BatcherState
      * The shader currently active in this batcher.
      */
     public var shader (default, null) : ShaderResource;
+
+    /**
+     * The uniform values currently active in this batcher.
+     */
+    public var uniforms (default, null) : Uniforms;
 
     /**
      * The textures currently active in this batcher.
@@ -73,7 +79,16 @@ class BatcherState
      */
     public function requiresChange(_geom : Geometry) : Bool
     {
-        if (_geom.shader.or(batcher.shader) != shader) return true;
+        if (shader == null)
+        {
+            return true;
+        }
+
+        var usedShader = _geom.shader.or(batcher.shader);
+
+        if (usedShader.id != shader.id) return true;
+
+        if (_geom.uniforms.or(usedShader.uniforms).id != uniforms.id) return true;
 
         if (_geom.textures.length != textures.length) return true;
 
@@ -97,7 +112,10 @@ class BatcherState
      */
     public function change(_geom : Geometry)
     {
-        shader = _geom.shader.or(batcher.shader);
+        var usedShader = _geom.shader.or(batcher.shader);
+
+        shader   = usedShader;
+        uniforms = _geom.uniforms.or(usedShader.uniforms);
 
         if (_geom.textures.length != textures.length)
         {

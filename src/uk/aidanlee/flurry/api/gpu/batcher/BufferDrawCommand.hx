@@ -4,6 +4,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry.PrimitiveType;
+import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import haxe.io.Float32Array;
@@ -40,6 +41,7 @@ class BufferDrawCommand extends DrawCommand
         _primitive  : PrimitiveType,
         _target     : ImageResource,
         _shader     : ShaderResource,
+        _uniforms   : Uniforms,
         _textures   : Array<ImageResource>,
         _clip       : Rectangle,
         _blending   : Bool,
@@ -53,6 +55,6 @@ class BufferDrawCommand extends DrawCommand
         startIndex = _startIndex;
         endIndex   = _endIndex;
 
-        super(_id, _unchanging, _projection, _view, _vertices, _indices, _viewport, _primitive, _target, _shader, _textures, _clip, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
+        super(_id, _unchanging, _projection, _view, _vertices, _indices, _viewport, _primitive, _target, _shader, _uniforms, _textures, _clip, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
     }
 }

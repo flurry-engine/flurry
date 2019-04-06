@@ -4,6 +4,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry.PrimitiveType;
+import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Matrix;
 
@@ -66,6 +67,11 @@ class DrawCommand
     public final shader : ShaderResource;
 
     /**
+     * If provided uniform values are fetch from here before the shader defaults.
+     */
+    public final uniforms : Uniforms;
+
+    /**
      * Textures (if any) to draw with this data.
      */
     public final textures : Array<ImageResource>;
@@ -99,6 +105,7 @@ class DrawCommand
         _primitive  : PrimitiveType,
         _target     : ImageResource,
         _shader     : ShaderResource,
+        _uniforms   : Uniforms,
         _textures   : Array<ImageResource>,
         _clip       : Rectangle,
         _blending   : Bool,
@@ -120,6 +127,7 @@ class DrawCommand
         primitive = _primitive;
         target    = _target;
         shader    = _shader;
+        uniforms  = _uniforms;
         textures  = _textures;
         clip      = _clip;
         blending  = _blending;

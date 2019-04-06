@@ -34,7 +34,9 @@ class Main implements Buddy<[
 
     tests.api.resources.ResourceSystemTests,
 
-    tests.api.EventBusTests
+    tests.api.EventBusTests,
+
+    tests.utils.BytesPackerTests
 ]>
 {
     //
