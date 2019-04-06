@@ -510,7 +510,8 @@ class OGL4Backend implements IRendererBackend
         {
             if (command.unchanging)
             {
-                var unchangingOffset = unchangingStorage.currentVertices * VERTEX_FLOAT_SIZE;
+                var unchangingVtxOffset = unchangingStorage.currentVertices * VERTEX_FLOAT_SIZE;
+                var unchangingIdxOffset = unchangingStorage.currentIndices * UInt16Array.BYTES_PER_ELEMENT;
 
                 if (unchangingStorage.exists(command.id))
                 {
@@ -519,23 +520,34 @@ class OGL4Backend implements IRendererBackend
 
                 if (unchangingStorage.add(command))
                 {
-                    for (i in command.startIndex...command.endIndex)
+                    for (i in command.vtxStartIndex...command.vtxEndIndex)
                     {
-                        vertexBuffer[unchangingOffset++] = command.buffer[i];
+                        vertexBuffer[unchangingVtxOffset++] = command.vtxData[i];
+                    }
+
+                    for (i in command.idxStartIndex...command.idxEndIndex)
+                    {
+                        indexBuffer[unchangingIdxOffset++] = command.idxData[i];
                     }
 
                     continue;
                 }
             }
 
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, 0, 0));
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexByteOffset));
 
-            for (i in command.startIndex...command.endIndex)
+            for (i in command.vtxStartIndex...command.vtxEndIndex)
             {
-                vertexBuffer[vertexFloatOffset++] = command.buffer[i];
+                vertexBuffer[vertexFloatOffset++] = command.vtxData[i];
+            }
+
+            for (i in command.idxStartIndex...command.idxEndIndex)
+            {
+                indexBuffer[indexOffset++] = command.idxData[i];
             }
 
             vertexOffset += command.vertices;
+            indexByteOffset += command.indices * UInt16Array.BYTES_PER_ELEMENT;
         }
     }
 
