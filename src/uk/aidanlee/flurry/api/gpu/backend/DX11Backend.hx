@@ -5,6 +5,7 @@ import haxe.ds.Map;
 import cpp.Float32;
 import cpp.Int32;
 import cpp.UInt8;
+import cpp.UInt16;
 import cpp.Pointer;
 import sdl.Window;
 import sdl.SDL;
@@ -441,8 +442,8 @@ class DX11Backend implements IRendererBackend
         }
 
         // Get a buffer to float32s so we can copy our float32array over.
-        var vtx : cpp.Pointer<cpp.Float32> = cpp.Pointer.fromRaw(mappedVtxBuffer.sysMem).reinterpret();
-        var idx : cpp.Pointer<cpp.UInt16>  = cpp.Pointer.fromRaw(mappedIdxBuffer.sysMem).reinterpret();
+        var vtx : Pointer<Float32> = Pointer.fromRaw(mappedVtxBuffer.sysMem).reinterpret();
+        var idx : Pointer<UInt16>  = Pointer.fromRaw(mappedIdxBuffer.sysMem).reinterpret();
 
         for (command in _commands)
         {
@@ -491,29 +492,41 @@ class DX11Backend implements IRendererBackend
      */
     public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void
     {
-        // Map the buffer.
-        var mappedBuffer = MappedSubResource.create();
-        if (context.map(vertexBuffer, 0, WRITE_DISCARD, 0, cast mappedBuffer.addressOf()) != 0)
+        var mappedVtxBuffer = MappedSubResource.create();
+        if (context.map(vertexBuffer, 0, WRITE_DISCARD, 0, cast mappedVtxBuffer.addressOf()) != 0)
         {
             throw 'DirectX 11 Backend Exception : Failed to map vertex buffer';
         }
 
+        var mappedIdxBuffer = MappedSubResource.create();
+        if (context.map(indexBuffer, 0, WRITE_DISCARD, 0, cast mappedIdxBuffer.addressOf()) != 0)
+        {
+            throw 'DirectX 11 Backend Exception : Failed to map index buffer';
+        }
+
         // Get a buffer to float32s so we can copy our float32array over.
-        var ptr : cpp.Pointer<cpp.Float32> = cpp.Pointer.fromRaw(mappedBuffer.sysMem).reinterpret();
+        var vtx : Pointer<Float32> = Pointer.fromRaw(mappedVtxBuffer.sysMem).reinterpret();
+        var idx : Pointer<UInt16>  = Pointer.fromRaw(mappedIdxBuffer.sysMem).reinterpret();
 
         for (command in _commands)
         {
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, 0, 0));
+            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexOffset));
 
-            for (i in command.startIndex...command.endIndex)
+            for (i in command.vtxStartIndex...command.vtxEndIndex)
             {
-                ptr[vertexFloatOffset++] = command.buffer[i];
+                vtx[vertexFloatOffset++] = command.vtxData[i];
+            }
+
+            for (i in command.idxStartIndex...command.idxEndIndex)
+            {
+                idx[indexOffset++] = command.idxData[i];
             }
 
             vertexOffset += command.vertices;
         }
 
         context.unmap(vertexBuffer, 0);
+        context.unmap(indexBuffer, 0);
     }
 
     /**
