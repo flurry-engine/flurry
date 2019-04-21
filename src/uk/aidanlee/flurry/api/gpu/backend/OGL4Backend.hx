@@ -1065,7 +1065,7 @@ class OGL4Backend implements IRendererBackend
         
         for (i in 0...cache.layout.blocks.length)
         {
-            var ptr : Pointer<UInt8> = Pointer.fromRaw(glMapNamedBuffer(cache.blockBuffers[i], GL_WRITE_ONLY)).reinterpret();
+            var ptr = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
 
             if (cache.layout.blocks[i].name == 'defaultMatrices')
             {
@@ -1101,7 +1101,7 @@ class OGL4Backend implements IRendererBackend
                 }
             }
 
-            glUnmapNamedBuffer(cache.blockBuffers[i]);
+            glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
         }
     }
 
