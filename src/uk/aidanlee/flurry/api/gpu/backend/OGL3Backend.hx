@@ -848,7 +848,8 @@ class OGL3Backend implements IRendererBackend
         {
             glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[i]);
 
-            var ptr : Pointer<UInt8> = Pointer.fromRaw(glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY)).reinterpret();
+            //var ptr : Pointer<UInt8> = Pointer.fromRaw(glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY)).reinterpret();
+            var ptr = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
 
             if (cache.layout.blocks[i].name == 'defaultMatrices')
             {
@@ -884,7 +885,7 @@ class OGL3Backend implements IRendererBackend
                 }
             }
             
-            glUnmapBuffer(GL_UNIFORM_BUFFER);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
         }
     }
 
