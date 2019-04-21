@@ -1,8 +1,8 @@
 package tests.api.resources;
 
 import buddy.SingleSuite;
-import uk.aidanlee.flurry.api.EventBus;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
+import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.Parcel;
 import sys.io.abstractions.mock.MockFileSystem;
@@ -19,7 +19,7 @@ class ResourceSystemTests extends SingleSuite
         describe('ResourceSystem', {
             
             it('can create a parcel', {
-                var system = new ResourceSystem(mock(EventBus), new MockFileSystem([], []));
+                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
                 var parcel = system.createParcel('myParcel', {
                     bytes: [ { id: 'bytes' } ],
                     texts: [ { id: 'texts' } ],
@@ -39,14 +39,14 @@ class ResourceSystemTests extends SingleSuite
             });
 
             it('can add an existing parcel to the system', {
-                var system = new ResourceSystem(mock(EventBus), new MockFileSystem([], []));
+                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
                 var parcel = new Parcel(system, 'myParcel', {});
 
                 system.addParcel(parcel);
             });
 
             it('allows manually adding resources to the system', {
-                var sys = new ResourceSystem(mock(EventBus), new MockFileSystem([], []));
+                var sys = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
                 var res = mock(Resource);
                 res.id.returns('hello');
 
@@ -55,7 +55,7 @@ class ResourceSystemTests extends SingleSuite
             });
 
             it('allows manually removing resources from the system', {
-                var sys = new ResourceSystem(mock(EventBus), new MockFileSystem([], []));
+                var sys = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
                 var res = mock(Resource);
                 res.id.returns('hello');
 
@@ -66,7 +66,6 @@ class ResourceSystemTests extends SingleSuite
             });
 
             it('can load a parcels resources into the system', {
-
                 var files = [
                     '/home/user/text.txt'  => MockFileData.fromText('hello world!'),
                     '/home/user/byte.bin'  => MockFileData.fromText('hello world!'),
@@ -80,7 +79,7 @@ class ResourceSystemTests extends SingleSuite
                     '/home/user/hlsl_vertex.txt'   => MockFileData.fromText('hlsl_vertex'),
                     '/home/user/hlsl_fragment.txt' => MockFileData.fromText('hlsl_fragment')
                 ];
-                var system = new ResourceSystem(mock(EventBus), new MockFileSystem(files, []));
+                var system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []));
                 system.createParcel('myParcel', {
                     texts   : [ { id : 'text', path : '/home/user/text.txt' } ],
                     bytes   : [ { id : 'byte', path : '/home/user/byte.bin' } ],
@@ -127,12 +126,125 @@ class ResourceSystemTests extends SingleSuite
                 res.hlsl.fragment.should.be('hlsl_fragment');
             });
 
+            it('fires events for when images and shaders are added', {
+                var files = [
+                    '/home/user/dots.png'  => MockFileData.fromBytes(haxe.Resource.getBytes('dots-data')),
+                    '/home/user/shdr.json' => MockFileData.fromText(' { "textures" : [ "defaultTexture" ], "blocks" : [] } '),
+                    '/home/user/ogl3_vertex.txt'   => MockFileData.fromText('ogl3_vertex'),
+                    '/home/user/ogl3_fragment.txt' => MockFileData.fromText('ogl3_fragment'),
+                    '/home/user/ogl4_vertex.txt'   => MockFileData.fromText('ogl4_vertex'),
+                    '/home/user/ogl4_fragment.txt' => MockFileData.fromText('ogl4_fragment'),
+                    '/home/user/hlsl_vertex.txt'   => MockFileData.fromText('hlsl_vertex'),
+                    '/home/user/hlsl_fragment.txt' => MockFileData.fromText('hlsl_fragment')
+                ];
+                var events = new ResourceEvents();
+                events.created.add(_created -> {
+                    if (Std.is(_created.type, ShaderResource))
+                    {
+                        _created.resource.should.beType(ShaderResource);
+                        var res : ShaderResource = cast _created.resource;
+
+                        res.id.should.be('shdr');
+                        res.layout.textures.should.containExactly([ 'defaultTexture' ]);
+                        res.layout.blocks.should.containExactly([ ]);
+                        res.ogl3.vertex.should.be('ogl3_vertex');
+                        res.ogl3.fragment.should.be('ogl3_fragment');
+                        res.ogl4.vertex.should.be('ogl4_vertex');
+                        res.ogl4.fragment.should.be('ogl4_fragment');
+                        res.hlsl.vertex.should.be('hlsl_vertex');
+                        res.hlsl.fragment.should.be('hlsl_fragment');
+                    }
+                    if (Std.is(_created.type, ImageResource))
+                    {
+                        _created.resource.should.be(ImageResource);
+                        var res : ImageResource = cast _created.resource;
+
+                        res.id.should.be('dots');
+                        res.width.should.be(2);
+                        res.height.should.be(2);
+                    }
+                });
+
+                var system = new ResourceSystem(events, new MockFileSystem(files, []));
+                system.createParcel('myParcel', {
+                    images  : [ { id : 'dots', path : '/home/user/dots.png' } ],
+                    shaders : [ { id : 'shdr', path : '/home/user/shdr.json',
+                        ogl3 : { vertex : '/home/user/ogl3_vertex.txt', fragment : '/home/user/ogl3_fragment.txt' },
+                        ogl4 : { vertex : '/home/user/ogl4_vertex.txt', fragment : '/home/user/ogl4_fragment.txt' },
+                        hlsl : { vertex : '/home/user/hlsl_vertex.txt', fragment : '/home/user/hlsl_fragment.txt' }
+                    } ]
+                }).load();
+
+                // Wait an amount of time then pump events.
+                // Hopefully this will be enough time for the parcel to load.
+                Sys.sleep(0.1);
+
+                system.update();
+            });
+
+            it('fires events for when images and shaders are removed', {
+                var files = [
+                    '/home/user/dots.png'  => MockFileData.fromBytes(haxe.Resource.getBytes('dots-data')),
+                    '/home/user/shdr.json' => MockFileData.fromText(' { "textures" : [ "defaultTexture" ], "blocks" : [] } '),
+                    '/home/user/ogl3_vertex.txt'   => MockFileData.fromText('ogl3_vertex'),
+                    '/home/user/ogl3_fragment.txt' => MockFileData.fromText('ogl3_fragment'),
+                    '/home/user/ogl4_vertex.txt'   => MockFileData.fromText('ogl4_vertex'),
+                    '/home/user/ogl4_fragment.txt' => MockFileData.fromText('ogl4_fragment'),
+                    '/home/user/hlsl_vertex.txt'   => MockFileData.fromText('hlsl_vertex'),
+                    '/home/user/hlsl_fragment.txt' => MockFileData.fromText('hlsl_fragment')
+                ];
+                var events = new ResourceEvents();
+                events.removed.add(_removed -> {
+                    if (Std.is(_removed.type, ShaderResource))
+                    {
+                        _removed.resource.should.beType(ShaderResource);
+                        var res : ShaderResource = cast _removed.resource;
+
+                        res.id.should.be('shdr');
+                        res.layout.textures.should.containExactly([ 'defaultTexture' ]);
+                        res.layout.blocks.should.containExactly([ ]);
+                        res.ogl3.vertex.should.be('ogl3_vertex');
+                        res.ogl3.fragment.should.be('ogl3_fragment');
+                        res.ogl4.vertex.should.be('ogl4_vertex');
+                        res.ogl4.fragment.should.be('ogl4_fragment');
+                        res.hlsl.vertex.should.be('hlsl_vertex');
+                        res.hlsl.fragment.should.be('hlsl_fragment');
+                    }
+                    if (Std.is(_removed.type, ImageResource))
+                    {
+                        _removed.resource.should.be(ImageResource);
+                        var res : ImageResource = cast _removed.resource;
+
+                        res.id.should.be('dots');
+                        res.width.should.be(2);
+                        res.height.should.be(2);
+                    }
+                });
+
+                var system = new ResourceSystem(events, new MockFileSystem(files, []));
+                system.createParcel('myParcel', {
+                    images  : [ { id : 'dots', path : '/home/user/dots.png' } ],
+                    shaders : [ { id : 'shdr', path : '/home/user/shdr.json',
+                        ogl3 : { vertex : '/home/user/ogl3_vertex.txt', fragment : '/home/user/ogl3_fragment.txt' },
+                        ogl4 : { vertex : '/home/user/ogl4_vertex.txt', fragment : '/home/user/ogl4_fragment.txt' },
+                        hlsl : { vertex : '/home/user/hlsl_vertex.txt', fragment : '/home/user/hlsl_fragment.txt' }
+                    } ]
+                }).load();
+
+                // Wait an amount of time then pump events.
+                // Hopefully this will be enough time for the parcel to load.
+                Sys.sleep(0.1);
+
+                system.update();
+                system.free('myParcel');
+            });
+
             it('can remove a parcels resources from the system', {
                 var files = [
                     '/home/user/text.txt' => MockFileData.fromText('hello world!'),
                     '/home/user/byte.bin' => MockFileData.fromText('hello world!')
                 ];
-                var system = new ResourceSystem(mock(EventBus), new MockFileSystem(files, []));
+                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem(files, []));
                 system.createParcel('myParcel', {
                     texts: [ { id : 'text', path : '/home/user/text.txt' } ],
                     bytes: [ { id : 'byte', path : '/home/user/byte.bin' } ]
@@ -154,7 +266,7 @@ class ResourceSystemTests extends SingleSuite
                     '/home/user/text2.txt' => MockFileData.fromBytes(),
                     '/home/user/text3.txt' => MockFileData.fromBytes()
                 ];
-                var system = new ResourceSystem(mock(EventBus), new MockFileSystem(files, []));
+                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem(files, []));
                 system.createParcel('parcel1', {
                     texts: [ { id : 'text1', path : '/home/user/text1.txt' } ],
                     bytes: [ { id : 'text2', path : '/home/user/text2.txt' } ]
@@ -185,7 +297,7 @@ class ResourceSystemTests extends SingleSuite
             });
 
             it('will throw an exception trying to fetch a resource which does not exist', {
-                var sys = new ResourceSystem(mock(EventBus), new MockFileSystem([], []));
+                var sys = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
                 sys.get.bind('hello', Resource).should.throwType(ResourceNotFoundException);
             });
 
@@ -194,7 +306,7 @@ class ResourceSystemTests extends SingleSuite
                     '/home/user/text.txt' => MockFileData.fromText('hello world!'),
                     '/home/user/byte.bin' => MockFileData.fromText('hello world!')
                 ];
-                var system = new ResourceSystem(mock(EventBus), new MockFileSystem(files, []));
+                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem(files, []));
                 system.createParcel('myParcel', {
                     texts: [ { id : 'text', path : '/home/user/text.txt' } ],
                     bytes: [ { id : 'byte', path : '/home/user/byte.bin' } ]
@@ -209,7 +321,7 @@ class ResourceSystemTests extends SingleSuite
             });
 
             it('will throw an exception when trying to load a parcel which has not been added to the system', {
-                var system = new ResourceSystem(mock(EventBus), new MockFileSystem([], []));
+                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
                 system.load.bind('myParcel').should.throwType(ParcelNotAddedException);
             });
 
@@ -218,7 +330,7 @@ class ResourceSystemTests extends SingleSuite
                     '/home/user/text.txt' => MockFileData.fromText('hello world!'),
                     '/home/user/byte.bin' => MockFileData.fromText('hello world!')
                 ];
-                var system = new ResourceSystem(mock(EventBus), new MockFileSystem(files, []));
+                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem(files, []));
                 system.createParcel('myParcel', {
                     texts: [ { id : 'text', path : '/home/user/text.txt' } ]
                 }).load();
@@ -239,7 +351,7 @@ class ResourceSystemTests extends SingleSuite
                 parcel.list.returns({});
                 parcel.onLoaded.returns(_ -> result = 'finished');
 
-                var system = new ResourceSystem(mock(EventBus), new MockFileSystem([], []));
+                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
                 system.addParcel(parcel);
                 system.load('myParcel');
 
@@ -266,7 +378,7 @@ class ResourceSystemTests extends SingleSuite
                 });
                 parcel.onProgress.returns(_ -> results.push(_));
 
-                var system = new ResourceSystem(mock(EventBus), new MockFileSystem(files, []));
+                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem(files, []));
                 system.addParcel(parcel);
                 system.load('myParcel');
 
@@ -286,7 +398,7 @@ class ResourceSystemTests extends SingleSuite
                 parcel.list.returns({ texts : [ { id : 'text.txt' } ] });
                 parcel.onFailed.returns(_ -> result = _);
 
-                var system = new ResourceSystem(mock(EventBus), new MockFileSystem([], []));
+                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
                 system.addParcel(parcel);
                 system.load('myParcel');
 

@@ -13,6 +13,7 @@
 -lib safety
 -lib format
 -lib sys.io.abstractions
+-lib signals
 
 -resource assets/atlas/cavesofgallet.atlas@atlas-data
 -resource assets/fonts/ubuntu.fnt@font-data
