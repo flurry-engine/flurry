@@ -4,32 +4,49 @@ import haxe.EnumFlags;
 import uk.aidanlee.flurry.api.input.Types.KeyModifier;
 import uk.aidanlee.flurry.api.input.Types.TextEventType;
 import uk.aidanlee.flurry.api.input.Types.GamepadDeviceEventType;
+import signal.Signal1;
 
-enum abstract InputEvents(String) from String to String
+class InputEvents
 {
-    var KeyUp         = 'flurry-input-ev-key-up';
+    public final keyUp : Signal1<InputEventKeyUp>;
 
-    var KeyDown       = 'flurry-input-ev-key-down';
+    public final keyDown : Signal1<InputEventKeyDown>;
 
-    var TextInput     = 'flurry-input-ev-text-input';
+    public final textInput : Signal1<InputEventTextInput>;
+
+    public final mouseUp : Signal1<InputEventMouseUp>;
+
+    public final mouseDown : Signal1<InputEventMouseDown>;
+
+    public final mouseWheel : Signal1<InputEventMouseWheel>;
+
+    public final mouseMove : Signal1<InputEventMouseMove>;
+
+    public final gamepadUp : Signal1<InputEventGamepadUp>;
+
+    public final gamepadDown : Signal1<InputEventGamepadDown>;
+
+    public final gamepadAxis : Signal1<InputEventGamepadAxis>;
+
+    public final gamepadDevice : Signal1<InputEventGamepadDevice>;
     
-    var MouseUp       = 'flurry-input-ev-mouse-up';
+    public final gamepadRumble : Signal1<InputEventGamepadRumble>;
 
-    var MouseDown     = 'flurry-input-ev-mouse-down';
-
-    var MouseMove     = 'flurry-input-ev-mouse-move';
-
-    var MouseWheel    = 'flurry-input-ev-mouse-wheel';
-
-    var GamepadUp     = 'flurry-input-ev-gamepad-up';
-
-    var GamepadDown   = 'flurry-input-ev-gamepad-down';
-
-    var GamepadAxis   = 'flurry-input-ev-gamepad-axis';
-    
-    var GamepadDevice = 'flurry-input-ev-gamepad-device';
-
-    var GamepadRumble = 'flurry-input-ev-gamepad-rumble';
+    public function new()
+    {
+        keyUp         = new Signal1<InputEventKeyUp>();
+        keyDown       = new Signal1<InputEventKeyDown>();
+        textInput     = new Signal1<InputEventTextInput>();
+        mouseUp       = new Signal1<InputEventMouseUp>();
+        mouseDown     = new Signal1<InputEventMouseDown>();
+        mouseWheel    = new Signal1<InputEventMouseWheel>();
+        mouseMove     = new Signal1<InputEventMouseMove>();
+        gamepadUp     = new Signal1<InputEventGamepadUp>();
+        gamepadDown   = new Signal1<InputEventGamepadDown>();
+        gamepadAxis   = new Signal1<InputEventGamepadAxis>();
+        gamepadDevice = new Signal1<InputEventGamepadDevice>();
+        gamepadRumble = new Signal1<InputEventGamepadRumble>();
+    }
 }
 
 class InputEventKeyUp

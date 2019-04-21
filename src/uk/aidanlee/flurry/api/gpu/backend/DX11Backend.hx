@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.display.DisplayEvents;
 import haxe.io.Bytes;
 import haxe.ds.Map;
 import cpp.Float32;
@@ -71,9 +72,14 @@ using cpp.Native;
 class DX11Backend implements IRendererBackend
 {
     /**
-     * Event bus for the rendering backend to listen to resource creation events.
+     * Signals for when shaders and images are created and removed.
      */
-    final events : EventBus;
+    final resourceEvents : ResourceEvents;
+
+    /**
+     * Signals for when a window change has been requested and dispatching back the result.
+     */
+    final displayEvents : DisplayEvents;
 
     /**
      * Access to the renderer which owns this backend.
@@ -201,20 +207,15 @@ class DX11Backend implements IRendererBackend
     var texture  : ImageResource;
     var target   : ImageResource;
 
-    // Event listener IDs
-
-    final evResourceCreated : Int;
-
-    final evResourceRemoved : Int;
-
     // SDL Window
 
     var window : Window;
 
-    public function new(_events : EventBus, _rendererStats : RendererStats, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
+    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _rendererStats : RendererStats, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
     {
-        events           = _events;
-        rendererStats    = _rendererStats;
+        resourceEvents = _resourceEvents;
+        displayEvents  = _displayEvents;
+        rendererStats  = _rendererStats;
 
         createWindow(_windowConfig);
 
@@ -400,9 +401,8 @@ class DX11Backend implements IRendererBackend
         shader   = null;
         texture  = null;
 
-        // Listen to resource creation events.
-        evResourceCreated = events.listen(ResourceEvents.Created, onResourceCreated);
-        evResourceRemoved = events.listen(ResourceEvents.Removed, onResourceRemoved);
+        resourceEvents.created.add(onResourceCreated);
+        resourceEvents.removed.add(onResourceRemoved);
     }
 
     public function clear()
@@ -615,7 +615,9 @@ class DX11Backend implements IRendererBackend
      */
     public function cleanup()
     {
-        
+        resourceEvents.created.remove(onResourceCreated);
+        resourceEvents.removed.remove(onResourceRemoved);
+
         for (shaderID in shaderResources.keys())
         {
             var resources = shaderResources.get(shaderID);

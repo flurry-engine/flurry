@@ -1,0 +1,3 @@
+-D signals=1.0.9
+# @install: lix --silent download "gh://github.com/peteshand/signals#4026c0b6adf7e3801a026945a1004487d9c73cad" into signals/1.0.9/github/4026c0b6adf7e3801a026945a1004487d9c73cad
+-cp ${HAXE_LIBCACHE}/signals/1.0.9/github/4026c0b6adf7e3801a026945a1004487d9c73cad/src

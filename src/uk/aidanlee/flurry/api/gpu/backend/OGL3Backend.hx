@@ -66,9 +66,14 @@ class OGL3Backend implements IRendererBackend
     static final VERTEX_OFFSET_TEX = 7;
 
     /**
-     * Event bus for the rendering backend to listen to resource creation events.
+     * Signals for when shaders and images are created and removed.
      */
-    final events : EventBus;
+    final resourceEvents : ResourceEvents;
+
+    /**
+     * Signals for when a window change has been requested and dispatching back the result.
+     */
+    final displayEvents : DisplayEvents;
 
     /**
      * Access to the renderer who owns this backend.
@@ -165,26 +170,17 @@ class OGL3Backend implements IRendererBackend
     var viewport : Rectangle;
     var boundTextures : Array<Int>;
 
-    // Event listener IDs
-
-    final evResourceCreated : Int;
-
-    final evResourceRemoved : Int;
-
-    final evChangeRequest : Int;
-
-    final evSizeChanged : Int;
-
     // SDL Window and GL Context
 
     var window : Window;
 
     var glContext : GLContext;
 
-    public function new(_events : EventBus, _rendererStats : RendererStats, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
+    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _rendererStats : RendererStats, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
     {
-        events        = _events;
-        rendererStats = _rendererStats;
+        resourceEvents = _resourceEvents;
+        displayEvents  = _displayEvents;
+        rendererStats  = _rendererStats;
 
         createWindow(_windowConfig);
 
@@ -258,11 +254,10 @@ class OGL3Backend implements IRendererBackend
         target   = null;
         boundTextures = [];
 
-        // Listen to resource creation events.
-        evResourceCreated = events.listen(ResourceEvents.Created       , onResourceCreated);
-        evResourceRemoved = events.listen(ResourceEvents.Removed       , onResourceRemoved);
-        evChangeRequest   = events.listen(DisplayEvents.ChangeRequested, onChangeRequest);
-        evSizeChanged     = events.listen(DisplayEvents.SizeChanged    , onSizeChanged);
+        resourceEvents.created.add(onResourceCreated);
+        resourceEvents.removed.add(onResourceRemoved);
+        displayEvents.sizeChanged.add(onSizeChanged);
+        displayEvents.changeRequested.add(onChangeRequest);
     }
 
     /**
@@ -433,6 +428,11 @@ class OGL3Backend implements IRendererBackend
      */
     public function cleanup()
     {
+        resourceEvents.created.remove(onResourceCreated);
+        resourceEvents.removed.remove(onResourceRemoved);
+        displayEvents.sizeChanged.remove(onSizeChanged);
+        displayEvents.changeRequested.remove(onChangeRequest);
+
         for (shaderID in shaderPrograms.keys())
         {
             glDeleteProgram(shaderPrograms.get(shaderID));

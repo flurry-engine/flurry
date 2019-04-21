@@ -1,38 +1,60 @@
 package uk.aidanlee.flurry.api.display;
 
-enum abstract DisplayEvents(String) from String to String
+import signal.Signal1;
+
+class DisplayEvents
 {
-    var Unknown         = 'flurry-window-ev-unknown';
+    public final unknown : Signal1<DisplayEventData>;
+    
+    public final shown : Signal1<DisplayEventData>;
 
-    var Shown           = 'flurry-window-ev-shown';
+    public final hidden : Signal1<DisplayEventData>;
 
-    var Hidden          = 'flurry-window-ev-hidden';
+    public final exposed : Signal1<DisplayEventData>;
 
-    var Exposed         = 'flurry-window-ev-exposed';
+    public final moved : Signal1<DisplayEventData>;
 
-    var Moved           = 'flurry-window-ev-moved';
+    public final minimised : Signal1<DisplayEventData>;
 
-    var Minimised       = 'flurry-window-ev-minimised';
+    public final maximised : Signal1<DisplayEventData>;
 
-    var Maximised       = 'flurry-window-ev-maximised';
+    public final restored : Signal1<DisplayEventData>;
 
-    var Restored        = 'flurry-window-ev-restored';
+    public final enter : Signal1<DisplayEventData>;
 
-    var Enter           = 'flurry-window-ev-Enter';
+    public final leave : Signal1<DisplayEventData>;
 
-    var Leave           = 'flurry-window-ev-Leave';
+    public final focusGained : Signal1<DisplayEventData>;
 
-    var FocusGained     = 'flurry-window-ev-focus-gained';
+    public final focusLost : Signal1<DisplayEventData>;
 
-    var FocusLost       = 'flurry-window-ev-focus-lost';
+    public final close : Signal1<DisplayEventData>;
 
-    var Close           = 'flurry-window-ev-close';
+    public final resized : Signal1<DisplayEventData>;
 
-    var Resized         = 'flurry-window-ev-resized';
+    public final sizeChanged : Signal1<DisplayEventData>;
 
-    var SizeChanged     = 'flurry-window-ev-size-changed';
+    public final changeRequested : Signal1<DisplayEventChangeRequest>;
 
-    var ChangeRequested = 'flurry-window-ev-change-request';
+    public function new()
+    {
+        unknown         = new Signal1<DisplayEventData>();
+        shown           = new Signal1<DisplayEventData>();
+        hidden          = new Signal1<DisplayEventData>();
+        exposed         = new Signal1<DisplayEventData>();
+        moved           = new Signal1<DisplayEventData>();
+        minimised       = new Signal1<DisplayEventData>();
+        maximised       = new Signal1<DisplayEventData>();
+        restored        = new Signal1<DisplayEventData>();
+        enter           = new Signal1<DisplayEventData>();
+        leave           = new Signal1<DisplayEventData>();
+        focusGained     = new Signal1<DisplayEventData>();
+        focusLost       = new Signal1<DisplayEventData>();
+        close           = new Signal1<DisplayEventData>();
+        resized         = new Signal1<DisplayEventData>();
+        sizeChanged     = new Signal1<DisplayEventData>();
+        changeRequested = new Signal1<DisplayEventChangeRequest>();
+    }
 }
 
 class DisplayEventData

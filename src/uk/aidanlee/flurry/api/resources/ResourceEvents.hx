@@ -1,10 +1,18 @@
 package uk.aidanlee.flurry.api.resources;
 
-enum abstract ResourceEvents(String) from String to String
-{
-    var Created = 'flurry-resource-created';
+import signal.Signal1;
 
-    var Removed = 'flurry-resource-removed';
+class ResourceEvents
+{
+    public final created : Signal1<ResourceEventCreated>;
+
+    public final removed : Signal1<ResourceEventRemoved>;
+
+    public function new()
+    {
+        created = new Signal1<ResourceEventCreated>();
+        removed = new Signal1<ResourceEventRemoved>();
+    }
 }
 
 class ResourceEventCreated
