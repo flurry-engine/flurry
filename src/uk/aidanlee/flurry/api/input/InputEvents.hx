@@ -4,7 +4,7 @@ import haxe.EnumFlags;
 import uk.aidanlee.flurry.api.input.Types.KeyModifier;
 import uk.aidanlee.flurry.api.input.Types.TextEventType;
 import uk.aidanlee.flurry.api.input.Types.GamepadDeviceEventType;
-import signal.Signal1;
+import petesignals.Signal1;
 
 class InputEvents
 {
