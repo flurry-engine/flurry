@@ -44,5 +44,6 @@
 -lib safety
 -lib format
 -lib sys.io.abstractions
+-lib signals
 
 --no-inline

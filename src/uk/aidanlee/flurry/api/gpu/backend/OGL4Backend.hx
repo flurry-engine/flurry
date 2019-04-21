@@ -69,9 +69,14 @@ class OGL4Backend implements IRendererBackend
     static final VERTEX_OFFSET_TEX = 7;
 
     /**
-     * Event bus for the rendering backend to listen to resource creation events.
+     * Signals for when shaders and images are created and removed.
      */
-    final events : EventBus;
+    final resourceEvents : ResourceEvents;
+
+    /**
+     * Signals for when a window change has been requested and dispatching back the result.
+     */
+    final displayEvents : DisplayEvents;
 
     /**
      * Access to the renderer who owns this backend.
@@ -225,16 +230,6 @@ class OGL4Backend implements IRendererBackend
      */
     var shader : ShaderResource;
 
-    // Event listener IDs
-
-    final evResourceCreated : Int;
-
-    final evResourceRemoved : Int;
-
-    final evChangeRequest : Int;
-
-    final evSizeChanged : Int;
-
     // SDL Window and GL Context
 
     var window : Window;
@@ -247,12 +242,13 @@ class OGL4Backend implements IRendererBackend
      * @param _dynamicVertices    The maximum number of dynamic vertices in the buffer.
      * @param _unchangingVertices The maximum number of static vertices in the buffer.
      */
-    public function new(_events : EventBus, _rendererStats : RendererStats, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
+    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _rendererStats : RendererStats, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
     {
         createWindow(_windowConfig);
 
-        events           = _events;
-        rendererStats    = _rendererStats;
+        resourceEvents = _resourceEvents;
+        displayEvents  = _displayEvents;
+        rendererStats  = _rendererStats;
 
         // Check for ARB_bindless_texture support
         bindless = SDL.GL_ExtensionSupported('GL_ARB_bindless_texutre');
@@ -359,19 +355,16 @@ class OGL4Backend implements IRendererBackend
         target   = null;
         shader   = null;
 
-        shaderPrograms = new Map();
-        shaderUniforms = new Map();
+        shaderPrograms     = [];
+        shaderUniforms     = [];
+        textureObjects     = [];
+        textureHandles     = [];
+        framebufferObjects = [];
 
-        textureObjects = new Map();
-        textureHandles = new Map();
-
-        framebufferObjects = new Map();
-
-        // Listen to resource creation events.
-        evResourceCreated = events.listen(ResourceEvents.Created       , onResourceCreated);
-        evResourceRemoved = events.listen(ResourceEvents.Removed       , onResourceRemoved);
-        evChangeRequest   = events.listen(DisplayEvents.ChangeRequested, onChangeRequest);
-        evSizeChanged     = events.listen(DisplayEvents.SizeChanged    , onSizeChanged);
+        resourceEvents.created.add(onResourceCreated);
+        resourceEvents.removed.add(onResourceRemoved);
+        displayEvents.sizeChanged.add(onSizeChanged);
+        displayEvents.changeRequested.add(onChangeRequest);
     }
 
     /**
@@ -660,6 +653,11 @@ class OGL4Backend implements IRendererBackend
      */
     public function cleanup()
     {
+        resourceEvents.created.remove(onResourceCreated);
+        resourceEvents.removed.remove(onResourceRemoved);
+        displayEvents.sizeChanged.remove(onSizeChanged);
+        displayEvents.changeRequested.remove(onChangeRequest);
+
         glUnmapNamedBuffer(glVbo);
 
         for (shaderID in shaderPrograms.keys())

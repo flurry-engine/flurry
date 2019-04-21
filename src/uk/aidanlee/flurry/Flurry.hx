@@ -2,8 +2,6 @@ package uk.aidanlee.flurry;
 
 import snow.App;
 import snow.types.Types.AppConfig;
-import uk.aidanlee.flurry.api.CoreEvents;
-import uk.aidanlee.flurry.api.EventBus;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.input.Input;
 import uk.aidanlee.flurry.api.display.Display;
@@ -17,7 +15,7 @@ class Flurry extends App
     /**
      * Main events bus, engine components can fire events into this to communicate with each other.
      */
-    public final events : EventBus;
+    public final events : FlurryEvents;
 
     /**
      * Abstracted access to the devices file system.
@@ -61,7 +59,7 @@ class Flurry extends App
 
     public function new()
     {
-        events = new EventBus();
+        events = new FlurryEvents();
     }
 
     /**
@@ -106,17 +104,17 @@ class Flurry extends App
         
         // Setup core api components
         fileSystem = new FileSystem();
-        renderer   = new Renderer(events, flurryConfig.window, flurryConfig.renderer);
-        resources  = new ResourceSystem(events, fileSystem);
-        input      = new Input(events);
-        display    = new Display(events, flurryConfig);
+        renderer   = new Renderer(events.resource, events.display, flurryConfig.window, flurryConfig.renderer);
+        resources  = new ResourceSystem(events.resource, fileSystem);
+        input      = new Input(events.input);
+        display    = new Display(events.display, events.input, flurryConfig);
 
         // Load the default parcel, this may contain the standard assets or user defined assets.
         // Once it has loaded the overridable onReady function is called.
         resources.createParcel('preload', flurryConfig.resources.preload, onPreloadParcelComplete, null, onPreloadParcelError).load();
 
         // Fire the init event once the engine has loaded all its components.
-        events.fire(Init);
+        events.init.dispatch();
 
         var cfg = new Config();
         cfg.app_name    = 'flurry';
@@ -140,7 +138,7 @@ class Flurry extends App
         {
             onPreUpdate();
 
-            events.fire(PreUpdate);
+            events.preUpdate.dispatch();
         }
 
         // Pre-draw
@@ -152,7 +150,7 @@ class Flurry extends App
         {
             onUpdate(_dt);
 
-            events.fire(Update);
+            events.update.dispatch();
         }
 
         // Render and present
@@ -166,7 +164,7 @@ class Flurry extends App
         {
             onPostUpdate();
 
-            events.fire(PostUpdate);
+            events.postUpdate.dispatch();
         }
 
         renderer.postRender();
@@ -176,7 +174,7 @@ class Flurry extends App
 
     override final function ondestroy()
     {
-        events.fire(Shutdown);
+        events.shutdown.dispatch();
 
         onShutdown();
 
@@ -223,7 +221,7 @@ class Flurry extends App
 
         onReady();
 
-        events.fire(Ready);
+        events.ready.dispatch();
     }
 
     final function onPreloadParcelError(_error : String)

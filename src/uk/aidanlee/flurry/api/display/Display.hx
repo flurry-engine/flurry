@@ -18,27 +18,26 @@ class Display
 
     public var vsync (default, null) : Bool;
 
-    final events : EventBus;
+    final displayEvents : DisplayEvents;
+    
+    final inputEvents : InputEvents;
 
-    final evWindowResized : Int;
-
-    final evMouseMove : Int;
-
-    public function new(_events : EventBus, _config : FlurryConfig)
+    public function new(_displayEvents : DisplayEvents, _inputEvents : InputEvents, _config : FlurryConfig)
     {
-        events     = _events;
-        width      = _config.window.width;
-        height     = _config.window.height;
-        fullscreen = _config.window.fullscreen;
-        vsync      = _config.window.vsync;
+        displayEvents = _displayEvents;
+        inputEvents   = _inputEvents;
+        width         = _config.window.width;
+        height        = _config.window.height;
+        fullscreen    = _config.window.fullscreen;
+        vsync         = _config.window.vsync;
 
-        evWindowResized = events.listen(DisplayEvents.SizeChanged, onResizeEvent);
-        evMouseMove     = events.listen(InputEvents.MouseMove, onMouseMoveEvent);
+        displayEvents.sizeChanged.add(onResizeEvent);
+        inputEvents.mouseMove.add(onMouseMoveEvent);
     }
 
     public function change(_width : Int, _height : Int, _fullscreen : Bool, _vsync : Bool)
     {
-        events.fire(ChangeRequested, new DisplayEventChangeRequest(_width, _height, _fullscreen, _vsync));
+        displayEvents.changeRequested.dispatch(new DisplayEventChangeRequest(_width, _height, _fullscreen, _vsync));
 
         fullscreen = _fullscreen;
         vsync      = _vsync;        

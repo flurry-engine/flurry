@@ -3,7 +3,6 @@ package tests.api.input;
 import haxe.EnumFlags;
 import uk.aidanlee.flurry.api.input.InputEvents;
 import uk.aidanlee.flurry.api.input.Keycodes;
-import uk.aidanlee.flurry.api.EventBus;
 import uk.aidanlee.flurry.api.input.Input;
 import buddy.BuddySuite;
 
@@ -15,14 +14,14 @@ class InputTests extends BuddySuite
     {
         describe('Input', {
             it('Can track the state of keys from input events', {
-                var event = new EventBus();
+                var event = new InputEvents();
                 var input = new Input(event);
 
                 input.wasKeyPressed(Keycodes.key_w).should.be(false);
                 input.isKeyDown(Keycodes.key_w).should.be(false);
                 input.wasKeyReleased(Keycodes.key_w).should.be(false);
 
-                event.fire(InputEvents.KeyDown, new InputEventKeyDown(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
+                event.keyDown.dispatch(new InputEventKeyDown(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
 
                 input.update();
                 input.wasKeyPressed(Keycodes.key_w).should.be(true);
@@ -34,7 +33,7 @@ class InputTests extends BuddySuite
                 input.isKeyDown(Keycodes.key_w).should.be(true);
                 input.wasKeyReleased(Keycodes.key_w).should.be(false);
 
-                event.fire(InputEvents.KeyUp, new InputEventKeyUp(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
+                event.keyUp.dispatch(new InputEventKeyUp(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
 
                 input.update();
                 input.wasKeyPressed(Keycodes.key_w).should.be(false);
@@ -48,14 +47,14 @@ class InputTests extends BuddySuite
             });
 
             it('Can track the state of mouse buttons from input events', {
-                var event = new EventBus();
+                var event = new InputEvents();
                 var input = new Input(event);
 
                 input.wasMousePressed(1).should.be(false);
                 input.isMouseDown(1).should.be(false);
                 input.wasMouseReleased(1).should.be(false);
 
-                event.fire(InputEvents.MouseDown, new InputEventMouseDown(0, 0, 1));
+                event.mouseDown.dispatch(new InputEventMouseDown(0, 0, 1));
 
                 input.update();
                 input.wasMousePressed(1).should.be(true);
@@ -67,7 +66,7 @@ class InputTests extends BuddySuite
                 input.isMouseDown(1).should.be(true);
                 input.wasMouseReleased(1).should.be(false);
 
-                event.fire(InputEvents.MouseUp, new InputEventMouseUp(0, 0, 1));
+                event.mouseUp.dispatch(new InputEventMouseUp(0, 0, 1));
 
                 input.update();
                 input.wasMousePressed(1).should.be(false);
@@ -81,23 +80,23 @@ class InputTests extends BuddySuite
             });
 
             it('Can return the current normalized value of a gamepad axis', {
-                var event = new EventBus();
+                var event = new InputEvents();
                 var input = new Input(event);
 
                 input.gamepadAxis(0, 0).should.be(0);
-                event.fire(InputEvents.GamepadAxis, new InputEventGamepadAxis(0, 0, 0.5));
+                event.gamepadAxis.dispatch(new InputEventGamepadAxis(0, 0, 0.5));
                 input.gamepadAxis(0, 0).should.be(0.5);
             });
 
             it('Can track the state of gamepad buttons from input events', {
-                var event = new EventBus();
+                var event = new InputEvents();
                 var input = new Input(event);
 
                 input.wasGamepadPressed(0, 0).should.be(false);
                 input.isGamepadDown(0, 0).should.be(false);
                 input.wasGamepadReleased(0, 0).should.be(false);
 
-                event.fire(InputEvents.GamepadDown, new InputEventGamepadDown(0, 0, 1));
+                event.gamepadDown.dispatch(new InputEventGamepadDown(0, 0, 1));
 
                 input.update();
                 input.wasGamepadPressed(0, 0).should.be(true);
@@ -109,7 +108,7 @@ class InputTests extends BuddySuite
                 input.isGamepadDown(0, 0).should.be(true);
                 input.wasGamepadReleased(0, 0).should.be(false);
 
-                event.fire(InputEvents.GamepadUp, new InputEventGamepadUp(0, 0, 1));
+                event.gamepadUp.dispatch(new InputEventGamepadUp(0, 0, 1));
 
                 input.update();
                 input.wasGamepadPressed(0, 0).should.be(false);
@@ -123,10 +122,10 @@ class InputTests extends BuddySuite
             });
 
             it('Can fire an event to request a gamepad is rumbled', {
-                var event = new EventBus();
+                var event = new InputEvents();
                 var input = new Input(event);
 
-                event.listen(InputEvents.GamepadRumble, function(_data : InputEventGamepadRumble) {
+                event.gamepadRumble.add(function(_data : InputEventGamepadRumble) {
                     _data.gamepad.should.be(0);
                     _data.intensity.should.be(0.5);
                     _data.duration.should.be(2);

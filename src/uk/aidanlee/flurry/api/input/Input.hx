@@ -6,7 +6,7 @@ class Input
 {
     public static final MAX_CONTROLLERS : Int = 8;
 
-    final events : EventBus;
+    final events : InputEvents;
 
     final keyCodesPressed  : Map<Int, Bool>;
     final keyCodesReleased : Map<Int, Bool>;
@@ -21,15 +21,7 @@ class Input
     final gamepadButtonsDown     : Array<Map<Int, Bool>>;
     final gamepadAxisValues      : Array<Map<Int, Float>>;
 
-    final evKeyUp         : Int;
-    final evKeyDown       : Int;
-    final evMouseUp       : Int;
-    final evMouseDown     : Int;
-    final evGamepadUp     : Int;
-    final evGamepadDown   : Int;
-    final evGamepadAxis   : Int;
-
-    public function new(_events : EventBus)
+    public function new(_events : InputEvents)
     {
         events = _events;
 
@@ -46,13 +38,13 @@ class Input
         gamepadButtonsDown     = [ for (i in 0...MAX_CONTROLLERS) [] ];
         gamepadAxisValues      = [ for (i in 0...MAX_CONTROLLERS) [] ];
 
-        evKeyUp       = events.listen(InputEvents.KeyUp      , onKeyUp);
-        evKeyDown     = events.listen(InputEvents.KeyDown    , onKeyDown);
-        evMouseUp     = events.listen(InputEvents.MouseUp    , onMouseUp);
-        evMouseDown   = events.listen(InputEvents.MouseDown  , onMouseDown);
-        evGamepadUp   = events.listen(InputEvents.GamepadUp  , onGamepadUp);
-        evGamepadDown = events.listen(InputEvents.GamepadDown, onGamepadDown);
-        evGamepadAxis = events.listen(InputEvents.GamepadAxis, onGamepadAxis);
+        events.keyUp.add(onKeyUp);
+        events.keyDown.add(onKeyDown);
+        events.mouseUp.add(onMouseUp);
+        events.mouseDown.add(onMouseDown);
+        events.gamepadUp.add(onGamepadUp);
+        events.gamepadDown.add(onGamepadDown);
+        events.gamepadAxis.add(onGamepadAxis);
     }
 
     // #region polling commands
@@ -119,7 +111,7 @@ class Input
 
     public function rumbleGamepad(_gamepad : Int, _intensity : Float, _duration : Int) : Void
     {
-        events.fire(GamepadRumble, new InputEventGamepadRumble(_gamepad, _intensity, _duration));
+        events.gamepadRumble.dispatch(new InputEventGamepadRumble(_gamepad, _intensity, _duration));
     }
 
     public function update()

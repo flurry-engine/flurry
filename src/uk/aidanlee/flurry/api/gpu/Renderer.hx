@@ -6,6 +6,8 @@ import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
 import uk.aidanlee.flurry.api.gpu.backend.NullBackend;
+import uk.aidanlee.flurry.api.resources.ResourceEvents;
+import uk.aidanlee.flurry.api.display.DisplayEvents;
 
 class Renderer
 {
@@ -34,7 +36,7 @@ class Renderer
      */
     final queuedCommands : Array<DrawCommand>;
 
-    public function new(_events : EventBus, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
+    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
     {
         queuedCommands = [];
         batchers       = [];
@@ -45,14 +47,14 @@ class Renderer
         {
             #if cpp
             case OGL4:
-                backend = new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_events, stats, _windowConfig, _rendererConfig);
+                backend = new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
 
             case OGL3:
-                backend = new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_events, stats, _windowConfig, _rendererConfig);
+                backend = new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
 
                 #if windows
                 case DX11:
-                    backend = new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_events, stats, _windowConfig, _rendererConfig);
+                    backend = new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
                 #end
 
             #end

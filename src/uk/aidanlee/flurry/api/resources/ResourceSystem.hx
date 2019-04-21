@@ -39,7 +39,7 @@ class ResourceSystem
     /**
      * Event bus the resource system can fire events into as and when resources and created and removed.
      */
-    final events : EventBus;
+    final events : ResourceEvents;
 
     /**
      * Access to the engines filesystem.
@@ -85,7 +85,7 @@ class ResourceSystem
      * 
      * @param _threads Number of active threads for loading parcels (defaults 1).
      */
-    public function new(_events : EventBus, _fileSystem : IFileSystem, _threads : Int = 1)
+    public function new(_events : ResourceEvents, _fileSystem : IFileSystem, _threads : Int = 1)
     {
         events             = _events;
         fileSystem         = _fileSystem;
@@ -135,11 +135,11 @@ class ResourceSystem
 
             if (Std.is(_resource, ImageResource))
             {
-                events.fire(ResourceEvents.Created, new ResourceEventCreated(ImageResource, _resource));
+                events.created.dispatch(new ResourceEventCreated(ImageResource, _resource));
             }
             if (Std.is(_resource, ShaderResource))
             {
-                events.fire(ResourceEvents.Created, new ResourceEventCreated(ShaderResource, _resource));
+                events.created.dispatch(new ResourceEventCreated(ShaderResource, _resource));
             }
         }
     }
@@ -154,11 +154,11 @@ class ResourceSystem
         {
             if (Std.is(resourceCache.get(_resource.id), ImageResource))
             {
-                events.fire(ResourceEvents.Removed, new ResourceEventRemoved(ImageResource, resourceCache.get(_resource.id)));
+                events.removed.dispatch(new ResourceEventRemoved(ImageResource, resourceCache.get(_resource.id)));
             }
             if (Std.is(resourceCache.get(_resource.id), ShaderResource))
             {
-                events.fire(ResourceEvents.Removed, new ResourceEventRemoved(ShaderResource, resourceCache.get(_resource.id)));
+                events.removed.dispatch(new ResourceEventRemoved(ShaderResource, resourceCache.get(_resource.id)));
             }
 
             resourceReferences.remove(_resource.id);
@@ -343,11 +343,11 @@ class ResourceSystem
             {
                 if (Std.is(resourceCache.get(resource), ImageResource))
                 {
-                    events.fire(ResourceEvents.Removed, new ResourceEventRemoved(ImageResource, resourceCache.get(resource)));
+                    events.removed.dispatch(new ResourceEventRemoved(ImageResource, resourceCache.get(resource)));
                 }
                 if (Std.is(resourceCache.get(resource), ShaderResource))
                 {
-                    events.fire(ResourceEvents.Removed, new ResourceEventRemoved(ShaderResource, resourceCache.get(resource)));
+                    events.removed.dispatch(new ResourceEventRemoved(ShaderResource, resourceCache.get(resource)));
                 }
 
                 resourceReferences.remove(resource);
@@ -454,11 +454,11 @@ class ResourceSystem
 
                 if (Std.is(resource, ImageResource))
                 {
-                    events.fire(ResourceEvents.Created, new ResourceEventCreated(ImageResource, resource));
+                    events.created.dispatch(new ResourceEventCreated(ImageResource, resource));
                 }
                 if (Std.is(resource, ShaderResource))
                 {
-                    events.fire(ResourceEvents.Created, new ResourceEventCreated(ShaderResource, resource));
+                    events.created.dispatch(new ResourceEventCreated(ShaderResource, resource));
                 }
             }
         }
