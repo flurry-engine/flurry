@@ -6,12 +6,6 @@ import uk.aidanlee.flurry.api.input.Types.TextEventType;
 import uk.aidanlee.flurry.api.input.Types.GamepadDeviceEventType;
 import petesignals.Signal1;
 
-private enum InputEventState
-{
-    Up;
-    Down;
-}
-
 class InputEvents
 {
     public final keyUp : Signal1<InputEventKeyState>;
@@ -57,8 +51,6 @@ class InputEvents
 
 class InputEventKeyState
 {
-    public final state : InputEventState;
-
     public final keycode : Int;
 
     public final scancode : Int;
@@ -67,13 +59,12 @@ class InputEventKeyState
 
     public final modifier : EnumFlags<KeyModifier>;
 
-    public function new(_state : InputEventState, _keycode : Int, _scancode : Int, _repeat : Bool, _mod : EnumFlags<KeyModifier>)
+    public function new(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : EnumFlags<KeyModifier>)
     {
-        state    = _state;
-        keycode  = _keycode;
-        scancode = _scancode;
-        repeat   = _repeat;
-        modifier = _mod;
+        keycode   = _keycode;
+        scancode  = _scancode;
+        repeat    = _repeat;
+        modifier  = _mod;
     }
 }
 
@@ -98,17 +89,14 @@ class InputEventTextInput
 
 class InputEventMouseState
 {
-    public final state : InputEventState;
-
     public final x : Int;
 
     public final y : Int;
 
     public final button : Int;
 
-    public function new(_state : InputEventState, _x : Int, _y : Int, _button : Int)
+    public function new(_x : Int, _y : Int, _button : Int)
     {
-        state  = _state;
         x      = _x;
         y      = _y;
         button = _button;
@@ -149,16 +137,14 @@ class InputEventMouseWheel
 
 class InputEventGamepadState
 {
-    public final state : InputEventState;
     public final gamepad : Int;
 
     public final button : Int;
 
     public final value : Float;
 
-    public function new(_state : InputEventState, _gamepad : Int, _button : Int, _value : Float)
+    public function new(_gamepad : Int, _button : Int, _value : Float)
     {
-        state   = _state;
         gamepad = _gamepad;
         button  = _button;
         value   = _value;
