@@ -4,7 +4,6 @@ import cpp.Pointer;
 import cpp.RawPointer;
 import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
-import uk.aidanlee.flurry.api.CoreEvents;
 import uk.aidanlee.flurry.api.input.Keycodes;
 import uk.aidanlee.flurry.api.input.Scancodes;
 import uk.aidanlee.flurry.api.maths.Vector;
@@ -84,15 +83,15 @@ class ImGuiImpl
         style.colors[12] = ImVec4.create(0.1, 0.1, 0.1, 1.0);
 
         // Hook into flurry events
-        flurry.events.listen(CoreEvents.PreUpdate , newFrame);
-        flurry.events.listen(CoreEvents.PostUpdate, render);
-        flurry.events.listen(CoreEvents.Shutdown  , dispose);
+        flurry.events.preUpdate.add(newFrame);
+        flurry.events.postUpdate.add(render);
+        flurry.events.shutdown.add(dispose);
     }
 
     /**
      * Populates the imgui fields with the latest screen, mouse, keyboard, and gamepad info.
      */
-    public function newFrame(_)
+    public function newFrame()
     {
         var io = ImGui.getIO();
         io.displaySize  = ImVec2.create(flurry.display.width, flurry.display.height);
@@ -131,7 +130,7 @@ class ImGuiImpl
     /**
      * Builds the imgui draw data and renders it into its batcher.
      */
-    public function render(_)
+    public function render()
     {
         camera.viewport.set(0, 0, flurry.display.width, flurry.display.height);
         camera.size.set_xy(camera.viewport.w, camera.viewport.h);
@@ -144,7 +143,7 @@ class ImGuiImpl
     /**
      * Cleans up resources used by the batcher and texture.
      */
-    public function dispose(_)
+    public function dispose()
     {
         flurry.resources.removeResource(texture);
     }

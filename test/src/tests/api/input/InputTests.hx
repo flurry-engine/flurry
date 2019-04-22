@@ -21,7 +21,7 @@ class InputTests extends BuddySuite
                 input.isKeyDown(Keycodes.key_w).should.be(false);
                 input.wasKeyReleased(Keycodes.key_w).should.be(false);
 
-                event.keyDown.dispatch(new InputEventKeyDown(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
+                event.keyDown.dispatch(new InputEventKeyState(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
 
                 input.update();
                 input.wasKeyPressed(Keycodes.key_w).should.be(true);
@@ -33,7 +33,7 @@ class InputTests extends BuddySuite
                 input.isKeyDown(Keycodes.key_w).should.be(true);
                 input.wasKeyReleased(Keycodes.key_w).should.be(false);
 
-                event.keyUp.dispatch(new InputEventKeyUp(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
+                event.keyUp.dispatch(new InputEventKeyState(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
 
                 input.update();
                 input.wasKeyPressed(Keycodes.key_w).should.be(false);
@@ -54,7 +54,7 @@ class InputTests extends BuddySuite
                 input.isMouseDown(1).should.be(false);
                 input.wasMouseReleased(1).should.be(false);
 
-                event.mouseDown.dispatch(new InputEventMouseDown(0, 0, 1));
+                event.mouseDown.dispatch(new InputEventMouseState(0, 0, 1));
 
                 input.update();
                 input.wasMousePressed(1).should.be(true);
@@ -66,7 +66,7 @@ class InputTests extends BuddySuite
                 input.isMouseDown(1).should.be(true);
                 input.wasMouseReleased(1).should.be(false);
 
-                event.mouseUp.dispatch(new InputEventMouseUp(0, 0, 1));
+                event.mouseUp.dispatch(new InputEventMouseState(0, 0, 1));
 
                 input.update();
                 input.wasMousePressed(1).should.be(false);
@@ -96,7 +96,7 @@ class InputTests extends BuddySuite
                 input.isGamepadDown(0, 0).should.be(false);
                 input.wasGamepadReleased(0, 0).should.be(false);
 
-                event.gamepadDown.dispatch(new InputEventGamepadDown(0, 0, 1));
+                event.gamepadDown.dispatch(new InputEventGamepadState(0, 0, 1));
 
                 input.update();
                 input.wasGamepadPressed(0, 0).should.be(true);
@@ -108,7 +108,7 @@ class InputTests extends BuddySuite
                 input.isGamepadDown(0, 0).should.be(true);
                 input.wasGamepadReleased(0, 0).should.be(false);
 
-                event.gamepadUp.dispatch(new InputEventGamepadUp(0, 0, 1));
+                event.gamepadUp.dispatch(new InputEventGamepadState(0, 0, 1));
 
                 input.update();
                 input.wasGamepadPressed(0, 0).should.be(false);

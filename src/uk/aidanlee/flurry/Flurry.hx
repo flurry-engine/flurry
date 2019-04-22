@@ -128,12 +128,14 @@ class Flurry extends App
     
     override final function update(_dt : Float)
     {
+        // HACK : Need a cleaner way to poll input events in the update event instead of the tick.
+        // We don't want to be poking into a backend specific runtime or calling SDL from here.
+        (app.runtime : uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeDesktop).pollEvents();
+
         // The resource system needs to be called periodically to process thread events.
         // If this is not called the resources loaded on separate threads won't be registered and parcel callbacks won't be invoked.
         resources.update();
         
-        input.update();
-
         if (loaded)
         {
             onPreUpdate();
@@ -168,6 +170,8 @@ class Flurry extends App
         }
 
         renderer.postRender();
+
+        input.update();
 
         hxt.advance_frame();
     }
