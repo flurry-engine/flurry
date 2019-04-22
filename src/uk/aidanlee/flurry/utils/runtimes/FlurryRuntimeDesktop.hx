@@ -130,6 +130,11 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
 
     function loop()
     {
+        app.dispatch_event(se_tick);
+    }
+
+    public function queryInput()
+    {
         while (SDL.hasAnEvent())
         {
             var event = SDL.pollEvent();
@@ -146,15 +151,15 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 }
             }
         }
-
-        app.dispatch_event(se_tick);
     }
 
     function dispatchEventInput(_event : sdl.Event)
     {
-        switch (_event.type) {
+        switch (_event.type)
+        {
             case SDL_KEYUP:
-                flurry.events.input.keyUp.dispatch(new InputEventKeyUp(
+                flurry.events.input.keyUp.dispatch(new InputEventKeyState(
+                    Up,
                     _event.key.keysym.sym,
                     _event.key.keysym.scancode,
                     _event.key.repeat,
@@ -162,7 +167,8 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 ));
 
             case SDL_KEYDOWN:
-                flurry.events.input.keyDown.dispatch(new InputEventKeyDown(
+                flurry.events.input.keyDown.dispatch(new InputEventKeyState(
+                    Down,
                     _event.key.keysym.sym,
                     _event.key.keysym.scancode,
                     _event.key.repeat,
@@ -194,10 +200,10 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 ));
 
             case SDL_MOUSEBUTTONUP:
-                flurry.events.input.mouseUp.dispatch(new InputEventMouseUp(_event.button.x, _event.button.y,  _event.button.button));
+                flurry.events.input.mouseUp.dispatch(new InputEventMouseState(Up, _event.button.x, _event.button.y,  _event.button.button));
 
             case SDL_MOUSEBUTTONDOWN:
-                flurry.events.input.mouseDown.dispatch(new InputEventMouseDown(_event.button.x, _event.button.y,  _event.button.button));
+                flurry.events.input.mouseDown.dispatch(new InputEventMouseState(Down, _event.button.x, _event.button.y,  _event.button.button));
 
             case SDL_MOUSEWHEEL:
                 flurry.events.input.mouseWheel.dispatch(new InputEventMouseWheel(_event.wheel.x, _event.wheel.y));
@@ -215,12 +221,12 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
             case SDL_JOYBUTTONUP:
                 var gp = gamepadInstanceSlotMapping[_event.jdevice.which];
 
-                flurry.events.input.gamepadUp.dispatch(new InputEventGamepadUp(gp.slot, _event.jbutton.button, 0));
+                flurry.events.input.gamepadUp.dispatch(new InputEventGamepadState(Up, gp.slot, _event.jbutton.button, 0));
 
             case SDL_JOYBUTTONDOWN:
                 var gp = gamepadInstanceSlotMapping[_event.jdevice.which];
 
-                flurry.events.input.gamepadDown.dispatch(new InputEventGamepadDown(gp.slot, _event.jbutton.button, 1));
+                flurry.events.input.gamepadDown.dispatch(new InputEventGamepadState(Down, gp.slot, _event.jbutton.button, 1));
 
             case SDL_JOYDEVICEADDED:
 
@@ -270,13 +276,13 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
 
                 var gp = gamepadInstanceSlotMapping[_event.cdevice.which];
 
-                flurry.events.input.gamepadUp.dispatch(new InputEventGamepadUp(gp.slot, _event.cbutton.button, 0));
+                flurry.events.input.gamepadUp.dispatch(new InputEventGamepadState(Up, gp.slot, _event.cbutton.button, 0));
 
             case SDL_CONTROLLERBUTTONDOWN:
 
                 var gp = gamepadInstanceSlotMapping[_event.cdevice.which];
 
-                flurry.events.input.gamepadDown.dispatch(new InputEventGamepadDown(gp.slot, _event.cbutton.button, 1));
+                flurry.events.input.gamepadDown.dispatch(new InputEventGamepadState(Down, gp.slot, _event.cbutton.button, 1));
 
             case SDL_CONTROLLERDEVICEADDED:
                 setupNewGameController(_event.cdevice.which);

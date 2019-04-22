@@ -4,27 +4,33 @@ import haxe.EnumFlags;
 import uk.aidanlee.flurry.api.input.Types.KeyModifier;
 import uk.aidanlee.flurry.api.input.Types.TextEventType;
 import uk.aidanlee.flurry.api.input.Types.GamepadDeviceEventType;
-import signal.Signal1;
+import petesignals.Signal1;
+
+enum InputState
+{
+    Up;
+    Down;
+}
 
 class InputEvents
 {
-    public final keyUp : Signal1<InputEventKeyUp>;
+    public final keyUp : Signal1<InputEventKeyState>;
 
-    public final keyDown : Signal1<InputEventKeyDown>;
+    public final keyDown : Signal1<InputEventKeyState>;
 
     public final textInput : Signal1<InputEventTextInput>;
 
-    public final mouseUp : Signal1<InputEventMouseUp>;
+    public final mouseUp : Signal1<InputEventMouseState>;
 
-    public final mouseDown : Signal1<InputEventMouseDown>;
+    public final mouseDown : Signal1<InputEventMouseState>;
 
     public final mouseWheel : Signal1<InputEventMouseWheel>;
 
     public final mouseMove : Signal1<InputEventMouseMove>;
 
-    public final gamepadUp : Signal1<InputEventGamepadUp>;
+    public final gamepadUp : Signal1<InputEventGamepadState>;
 
-    public final gamepadDown : Signal1<InputEventGamepadDown>;
+    public final gamepadDown : Signal1<InputEventGamepadState>;
 
     public final gamepadAxis : Signal1<InputEventGamepadAxis>;
 
@@ -34,23 +40,25 @@ class InputEvents
 
     public function new()
     {
-        keyUp         = new Signal1<InputEventKeyUp>();
-        keyDown       = new Signal1<InputEventKeyDown>();
+        keyUp         = new Signal1<InputEventKeyState>();
+        keyDown       = new Signal1<InputEventKeyState>();
         textInput     = new Signal1<InputEventTextInput>();
-        mouseUp       = new Signal1<InputEventMouseUp>();
-        mouseDown     = new Signal1<InputEventMouseDown>();
+        mouseUp       = new Signal1<InputEventMouseState>();
+        mouseDown     = new Signal1<InputEventMouseState>();
         mouseWheel    = new Signal1<InputEventMouseWheel>();
         mouseMove     = new Signal1<InputEventMouseMove>();
-        gamepadUp     = new Signal1<InputEventGamepadUp>();
-        gamepadDown   = new Signal1<InputEventGamepadDown>();
+        gamepadUp     = new Signal1<InputEventGamepadState>();
+        gamepadDown   = new Signal1<InputEventGamepadState>();
         gamepadAxis   = new Signal1<InputEventGamepadAxis>();
         gamepadDevice = new Signal1<InputEventGamepadDevice>();
         gamepadRumble = new Signal1<InputEventGamepadRumble>();
     }
 }
 
-class InputEventKeyUp
+class InputEventKeyState
 {
+    public final state : InputState;
+
     public final keycode : Int;
 
     public final scancode : Int;
@@ -59,27 +67,9 @@ class InputEventKeyUp
 
     public final modifier : EnumFlags<KeyModifier>;
 
-    public function new(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : EnumFlags<KeyModifier>)
+    public function new(_state : InputState, _keycode : Int, _scancode : Int, _repeat : Bool, _mod : EnumFlags<KeyModifier>)
     {
-        keycode  = _keycode;
-        scancode = _scancode;
-        repeat   = _repeat;
-        modifier = _mod;
-    }
-}
-
-class InputEventKeyDown
-{
-    public final keycode : Int;
-
-    public final scancode : Int;
-
-    public final repeat : Bool;
-
-    public final modifier : EnumFlags<KeyModifier>;
-
-    public function new(_keycode : Int, _scancode : Int, _repeat : Bool, _mod : EnumFlags<KeyModifier>)
-    {
+        state    = _state;
         keycode  = _keycode;
         scancode = _scancode;
         repeat   = _repeat;
@@ -106,32 +96,19 @@ class InputEventTextInput
     }
 }
 
-class InputEventMouseUp
+class InputEventMouseState
 {
+    public final state : InputState;
+
     public final x : Int;
 
     public final y : Int;
 
     public final button : Int;
 
-    public function new(_x : Int, _y : Int, _button : Int)
+    public function new(_state : InputState, _x : Int, _y : Int, _button : Int)
     {
-        x      = _x;
-        y      = _y;
-        button = _button;
-    }
-}
-
-class InputEventMouseDown
-{
-    public final x : Int;
-
-    public final y : Int;
-
-    public final button : Int;
-
-    public function new(_x : Int, _y : Int, _button : Int)
-    {
+        state  = _state;
         x      = _x;
         y      = _y;
         button = _button;
@@ -170,32 +147,18 @@ class InputEventMouseWheel
     }
 }
 
-class InputEventGamepadUp
+class InputEventGamepadState
 {
+    public final state : InputState;
     public final gamepad : Int;
 
     public final button : Int;
 
     public final value : Float;
 
-    public function new(_gamepad : Int, _button : Int, _value : Float)
+    public function new(_state : InputState, _gamepad : Int, _button : Int, _value : Float)
     {
-        gamepad = _gamepad;
-        button  = _button;
-        value   = _value;
-    }
-}
-
-class InputEventGamepadDown
-{
-    public final gamepad : Int;
-
-    public final button : Int;
-
-    public final value : Float;
-
-    public function new(_gamepad : Int, _button : Int, _value : Float)
-    {
+        state   = _state;
         gamepad = _gamepad;
         button  = _button;
         value   = _value;

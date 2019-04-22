@@ -125,13 +125,13 @@ class Input
 
     // #region internals
 
-    function onKeyUp(_event : InputEventKeyUp)
+    function onKeyUp(_event : InputEventKeyState)
     {
         keyCodesReleased.set(_event.keycode, false);
         keyCodesDown.remove(_event.keycode);
     }
 
-    function onKeyDown(_event : InputEventKeyDown)
+    function onKeyDown(_event : InputEventKeyState)
     {
         if (!_event.repeat)
         {
@@ -140,25 +140,25 @@ class Input
         }
     }
 
-    function onMouseUp(_event : InputEventMouseUp)
+    function onMouseUp(_event : InputEventMouseState)
     {
         mouseButtonsReleased.set(_event.button, false);
         mouseButtonsDown.remove(_event.button);
     }
 
-    function onMouseDown(_event : InputEventMouseDown)
+    function onMouseDown(_event : InputEventMouseState)
     {
         mouseButtonsPressed.set(_event.button, false);
         mouseButtonsDown.set(_event.button, true);
     }
 
-    function onGamepadUp(_event : InputEventGamepadUp)
+    function onGamepadUp(_event : InputEventGamepadState)
     {
         gamepadButtonsReleased[_event.gamepad].set(_event.button, false);
         gamepadButtonsDown[_event.gamepad].remove(_event.button);
     }
 
-    function onGamepadDown(_event : InputEventGamepadDown)
+    function onGamepadDown(_event : InputEventGamepadState)
     {
         gamepadButtonsPressed[_event.gamepad].set(_event.button, false);
         gamepadButtonsDown[_event.gamepad].set(_event.button, true);

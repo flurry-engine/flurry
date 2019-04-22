@@ -132,13 +132,15 @@ class Flurry extends App
         // If this is not called the resources loaded on separate threads won't be registered and parcel callbacks won't be invoked.
         resources.update();
         
-        input.update();
-
         if (loaded)
         {
             onPreUpdate();
 
             events.preUpdate.dispatch();
+
+            (app.runtime : uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeDesktop).queryInput();
+
+            input.update();
         }
 
         // Pre-draw
