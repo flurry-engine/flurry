@@ -6,7 +6,7 @@ import uk.aidanlee.flurry.api.input.Types.TextEventType;
 import uk.aidanlee.flurry.api.input.Types.GamepadDeviceEventType;
 import petesignals.Signal1;
 
-enum InputState
+private enum InputEventState
 {
     Up;
     Down;
@@ -57,7 +57,7 @@ class InputEvents
 
 class InputEventKeyState
 {
-    public final state : InputState;
+    public final state : InputEventState;
 
     public final keycode : Int;
 
@@ -67,7 +67,7 @@ class InputEventKeyState
 
     public final modifier : EnumFlags<KeyModifier>;
 
-    public function new(_state : InputState, _keycode : Int, _scancode : Int, _repeat : Bool, _mod : EnumFlags<KeyModifier>)
+    public function new(_state : InputEventState, _keycode : Int, _scancode : Int, _repeat : Bool, _mod : EnumFlags<KeyModifier>)
     {
         state    = _state;
         keycode  = _keycode;
@@ -98,7 +98,7 @@ class InputEventTextInput
 
 class InputEventMouseState
 {
-    public final state : InputState;
+    public final state : InputEventState;
 
     public final x : Int;
 
@@ -106,7 +106,7 @@ class InputEventMouseState
 
     public final button : Int;
 
-    public function new(_state : InputState, _x : Int, _y : Int, _button : Int)
+    public function new(_state : InputEventState, _x : Int, _y : Int, _button : Int)
     {
         state  = _state;
         x      = _x;
@@ -149,14 +149,14 @@ class InputEventMouseWheel
 
 class InputEventGamepadState
 {
-    public final state : InputState;
+    public final state : InputEventState;
     public final gamepad : Int;
 
     public final button : Int;
 
     public final value : Float;
 
-    public function new(_state : InputState, _gamepad : Int, _button : Int, _value : Float)
+    public function new(_state : InputEventState, _gamepad : Int, _button : Int, _value : Float)
     {
         state   = _state;
         gamepad = _gamepad;

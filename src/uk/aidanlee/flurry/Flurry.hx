@@ -137,10 +137,6 @@ class Flurry extends App
             onPreUpdate();
 
             events.preUpdate.dispatch();
-
-            (app.runtime : uk.aidanlee.flurry.utils.runtimes.FlurryRuntimeDesktop).queryInput();
-
-            input.update();
         }
 
         // Pre-draw
@@ -170,6 +166,8 @@ class Flurry extends App
         }
 
         renderer.postRender();
+
+        input.update();
 
         hxt.advance_frame();
     }

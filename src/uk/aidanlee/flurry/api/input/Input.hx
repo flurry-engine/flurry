@@ -2,41 +2,40 @@ package uk.aidanlee.flurry.api.input;
 
 import uk.aidanlee.flurry.api.input.InputEvents;
 
+private enum InputState
+{
+    None;
+    Pressed;
+    Held;
+    Released;
+}
+
 class Input
 {
-    public static final MAX_CONTROLLERS : Int = 8;
+    static final MAX_KEYS = 300;
+    static final MAX_MOUSE_BUTTONS = 32;
+    static final MAX_CONTROLLERS = 8;
+    static final MAX_CONTROLLER_BUTTONS = 32;
+    static final MAX_CONTROLLER_AXISES = 32;
 
     final events : InputEvents;
 
-    final keyCodesPressed  : Map<Int, Bool>;
-    final keyCodesReleased : Map<Int, Bool>;
-    final keyCodesDown     : Map<Int, Bool>;
+    final scancodes : Array<InputState>;
 
-    final mouseButtonsPressed  : Map<Int, Bool>;
-    final mouseButtonsReleased : Map<Int, Bool>;
-    final mouseButtonsDown     : Map<Int, Bool>;
+    final mouseButtons : Array<InputState>;
 
-    final gamepadButtonsPressed  : Array<Map<Int, Bool>>;
-    final gamepadButtonsReleased : Array<Map<Int, Bool>>;
-    final gamepadButtonsDown     : Array<Map<Int, Bool>>;
-    final gamepadAxisValues      : Array<Map<Int, Float>>;
+    final gamepadButtons : Array<Array<InputState>>;
+
+    final gamepadAxises : Array<Array<Float>>;
 
     public function new(_events : InputEvents)
     {
         events = _events;
 
-        keyCodesPressed  = [];
-        keyCodesReleased = [];
-        keyCodesDown     = [];
-
-        mouseButtonsPressed  = [];
-        mouseButtonsReleased = [];
-        mouseButtonsDown     = [];
-
-        gamepadButtonsPressed  = [ for (i in 0...MAX_CONTROLLERS) [] ];
-        gamepadButtonsReleased = [ for (i in 0...MAX_CONTROLLERS) [] ];
-        gamepadButtonsDown     = [ for (i in 0...MAX_CONTROLLERS) [] ];
-        gamepadAxisValues      = [ for (i in 0...MAX_CONTROLLERS) [] ];
+        scancodes      = [ for (i in 0...MAX_KEYS) None ];
+        mouseButtons   = [ for (i in 0...MAX_MOUSE_BUTTONS) None ];
+        gamepadButtons = [ for (i in 0...MAX_CONTROLLERS) [ for (j in 0...MAX_CONTROLLER_BUTTONS) None ] ];
+        gamepadAxises  = [ for (i in 0...MAX_CONTROLLERS) [ for (j in 0...MAX_CONTROLLER_AXISES) 0 ] ];
 
         events.keyUp.add(onKeyUp);
         events.keyDown.add(onKeyDown);
@@ -51,62 +50,52 @@ class Input
 
     public function isKeyDown(_key : Int) : Bool
     {
-        return keyCodesDown.exists(_key);
+        return scancodes[Keycodes.toScan(_key)] == Held || scancodes[Keycodes.toScan(_key)] == Pressed;
     }
 
     public function wasKeyPressed(_key : Int) : Bool
     {
-        return keyCodesPressed.exists(_key);
+        return scancodes[Keycodes.toScan(_key)] == Pressed;
     }
 
     public function wasKeyReleased(_key : Int) : Bool
     {
-        return keyCodesReleased.exists(_key);
+        return scancodes[Keycodes.toScan(_key)] == Released;
     }
 
     public function isMouseDown(_button : Int) : Bool
     {
-        return mouseButtonsDown.exists(_button);
+        return mouseButtons[_button] == Held || mouseButtons[_button] == Pressed;
     } 
 
     public function wasMousePressed(_button : Int) : Bool
     {
-        return mouseButtonsPressed.exists(_button);
+        return mouseButtons[_button] == Pressed;
     }
 
     public function wasMouseReleased(_button : Int) : Bool
     {
-        return mouseButtonsReleased.exists(_button);
+        return mouseButtons[_button] == Released;
     }
 
     public function gamepadAxis(_gamepad : Int, _axis : Int) : Float
     {
-        if (gamepadAxisValues[_gamepad].exists(_axis))
-        {
-            if (gamepadAxisValues[_gamepad].exists(_axis))
-            {
-                return gamepadAxisValues[_gamepad].get(_axis);
-            }
-
-            return 0;
-        }
-
-        return 0;
+        return gamepadAxises[_gamepad][_axis];
     }
 
     public function isGamepadDown(_gamepad : Int, _button : Int) : Bool
     {
-        return gamepadButtonsDown[_gamepad].exists(_button);
+        return gamepadButtons[_gamepad][_button] == Pressed || gamepadButtons[_gamepad][_button] == Held;
     }
 
     public function wasGamepadPressed(_gamepad : Int, _button : Int) : Bool
     {
-        return gamepadButtonsPressed[_gamepad].exists(_button);
+        return gamepadButtons[_gamepad][_button] == Pressed;
     }
 
     public function wasGamepadReleased(_gamepad : Int, _button : Int) : Bool
     {
-        return gamepadButtonsReleased[_gamepad].exists(_button);
+        return gamepadButtons[_gamepad][_button] == Released;
     }
 
     public function rumbleGamepad(_gamepad : Int, _intensity : Float, _duration : Int) : Void
@@ -127,130 +116,78 @@ class Input
 
     function onKeyUp(_event : InputEventKeyState)
     {
-        keyCodesReleased.set(_event.keycode, false);
-        keyCodesDown.remove(_event.keycode);
+        scancodes[_event.scancode] = Released;
     }
 
     function onKeyDown(_event : InputEventKeyState)
     {
         if (!_event.repeat)
         {
-            keyCodesPressed.set(_event.keycode, false);
-            keyCodesDown.set(_event.keycode, true);
+            scancodes[_event.scancode] = Pressed;
         }
     }
 
     function onMouseUp(_event : InputEventMouseState)
     {
-        mouseButtonsReleased.set(_event.button, false);
-        mouseButtonsDown.remove(_event.button);
+        mouseButtons[_event.button] = Released;
     }
 
     function onMouseDown(_event : InputEventMouseState)
     {
-        mouseButtonsPressed.set(_event.button, false);
-        mouseButtonsDown.set(_event.button, true);
+        mouseButtons[_event.button] = Pressed;
     }
 
     function onGamepadUp(_event : InputEventGamepadState)
     {
-        gamepadButtonsReleased[_event.gamepad].set(_event.button, false);
-        gamepadButtonsDown[_event.gamepad].remove(_event.button);
+        gamepadButtons[_event.gamepad][_event.button] = Released;
     }
 
     function onGamepadDown(_event : InputEventGamepadState)
     {
-        gamepadButtonsPressed[_event.gamepad].set(_event.button, false);
-        gamepadButtonsDown[_event.gamepad].set(_event.button, true);
+        gamepadButtons[_event.gamepad][_event.button] = Pressed;
     }
 
     function onGamepadAxis(_event : InputEventGamepadAxis)
     {
-        gamepadAxisValues[_event.gamepad].set(_event.axis, _event.value);
+        gamepadAxises[_event.gamepad][_event.axis] = _event.value;
     }
 
     function updateKeyState()
     {
-        for (key => state in keyCodesPressed)
+        for (i in 0...scancodes.length)
         {
-            if (state)
+            switch (scancodes[i])
             {
-                keyCodesPressed.remove(key);
-            }
-            else
-            {
-                keyCodesPressed.set(key, true);
-            }
-        }
-
-        for (key => state in keyCodesReleased)
-        {
-            if (state)
-            {
-                keyCodesReleased.remove(key);
-            }
-            else
-            {
-                keyCodesReleased.set(key, true);
+                case Pressed  : scancodes[i] = Held;
+                case Released : scancodes[i] = None;
+                case _ :
             }
         }
     }
 
     function updateMouseState()
     {
-        for (button => state in mouseButtonsPressed)
+        for (i in 0...mouseButtons.length)
         {
-            if (state)
+            switch (mouseButtons[i])
             {
-                mouseButtonsPressed.remove(button);
-            }
-            else
-            {
-                mouseButtonsPressed.set(button, true);
-            }
-        }
-
-        for (button => state in mouseButtonsReleased)
-        {
-            if (state)
-            {
-                mouseButtonsReleased.remove(button);
-            }
-            else
-            {
-                mouseButtonsReleased.set(button, true);
+                case Pressed  : mouseButtons[i] = Held;
+                case Released : mouseButtons[i] = None;
+                case _ :
             }
         }
     }
 
     function updateGamepadState()
     {
-        for (gamepad in gamepadButtonsPressed)
+        for (i in 0...gamepadButtons.length)
         {
-            for (button => state in gamepad)
+            for (j in 0...gamepadButtons[i].length)
             {
-                if (state)
-                {
-                    gamepad.remove(button);
-                }
-                else
-                {
-                    gamepad.set(button, true);
-                }
-            }
-        }
-
-        for (gamepad in gamepadButtonsReleased)
-        {
-            for (button => state in gamepad)
-            {
-                if (state)
-                {
-                    gamepad.remove(button);
-                }
-                else
-                {
-                    gamepad.set(button, true);
+                switch (gamepadButtons[i][j]) {
+                    case Pressed  : gamepadButtons[i][j] = Held;
+                    case Released : gamepadButtons[i][j] = None;
+                    case _ :
                 }
             }
         }

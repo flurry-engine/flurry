@@ -130,11 +130,6 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
 
     function loop()
     {
-        app.dispatch_event(se_tick);
-    }
-
-    public function queryInput()
-    {
         while (SDL.hasAnEvent())
         {
             var event = SDL.pollEvent();
@@ -151,6 +146,8 @@ class FlurryRuntimeDesktop extends snow.core.native.Runtime
                 }
             }
         }
+
+        app.dispatch_event(se_tick);
     }
 
     function dispatchEventInput(_event : sdl.Event)
