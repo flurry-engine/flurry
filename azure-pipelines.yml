@@ -28,6 +28,7 @@ steps:
     AGENT_OS: $(Agent.OS)
 
 - task: PublishTestResults@2
+  condition: succeededOrFailed()
   inputs:
     testResultsFormat: xUnit
     testResultsFiles: test/test-engine.xml
