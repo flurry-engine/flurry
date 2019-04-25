@@ -36,6 +36,16 @@ class Main implements Buddy<[
 
     tests.api.EventBusTests,
 
+    tests.modules.differ.shapes.CircleTests,
+    tests.modules.differ.shapes.PolygonTests,
+    tests.modules.differ.shapes.RayTests,
+
+    tests.modules.differ.sat.SAT2DTests,
+
+    tests.modules.differ.data.RayCollisionTests,
+    tests.modules.differ.data.RayIntersectionTests,
+    tests.modules.differ.data.ShapeCollisionTests,
+
     tests.utils.BytesPackerTests
 ]>
 {

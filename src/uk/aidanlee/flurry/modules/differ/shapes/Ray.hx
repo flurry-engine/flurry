@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.modules.differ.shapes;
 
+import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector;
 
 /** A ray with a start, end, direction 
@@ -14,6 +15,9 @@ class Ray {
             Returns a cached vector, so modifying it will affect this instance.
             Updates only when the dir value is accessed. */
     public var dir (get, never):Vector;
+
+    public var angle (get, never):Float;
+
         /** Whether or not the ray is infinite. */
     public var infinite:InfiniteState;
 
@@ -40,6 +44,9 @@ class Ray {
         return dir_cache;
     }
 
+    function get_angle() {
+        return Maths.toDegrees(Maths.atan2(end.y - start.y, end.x - start.x));
+    }
 }
 
     /** A flag for the infinite state of a Ray. */
