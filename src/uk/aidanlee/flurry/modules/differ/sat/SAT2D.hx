@@ -429,14 +429,14 @@ class SAT2D
 
         if (valid1 && valid2)
         {
-            _into = _into.or(new RayIntersection()).reset();
-
-            _into.ray1 = _ray1;
-            _into.ray2 = _ray2;
-            _into.u1   = u1;
-            _into.u2   = u2;
-
-            return _into;
+            if (_into == null)
+            {
+                return new RayIntersection(_ray1, _ray2, u1, u2);
+            }
+            else
+            {
+                return _into.set(_ray1, _ray2, u1, u2);
+            }
         }
 
         return null;
