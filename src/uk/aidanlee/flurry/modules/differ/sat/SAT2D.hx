@@ -305,13 +305,14 @@ class SAT2D
 
             if (valid)
             {
-                _into = _into.or(new RayCollision()).reset();
-                _into.shape = _circle;
-                _into.ray   = _ray;
-                _into.start = t1;
-                _into.end   = t2;
-
-                return _into;
+                if (_into == null)
+                {
+                    return new RayCollision(_circle, _ray, t1, t2);
+                }
+                else
+                {
+                    return _into.set(_circle, _ray, t1, t2);
+                }
             }
         }
 
@@ -376,13 +377,14 @@ class SAT2D
 
         if (valid)
         {
-            _into = _into.or(new RayCollision()).reset();
-            _into.shape = _polygon;
-            _into.ray   = _ray;
-            _into.start = min_u;
-            _into.end   = max_u;
-
-            return _into;
+            if (_into == null)
+            {
+                return new RayCollision(_polygon, _ray, min_u, max_u);
+            }
+            else
+            {
+                return _into.set(_polygon, _ray, min_u, max_u);
+            }
         }
 
         return null;
