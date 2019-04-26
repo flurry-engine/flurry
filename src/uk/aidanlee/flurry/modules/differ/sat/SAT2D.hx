@@ -342,9 +342,9 @@ class SAT2D
 
             var valid = switch (_ray.infinite)
             {
-                case not_infinite: t1 >= 0.0 && t1 <= 1.0;
-                case infinite_from_start: t1 >= 0.0;
-                case infinite: true;
+                case NotInfinite: t1 >= 0.0 && t1 <= 1.0;
+                case InfiniteFromStart: t1 >= 0.0;
+                case Infinite: true;
             }
 
             if (valid)
@@ -414,9 +414,9 @@ class SAT2D
 
         var valid = switch (_ray.infinite)
         {
-            case not_infinite: min_u >= 0.0 && min_u <= 1.0;
-            case infinite_from_start: min_u != Math.POSITIVE_INFINITY && min_u >= 0.0;
-            case infinite: (min_u != Math.POSITIVE_INFINITY);
+            case NotInfinite: min_u >= 0.0 && min_u <= 1.0;
+            case InfiniteFromStart: min_u != Math.POSITIVE_INFINITY && min_u >= 0.0;
+            case Infinite: (min_u != Math.POSITIVE_INFINITY);
         }
 
         if (valid)
@@ -461,16 +461,16 @@ class SAT2D
         // TODO : ask if ray hit condition difference is intentional (> 0 and not >= 0 like other checks)
         var valid1 = switch (_ray1.infinite)
         {
-            case not_infinite: (u1 > 0.0 && u1 <= 1.0);
-            case infinite_from_start: u1 > 0.0;
-            case infinite: true;
+            case NotInfinite: (u1 > 0.0 && u1 <= 1.0);
+            case InfiniteFromStart: u1 > 0.0;
+            case Infinite: true;
         }
 
         var valid2 = switch (_ray2.infinite)
         {
-            case not_infinite: (u2 > 0.0 && u2 <= 1.0);
-            case infinite_from_start: u2 > 0.0;
-            case infinite: true;
+            case NotInfinite: (u2 > 0.0 && u2 <= 1.0);
+            case InfiniteFromStart: u2 > 0.0;
+            case Infinite: true;
         }
 
         if (valid1 && valid2)
