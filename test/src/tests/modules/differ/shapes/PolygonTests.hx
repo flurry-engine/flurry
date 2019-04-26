@@ -348,22 +348,6 @@ class PolygonTests extends BuddySuite
                     v.equals(square.transformedVertices[i]).should.be(true);
                 }
             });
-
-            it('can test for a collision with any shape', {
-                //
-            });
-
-            it('can test for a collision with a circle', {
-                //
-            });
-
-            it('can test for a collision with a polygon', {
-                //
-            });
-
-            it('can test for a collision with a ray', {
-                //
-            });
         });
     }
 }

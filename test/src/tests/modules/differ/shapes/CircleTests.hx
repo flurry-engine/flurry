@@ -24,22 +24,6 @@ class CircleTests extends BuddySuite
 
                 c.transformedRadius.should.beCloseTo(r * s);
             });
-
-            it('can test for a collision with any shape', {
-                //
-            });
-
-            it('can test for a collision with a circle', {
-                //
-            });
-
-            it('can test for a collision with a polygon', {
-                //
-            });
-
-            it('can test for a collision with a ray', {
-                //
-            });
         });
     }
 }
