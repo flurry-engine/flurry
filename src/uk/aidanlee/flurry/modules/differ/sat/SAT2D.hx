@@ -325,8 +325,8 @@ class SAT2D
     {
         var deltaX = _ray.end.x - _ray.start.x;
         var deltaY = _ray.end.y - _ray.start.y;
-        var ray2circleX = _ray.start.x - _circle.position.x;
-        var ray2circleY = _ray.start.y - _circle.position.y;
+        var ray2circleX = _ray.start.x - _circle.x;
+        var ray2circleY = _ray.start.y - _circle.y;
 
         var a = vecLengthsq(deltaX, deltaY);
         var b = 2 * vecDot(deltaX, deltaY, ray2circleX, ray2circleY);
