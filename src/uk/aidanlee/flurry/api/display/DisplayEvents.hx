@@ -1,6 +1,6 @@
 package uk.aidanlee.flurry.api.display;
 
-import petesignals.Signal1;
+import signals.Signal1;
 
 class DisplayEvents
 {

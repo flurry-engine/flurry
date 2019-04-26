@@ -3,7 +3,7 @@ package uk.aidanlee.flurry;
 import uk.aidanlee.flurry.api.input.InputEvents;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
-import petesignals.Signal;
+import signals.Signal;
 
 class FlurryEvents
 {
