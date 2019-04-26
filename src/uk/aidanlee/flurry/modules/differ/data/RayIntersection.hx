@@ -43,7 +43,7 @@ class RayIntersection
     }
 
     /**
-     * Copy the values from another ray intersection
+     * Copy the values from another ray intersection.
      * @param _other The ray intersection to copy.
      * @return RayIntersection
      */

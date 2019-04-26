@@ -8,16 +8,14 @@ import uk.aidanlee.flurry.modules.differ.shapes.Circle;
 import uk.aidanlee.flurry.modules.differ.shapes.Polygon;
 import uk.aidanlee.flurry.modules.differ.shapes.Ray;
 
-using Safety;
-
 /**
  * Implementation details for the 2D SAT collision queries.
  * Used by the various shapes, and Collision API, mostly internally.
  */
 class SAT2D
 {
-    static var tmp1 = new ShapeCollision();
-    static var tmp2 = new ShapeCollision();
+    static final tmp1 = new PolygonCollisionData(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    static final tmp2 = new PolygonCollisionData(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
     /**
      * Test for a collision between a circle and a polygon.
@@ -31,8 +29,6 @@ class SAT2D
      */
     public static function testCircleVsPolygon(_circle : Circle, _polygon : Polygon, ?_into : Null<ShapeCollision>, _flip : Bool = false) : Null<ShapeCollision>
     {
-        _into = _into.or(new ShapeCollision()).reset();
-
         var verts = _polygon.transformedVertices;
 
         var circleX = _circle.x;
@@ -92,9 +88,9 @@ class SAT2D
         var distMin = -(max2 - min1);
         if (_flip) distMin *= -1;
 
-        _into.overlap = distMin;
-        _into.unitVectorX = normalAxisX;
-        _into.unitVectorY = normalAxisY;
+        var overlap     = distMin;
+        var unitVectorX = normalAxisX;
+        var unitVectorY = normalAxisY;
         var closest = Math.abs(distMin);
 
         // find the normal axis for each point and project
@@ -104,6 +100,7 @@ class SAT2D
             normalAxisY = findNormalAxisY(verts, i);
 
             var aLen = vecLength(normalAxisX, normalAxisY);
+
             normalAxisX = vecNormalize(aLen, normalAxisX);
             normalAxisY = vecNormalize(aLen, normalAxisY);
 
@@ -140,27 +137,39 @@ class SAT2D
 
             if (Math.abs(distMin) < closest)
             {
-                _into.unitVectorX = normalAxisX;
-                _into.unitVectorY = normalAxisY;
-                _into.overlap = distMin;
+                unitVectorX = normalAxisX;
+                unitVectorY = normalAxisY;
+                overlap = distMin;
                 closest = Math.abs(distMin);
             }
         }
 
-        // if you made it here, there is a collision!!!!!
-
-        _into.shape1 = if (_flip) _polygon else _circle;
-        _into.shape2 = if (_flip)  _circle else _polygon;
-        _into.separationX = _into.unitVectorX * _into.overlap;
-        _into.separationY = _into.unitVectorY * _into.overlap;
-
-        if (!_flip)
+        if (_into == null)
         {
-            _into.unitVectorX = -_into.unitVectorX;
-            _into.unitVectorY = -_into.unitVectorY;
+            return new ShapeCollision(
+                _circle,
+                _polygon,
+                overlap,
+                unitVectorX * overlap,
+                unitVectorY * overlap,
+                _flip ? unitVectorX : -unitVectorX,
+                _flip ? unitVectorY : -unitVectorY,
+                0, 0, 0, 0, 0
+            );
         }
-
-        return _into;
+        else
+        {
+            return _into.set(
+                _circle,
+                _polygon,
+                overlap,
+                unitVectorX * overlap,
+                unitVectorY * overlap,
+                _flip ? unitVectorX : -unitVectorX,
+                _flip ? unitVectorY : -unitVectorY,
+                0, 0, 0, 0, 0
+            );
+        }
     }
 
     /**
@@ -188,30 +197,42 @@ class SAT2D
         // if distancesq < r^2
         if (distancesq < totalRadius * totalRadius)
         {
-            _into = _into.or(new ShapeCollision()).reset();
-
             // find the difference. Square roots are needed here.
             var difference = totalRadius - Math.sqrt(distancesq);
 
-                _into.shape1 = circle1;
-                _into.shape2 = circle2;
+            var unitVecX = circle1.x - circle2.x;
+            var unitVecY = circle1.y - circle2.y;
+            var unitVecLen = vecLength(unitVecX, unitVecY);
 
-                var unitVecX = circle1.x - circle2.x;
-                var unitVecY = circle1.y - circle2.y;
-                var unitVecLen = vecLength(unitVecX, unitVecY);
+            unitVecX = vecNormalize(unitVecLen, unitVecX);
+            unitVecY = vecNormalize(unitVecLen, unitVecY);
 
-                unitVecX = vecNormalize(unitVecLen, unitVecX);
-                unitVecY = vecNormalize(unitVecLen, unitVecY);
-
-                _into.unitVectorX = unitVecX;
-                _into.unitVectorY = unitVecY;
-
-                // find the movement needed to separate the circles
-                _into.separationX = _into.unitVectorX * difference;
-                _into.separationY = _into.unitVectorY * difference;
-                _into.overlap = difference;
-
-            return _into;
+            if (_into == null)
+            {
+                return new ShapeCollision(
+                    _circleA,
+                    _circleB,
+                    difference,
+                    unitVecX * difference,
+                    unitVecY * difference,
+                    unitVecX,
+                    unitVecY,
+                    0, 0, 0, 0, 0
+                );
+            }
+            else
+            {
+                return _into.set(
+                    _circleA,
+                    _circleB,
+                    difference,
+                    unitVecX * difference,
+                    unitVecY * difference,
+                    unitVecX,
+                    unitVecY,
+                    0, 0, 0, 0, 0
+                );
+            }
         }
 
         return null;
@@ -229,8 +250,6 @@ class SAT2D
      */
     public static function testPolygonVsPolygon(_polygon1 : Polygon, _polygon2 : Polygon, ?_into : Null<ShapeCollision>, _flip : Bool = false) : Null<ShapeCollision>
     {
-        _into = _into.or(new ShapeCollision()).reset();
-
         if (checkPolygons(_polygon1, _polygon2, tmp1, _flip) == null)
         {
             return null;
@@ -255,15 +274,40 @@ class SAT2D
             other  = tmp1;
         }
 
-        result.otherOverlap = other.overlap;
-        result.otherSeparationX = other.separationX;
-        result.otherSeparationY = other.separationY;
-        result.otherUnitVectorX = other.unitVectorX;
-        result.otherUnitVectorY = other.unitVectorY;
-
-        _into.copy_from(result);
-        result = null;
-        other  = null;
+        if (_into == null)
+        {
+            return new ShapeCollision(
+                _flip ? _polygon2 : _polygon1,
+                _flip ? _polygon1 : _polygon2,
+                result.overlap,
+                result.separationX,
+                result.separationY,
+                result.unitVectorX,
+                result.unitVectorY,
+                other.overlap,
+                other.separationX,
+                other.separationY,
+                other.unitVectorX,
+                other.unitVectorY
+            );
+        }
+        else
+        {
+            return _into.set(
+                _flip ? _polygon2 : _polygon1,
+                _flip ? _polygon1 : _polygon2,
+                result.overlap,
+                result.separationX,
+                result.separationY,
+                result.unitVectorX,
+                result.unitVectorY,
+                other.overlap,
+                other.separationX,
+                other.separationY,
+                other.unitVectorX,
+                other.unitVectorY
+            );
+        }
 
         return _into;
     }
@@ -456,10 +500,8 @@ class SAT2D
      * @param _flip     If polygon 2 is to be treated as the first polygon.
      * @return ShapeCollision
      */
-    static function checkPolygons(_polygon1 : Polygon, _polygon2 : Polygon, _into : ShapeCollision, _flip : Bool = false) : ShapeCollision
+    static function checkPolygons(_polygon1 : Polygon, _polygon2 : Polygon, _into : PolygonCollisionData, _flip : Bool = false) : Null<PolygonCollisionData>
     {
-        _into.reset();
-
         var test1   = 0.0;
         var test2   = 0.0;
         var testNum = 0.0;
@@ -469,10 +511,14 @@ class SAT2D
         var max2    = 0.0;
         var closest : Float = 0x3FFFFFFF;
 
-        var axisX  = 0.0;
-        var axisY  = 0.0;
-        var verts1 = _polygon1.transformedVertices;
-        var verts2 = _polygon2.transformedVertices;
+        var axisX   = 0.0;
+        var axisY   = 0.0;
+        var verts1  = _polygon1.transformedVertices;
+        var verts2  = _polygon2.transformedVertices;
+
+        var overlap  = 0.0;
+        var unitVecX = 0.0;
+        var unitVecY = 0.0;
 
         // loop to begin projection
         for (i in 0...verts1.length)
@@ -515,25 +561,21 @@ class SAT2D
 
             if (Math.abs(distMin) < closest)
             {
-                _into.unitVectorX = axisX;
-                _into.unitVectorY = axisY;
-                _into.overlap = distMin;
-                closest = Math.abs(distMin);
+                unitVecX = axisX;
+                unitVecY = axisY;
+                overlap  = distMin;
+                closest  = Math.abs(distMin);
             }
         }
 
-        _into.shape1 = if (_flip) _polygon2 else _polygon1;
-        _into.shape2 = if (_flip) _polygon1 else _polygon2;
-        _into.separationX = -_into.unitVectorX * _into.overlap;
-        _into.separationY = -_into.unitVectorY * _into.overlap;
-
-        if (_flip)
-        {
-            _into.unitVectorX = -_into.unitVectorX;
-            _into.unitVectorY = -_into.unitVectorY;
-        }
-
-        return _into;
+        return _into.set(
+            overlap,
+            -unitVecX * overlap,
+            -unitVecY * overlap,
+            _flip ? -unitVecX : unitVecX,
+            _flip ? -unitVecY : unitVecY,
+            0, 0, 0, 0, 0
+        );
     }
 
     /**
@@ -577,5 +619,112 @@ class SAT2D
     static inline function vecDot(_x1 : Float, _y1 : Float, _x2 : Float, _y2 : Float) : Float
     {
         return _x1 * _x2 + _y1 * _y2;
+    }
+}
+
+/**
+ * Class mirrors `ShapeCollision` except it doesn't carry the two colliding shapes.
+ */
+private class PolygonCollisionData
+{
+    public var overlap (default, null) : Float;
+
+    public var separationX (default, null) : Float;
+
+    public var separationY (default, null) : Float;
+
+    public var unitVectorX (default, null) : Float;
+
+    public var unitVectorY (default, null) : Float;
+
+    public var otherOverlap (default, null) : Float;
+
+    public var otherSeparationX (default, null) : Float;
+
+    public var otherSeparationY (default, null) : Float;
+
+    public var otherUnitVectorX (default, null) : Float;
+
+    public var otherUnitVectorY (default, null) : Float;
+
+    public inline function new(
+        _overlap : Float,
+        _separationX : Float,
+        _separationY : Float,
+        _unitVectorX : Float,
+        _unitVectorY : Float,
+        _otherOverlap : Float,
+        _otherSeparationX : Float,
+        _otherSeparationY : Float,
+        _otherUnitVectorX : Float,
+        _otherUnitVectorY : Float
+    )
+    {
+        overlap          = _overlap;
+        separationX      = _separationX;
+        separationY      = _separationY;
+        unitVectorX      = _unitVectorX;
+        unitVectorY      = _unitVectorY;
+        otherOverlap     = _otherOverlap;
+        otherSeparationX = _otherSeparationX;
+        otherSeparationY = _otherSeparationY;
+        otherUnitVectorX = _otherUnitVectorX;
+        otherUnitVectorY = _otherUnitVectorY;
+    }
+
+    public inline function set(
+        _overlap : Float,
+        _separationX : Float,
+        _separationY : Float,
+        _unitVectorX : Float,
+        _unitVectorY : Float,
+        _otherOverlap : Float,
+        _otherSeparationX : Float,
+        _otherSeparationY : Float,
+        _otherUnitVectorX : Float,
+        _otherUnitVectorY : Float
+    ) : PolygonCollisionData
+    {
+        overlap          = _overlap;
+        separationX      = _separationX;
+        separationY      = _separationY;
+        unitVectorX      = _unitVectorX;
+        unitVectorY      = _unitVectorY;
+        otherOverlap     = _otherOverlap;
+        otherSeparationX = _otherSeparationX;
+        otherSeparationY = _otherSeparationY;
+        otherUnitVectorX = _otherUnitVectorX;
+        otherUnitVectorY = _otherUnitVectorY;
+
+        return this;
+    }
+
+    public inline function clone() : PolygonCollisionData
+    {
+        return new PolygonCollisionData(
+            overlap,
+            separationX,
+            separationY,
+            unitVectorX,
+            unitVectorY,
+            otherOverlap,
+            otherSeparationX,
+            otherSeparationY,
+            otherUnitVectorX,
+            otherUnitVectorY);
+    }
+
+    public inline function copyFrom(_other : PolygonCollisionData)
+    {
+        overlap          = _other.overlap;
+        separationX      = _other.separationX;
+        separationY      = _other.separationY;
+        unitVectorX      = _other.unitVectorX;
+        unitVectorY      = _other.unitVectorY;
+        otherOverlap     = _other.otherOverlap;
+        otherSeparationX = _other.otherSeparationX;
+        otherSeparationY = _other.otherSeparationY;
+        otherUnitVectorX = _other.otherUnitVectorX;
+        otherUnitVectorY = _other.otherUnitVectorY;
     }
 }
