@@ -13,8 +13,6 @@ class VectorTests extends BuddySuite
     public function new()
     {
         describe('Vector', {
-
-            /*
             describe('Constructor', {
                 it('Can create a vector with all components zero', {
                     var v = new Vector();
@@ -544,7 +542,6 @@ class VectorTests extends BuddySuite
                     rs.equals(v2).should.be(false);
                 });
             });
-            */
         });
     }
 }
