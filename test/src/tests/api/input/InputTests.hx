@@ -23,27 +23,27 @@ class InputTests extends BuddySuite
 
                 event.keyDown.dispatch(new InputEventKeyState(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
 
-                input.update();
                 input.wasKeyPressed(Keycodes.key_w).should.be(true);
                 input.isKeyDown(Keycodes.key_w).should.be(true);
                 input.wasKeyReleased(Keycodes.key_w).should.be(false);
-
                 input.update();
+
                 input.wasKeyPressed(Keycodes.key_w).should.be(false);
                 input.isKeyDown(Keycodes.key_w).should.be(true);
                 input.wasKeyReleased(Keycodes.key_w).should.be(false);
+                input.update();
 
                 event.keyUp.dispatch(new InputEventKeyState(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
 
-                input.update();
                 input.wasKeyPressed(Keycodes.key_w).should.be(false);
                 input.isKeyDown(Keycodes.key_w).should.be(false);
                 input.wasKeyReleased(Keycodes.key_w).should.be(true);
-
                 input.update();
+
                 input.wasKeyPressed(Keycodes.key_w).should.be(false);
                 input.isKeyDown(Keycodes.key_w).should.be(false);
                 input.wasKeyReleased(Keycodes.key_w).should.be(false);
+                input.update();
             });
 
             it('Can track the state of mouse buttons from input events', {
@@ -56,27 +56,27 @@ class InputTests extends BuddySuite
 
                 event.mouseDown.dispatch(new InputEventMouseState(0, 0, 1));
 
-                input.update();
                 input.wasMousePressed(1).should.be(true);
                 input.isMouseDown(1).should.be(true);
                 input.wasMouseReleased(1).should.be(false);
-
                 input.update();
+
                 input.wasMousePressed(1).should.be(false);
                 input.isMouseDown(1).should.be(true);
                 input.wasMouseReleased(1).should.be(false);
+                input.update();
 
                 event.mouseUp.dispatch(new InputEventMouseState(0, 0, 1));
 
-                input.update();
                 input.wasMousePressed(1).should.be(false);
                 input.isMouseDown(1).should.be(false);
                 input.wasMouseReleased(1).should.be(true);
-
                 input.update();
+
                 input.wasMousePressed(1).should.be(false);
                 input.isMouseDown(1).should.be(false);
                 input.wasMouseReleased(1).should.be(false);
+                input.update();
             });
 
             it('Can return the current normalized value of a gamepad axis', {
@@ -98,27 +98,27 @@ class InputTests extends BuddySuite
 
                 event.gamepadDown.dispatch(new InputEventGamepadState(0, 0, 1));
 
-                input.update();
                 input.wasGamepadPressed(0, 0).should.be(true);
                 input.isGamepadDown(0, 0).should.be(true);
                 input.wasGamepadReleased(0, 0).should.be(false);
-
                 input.update();
+
                 input.wasGamepadPressed(0, 0).should.be(false);
                 input.isGamepadDown(0, 0).should.be(true);
                 input.wasGamepadReleased(0, 0).should.be(false);
+                input.update();
 
                 event.gamepadUp.dispatch(new InputEventGamepadState(0, 0, 1));
 
-                input.update();
                 input.wasGamepadPressed(0, 0).should.be(false);
                 input.isGamepadDown(0, 0).should.be(false);
                 input.wasGamepadReleased(0, 0).should.be(true);
-
                 input.update();
+
                 input.wasGamepadPressed(0, 0).should.be(false);
                 input.isGamepadDown(0, 0).should.be(false);
                 input.wasGamepadReleased(0, 0).should.be(false);
+                input.update();
             });
 
             it('Can fire an event to request a gamepad is rumbled', {
