@@ -83,7 +83,7 @@ class Polygon extends Shape
      */
     override public function testRay(_ray : Ray, ?_into : Null<RayCollision>) : Null<RayCollision>
     {
-        return SAT2D.testRayVsPolygon(_ray, this);
+        return SAT2D.testRayVsPolygon(_ray, this, _into);
     }
 
     /**
