@@ -17,9 +17,8 @@ class GeometryDrawCommand extends DrawCommand
 
     public inline function new(
         _geometry   : Array<Geometry>,
-
         _id         : Int,
-        _unchanging : Bool,
+        _uploadType : UploadType,
         _projection : Matrix,
         _view       : Matrix,
         _vertices   : Int,
@@ -40,11 +39,6 @@ class GeometryDrawCommand extends DrawCommand
     {
         geometry = _geometry;
 
-        super(_id, _unchanging, _projection, _view, _vertices, _indices, _viewport, _primitive, _target, _shader, _uniforms, _textures, _clip, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
-    }
-
-    public inline function isIndexed()
-    {
-        return geometry[0].isIndexed();
+        super(_id, _uploadType, _projection, _view, _vertices, _indices, _viewport, _primitive, _target, _shader, _uniforms, _textures, _clip, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
     }
 }

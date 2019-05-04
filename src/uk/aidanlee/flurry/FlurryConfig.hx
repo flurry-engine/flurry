@@ -131,9 +131,9 @@ class FlurryRendererConfig
     {
         backend            = OGL3;
         dynamicVertices    = 1000000;
-        unchangingVertices = 100000;
+        unchangingVertices = 1000000;
         dynamicIndices     = 1000000;
-        unchangingIndices  = 100000;
+        unchangingIndices  = 1000000;
         clearColour        = { r : 0.2, g : 0.2, b : 0.2, a : 1.0 };
         extra              = {};
     }

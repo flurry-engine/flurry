@@ -22,9 +22,9 @@ class DrawCommand
     public final id : Int;
 
     /**
-     * If this draw command is unchanging.
+     * Provides a hint to the backend on how to upload the vertex data.
      */
-    public final unchanging : Bool;
+    public final uploadType : UploadType;
 
     /**
      * Projection matrix to draw this command with.
@@ -96,7 +96,7 @@ class DrawCommand
 
     inline public function new(
         _id         : Int,
-        _unchanging : Bool,
+        _uploadType : UploadType,
         _projection : Matrix,
         _view       : Matrix,
         _vertices   : Int,
@@ -115,25 +115,23 @@ class DrawCommand
         _dstAlpha   : BlendMode = null
     )
     {
-        id = _id;
-
-        unchanging = _unchanging;
+        id         = _id;
+        uploadType = _uploadType;
         projection = _projection;
         view       = _view;
         vertices   = _vertices;
         indices    = _indices;
-
-        viewport  = _viewport;
-        primitive = _primitive;
-        target    = _target;
-        shader    = _shader;
-        uniforms  = _uniforms;
-        textures  = _textures;
-        clip      = _clip;
-        blending  = _blending;
-        srcRGB    = _srcRGB;
-        dstRGB    = _dstRGB;
-        srcAlpha  = _srcAlpha;
-        dstAlpha  = _dstAlpha;
+        viewport   = _viewport;
+        primitive  = _primitive;
+        target     = _target;
+        shader     = _shader;
+        uniforms   = _uniforms;
+        textures   = _textures;
+        clip       = _clip;
+        blending   = _blending;
+        srcRGB     = _srcRGB;
+        dstRGB     = _dstRGB;
+        srcAlpha   = _srcAlpha;
+        dstAlpha   = _dstAlpha;
     }
 }

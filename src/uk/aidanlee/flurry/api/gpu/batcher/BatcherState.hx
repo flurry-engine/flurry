@@ -15,9 +15,9 @@ using Safety;
 class BatcherState
 {
     /**
-     * If the current state is unchanging.
+     * Provides a hint to the backend on how to store the vertex data.
      */
-    public var unchanging (default, null) : Bool;
+    public var uploadType (default, null) : UploadType;
 
     /**
      * Geometric primitive currently active in this batcher.
@@ -97,7 +97,7 @@ class BatcherState
             if (textures[i].id != _geom.textures[i].id) return true;
         }
 
-        if (_geom.unchanging  != unchanging) return true;
+        if (_geom.uploadType  != uploadType) return true;
         if (_geom.primitive   != primitive ) return true;
         if (_geom.isIndexed() != indexed   ) return true;
         if (!_geom.clip.equals(clip)) return true;
@@ -126,7 +126,7 @@ class BatcherState
             textures[i] = _geom.textures[i];
         }
 
-        unchanging = _geom.unchanging;
+        uploadType = _geom.uploadType;
         primitive  = _geom.primitive;
         indexed    = _geom.isIndexed();
         clip.copyFrom(_geom.clip);

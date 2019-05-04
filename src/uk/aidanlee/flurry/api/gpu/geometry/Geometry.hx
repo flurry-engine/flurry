@@ -35,6 +35,7 @@ typedef GeometryOptions = {
     var ?batchers   : Array<Batcher>;
     var ?blend      : Blending;
     var ?uniforms   : Uniforms;
+    var ?uploadType : UploadType;
 }
 
 /**
@@ -87,6 +88,11 @@ class Geometry
     public final clip : Rectangle;
 
     /**
+     * Provides a hint to the renderer about how this geometries data should be used.
+     */
+    public final uploadType : UploadType;
+
+    /**
      * All of the images this image will provide to the shader.
      */
     public final textures : Array<ImageResource>;
@@ -129,20 +135,6 @@ class Geometry
 
         return primitive = _primitive;
     }
-
-    /**
-     * Unchanging geometry is drawn once and them immediately dropped.
-     */
-    public var immediate : Bool;
-
-    /**
-     * If geometry is set to unchanging then its vertex data will only be uploaded once.
-     * Any further changes to the vertices will not be reflected on the GPU until unchanging is disabled.
-     * 
-     * This is an optimisation hint to the rendering backends, although not all backends will optimise
-     * unchaning geometry.
-     */
-    public var unchanging : Bool;
 
     /**
      * The position of the geometry.
@@ -188,14 +180,13 @@ class Geometry
         id = Hash.uniqueHash();
 
         batchers       = [];
+        uploadType     = _options.uploadType.or(Static);
         vertices       = _options.vertices  .or([]);
         indices        = _options.indices   .or([]);
         transformation = _options.transform .or(new Transformation());
         clip           = _options.clip      .or(new Rectangle());
         textures       = _options.textures  .or([]);
         depth          = _options.depth     .or(0);
-        unchanging     = _options.unchanging.or(false);
-        immediate      = _options.immediate .or(false);
         primitive      = _options.primitive .or(Triangles);
         color          = _options.color     .or(new Color());
         blend          = _options.blend     .or(new Blending());

@@ -1,11 +1,16 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import cpp.UInt8;
 import haxe.io.Bytes;
+import haxe.io.Float32Array;
+import haxe.io.UInt32Array;
+import haxe.io.UInt16Array;
 import haxe.ds.Map;
+import cpp.Stdlib;
 import cpp.Float32;
 import cpp.UInt16;
 import cpp.Int32;
+import cpp.UInt64;
+import cpp.UInt8;
 import cpp.Pointer;
 import sdl.GLContext;
 import sdl.Window;
@@ -13,16 +18,16 @@ import sdl.SDL;
 import opengl.GL.*;
 import opengl.GL.GLSync;
 import opengl.WebGL;
-import haxe.io.Float32Array;
-import haxe.io.UInt16Array;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
+import uk.aidanlee.flurry.api.gpu.geometry.Geometry.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
@@ -34,18 +39,6 @@ import uk.aidanlee.flurry.api.resources.ResourceEvents;
 using Safety;
 using cpp.NativeArray;
 
-/**
- * OpenGL 4.5 renderer. Makes use of DSA, named buffers, persistent mapping, and (hopefully) eventually stuff like SSBOs and bindless textures.
- * DSA has the highest requirements as it was only made core in 4.5.
- * This renderer will not work on OSX, webGL, and older integrated GPUs.
- * 
- * WebGL class is still imported as it has some useful haxe friendly functions for shaders.
- * 
- * This renderer makes use of the following extensions
- * - ARB_direct_state_access (made core in 4.5)
- * - ARB_buffer_storage      (made core in 4.4)
- * - ARB_texture_storage     (made core in 4.2)
- */
 class OGL4Backend implements IRendererBackend
 {
     /**
@@ -108,44 +101,19 @@ class OGL4Backend implements IRendererBackend
      */
     final backbuffer : BackBuffer;
 
-    /**
-     * Tracks the position and number of vertices for draw commands uploaded into the dynamic buffer.
-     */
-    final dynamicCommandRanges : Map<Int, DrawCommandRange>;
+    final streamStorage : StreamBufferManager;
 
-    /**
-     * Tracks, stores, and uploads unchaning commands and its required state.
-     */
-    final unchangingStorage : UnchangingBuffer;
-
-    /**
-     * These ranges describe writable chunks of the vertex buffer.
-     * This is used for triple buffering with mapped buffers where only one chunk can be written to at a time.
-     */
-    final vertexBufferRanges : Array<BufferRange>;
-
-    /**
-     * The persistently mapped float buffer to write vertex data into.
-     * This will be three times the requested float size for triple buffering.
-     */
-    final vertexBuffer : Array<Float32>;
-
-    /**
-     * Describes a set of ranges the triple buffered dynamic index buffer.
-     * Each range contains a int offset and byte offset.
-     */
-    final indexBufferRanges : Array<BufferRange>;
-
-    /**
-     * The persistently mapped ushort buffer to write index data into.
-     * This buffer will be three times the requested size for triple buffering.
-     */
-    final indexBuffer : Array<UInt16>;
+    final staticStorage : StaticBufferManager;
 
     /**
      * Constant vector instance which is used to transform vertices when copying into the vertex buffer.
      */
     final transformationVector : Vector;
+
+    /**
+     * Constant identity matrix, used as the model matrix for non multi draw shaders.
+     */
+    final identityMatrix : Matrix;
 
     /**
      * Index pointing to the current writable vertex buffer range.
@@ -208,6 +176,10 @@ class OGL4Backend implements IRendererBackend
      */
     final framebufferObjects : Map<String, Int>;
 
+    final rangeSyncPrimitives : Array<GLSyncWrapper>;
+
+    var currentRange : Int;
+
     // GL state variables
 
     /**
@@ -229,6 +201,16 @@ class OGL4Backend implements IRendererBackend
      * Shader to use.
      */
     var shader : ShaderResource;
+
+    /**
+     * The bound ssbo buffer.
+     */
+    var ssbo : Int;
+
+    /**
+     * The bound indirect command buffer.
+     */
+    var cmds : Int;
 
     // SDL Window and GL Context
 
@@ -253,21 +235,17 @@ class OGL4Backend implements IRendererBackend
         // Check for ARB_bindless_texture support
         bindless = SDL.GL_ExtensionSupported('GL_ARB_bindless_texutre');
 
-        // Create and bind a singular VBO.
-        // Only needs to be bound once since it is used for all drawing.
-
-        var totalBufferVerts  = _rendererConfig.unchangingVertices + (_rendererConfig.dynamicVertices * 3);
-        var totalBufferFloats = totalBufferVerts  * VERTEX_FLOAT_SIZE;
-        var totalBufferBytes  = totalBufferFloats * Float32Array.BYTES_PER_ELEMENT;
-
-        var totalBufferIndices = _rendererConfig.unchangingIndices + (_rendererConfig.dynamicIndices * 3);
-        var totalIndexBytes    = totalBufferIndices * UInt16Array.BYTES_PER_ELEMENT;
+        var staticVertexBuffer = _rendererConfig.unchangingVertices;
+        var streamVertexBuffer = _rendererConfig.dynamicVertices;
+        var staticIndexBuffer  = _rendererConfig.unchangingIndices;
+        var streamIndexBuffer  = _rendererConfig.dynamicIndices;
 
         // Create two empty buffers, for the vertex and index data
         var buffers = [ 0, 0 ];
         glCreateBuffers(2, buffers);
-        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", buffers[0], totalBufferBytes, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", buffers[1], totalIndexBytes , GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", buffers[0], staticVertexBuffer * 9 * 4 + ((streamVertexBuffer * 9 * 4) * 3), GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", buffers[1], staticIndexBuffer * 2  + ((streamIndexBuffer * 2) * 3), GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 
         // Create the vao and bind the vbo to it.
         var vao = [ 0 ];
@@ -295,41 +273,16 @@ class OGL4Backend implements IRendererBackend
         glBindVertexArray(glVao);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIbo);
 
-        // Define the dynamic vertex triple buffering ranges
-        // These ranges will map into the array pointer.
-        // Offset to ignore the unchanging region.
+        // Map the streaming parts of the vertex and index buffer.
+        var vtxBuffer : Pointer<UInt8> = Pointer.fromRaw(glMapNamedBufferRange(glVbo, staticVertexBuffer * 9 * 4, (streamVertexBuffer * 9 * 4) * 3, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
+        var idxBuffer : Pointer<UInt8> = Pointer.fromRaw(glMapNamedBufferRange(glIbo, staticIndexBuffer * 2     , (streamIndexBuffer * 2) * 3     , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
 
-        var floatSegmentSize = _rendererConfig.dynamicVertices    * VERTEX_FLOAT_SIZE;
-        var floatOffsetSize  = _rendererConfig.unchangingVertices * VERTEX_FLOAT_SIZE;
-
-        vertexBufferRangeIndex = 0;
-        vertexBufferRanges = [
-            new BufferRange(floatOffsetSize                         , _rendererConfig.unchangingVertices),
-            new BufferRange(floatOffsetSize + floatSegmentSize      , _rendererConfig.unchangingVertices +  _rendererConfig.dynamicVertices),
-            new BufferRange(floatOffsetSize + (floatSegmentSize * 2), _rendererConfig.unchangingVertices + (_rendererConfig.dynamicVertices * 2))
-        ];
-
-        var shortSegmentSize = _rendererConfig.dynamicIndices    * UInt16Array.BYTES_PER_ELEMENT;
-        var shortOffsetSize  = _rendererConfig.unchangingIndices * UInt16Array.BYTES_PER_ELEMENT;
-
-        indexBufferRangeIndex = 0;
-        indexBufferRanges = [
-            new BufferRange(shortOffsetSize                         , _rendererConfig.unchangingIndices),
-            new BufferRange(shortOffsetSize +  shortSegmentSize     , _rendererConfig.unchangingIndices +  _rendererConfig.dynamicIndices),
-            new BufferRange(shortOffsetSize + (shortSegmentSize * 2), _rendererConfig.unchangingIndices + (_rendererConfig.dynamicIndices * 2))
-        ];
-
-        // create a new storage container for holding unchaning commands.
-        unchangingStorage    = new UnchangingBuffer(_rendererConfig.unchangingVertices, _rendererConfig.unchangingIndices);
-        dynamicCommandRanges = new Map();
         transformationVector = new Vector();
-
-        // Map the buffer into an unmanaged array.
-        var ptr : Pointer<Float32> = Pointer.fromRaw(glMapNamedBufferRange(glVbo, 0, totalBufferBytes, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
-        vertexBuffer = ptr.toUnmanagedArray(totalBufferFloats);
-
-        var ptr : Pointer<UInt16> = Pointer.fromRaw(glMapNamedBufferRange(glIbo, 0, totalIndexBytes, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
-        indexBuffer = ptr.toUnmanagedArray(totalBufferIndices);
+        identityMatrix       = new Matrix();
+        streamStorage        = new StreamBufferManager(staticVertexBuffer, staticIndexBuffer, streamVertexBuffer, streamIndexBuffer, vtxBuffer, idxBuffer);
+        staticStorage        = new StaticBufferManager(staticVertexBuffer, staticIndexBuffer, glVbo, glIbo);
+        rangeSyncPrimitives  = [ for (i in 0...3) new GLSyncWrapper() ];
+        currentRange         = 0;
 
         // Create a representation of the backbuffer and manually insert it into the target structure.
         var backbufferID = [ 0 ];
@@ -354,6 +307,8 @@ class OGL4Backend implements IRendererBackend
         clip     = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
         target   = null;
         shader   = null;
+        ssbo     = 0;
+        cmds     = 0;
 
         shaderPrograms     = [];
         shaderUniforms     = [];
@@ -372,19 +327,7 @@ class OGL4Backend implements IRendererBackend
      */
     public function clear()
     {
-        // Disable the clip to clear the entire target.
-        clip.set(0, 0, backbuffer.width, backbuffer.height);
-        glScissor(0, 0, backbuffer.width, backbuffer.height);
-
-        glClear(GL_COLOR_BUFFER_BIT);
-    }
-
-    /**
-     * Clears all unchanging sub range definitions.
-     */
-    public function clearUnchanging()
-    {
-        unchangingStorage.empty();
+        //
     }
 
     /**
@@ -392,14 +335,25 @@ class OGL4Backend implements IRendererBackend
      */
     public function preDraw()
     {
-        unlockBuffer(vertexBufferRanges[vertexBufferRangeIndex]);
-        unlockBuffer(indexBufferRanges[indexBufferRangeIndex]);
+        if (rangeSyncPrimitives[currentRange].sync != null)
+        {
+            while (true)
+            {
+                var waitReturn = glClientWaitSync(rangeSyncPrimitives[currentRange].sync, GL_SYNC_FLUSH_COMMANDS_BIT, 1000);
+                if (waitReturn == GL_ALREADY_SIGNALED || waitReturn == GL_CONDITION_SATISFIED)
+                {
+                    break;
+                }
+            }
+        }
 
-        vertexFloatOffset = vertexBufferRanges[vertexBufferRangeIndex].typeOffset;
-        vertexOffset      = vertexBufferRanges[vertexBufferRangeIndex].offset;
+        streamStorage.unlockBuffers(currentRange);
 
-        indexByteOffset   = indexBufferRanges[indexBufferRangeIndex].typeOffset;
-        indexOffset       = indexBufferRanges[indexBufferRangeIndex].offset;
+        // Disable the clip to clear the entire target.
+        clip.set(0, 0, backbuffer.width, backbuffer.height);
+        glScissor(0, 0, backbuffer.width, backbuffer.height);
+
+        glClear(GL_COLOR_BUFFER_BIT);
     }
 
     /**
@@ -410,85 +364,10 @@ class OGL4Backend implements IRendererBackend
     {
         for (command in _commands)
         {
-            if (command.unchanging)
+            switch (command.uploadType)
             {
-                var unchangingVertexOffset = unchangingStorage.currentVertices;
-                var unchangingFloatOffset  = unchangingStorage.currentVertices * VERTEX_FLOAT_SIZE;
-                var unchangingIndexOffset  = unchangingStorage.currentIndices;
-
-                if (unchangingStorage.exists(command.id))
-                {
-                    continue;
-                }
-
-                if (unchangingStorage.add(command))
-                {
-                    for (geom in command.geometry)
-                    {
-                        var matrix = geom.transformation.transformation;
-
-                        for (index in geom.indices)
-                        {
-                            indexBuffer[unchangingIndexOffset++] = unchangingVertexOffset + index;
-                        }
-
-                        for (vertex in geom.vertices)
-                        {
-                            // Copy the vertex into another vertex.
-                            // This allows us to apply the transformation without permanently modifying the original geometry.
-                            transformationVector.copyFrom(vertex.position);
-                            transformationVector.transform(matrix);
-
-                            vertexBuffer[unchangingFloatOffset++] = transformationVector.x;
-                            vertexBuffer[unchangingFloatOffset++] = transformationVector.y;
-                            vertexBuffer[unchangingFloatOffset++] = transformationVector.z;
-                            vertexBuffer[unchangingFloatOffset++] = vertex.color.r;
-                            vertexBuffer[unchangingFloatOffset++] = vertex.color.g;
-                            vertexBuffer[unchangingFloatOffset++] = vertex.color.b;
-                            vertexBuffer[unchangingFloatOffset++] = vertex.color.a;
-                            vertexBuffer[unchangingFloatOffset++] = vertex.texCoord.x;
-                            vertexBuffer[unchangingFloatOffset++] = vertex.texCoord.y;
-                        }
-                    }
-
-                    continue;
-                }
-            }
-
-            var rangeIndexOffset = 0;
-
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexByteOffset));
-
-            for (geom in command.geometry)
-            {
-                var matrix = geom.transformation.transformation;
-
-                for (index in geom.indices)
-                {
-                    indexBuffer[indexOffset++] = rangeIndexOffset + index;
-                }
-
-                for (vertex in geom.vertices)
-                {
-                    // Copy the vertex into another vertex.
-                    // This allows us to apply the transformation without permanently modifying the original geometry.
-                    transformationVector.copyFrom(vertex.position);
-                    transformationVector.transform(matrix);
-
-                    vertexBuffer[vertexFloatOffset++] = transformationVector.x;
-                    vertexBuffer[vertexFloatOffset++] = transformationVector.y;
-                    vertexBuffer[vertexFloatOffset++] = transformationVector.z;
-                    vertexBuffer[vertexFloatOffset++] = vertex.color.r;
-                    vertexBuffer[vertexFloatOffset++] = vertex.color.g;
-                    vertexBuffer[vertexFloatOffset++] = vertex.color.b;
-                    vertexBuffer[vertexFloatOffset++] = vertex.color.a;
-                    vertexBuffer[vertexFloatOffset++] = vertex.texCoord.x;
-                    vertexBuffer[vertexFloatOffset++] = vertex.texCoord.y;
-                }
-
-                indexByteOffset  += geom.indices.length * UInt16Array.BYTES_PER_ELEMENT;
-                vertexOffset     += geom.vertices.length;
-                rangeIndexOffset += geom.vertices.length;
+                case Static : staticStorage.uploadGeometry(command);
+                case Stream, Immediate : streamStorage.uploadGeometry(command);
             }
         }
     }
@@ -501,46 +380,11 @@ class OGL4Backend implements IRendererBackend
     {
         for (command in _commands)
         {
-            if (command.unchanging)
+            switch (command.uploadType)
             {
-                var unchangingVtxOffset = unchangingStorage.currentVertices * VERTEX_FLOAT_SIZE;
-                var unchangingIdxOffset = unchangingStorage.currentIndices * UInt16Array.BYTES_PER_ELEMENT;
-
-                if (unchangingStorage.exists(command.id))
-                {
-                    continue;
-                }
-
-                if (unchangingStorage.add(command))
-                {
-                    for (i in command.vtxStartIndex...command.vtxEndIndex)
-                    {
-                        vertexBuffer[unchangingVtxOffset++] = command.vtxData[i];
-                    }
-
-                    for (i in command.idxStartIndex...command.idxEndIndex)
-                    {
-                        indexBuffer[unchangingIdxOffset++] = command.idxData[i];
-                    }
-
-                    continue;
-                }
+                case Static : staticStorage.uploadBuffer(command);
+                case Stream, Immediate : streamStorage.uploadBuffer(command);
             }
-
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexByteOffset));
-
-            for (i in command.vtxStartIndex...command.vtxEndIndex)
-            {
-                vertexBuffer[vertexFloatOffset++] = command.vtxData[i];
-            }
-
-            for (i in command.idxStartIndex...command.idxEndIndex)
-            {
-                indexBuffer[indexOffset++] = command.idxData[i];
-            }
-
-            vertexOffset += command.vertices;
-            indexByteOffset += command.indices * UInt16Array.BYTES_PER_ELEMENT;
         }
     }
 
@@ -553,83 +397,12 @@ class OGL4Backend implements IRendererBackend
     {
         for (command in _commands)
         {
-            if (command.unchanging)
+            setState(command, _recordStats);
+
+            switch (command.uploadType)
             {
-                if (unchangingStorage.exists(command.id))
-                {
-                    var range = unchangingStorage.get(command.id);
-
-                    setState(command, !_recordStats);
-
-                    // Draw the actual vertices
-                    if (command.indices > 0)
-                    {
-                        switch (command.primitive)
-                        {
-                            case Points        : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_POINTS        , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                            case Lines         : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINES         , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                            case LineStrip     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINE_STRIP    , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                            case Triangles     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLES     , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                            case TriangleStrip : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLE_STRIP, command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                        }
-                    }
-                    else
-                    {
-                        switch (command.primitive)
-                        {
-                            case Points        : glDrawArrays(GL_POINTS        , range.vertexOffset, command.vertices);
-                            case Lines         : glDrawArrays(GL_LINES         , range.vertexOffset, command.vertices);
-                            case LineStrip     : glDrawArrays(GL_LINE_STRIP    , range.vertexOffset, command.vertices);
-                            case Triangles     : glDrawArrays(GL_TRIANGLES     , range.vertexOffset, command.vertices);
-                            case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, range.vertexOffset, command.vertices);
-                        }
-                    }
-
-                    // Record stats about this draw call.
-                    if (_recordStats)
-                    {
-                        rendererStats.dynamicDraws++;
-                        rendererStats.totalVertices += command.vertices;
-                    }
-
-                    continue;
-                }
-            }
-
-            var range = dynamicCommandRanges.get(command.id);
-
-            // Change the state so the vertices are drawn correctly.
-            setState(command, !_recordStats);
-
-            // Draw the actual vertices
-            if (command.indices > 0)
-            {
-                switch (command.primitive)
-                {
-                    case Points        : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_POINTS        , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                    case Lines         : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINES         , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                    case LineStrip     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINE_STRIP    , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                    case Triangles     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLES     , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                    case TriangleStrip : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLE_STRIP, command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                }
-            }
-            else
-            {
-                switch (command.primitive)
-                {
-                    case Points        : glDrawArrays(GL_POINTS        , range.vertexOffset, command.vertices);
-                    case Lines         : glDrawArrays(GL_LINES         , range.vertexOffset, command.vertices);
-                    case LineStrip     : glDrawArrays(GL_LINE_STRIP    , range.vertexOffset, command.vertices);
-                    case Triangles     : glDrawArrays(GL_TRIANGLES     , range.vertexOffset, command.vertices);
-                    case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, range.vertexOffset, command.vertices);
-                }
-            }
-
-            // Record stats about this draw call.
-            if (_recordStats)
-            {
-                rendererStats.dynamicDraws++;
-                rendererStats.totalVertices += range.vertices;
+                case Static : staticStorage.draw(command);
+                case Stream, Immediate : streamStorage.draw(command);
             }
         }
     }
@@ -639,11 +412,14 @@ class OGL4Backend implements IRendererBackend
      */
     public function postDraw()
     {
-        lockBuffer(vertexBufferRanges[vertexBufferRangeIndex]);
-        lockBuffer(indexBufferRanges[indexBufferRangeIndex]);
+        if (rangeSyncPrimitives[currentRange].sync != null)
+        {
+            glDeleteSync(rangeSyncPrimitives[currentRange].sync);
+        }
 
-        vertexBufferRangeIndex = (vertexBufferRangeIndex + 1) % 3;
-        indexBufferRangeIndex  = (indexBufferRangeIndex + 1) % 3;
+        rangeSyncPrimitives[currentRange].sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+
+        currentRange = (currentRange + 1) % 3;
 
         SDL.GL_SwapWindow(window);
     }
@@ -695,7 +471,7 @@ class OGL4Backend implements IRendererBackend
     function createWindow(_options : FlurryWindowConfig)
     {        
         SDL.GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-        SDL.GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
+        SDL.GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
         SDL.GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
         window    = SDL.createWindow('Flurry', SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _options.width, _options.height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
@@ -705,6 +481,9 @@ class OGL4Backend implements IRendererBackend
 
         // TODO : Error handling if GLEW doesn't return OK.
         glew.GLEW.init();
+
+        // flushing `GL_INVALID_ENUM` error which GLEW generates if `glewExperimental` is true.
+        glGetError();
     }
 
     function onChangeRequest(_event : DisplayEventChangeRequest)
@@ -803,7 +582,7 @@ class OGL4Backend implements IRendererBackend
 
         var textureLocations = [ for (t in _resource.layout.textures) glGetUniformLocation(program, t) ];
         var blockLocations   = [ for (b in _resource.layout.blocks) glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, b.name) ];
-        var blockBindings    = [ for (i in 0..._resource.layout.blocks.length) i ];
+        var blockBindings    = [ for (i in 0..._resource.layout.blocks.length) _resource.layout.blocks[i].bind ];
 
         for (i in 0..._resource.layout.blocks.length)
         {
@@ -817,7 +596,7 @@ class OGL4Backend implements IRendererBackend
         glBindBuffersBase(GL_SHADER_STORAGE_BUFFER, blockBindings[0], blockBindings.length, blockBuffers);
 
         shaderPrograms.set(_resource.id, program);
-        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockLocations, blockBuffers, blockBytes));
+        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings, blockBuffers, blockBytes));
     }
 
     /**
@@ -891,7 +670,6 @@ class OGL4Backend implements IRendererBackend
 
         var bytes = Bytes.alloc(blockSize);
         glNamedBufferData(_buffer, bytes.length, bytes.getData(), GL_DYNAMIC_DRAW);
-        //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, _binding, _buffer);
         
         return bytes;
     }
@@ -903,9 +681,9 @@ class OGL4Backend implements IRendererBackend
     /**
      * Update the openGL state so it can draw the provided command.
      * @param _command      Command to set the state for.
-     * @param _disableStats If stats are to be recorded.
+     * @param _enableStats If stats are to be recorded.
      */
-    function setState(_command : DrawCommand, _disableStats : Bool)
+    function setState(_command : DrawCommand, _enableStats : Bool)
     {
         // Set the viewport.
         // If the viewport of the command is null then the backbuffer size is used (size of the window).
@@ -923,7 +701,7 @@ class OGL4Backend implements IRendererBackend
             y = (target == null ? backbuffer.height : target.height) - (y + h);
             glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
 
-            if (!_disableStats)
+            if (_enableStats)
             {
                 rendererStats.viewportSwaps++;
             }
@@ -951,7 +729,7 @@ class OGL4Backend implements IRendererBackend
             y = (target == null ? backbuffer.height : target.height) - (y + h);
             glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
 
-            if (!_disableStats)
+            if (_enableStats)
             {
                 rendererStats.scissorSwaps++;
             }
@@ -981,7 +759,7 @@ class OGL4Backend implements IRendererBackend
 
             glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebufferObject);
 
-            if (!_disableStats)
+            if (_enableStats)
             {
                 rendererStats.targetSwaps++;
             }
@@ -993,14 +771,14 @@ class OGL4Backend implements IRendererBackend
             shader = _command.shader;
             glUseProgram(shaderPrograms.get(shader.id));
             
-            if (!_disableStats)
+            if (_enableStats)
             {
                 rendererStats.shaderSwaps++;
             }
         }
         
         // Update shader blocks and bind any textures required.
-        setUniforms(_command, _disableStats);
+        setUniforms(_command, _enableStats);
 
         // Set the blending
         if (_command.blending)
@@ -1008,7 +786,7 @@ class OGL4Backend implements IRendererBackend
             glEnable(GL_BLEND);
             glBlendFuncSeparate(getBlendMode(_command.srcRGB), getBlendMode(_command.dstRGB), getBlendMode(_command.srcAlpha), getBlendMode(_command.dstAlpha));
 
-            if (!_disableStats)
+            if (_enableStats)
             {
                 rendererStats.blendSwaps++;
             }
@@ -1017,7 +795,7 @@ class OGL4Backend implements IRendererBackend
         {
             glDisable(GL_BLEND);
 
-            if (!_disableStats)
+            if (_enableStats)
             {
                 rendererStats.blendSwaps++;
             }
@@ -1026,10 +804,10 @@ class OGL4Backend implements IRendererBackend
 
     /**
      * Apply all of a shaders uniforms.
-     * @param _command      Command to set the state for.
-     * @param _disableStats If stats are to be recorded.
+     * @param _command     Command to set the state for.
+     * @param _enableStats If stats are to be recorded.
      */
-    function setUniforms(_command : DrawCommand, _disableStats : Bool)
+    function setUniforms(_command : DrawCommand, _enableStats : Bool)
     {
         var cache = shaderUniforms.get(_command.shader.id);
         var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
@@ -1045,7 +823,7 @@ class OGL4Backend implements IRendererBackend
         {
             if (bindless)
             {
-                var handlesToBind : Array<cpp.UInt64> = [ for (texture in _command.textures) cast textureHandles.get(texture.id) ];
+                var handlesToBind : Array<UInt64> = [ for (texture in _command.textures) cast textureHandles.get(texture.id) ];
                 glUniformHandleui64vARB(0, handlesToBind.length, handlesToBind);
             }
             else
@@ -1054,7 +832,7 @@ class OGL4Backend implements IRendererBackend
                 var texturesToBind : Array<Int> = [ for (texture in _command.textures) textureObjects.get(texture.id) ];
                 glBindTextures(0, texturesToBind.length, texturesToBind);
 
-                if (!_disableStats)
+                if (_enableStats)
                 {
                     rendererStats.textureSwaps++;
                 }
@@ -1063,15 +841,52 @@ class OGL4Backend implements IRendererBackend
         
         for (i in 0...cache.layout.blocks.length)
         {
-            var ptr = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
-
             if (cache.layout.blocks[i].name == 'defaultMatrices')
             {
-                cpp.Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
-                cpp.Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
+                // The matrix ssbo used depends on if its a static or stream command
+                // stream draws are batched and only have a single model matrix, they use the shaders default matrix ssbo.
+                // static draws have individual ssbos for each command. These ssbos fit a model matrix per geometry.
+                // The matrix buffer for static draws is uploaded in the static draw manager.
+                // 
+                // TODO : have static buffer draws use the default shader ssbo?
+                switch (_command.uploadType)
+                {
+                    case Static :
+                        var rng = staticStorage.get(_command);
+                        var ptr = Pointer.arrayElem(rng.matrixBuffer.view.buffer.getData(), 0);
+                        Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
+                        Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
+                        glNamedBufferSubData(rng.glMatrixBuffer, 0, rng.matrixBuffer.view.buffer.length, rng.matrixBuffer.view.buffer.getData());
+
+                        if (ssbo != rng.glMatrixBuffer)
+                        {
+                            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, cache.blockBindings[i], rng.glMatrixBuffer);
+                            ssbo = rng.glMatrixBuffer;
+                        }
+                        if (cmds != rng.glCommandBuffer)
+                        {
+                            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, rng.glCommandBuffer);
+                            cmds = rng.glCommandBuffer;
+                        }
+                        
+                    case Stream, Immediate :
+                        var ptr = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
+                        Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
+                        Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
+                        Stdlib.memcpy(ptr.incBy(64), (identityMatrix      : Float32Array).view.buffer.getData().address(0), 64);
+                        glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
+
+                        if (ssbo != cache.blockBuffers[i])
+                        {
+                            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
+                            ssbo = cache.blockBuffers[i];
+                        }
+                }
             }
             else
             {
+                var ptr : Pointer<UInt8> = Pointer.arrayElem(cache.blockBytes[i].getData(), 0).reinterpret();
+
                 // Otherwise upload all user specified uniform values.
                 // TODO : We should have some sort of error checking if the expected uniforms are not found.
                 var pos = 0;
@@ -1081,11 +896,11 @@ class OGL4Backend implements IRendererBackend
                     {
                         case Matrix4:
                             var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            cpp.Stdlib.memcpy(ptr.incBy(pos), (mat : Float32Array).view.buffer.getData().address(0), 64);
+                            Stdlib.memcpy(ptr.incBy(pos), (mat : Float32Array).view.buffer.getData().address(0), 64);
                             pos += 64;
                         case Vector4:
                             var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            cpp.Stdlib.memcpy(ptr.incBy(pos), (vec : Float32Array).view.buffer.getData().address(0), 16);
+                            Stdlib.memcpy(ptr.incBy(pos), (vec : Float32Array).view.buffer.getData().address(0), 16);
                             pos += 16;
                         case Int:
                             var dst : Pointer<Int32> = ptr.reinterpret();
@@ -1097,9 +912,9 @@ class OGL4Backend implements IRendererBackend
                             pos += 4;
                     }
                 }
-            }
 
-            glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
+                glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
+            }
         }
     }
 
@@ -1124,40 +939,6 @@ class OGL4Backend implements IRendererBackend
             case DstColor         : GL_DST_COLOR;
             case OneMinusDstColor : GL_ONE_MINUS_DST_COLOR;
             case _: 0;
-        }
-    }
-
-    /**
-     * Locks a buffer range from writing placing an openGL fence on it.
-     * @param _range Buffer range to lock.
-     */
-    function lockBuffer(_range : BufferRange)
-    {
-        if (_range.sync != null)
-        {
-            glDeleteSync(_range.sync);
-        }
-
-        _range.sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    }
-
-    /**
-     * Unlocks the buffer range by waiting until its ready.
-     * This will lock the client thread.
-     * @param _range Buffer range to unlock.
-     */
-    function unlockBuffer(_range : BufferRange)
-    {
-        if (_range.sync != null)
-        {
-            while (true)
-            {
-                var waitReturn = glClientWaitSync(_range.sync, GL_SYNC_FLUSH_COMMANDS_BIT, 1000);
-                if (waitReturn == GL_ALREADY_SIGNALED || waitReturn == GL_CONDITION_SATISFIED)
-                {
-                    break;
-                }
-            }
         }
     }
 
@@ -1214,9 +995,9 @@ private class ShaderLocations
     public final textureLocations : Array<Int>;
 
     /**
-     * Location of all shader blocks.
+     * Binding point of all shader blocks.
      */
-    public final blockLocations : Array<Int>;
+    public final blockBindings : Array<Int>;
 
     /**
      * SSBO buffer objects.
@@ -1228,176 +1009,621 @@ private class ShaderLocations
      */
     public final blockBytes : Array<Bytes>;
 
-    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockLocations : Array<Int>, _blockBuffers : Array<Int>, _blockBytes : Array<Bytes>)
+    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockBindings : Array<Int>, _blockBuffers : Array<Int>, _blockBytes : Array<Bytes>)
     {
         layout           = _layout;
         textureLocations = _textureLocations;
-        blockLocations   = _blockLocations;
+        blockBindings    = _blockBindings;
         blockBuffers     = _blockBuffers;
         blockBytes       = _blockBytes;
     }
 }
 
 /**
- * Describes a range of a buffer by holding the float and vertex offset for the beginning of the buffer.
+ * Manages a triple buffered stream buffer.
  */
-private class BufferRange
+private class StreamBufferManager
 {
-    /**
-     * Float offset of this buffer range.
-     */
-    public final typeOffset : Int;
+    final forceIncludeGL : GLSyncWrapper;
 
     /**
-     * Vertex offset of this buffer range.
+     * Constant vector for transforming vertices before being uploaded.
      */
-    public final offset : Int;
+    final transformationVector : Vector;
 
     /**
-     * OpenGL sync object used to lock this buffer range.
+     * The base vertex offset into the buffer that the stream buffer starts.
      */
-    public var sync : GLSync;
+    final vtxBaseOffset : Int;
 
-    public function new(_typeOffset : Int, _offset : Int)
+    /**
+     * The base index offset into the buffer that the stream buffer starts.
+     */
+    final idxBaseOffset : Int;
+
+    /**
+     * The size of each vertex stream range.
+     */
+    final vtxRangeSize : Int;
+
+    /**
+     * The size of each index stream range.
+     */
+    final idxRangeSize : Int;
+
+    /**
+     * Pointer to each range in the vertex stream buffer.
+     */
+    final vtxBuffer : Pointer<Float32>;
+
+    /**
+     * Pointer to each range in the index stream buffer.
+     */
+    final idxBuffer : Pointer<UInt16>;
+
+    /**
+     * Each ranges vertex offset.
+     */
+    var commandVtxOffsets : Map<Int, Int>;
+
+    /**
+     * Each ranges index offset.
+     */
+    var commandIdxOffsets : Map<Int, Int>;
+
+    /**
+     * Current vertex float write position.
+     */
+    var currentVtxTypePosition : Int;
+
+    /**
+     * Current index uint write position.
+     */
+    var currentIdxTypePosition : Int;
+
+    /**
+     * Current vertex write position.
+     */
+    var currentVertexPosition : Int;
+
+    public function new(_vtxBaseOffset : Int, _idxBaseOffset : Int, _vtxRange : Int, _idxRange : Int, _vtxPtr : Pointer<UInt8>, _idxPtr : Pointer<UInt8>)
     {
-        typeOffset = _typeOffset;
-        offset     = _offset;
+        forceIncludeGL         = new GLSyncWrapper();
+        transformationVector   = new Vector();
+        vtxBaseOffset          = _vtxBaseOffset;
+        idxBaseOffset          = _idxBaseOffset;
+        vtxRangeSize           = _vtxRange;
+        idxRangeSize           = _idxRange;
+        vtxBuffer              = _vtxPtr.reinterpret();
+        idxBuffer              = _idxPtr.reinterpret();
+        commandVtxOffsets      = [];
+        commandIdxOffsets      = [];
+        currentVtxTypePosition = 0;
+        currentIdxTypePosition = 0;
+        currentVertexPosition  = 0;
+    }
+
+    /**
+     * Setup uploading to a specific stream buffer range.
+     * Must be done at the beginning off each frame.
+     * @param _currentRange Range to upload to.
+     */
+    public function unlockBuffers(_currentRange : Int)
+    {
+        currentVtxTypePosition = _currentRange * (vtxRangeSize * 9);
+        currentVertexPosition  = _currentRange * vtxRangeSize;
+        currentIdxTypePosition = _currentRange * idxRangeSize;
+        commandVtxOffsets      = [];
+        commandIdxOffsets      = [];
+    }
+
+    /**
+     * Upload a geometry draw command into the current range.
+     * @param _command Command to upload.
+     */
+    public function uploadGeometry(_command : GeometryDrawCommand)
+    {
+        commandVtxOffsets.set(_command.id, vtxBaseOffset + currentVertexPosition);
+        commandIdxOffsets.set(_command.id, idxBaseOffset + currentIdxTypePosition);
+
+        var commandIndexOffset = 0;
+
+        for (geom in _command.geometry)
+        {
+            var matrix = geom.transformation.transformation;
+
+            for (index in geom.indices)
+            {
+                idxBuffer[currentIdxTypePosition++] = commandIndexOffset + index;
+            }
+
+            for (vertex in geom.vertices)
+            {
+                // Copy the vertex into another vertex.
+                // This allows us to apply the transformation without permanently modifying the original geometry.
+                transformationVector.copyFrom(vertex.position);
+                transformationVector.transform(matrix);
+
+                vtxBuffer[currentVtxTypePosition++] = transformationVector.x;
+                vtxBuffer[currentVtxTypePosition++] = transformationVector.y;
+                vtxBuffer[currentVtxTypePosition++] = transformationVector.z;
+                vtxBuffer[currentVtxTypePosition++] = vertex.color.r;
+                vtxBuffer[currentVtxTypePosition++] = vertex.color.g;
+                vtxBuffer[currentVtxTypePosition++] = vertex.color.b;
+                vtxBuffer[currentVtxTypePosition++] = vertex.color.a;
+                vtxBuffer[currentVtxTypePosition++] = vertex.texCoord.x;
+                vtxBuffer[currentVtxTypePosition++] = vertex.texCoord.y;
+            }
+
+            currentVertexPosition += geom.vertices.length;
+            commandIndexOffset += geom.vertices.length;
+        }
+    }
+
+    /**
+     * Upload a buffer draw command into the current range.
+     * @param _command 
+     */
+    public function uploadBuffer(_command : BufferDrawCommand)
+    {
+        commandVtxOffsets.set(_command.id, vtxBaseOffset + currentVertexPosition);
+        commandIdxOffsets.set(_command.id, idxBaseOffset + currentIdxTypePosition);
+
+        Stdlib.memcpy(
+            idxBuffer.incBy(currentIdxTypePosition),
+            Pointer.arrayElem(_command.idxData.view.buffer.getData(), _command.idxStartIndex * 2),
+            _command.indices * 2);
+        Stdlib.memcpy(
+            vtxBuffer.incBy(currentVtxTypePosition),
+            Pointer.arrayElem(_command.vtxData.view.buffer.getData(), _command.vtxStartIndex * 9 * 4),
+            _command.vertices * 9 * 4);
+
+        idxBuffer.incBy(-currentIdxTypePosition);
+        vtxBuffer.incBy(-currentVtxTypePosition);
+
+        currentIdxTypePosition += _command.indices;
+        currentVtxTypePosition += _command.vertices * 9;
+        currentVertexPosition  += _command.vertices;
+    }
+
+    /**
+     * Draw an uploaded draw command.
+     * @param _command Command to draw.
+     */
+    public function draw(_command : DrawCommand)
+    {
+        // Draw the actual vertices
+        if (_command.indices > 0)
+        {
+            var idxOffset = commandIdxOffsets.get(_command.id) * 2;
+            var vtxOffset = commandVtxOffsets.get(_command.id);
+            untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', getPrimitiveType(_command.primitive), _command.indices, GL_UNSIGNED_SHORT, idxOffset, vtxOffset);
+        }
+        else
+        {
+            var vtxOffset = commandVtxOffsets.get(_command.id);
+            glDrawArrays(getPrimitiveType(_command.primitive), vtxOffset, _command.vertices);
+        }
+    }
+
+    /**
+     * Returns an OpenGL primitive constant from a flurry primitive enum.
+     * @param _primitive Primitive type.
+     * @return Int
+     */
+    function getPrimitiveType(_primitive : PrimitiveType) : Int
+    {
+        return switch (_primitive)
+        {
+            case Points        : GL_POINTS;
+            case Lines         : GL_LINES;
+            case LineStrip     : GL_LINE_STRIP;
+            case Triangles     : GL_TRIANGLES;
+            case TriangleStrip : GL_TRIANGLE_STRIP;
+        }
     }
 }
 
 /**
- * Manages all of the unchanging batches currently stored.
+ * Managed upload, removing, and drawing static draw commands.
  */
-private class UnchangingBuffer
+private class StaticBufferManager
 {
+    final forceIncludeGL : GLSyncWrapper;
+
     /**
-     * The total number of vertices we can store.
+     * Constant identity matrix.
+     * 
+     * Used by `BufferDrawCommand` as the lone model matrix as `BufferDrawCommand` currently does not provide a model matrix.
+     */
+    final identityMatrix : Matrix;
+
+    /**
+     * The maximum number of vertices which can fix in the buffer.
      */
     final maxVertices : Int;
 
     /**
-     * The total number of indices we can store.
+     * The maximum number of indices which can fix in the buffer.
      */
     final maxIndices : Int;
 
     /**
-     * Maps a draw commands hash to the vertex offset of that commands vertices in the unchanging buffer range.
+     * OpenGL buffer ID of the static buffer.
      */
-    final currentRanges : Map<Int, UnchangingRange>;
+    final glVbo : Int;
 
     /**
-     * The current number of vertices we have stored.
+     * OpenGL buffer ID of the index buffer.
      */
-    public var currentVertices (default, null) : Int;
+    final glIbo : Int;
 
     /**
-     * The current number of indices we have stored.
+     * All of the uploaded ranges, keyed by their command ID.
      */
-    public var currentIndices (default, null) : Int;
+    final ranges : Map<Int, StaticBufferRange>;
 
-    public function new(_maxVertices : Int, _maxIndices : Int)
+    /**
+     * Ranges to be removed to make space for a new range.
+     */
+    final rangesToRemove : Array<Int>;
+
+    /**
+     * Current vertex write position for uploading new commands.
+     */
+    var vtxPosition : Int;
+
+    /**
+     * Current index write position for uploading new commands.
+     */
+    var idxPosition : Int;
+
+    public function new(_vtxBufferSize : Int, _idxBufferSize : Int, _glVbo : Int, _glIbo : Int)
     {
-        maxVertices     = _maxVertices;
-        maxIndices      = _maxIndices;
-        currentVertices = 0;
-        currentIndices  = 0;
-        currentRanges   = new Map();
+        forceIncludeGL = new GLSyncWrapper();
+        identityMatrix = new Matrix();
+        maxVertices    = _vtxBufferSize;
+        maxIndices     = _idxBufferSize;
+        glVbo          = _glVbo;
+        glIbo          = _glIbo;
+        ranges         = [];
+        rangesToRemove = [];
+        vtxPosition    = 0;
+        idxPosition    = 0;
     }
 
     /**
-     * Attempts to add a draw command into the unchanging range.
-     * @param _command The command to add.
-     * @return Bool if the command was successfully added.
+     * Upload a geometry draw command to the static buffer.
+     * Will remove other ranges to make space.
+     * @param _command Command to upload.
      */
-    public function add(_command : DrawCommand) : Bool
+    public function uploadGeometry(_command : GeometryDrawCommand)
     {
-        if ((currentVertices + _command.vertices) <= maxVertices && (currentIndices + _command.indices) <= maxIndices)
+        if (_command.vertices > maxVertices || _command.indices > maxIndices)
         {
-            currentRanges.set(_command.id, new UnchangingRange(currentVertices, currentIndices * UInt16Array.BYTES_PER_ELEMENT));
-            currentVertices += _command.vertices;
-            currentIndices  += _command.indices;
-
-            return true;
+            throw 'command ${_command.id} too large to fit in static buffer';
         }
 
-        return false;
-    }
-
-    /**
-     * Returns if a unchanging sub range with the specified draw command hash exists.
-     * @param _id Draw command hash.
-     * @return Bool
-     */
-    public function exists(_id : Int) : Bool
-    {
-        return currentRanges.exists(_id);
-    }
-
-    /**
-     * Returns the unchanging sub range with the specified draw command hash.
-     * @param _id Draw command hash.
-     * @return Vertex offset into the unchanging range.
-     */
-    public function get(_id : Int) : UnchangingRange
-    {
-        return currentRanges.get(_id);
-    }
-
-    /**
-     * Removes all sub range definitions allowing new sub range data to be stored.
-     */
-    public function empty()
-    {
-        for (key in currentRanges.keys())
+        if (_command.vertices > (maxVertices - vtxPosition) || _command.indices > (maxIndices - idxPosition))
         {
-            currentRanges.remove(key);
+            rangesToRemove.resize(0);
+
+            for (key => range in ranges)
+            {
+                if ((0 < (range.vtxPosition + range.vtxLength) && (0 + _command.vertices) > 0) || (0 < (range.idxPosition + range.idxLength) && (0 + _command.indices) > 0))
+                {
+                    rangesToRemove.push(key);
+                }
+
+                glDeleteBuffers(2, [ range.glCommandBuffer, range.glMatrixBuffer ]);
+            }
+
+            for (id in rangesToRemove)
+            {
+                ranges.remove(id);
+            }
+        }
+
+        if (!ranges.exists(_command.id))
+        {
+            var vtxPtr = new Float32Array(_command.vertices * 9);
+            var idxPtr = new UInt16Array(_command.indices);
+            var vtxIdx = 0;
+            var idxIdx = 0;
+
+            for (geom in _command.geometry)
+            {
+                for (index in geom.indices)
+                {
+                    idxPtr[idxIdx++] = index;
+                }
+
+                for (vertex in geom.vertices)
+                {
+                    vtxPtr[vtxIdx++] = vertex.position.x;
+                    vtxPtr[vtxIdx++] = vertex.position.y;
+                    vtxPtr[vtxIdx++] = vertex.position.z;
+                    vtxPtr[vtxIdx++] = vertex.color.r;
+                    vtxPtr[vtxIdx++] = vertex.color.g;
+                    vtxPtr[vtxIdx++] = vertex.color.b;
+                    vtxPtr[vtxIdx++] = vertex.color.a;
+                    vtxPtr[vtxIdx++] = vertex.texCoord.x;
+                    vtxPtr[vtxIdx++] = vertex.texCoord.y;
+                }
+            }
+
+            glNamedBufferSubData(glVbo, vtxPosition * 9 * 4, vtxPtr.view.buffer.length, vtxPtr.view.buffer.getData());
+            glNamedBufferSubData(glIbo, idxPosition * 2, idxPtr.view.buffer.length, idxPtr.view.buffer.getData());
+
+            // TODO : Create a matrix and command buffer for the draw command.
+            var buffers = [ 0, 0 ];
+            glCreateBuffers(buffers.length, buffers);
+
+            // Create command buffer
+            if (_command.indices > 0)
+            {
+                var mdiCommands  = new UInt32Array(_command.geometry.length * 5);
+                var writePos     = 0;
+                var cmdVtxOffset = vtxPosition;
+                var cmdIdxOffset = idxPosition;
+
+                for (geom in _command.geometry)
+                {
+                    mdiCommands[writePos++] = geom.indices.length;
+                    mdiCommands[writePos++] = 1;
+                    mdiCommands[writePos++] = cmdIdxOffset;
+                    mdiCommands[writePos++] = cmdVtxOffset;
+                    mdiCommands[writePos++] = 0;
+
+                    cmdVtxOffset += geom.vertices.length;
+                }
+
+                glNamedBufferStorage(buffers[0], _command.geometry.length * 20, mdiCommands.view.buffer.getData(), 0);
+            }
+            else
+            {
+                var mdiCommands  = new UInt32Array(_command.geometry.length * 4);
+                var writePos     = 0;
+                var cmdVtxOffset = 0;
+
+                for (geom in _command.geometry)
+                {
+                    mdiCommands[writePos++] = geom.vertices.length;
+                    mdiCommands[writePos++] = 1;
+                    mdiCommands[writePos++] = cmdVtxOffset;
+                    mdiCommands[writePos++] = 0;
+
+                    cmdVtxOffset += geom.vertices.length;
+                }
+
+                glNamedBufferStorage(buffers[0], _command.geometry.length * 16, mdiCommands.view.buffer.getData(), 0);
+            }
+
+            // Create matrix buffer
+            var matrixBuffer = new Float32Array(32 + (_command.geometry.length * 16));
+            glNamedBufferStorage(buffers[1], matrixBuffer.view.buffer.length, matrixBuffer.view.buffer.getData(), GL_DYNAMIC_STORAGE_BIT);
+
+            // TODO : Add a new range entry to the map.
+            ranges.set(_command.id, new StaticBufferRange(buffers[0], buffers[1], matrixBuffer, vtxPosition, idxPosition, _command.vertices, _command.indices, _command.geometry.length));
+
+            vtxPosition += _command.vertices;
+            idxPosition += _command.indices;
+        }
+
+        // Upload the model matrices for all geometry in the command.
+
+        var rng = inline get(_command);
+        var ptr = Pointer.arrayElem(rng.matrixBuffer.view.buffer.getData(), 64);
+        for (geom in _command.geometry)
+        {
+            Stdlib.memcpy(ptr.incBy(64), (geom.transformation.transformation : Float32Array).view.buffer.getData().address(0), 64);
         }
     }
-}
 
-private class UnchangingRange
-{
-    public final vertexOffset : Int;
-
-    public final indexByteOffset : Int;
-
-    public function new(_vertexOffset : Int, _indexByteOffset : Int)
+    /**
+     * Upload a buffer draw command to the static buffer.
+     * Will remove other ranges to make space.
+     * @param _command Command to upload.
+     */
+    public function uploadBuffer(_command : BufferDrawCommand)
     {
-        vertexOffset    = _vertexOffset;
-        indexByteOffset = _indexByteOffset;
+        if (_command.vertices > maxVertices || _command.indices > maxIndices)
+        {
+            throw 'command ${_command.id} too large to fit in static buffer';
+        }
+
+        if (_command.vertices > (maxVertices - vtxPosition) || _command.indices > (maxIndices - idxPosition))
+        {
+            rangesToRemove.resize(0);
+
+            for (key => range in ranges)
+            {
+                if ((0 < (range.vtxPosition + range.vtxLength) && (0 + _command.vertices) > 0) || (0 < (range.idxPosition + range.idxLength) && (0 + _command.indices) > 0))
+                {
+                    rangesToRemove.push(key);
+
+                    trace('removing $key');
+                }
+
+                glDeleteBuffers(2, [ range.glCommandBuffer, range.glMatrixBuffer ]);
+            }
+
+            for (id in rangesToRemove)
+            {
+                ranges.remove(id);
+            }
+        }
+
+        if (!ranges.exists(_command.id))
+        {
+            var vtxRange = _command.vtxData.subarray(_command.vtxStartIndex, _command.vtxEndIndex);
+            var idxRange = _command.idxData.subarray(_command.idxStartIndex, _command.idxEndIndex);
+            glNamedBufferSubData(glVbo, vtxPosition * 9 * 4, vtxRange.length * 4, vtxRange.view.buffer.getData());
+            glNamedBufferSubData(glIbo, idxPosition * 2    , idxRange.length * 2, idxRange.view.buffer.getData());
+
+            // TODO : Create a matrix and command buffer for the draw command.
+            var buffers = [ 0, 0 ];
+            glCreateBuffers(buffers.length, buffers);
+
+            // Create command buffer
+            if (_command.indices > 0)
+            {
+                var mdiCommands  = new UInt32Array(5);
+                var writePos     = 0;
+                var cmdVtxOffset = vtxPosition;
+                var cmdIdxOffset = idxPosition;
+
+                mdiCommands[writePos++] = _command.indices;
+                mdiCommands[writePos++] = 1;
+                mdiCommands[writePos++] = cmdIdxOffset;
+                mdiCommands[writePos++] = cmdVtxOffset;
+                mdiCommands[writePos++] = 0;
+
+                glNamedBufferStorage(buffers[0], 20, mdiCommands.view.buffer.getData(), 0);
+            }
+            else
+            {
+                var mdiCommands  = new UInt32Array(4);
+                var writePos     = 0;
+                var cmdVtxOffset = 0;
+
+                mdiCommands[writePos++] = _command.vertices;
+                mdiCommands[writePos++] = 1;
+                mdiCommands[writePos++] = cmdVtxOffset;
+                mdiCommands[writePos++] = 0;
+
+                glNamedBufferStorage(buffers[0], 16, mdiCommands.view.buffer.getData(), 0);
+            }
+
+            // Create matrix buffer
+            var matrixBuffer = new Float32Array(48);
+            Stdlib.memcpy(matrixBuffer.view.buffer.getData().address(128), (identityMatrix : Float32Array).view.buffer.getData().address(0), 64);
+            glNamedBufferStorage(buffers[1], matrixBuffer.view.buffer.length, matrixBuffer.view.buffer.getData(), GL_DYNAMIC_STORAGE_BIT);
+
+            // TODO : Add a new range entry to the map.
+            ranges.set(_command.id, new StaticBufferRange(buffers[0], buffers[1], matrixBuffer, vtxPosition, idxPosition, _command.vertices, _command.indices, 1));
+
+            vtxPosition += _command.vertices;
+            idxPosition += _command.indices;
+        }
+    }
+
+    /**
+     * Draw an uploaded draw command.
+     * @param _command Command to draw.
+     */
+    public function draw(_command : DrawCommand)
+    {
+        if (_command.indices > 0)
+        {
+            untyped __cpp__('glMultiDrawElementsIndirect({0}, GL_UNSIGNED_SHORT, 0, {1}, 0)', getPrimitiveType(_command.primitive), get(_command).drawCount);
+        }
+        else
+        {
+            untyped __cpp__('glMultiDrawArraysIndirect({0}, 0, {1}, 0)', getPrimitiveType(_command.primitive), get(_command).drawCount);
+        }
+    }
+
+    /**
+     * Get information about an uploaded range.
+     * @param _command Uploaded command to get info on.
+     * @return StaticBufferRange
+     */
+    public function get(_command : DrawCommand) : StaticBufferRange
+    {
+        return ranges.get(_command.id).sure();
+    }
+
+    /**
+     * Returns an OpenGL primitive constant from a flurry primitive enum.
+     * @param _primitive Primitive type.
+     * @return Int
+     */
+    function getPrimitiveType(_primitive : PrimitiveType) : Int
+    {
+        return switch (_primitive)
+        {
+            case Points        : GL_POINTS;
+            case Lines         : GL_LINES;
+            case LineStrip     : GL_LINE_STRIP;
+            case Triangles     : GL_TRIANGLES;
+            case TriangleStrip : GL_TRIANGLE_STRIP;
+        }
     }
 }
 
 /**
- * Stores the range of a draw command.
+ * Represents an uploaded `DrawCommand` in the static buffer.
  */
-private class DrawCommandRange
+private class StaticBufferRange
 {
+    /**
+     * OpenGL buffer ID for the buffer to be bound to `GL_DRAW_INDIRECT_BUFFER` to provide draw commands.
+     */
+    public final glCommandBuffer : Int;
+
+    /**
+     * OpenGL buffer ID for the buffer to be bound to the default matrix ssbo.
+     */
+    public final glMatrixBuffer : Int;
+    
+    /**
+     * Bytes to store matrices to be uploaded to the GPU.
+     * 
+     * Enough space for a projection, view, and `drawCount` model matrices.
+     */
+    public final matrixBuffer : Float32Array;
+
+    /**
+     * The vertex offset into the vertex buffer this draw command is found.
+     */
+    public final vtxPosition : Int;
+
+    /**
+     * The index offfset into the index buffer this draw command is found.
+     */
+    public final idxPosition : Int;
+
     /**
      * The number of vertices in this draw command.
      */
-    public final vertices : Int;
-
-    /**
-     * The number of vertices this command is offset into the current range.
-     */
-    public final vertexOffset : Int;
+    public final vtxLength : Int;
 
     /**
      * The number of indices in this draw command.
      */
-    public final indices : Int;
+    public final idxLength : Int;
 
     /**
-     * The number of bytes this command is offset into the current range.
+     * The number of draw calls to make for this draw command. Used for multi draw indirect functions.
+     * 
+     * Always 1 for `BufferDrawCommand`. Equal to the number of geometries for `GeometryDrawCommand`.
      */
-    public final indexByteOffset : Int;
+    public final drawCount : Int;
 
-    inline public function new(_vertices : Int, _vertexOffset : Int, _indices : Int, _indexByteOffset : Int)
+    public function new(_glCommandBuffer : Int, _glMatrixBuffer : Int, _matrixBuffer : Float32Array, _vtxPosition : Int, _idxPosition : Int, _vtxLength : Int, _idxLength : Int, _drawCount : Int)
     {
-        vertices        = _vertices;
-        vertexOffset    = _vertexOffset;
-        indices         = _indices;
-        indexByteOffset = _indexByteOffset;
+        glCommandBuffer = _glCommandBuffer;
+        glMatrixBuffer  = _glMatrixBuffer;
+        matrixBuffer    = _matrixBuffer;
+        vtxPosition     = _vtxPosition;
+        idxPosition     = _idxPosition;
+        vtxLength       = _vtxLength;
+        idxLength       = _idxLength;
+        drawCount       = _drawCount;
+    }
+}
+
+/**
+ * Very simple wrapper around a GLSync object.
+ * Needed to work around hxcpp's weirdness with native types in haxe arrays.
+ */
+private class GLSyncWrapper
+{
+    public var sync : Null<GLSync>;
+
+    public function new()
+    {
+        sync = null;
     }
 }

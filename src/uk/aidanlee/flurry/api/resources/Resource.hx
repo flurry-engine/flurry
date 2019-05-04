@@ -17,7 +17,7 @@ typedef ShaderBackend = { vertex : String, fragment : String };
 
 typedef ShaderLayout = { textures : Array<String>, blocks : Array<ShaderBlock> };
 
-typedef ShaderBlock = { name : String, vals : Array<{ name : String, type : String }> };
+typedef ShaderBlock = { name : String, bind : Int, vals : Array<{ name : String, type : String }> };
 
 class Resource
 {

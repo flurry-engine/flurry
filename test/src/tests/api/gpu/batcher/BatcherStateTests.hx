@@ -42,7 +42,6 @@ class BatcherStateTests extends BuddySuite
                 geometry.shader.returns(shader);
                 geometry.uniforms.returns(uniforms);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(false);
                 geometry.primitive.returns(TriangleStrip);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -53,7 +52,6 @@ class BatcherStateTests extends BuddySuite
                 state.shader.should.be(batcher.shader);
                 state.uniforms.should.be(uniforms);
                 state.textures.should.containExactly(geometry.textures);
-                state.unchanging.should.be(geometry.unchanging);
                 state.primitive.should.equal(geometry.primitive);
                 state.clip.equals(clip).should.be(true);
                 state.blend.equals(blend).should.be(true);
@@ -76,7 +74,6 @@ class BatcherStateTests extends BuddySuite
 
                 var geometry = mock(Geometry);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(false);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -109,7 +106,6 @@ class BatcherStateTests extends BuddySuite
                 var geometry = mock(Geometry);
                 geometry.shader.returns(shader1);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(false);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -119,7 +115,6 @@ class BatcherStateTests extends BuddySuite
                 var geometry = mock(Geometry);
                 geometry.shader.returns(shader2);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(false);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -144,7 +139,6 @@ class BatcherStateTests extends BuddySuite
 
                 var geometry = mock(Geometry);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(false);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -153,7 +147,6 @@ class BatcherStateTests extends BuddySuite
 
                 var geometry = mock(Geometry);
                 geometry.textures.returns([ mock(ImageResource) ]);
-                geometry.unchanging.returns(false);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -183,7 +176,6 @@ class BatcherStateTests extends BuddySuite
 
                 var geometry = mock(Geometry);
                 geometry.textures.returns([ texture1 ]);
-                geometry.unchanging.returns(false);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -192,41 +184,6 @@ class BatcherStateTests extends BuddySuite
 
                 var geometry = mock(Geometry);
                 geometry.textures.returns([ texture2 ]);
-                geometry.unchanging.returns(false);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.requiresChange(geometry).should.be(true);
-            });
-
-            it('will return that the state needs changing when the `unchanging` properties do not match', {
-                var uniforms = mock(Uniforms);
-                uniforms.id.returns(0);
-
-                var shader = mock(ShaderResource);
-                shader.id.returns('1');
-                shader.uniforms.returns(uniforms);
-
-                var batcher = mock(Batcher);
-                batcher.shader.returns(shader);
-
-                var clip  = new Rectangle();
-                var blend = new Blending();
-                var state = new BatcherState(batcher);
-
-                var geometry = mock(Geometry);
-                geometry.textures.returns([]);
-                geometry.unchanging.returns(true);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.change(geometry);
-
-                var geometry = mock(Geometry);
-                geometry.textures.returns([]);
-                geometry.unchanging.returns(false);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -251,7 +208,6 @@ class BatcherStateTests extends BuddySuite
 
                 var geometry = mock(Geometry);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(true);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -261,7 +217,6 @@ class BatcherStateTests extends BuddySuite
                 var geometry = mock(Geometry);
                 geometry.shader.returns(shader);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(false);
                 geometry.primitive.returns(LineStrip);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -286,7 +241,6 @@ class BatcherStateTests extends BuddySuite
 
                 var geometry = mock(Geometry);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(true);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -296,7 +250,6 @@ class BatcherStateTests extends BuddySuite
                 var geometry = mock(Geometry);
                 geometry.shader.returns(shader);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(false);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(false);
                 geometry.clip.returns(clip);
@@ -323,7 +276,6 @@ class BatcherStateTests extends BuddySuite
                 var geometry = mock(Geometry);
                 geometry.shader.returns(shader);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(true);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip1);
@@ -333,7 +285,6 @@ class BatcherStateTests extends BuddySuite
                 var geometry = mock(Geometry);
                 geometry.shader.returns(shader);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(false);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip2);
@@ -359,7 +310,6 @@ class BatcherStateTests extends BuddySuite
 
                 var geometry = mock(Geometry);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(true);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -368,7 +318,6 @@ class BatcherStateTests extends BuddySuite
 
                 var geometry = mock(Geometry);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(false);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -396,7 +345,6 @@ class BatcherStateTests extends BuddySuite
 
                 var geometry = mock(Geometry);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(true);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);
@@ -405,7 +353,6 @@ class BatcherStateTests extends BuddySuite
 
                 var geometry = mock(Geometry);
                 geometry.textures.returns([]);
-                geometry.unchanging.returns(false);
                 geometry.primitive.returns(Triangles);
                 geometry.isIndexed().returns(true);
                 geometry.clip.returns(clip);

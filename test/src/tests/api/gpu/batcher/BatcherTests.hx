@@ -141,8 +141,6 @@ class BatcherTests extends BuddySuite
                     commands[0].shader.id.should.be(shader.id);
 
                     commands[0].target.should.be(null);
-                    commands[0].unchanging.should.be(false);
-                    commands[0].isIndexed().should.be(false);
                 });
 
                 it('Can sort geometry to minimise the number of state changes needed to draw it', {
@@ -182,8 +180,6 @@ class BatcherTests extends BuddySuite
                     command.shader.should.not.be(null);
                     command.shader.id.should.be(shader.id);
                     command.target.should.be(null);
-                    command.unchanging.should.be(false);
-                    command.isIndexed().should.be(false);
 
                     var command = commands[1];
                     command.geometry.length.should.be(1);
@@ -195,60 +191,8 @@ class BatcherTests extends BuddySuite
                     command.shader.should.not.be(null);
                     command.shader.id.should.be(shader.id);
                     command.target.should.be(null);
-                    command.unchanging.should.be(false);
-                    command.isIndexed().should.be(false);
                 });
-
-                it('Produces geometry draw commands which can be flagged as unchanging', {
-                    var uniforms = mock(Uniforms);
-                    uniforms.id.returns(0);
-
-                    var shader = mock(ShaderResource);
-                    shader.id.returns('1');
-                    shader.uniforms.returns(uniforms);
-
-                    var texture = mock(ImageResource);
-                    texture.id.returns('1');
-
-                    var camera = mock(Camera);
-                    camera.projection.returns(new Matrix());
-                    camera.viewInverted.returns(new Matrix());
-                    camera.viewport.returns(new Rectangle());
-
-                    var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
-                    var geometry1 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData() });
-                    var geometry2 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData(), unchanging : true });
-
-                    var commands = batcher.batch();
-                    commands.length.should.be(2);
-
-                    var command = commands[0];
-                    command.geometry.length.should.be(1);
-                    command.geometry[0].id.should.be(geometry1.id);
-                    command.vertices.should.be(3);
-                    command.indices.should.be(0);
-                    command.textures.length.should.be(1);
-                    command.textures[0].id.should.be(texture.id);
-                    command.shader.should.not.be(null);
-                    command.shader.id.should.be(shader.id);
-                    command.target.should.be(null);
-                    command.isIndexed().should.be(false);
-                    command.unchanging.should.be(false);
-
-                    var command = commands[1];
-                    command.geometry.length.should.be(1);
-                    command.geometry[0].id.should.be(geometry2.id);
-                    command.textures.length.should.be(1);
-                    command.textures[0].id.should.be(texture.id);
-                    command.vertices.should.be(3);
-                    command.indices.should.be(0);
-                    command.shader.should.not.be(null);
-                    command.shader.id.should.be(shader.id);
-                    command.target.should.be(null);
-                    command.isIndexed().should.be(false);
-                    command.unchanging.should.be(true);
-                });
-
+                
                 it('Produces geometry draw commands which are either indexed or non indexed', {
                     var uniforms = mock(Uniforms);
                     uniforms.id.returns(0);
@@ -282,8 +226,6 @@ class BatcherTests extends BuddySuite
                     command.shader.should.not.be(null);
                     command.shader.id.should.be(shader.id);
                     command.target.should.be(null);
-                    command.unchanging.should.be(false);
-                    command.isIndexed().should.be(false);
 
                     var command = commands[1];
                     command.geometry.length.should.be(1);
@@ -295,8 +237,6 @@ class BatcherTests extends BuddySuite
                     command.shader.should.not.be(null);
                     command.shader.id.should.be(shader.id);
                     command.target.should.be(null);
-                    command.unchanging.should.be(false);
-                    command.isIndexed().should.be(true);
                 });
 
                 it('Removes immediate geometry from itself once it has been batched', {
@@ -317,13 +257,12 @@ class BatcherTests extends BuddySuite
 
                     var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
                     var geometry1 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData() });
-                    var geometry2 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData(), immediate : true });
+                    var geometry2 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData(), uploadType : Immediate });
 
                     var commands = batcher.batch();
-                    commands.length.should.be(1);
-                    commands[0].geometry.length.should.be(2);
+                    commands.length.should.be(2);
                     commands[0].geometry[0].id.should.be(geometry1.id);
-                    commands[0].geometry[1].id.should.be(geometry2.id);
+                    commands[1].geometry[0].id.should.be(geometry2.id);
 
                     batcher.geometry.length.should.be(1);
                     batcher.geometry[0].id.should.be(geometry1.id);

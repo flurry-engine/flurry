@@ -154,14 +154,6 @@ class GeometryTests extends BuddySuite
                 g.primitive.should.equal(Points);
             });
 
-            it('has an immediate flag to indicate it is to be drawn once then dropped', {
-                var g = new Geometry({});
-                g.immediate.should.be(false);
-
-                var g = new Geometry({ immediate : true });
-                g.immediate.should.be(true);
-            });
-
             it('Will dirty any batchers its in when adding a texture', {
                 var u = mock(Uniforms);
                 var s = mock(ShaderResource);

@@ -11,6 +11,7 @@ import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.gpu.UploadType;
 import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import imgui.ImGui;
@@ -207,7 +208,7 @@ class ImGuiImpl
                     vtxData, vtxStart, vtxOffset,
                     idxData, idxStart, idxOffset,
                     Hash.uniqueHash(),
-                    false,
+                    Stream,
                     camera.projection,
                     camera.viewInverted,
                     camera.viewport,

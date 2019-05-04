@@ -42,7 +42,7 @@ class BufferDrawCommand extends DrawCommand
         _idxEndIndex   : Int,
 
         _id         : Int,
-        _unchanging : Bool,
+        _uploadType : UploadType,
         _projection : Matrix,
         _view       : Matrix,
         _viewport   : Rectangle,
@@ -66,6 +66,6 @@ class BufferDrawCommand extends DrawCommand
         idxStartIndex = _idxStartIndex;
         idxEndIndex   = _idxEndIndex;
 
-        super(_id, _unchanging, _projection, _view, vtxEndIndex - vtxStartIndex, idxEndIndex - idxStartIndex, _viewport, _primitive, _target, _shader, _uniforms, _textures, _clip, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
+        super(_id, _uploadType, _projection, _view, vtxEndIndex - vtxStartIndex, idxEndIndex - idxStartIndex, _viewport, _primitive, _target, _shader, _uniforms, _textures, _clip, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
     }
 }

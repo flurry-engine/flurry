@@ -16,11 +16,6 @@ interface IRendererBackend
     function clear() : Void;
 
     /**
-     * Will clear any unchanging geometry in the renderer.
-     */
-    function clearUnchanging() : Void;
-
-    /**
      * Called before any draw() functions.
      */
     function preDraw() : Void;

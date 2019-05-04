@@ -182,8 +182,8 @@ class Batcher
         var endIndex    = 0;
         var vertices    = 0;
         var indices     = 0;
+        var commandName = 0;
         var commandGeom = [];
-        var commandName = id;
 
         // Sort all of the geometry held in this batcher.
         // Sorted in order of most expensive state changes to least expensive.
@@ -206,7 +206,7 @@ class Batcher
                 _output.push(new GeometryDrawCommand(
                     commandGeom,
                     commandName,
-                    state.unchanging,
+                    state.uploadType,
                     camera.projection,
                     camera.viewInverted,
                     vertices,
@@ -239,7 +239,7 @@ class Batcher
             commandName += geom.id;
             commandGeom.push(geom);
 
-            if (geom.immediate)
+            if (geom.uploadType == Immediate)
             {
                 geometryToDrop.push(geom);
             }
@@ -251,7 +251,7 @@ class Batcher
             _output.push(new GeometryDrawCommand(
                 commandGeom,
                 commandName,
-                state.unchanging,
+                state.uploadType,
                 camera.projection,
                 camera.viewInverted,
                 vertices,
