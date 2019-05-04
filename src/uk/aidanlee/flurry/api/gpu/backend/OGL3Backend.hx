@@ -574,7 +574,7 @@ class OGL3Backend implements IRendererBackend
         // Fetch the location of all the shaders texture and interface blocks, also bind blocks to a binding point.
         var textureLocations = [ for (t in _resource.layout.textures) glGetUniformLocation(program, t) ];
         var blockLocations   = [ for (b in _resource.layout.blocks) glGetUniformBlockIndex(program, b.name) ];
-        var blockBindings    = [ for (i in 0..._resource.layout.blocks.length) i ];
+        var blockBindings    = [ for (i in 0..._resource.layout.blocks.length) _resource.layout.blocks[i].bind ];
 
         for (i in 0..._resource.layout.blocks.length)
         {
