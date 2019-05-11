@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilOptions;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.DepthOptions;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
@@ -81,6 +83,10 @@ class DrawCommand
      */
     public final clip : Rectangle;
 
+    public final depth : DepthOptions;
+
+    public final stencil : StencilOptions;
+
     /**
      * If blending is enabled for this draw command.
      */
@@ -108,6 +114,8 @@ class DrawCommand
         _uniforms   : Uniforms,
         _textures   : Array<ImageResource>,
         _clip       : Rectangle,
+        _depth      : DepthOptions,
+        _stencil    : StencilOptions,
         _blending   : Bool,
         _srcRGB     : BlendMode = null,
         _dstRGB     : BlendMode = null,
@@ -128,6 +136,8 @@ class DrawCommand
         uniforms   = _uniforms;
         textures   = _textures;
         clip       = _clip;
+        depth      = _depth;
+        stencil    = _stencil;
         blending   = _blending;
         srcRGB     = _srcRGB;
         dstRGB     = _dstRGB;

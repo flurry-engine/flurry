@@ -16,11 +16,6 @@ class NullBackend implements IRendererBackend
         //
     }
 
-    public function clearUnchanging()
-    {
-        //
-    }
-
     public function preDraw()
     {
         //

@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import uk.aidanlee.flurry.api.display.DisplayEvents;
 import haxe.io.Bytes;
 import haxe.ds.Map;
 import cpp.Float32;
@@ -27,6 +26,8 @@ import d3d11.resources.Buffer;
 import d3d11.resources.BufferDescription;
 import d3d11.resources.ShaderResourceView;
 import d3d11.resources.RenderTargetView;
+import d3d11.resources.DepthStencilViewDescription;
+import d3d11.resources.DepthStencilView;
 import d3d11.DeviceContext;
 import d3d11.Device;
 import d3d11.Viewport;
@@ -44,13 +45,18 @@ import d3d11.BlendState;
 import d3d11.SamplerState;
 import d3d11.SamplerDescription;
 import d3d11.Rect;
+import d3d11.DepthStencilDescription;
+import d3d11.DepthStencilState;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilFunction;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.ComparisonFunction;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
+import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
@@ -163,6 +169,31 @@ class DX11Backend implements IRendererBackend
     var renderTarget : RenderTargetView;
 
     /**
+     * Texture used for the depth buffer.
+     */
+    var depthBufferTexture : Texture2D;
+
+    /**
+     * Depth and stencil description.
+     */
+    var depthStencilDescription : DepthStencilDescription;
+
+    /**
+     * Depth and stencil state.
+     */
+    var depthStencilState : DepthStencilState;
+
+    /**
+     * Depth and stencil view state.
+     */
+    var depthStencilViewDescription : DepthStencilViewDescription;
+
+    /**
+     * Depth and stencil resource view.
+     */
+    var depthStencilView : DepthStencilView;
+
+    /**
      * Map of shader name to the D3D11 resources required to use the shader.
      */
     var shaderResources : Map<String, DXShaderInformation>;
@@ -235,9 +266,9 @@ class DX11Backend implements IRendererBackend
             throw 'Unable to get DXGI information for the main SDL window';
         }
 
-        shaderResources  = new Map();
-        textureResources = new Map();
-        targetResources  = new Map();
+        shaderResources  = [];
+        textureResources = [];
+        targetResources  = [];
 
         // Causes HxCPP to include the linc_directx build xml to properly link against directx libs
         DirectX.include();
@@ -373,6 +404,34 @@ class DX11Backend implements IRendererBackend
             throw 'DirectX 11 Backend Exception : Failed to create index buffer';
         }
 
+        var depthTextureDesc = Texture2DDescription.create();
+        depthTextureDesc.width = _windowConfig.width;
+        depthTextureDesc.height = _windowConfig.height;
+        depthTextureDesc.mipLevels = 1;
+        depthTextureDesc.arraySize = 1;
+        depthTextureDesc.format = D32_FLOAT_S8X24_UINT;
+        depthTextureDesc.sampleDesc.count = 1;
+        depthTextureDesc.sampleDesc.quality = 0;
+        depthTextureDesc.usage = DEFAULT;
+        depthTextureDesc.bindFlags = DEPTH_STENCIL;
+        depthTextureDesc.cpuAccessFlags = 0;
+        depthTextureDesc.miscFlags = 0;
+
+        if (device.createTexture2D(cast depthTextureDesc.addressOf(), null, cast depthBufferTexture.addressOf()) != 0)
+        {
+            throw 'DirectX 11 Backend Exception : Failed to create depth buffer texture';
+        }
+
+        depthStencilViewDescription = DepthStencilViewDescription.create();
+        depthStencilViewDescription.format = D32_FLOAT_S8X24_UINT;
+        depthStencilViewDescription.viewDimension = DSV_DIMENSION_TEXTURE2D;
+        depthStencilViewDescription.texture2D.mipSlice = 0;
+
+        if (device.createDepthStencilView(cast depthBufferTexture, cast depthStencilViewDescription.addressOf(), cast depthStencilView.addressOf()) != 0)
+        {
+            throw 'DirectX 11 Backend Exception : Failed to create depth stencil view';
+        }
+
         targetSequence++;
 
         // Set the initial context state.
@@ -384,7 +443,7 @@ class DX11Backend implements IRendererBackend
         context.rsSetViewports([ nativeView ]);
         context.rsSetScissorRects([ nativeClip ]);
         context.rsSetState(rasterState);
-        context.omSetRenderTargets([ backbuffer.renderTargetView ], null);
+        context.omSetRenderTargets([ backbuffer.renderTargetView ], depthStencilView);
 
         vertexOffset      = 0;
         vertexFloatOffset = 0;
@@ -408,11 +467,7 @@ class DX11Backend implements IRendererBackend
     public function clear()
     {
         context.clearRenderTargetView(backbuffer.renderTargetView, [ 0.2, 0.2, 0.2, 1.0 ]);
-    }
-
-    public function clearUnchanging()
-    {
-        //
+        context.clearDepthStencilView(depthStencilView, untyped __cpp__('D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL'), 1, 0);
     }
 
     public function preDraw()
@@ -604,7 +659,7 @@ class DX11Backend implements IRendererBackend
 
         // If we don't force a render target change here then the previous backbuffer pointer might still be bound and used.
         // This would cause nothing to render since that old backbuffer has now been released.
-        context.omSetRenderTargets([ backbuffer.renderTargetView ], null);
+        context.omSetRenderTargets([ backbuffer.renderTargetView ], depthStencilView);
         target = null;
 
         rendererStats.targetSwaps++;
@@ -918,6 +973,31 @@ class DX11Backend implements IRendererBackend
      */
     function setState(_command : DrawCommand)
     {
+        depthStencilDescription.depthEnable    = _command.depth.depthTesting;
+        depthStencilDescription.depthWriteMask = _command.depth.depthMasking ? DEPTH_WRITE_MASK_ALL : DEPTH_WRITE_MASK_ZERO;
+        depthStencilDescription.depthFunc      = getComparisonFunction(_command.depth.depthFunction);
+
+        depthStencilDescription.stencilEnable    = _command.stencil.stencilTesting;
+        depthStencilDescription.stencilReadMask  = _command.stencil.stencilFrontMask;
+        depthStencilDescription.stencilWriteMask = _command.stencil.stencilBackMask;
+
+        depthStencilDescription.frontFace.stencilFailOp      = getStencilOp(_command.stencil.stencilFrontTestFail);
+        depthStencilDescription.frontFace.stencilDepthFailOp = getStencilOp(_command.stencil.stencilFrontDepthTestFail);
+        depthStencilDescription.frontFace.stencilPassOp      = getStencilOp(_command.stencil.stencilFrontDepthTestPass);
+        depthStencilDescription.frontFace.stencilFunc        = getComparisonFunction(_command.stencil.stencilFrontFunction);
+
+        depthStencilDescription.backFace.stencilFailOp      = getStencilOp(_command.stencil.stencilBackTestFail);
+        depthStencilDescription.backFace.stencilDepthFailOp = getStencilOp(_command.stencil.stencilBackDepthTestFail);
+        depthStencilDescription.backFace.stencilPassOp      = getStencilOp(_command.stencil.stencilBackDepthTestPass);
+        depthStencilDescription.backFace.stencilFunc        = getComparisonFunction(_command.stencil.stencilBackFunction);
+
+        if (device.createDepthStencilState(depthStencilDescription.addressOf(), cast depthStencilState.addressOf()) != 0)
+        {
+            throw 'Failed to create depth stencil state';
+        }
+
+        context.omSetDepthStencilState(depthStencilState, 1);
+
         // Update viewport
         var cmdView = _command.viewport != null ? _command.viewport : new Rectangle(0, 0, backbuffer.width, backbuffer.height);
         if (!viewport.equals(cmdView))
@@ -973,7 +1053,7 @@ class DX11Backend implements IRendererBackend
             target = _command.target;
 
             renderTarget = target == null ? backbuffer.renderTargetView : targetResources.get(target.id);
-            context.omSetRenderTargets([ renderTarget ], null);
+            context.omSetRenderTargets([ renderTarget ], depthStencilView);
 
             rendererStats.targetSwaps++;
         }
@@ -1143,6 +1223,36 @@ class DX11Backend implements IRendererBackend
             case LineStrip     : LINESTRIP;
             case Triangles     : TRIANGLELIST;
             case TriangleStrip : TRIANGLESTRIP;
+        }
+    }
+
+    inline function getComparisonFunction(_function : ComparisonFunction) : D3D11_COMPARISON_FUNC
+    {
+        return switch (_function)
+        {
+            case Always             : ALWAYS;
+            case Never              : NEVER;
+            case Equal              : EQUAL;
+            case LessThan           : LESS;
+            case LessThanOrEqual    : LESS_EQUAL;
+            case GreaterThan        : GREATER;
+            case GreaterThanOrEqual : GREATER_EQUAL;
+            case NotEqual           : NOT_EQUAL;
+        }
+    }
+
+    inline function getStencilOp(_stencil : StencilFunction) : D3D11_STENCIL_OP
+    {
+        return switch (_stencil)
+        {
+            case Keep: STENCIL_OP_KEEP;
+            case Zero: STENCIL_OP_ZERO;
+            case Replace: STENCIL_OP_REPLACE;
+            case Invert: STENCIL_OP_INVERT;
+            case Increment: STENCIL_OP_INCR_SAT;
+            case IncrementWrap: STENCIL_OP_INCR;
+            case Decrement: STENCIL_OP_DECR_SAT;
+            case DecrementWrap: STENCIL_OP_DECR;
         }
     }
 

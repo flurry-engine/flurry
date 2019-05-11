@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilOptions;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.DepthOptions;
 import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -52,6 +54,8 @@ class BufferDrawCommand extends DrawCommand
         _uniforms   : Uniforms,
         _textures   : Array<ImageResource>,
         _clip       : Rectangle,
+        _depth      : DepthOptions,
+        _stencil    : StencilOptions,
         _blending   : Bool,
         _srcRGB     : BlendMode = null,
         _dstRGB     : BlendMode = null,
@@ -66,6 +70,6 @@ class BufferDrawCommand extends DrawCommand
         idxStartIndex = _idxStartIndex;
         idxEndIndex   = _idxEndIndex;
 
-        super(_id, _uploadType, _projection, _view, vtxEndIndex - vtxStartIndex, idxEndIndex - idxStartIndex, _viewport, _primitive, _target, _shader, _uniforms, _textures, _clip, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
+        super(_id, _uploadType, _projection, _view, vtxEndIndex - vtxStartIndex, idxEndIndex - idxStartIndex, _viewport, _primitive, _target, _shader, _uniforms, _textures, _clip, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
     }
 }

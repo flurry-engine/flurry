@@ -9,6 +9,50 @@ import uk.aidanlee.flurry.api.maths.Hash;
 
 using Safety;
 
+enum ComparisonFunction {
+    Always;
+    Never;
+    Equal;
+    LessThan;
+    LessThanOrEqual;
+    GreaterThan;
+    GreaterThanOrEqual;
+    NotEqual;
+}
+
+enum StencilFunction {
+    Keep;
+    Zero;
+    Replace;
+    Invert;
+    Increment;
+    IncrementWrap;
+    Decrement;
+    DecrementWrap;
+}
+
+typedef DepthOptions = {
+    final depthTesting : Bool;
+    final depthMasking : Bool;
+    final depthFunction : ComparisonFunction;
+}
+
+typedef StencilOptions = {
+    final stencilTesting : Bool;
+
+    final stencilFrontMask : Int;
+    final stencilFrontFunction : ComparisonFunction;
+    final stencilFrontTestFail : StencilFunction;
+    final stencilFrontDepthTestFail : StencilFunction;
+    final stencilFrontDepthTestPass : StencilFunction;
+
+    final stencilBackMask : Int;
+    final stencilBackFunction : ComparisonFunction;
+    final stencilBackTestFail : StencilFunction;
+    final stencilBackDepthTestFail : StencilFunction;
+    final stencilBackDepthTestPass : StencilFunction;
+}
+
 typedef BatcherOptions = {
     /**
      * The initial camera this batcher will use.
@@ -24,13 +68,17 @@ typedef BatcherOptions = {
      * Optional render target for this batcher.
      * If not specified the backbuffer / default target will be used.
      */
-    var ?target : Null<ImageResource>;
+    var ?target : ImageResource;
 
     /**
      * Optional initial depth for this batcher.
      * If not specified the depth starts at 0.
      */
-    var ?depth : Null<Float>;
+    var ?depth : Float;
+
+    var ?depthOptions : DepthOptions;
+
+    var ?stencilOptions : StencilOptions;
 }
 
 /**
@@ -53,14 +101,18 @@ class Batcher
     public final id : Int;
 
     /**
-     * The depth of the batcher is the deciding factor in which batchers get drawn first.
-     */
-    public var depth : Float;
-
-    /**
      * All of the geometry in this batcher.
      */
     public final geometry : Array<Geometry>;
+
+    public final depthOptions : DepthOptions;
+
+    public final stencilOptions : StencilOptions;
+
+    /**
+     * The depth of the batcher is the deciding factor in which batchers get drawn first.
+     */
+    public var depth : Float;
 
     /**
      * Camera for this batcher to use.
@@ -104,10 +156,30 @@ class Batcher
         
         geometry       = [];
         geometryToDrop = [];
-        shader   = _options.shader;
-        camera   = _options.camera;
-        target   = _options.target;
-        depth    = _options.depth.or(0);
+        shader         = _options.shader;
+        camera         = _options.camera;
+        target         = _options.target;
+        depth          = _options.depth.or(0);
+        depthOptions   = _options.depthOptions.or({
+            depthTesting  : false,
+            depthMasking  : false,
+            depthFunction : Always
+        });
+        stencilOptions = _options.stencilOptions.or({
+            stencilTesting : false,
+
+            stencilFrontMask          : 0xff,
+            stencilFrontFunction      : Always,
+            stencilFrontTestFail      : Keep,
+            stencilFrontDepthTestFail : Keep,
+            stencilFrontDepthTestPass : Keep,
+            
+            stencilBackMask          : 0xff,
+            stencilBackFunction      : Always,
+            stencilBackTestFail      : Keep,
+            stencilBackDepthTestFail : Keep,
+            stencilBackDepthTestPass : Keep
+        });
 
         state = new BatcherState(this);
         dirty = false;
@@ -218,6 +290,8 @@ class Batcher
                     state.uniforms,
                     [ for (texture in state.textures) texture ],
                     state.clip,
+                    depthOptions,
+                    stencilOptions,
                     true,
                     state.blend.srcRGB,
                     state.blend.dstRGB,
@@ -263,6 +337,8 @@ class Batcher
                 state.uniforms,
                 [ for (texture in state.textures) texture ],
                 state.clip,
+                depthOptions,
+                stencilOptions,
                 true,
                 state.blend.srcRGB,
                 state.blend.dstRGB,

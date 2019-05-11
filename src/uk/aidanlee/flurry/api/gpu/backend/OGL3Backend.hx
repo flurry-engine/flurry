@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilFunction;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.ComparisonFunction;
 import cpp.UInt8;
 import cpp.Int32;
 import haxe.io.Bytes;
@@ -269,12 +271,7 @@ class OGL3Backend implements IRendererBackend
         clip.set(0, 0, backbuffer.width, backbuffer.height);
         glScissor(0, 0, backbuffer.width, backbuffer.height);
 
-        glClear(GL_COLOR_BUFFER_BIT);
-    }
-
-    public function clearUnchanging()
-    {
-        //
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     }
 
     public function preDraw()
@@ -677,6 +674,43 @@ class OGL3Backend implements IRendererBackend
      */
     function setState(_command : DrawCommand, _disableStats : Bool)
     {
+        // Apply depth and stencil settings.
+        if (_command.depth.depthTesting)
+        {
+            glEnable(GL_DEPTH_TEST);
+            glDepthMask(_command.depth.depthMasking);
+            glDepthFunc(getComparisonFunc(_command.depth.depthFunction));
+        }
+        else
+        {
+            glDisable(GL_DEPTH_TEST);
+        }
+
+        if (_command.stencil.stencilTesting)
+        {
+            glEnable(GL_STENCIL_TEST);
+            
+            glStencilMaskSeparate(GL_FRONT, _command.stencil.stencilFrontMask);
+            glStencilFuncSeparate(GL_FRONT, getComparisonFunc(_command.stencil.stencilFrontFunction), 1, 0xff);
+            glStencilOpSeparate(
+                GL_FRONT,
+                getStencilFunc(_command.stencil.stencilFrontTestFail),
+                getStencilFunc(_command.stencil.stencilFrontDepthTestFail),
+                getStencilFunc(_command.stencil.stencilFrontDepthTestPass));
+
+            glStencilMaskSeparate(GL_BACK, _command.stencil.stencilBackMask);
+            glStencilFuncSeparate(GL_BACK, getComparisonFunc(_command.stencil.stencilBackFunction), 1, 0xff);
+            glStencilOpSeparate(
+                GL_BACK,
+                getStencilFunc(_command.stencil.stencilBackTestFail),
+                getStencilFunc(_command.stencil.stencilBackDepthTestFail),
+                getStencilFunc(_command.stencil.stencilBackDepthTestPass));
+        }
+        else
+        {
+            glDisable(GL_STENCIL_TEST);
+        }
+
         // Set the viewport.
         // If the viewport of the command is null then the backbuffer size is used (size of the window).
         var cmdViewport = _command.viewport != null ? _command.viewport : new Rectangle(0, 0, backbuffer.width, backbuffer.height);
@@ -905,6 +939,35 @@ class OGL3Backend implements IRendererBackend
             case DstColor         : GL_DST_COLOR;
             case OneMinusDstColor : GL_ONE_MINUS_DST_COLOR;
             case _: 0;
+        }
+    }
+
+    function getComparisonFunc(_func : ComparisonFunction) : Int
+    {
+        return switch (_func) {
+            case Always: GL_ALWAYS;
+            case Never: GL_NEVER;
+            case LessThan: GL_LESS;
+            case Equal: GL_EQUAL;
+            case LessThanOrEqual: GL_LEQUAL;
+            case GreaterThan: GL_GREATER;
+            case GreaterThanOrEqual: GL_GEQUAL;
+            case NotEqual: GL_NOTEQUAL;
+        }
+    }
+
+    function getStencilFunc(_func : StencilFunction) : Int
+    {
+        return switch (_func)
+        {
+            case Keep: GL_KEEP;
+            case Zero: GL_ZERO;
+            case Replace: GL_REPLACE;
+            case Invert: GL_INVERT;
+            case Increment: GL_INCR;
+            case IncrementWrap: GL_INCR_WRAP;
+            case Decrement: GL_DECR;
+            case DecrementWrap: GL_DECR_WRAP;
         }
     }
 }
