@@ -1,3 +1,0 @@
--D linc_openal=0.0.0
-# @install: lix --submodules --silent download "git:git@github.com:snowkit/linc_openal#8626b4d8b10dfd33e41cea5debd186cd0e993c25" into untitled/0.0.0/git/8626b4d8b10dfd33e41cea5debd186cd0e993c25
--cp ${HAXE_LIBCACHE}/untitled/0.0.0/git/8626b4d8b10dfd33e41cea5debd186cd0e993c25/
