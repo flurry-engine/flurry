@@ -1,9 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilFunction;
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher.ComparisonFunction;
-import cpp.UInt8;
-import cpp.Int32;
 import haxe.io.Bytes;
 import haxe.Exception;
 import haxe.io.UInt8Array;
@@ -11,6 +7,7 @@ import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
 import cpp.UInt16;
 import cpp.Float32;
+import cpp.Int32;
 import cpp.Pointer;
 import opengl.GL.*;
 import opengl.WebGL.getShaderParameter;
@@ -26,9 +23,12 @@ import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilFunction;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.ComparisonFunction;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
-import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
@@ -36,6 +36,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
+import uk.aidanlee.flurry.api.thread.JobQueue;
 
 using Safety;
 using cpp.NativeArray;
@@ -47,6 +48,8 @@ using cpp.NativeArray;
  */
 class OGL3Backend implements IRendererBackend
 {
+    static final RENDERER_THREADS = #if flurry_ogl3_no_multithreading 1 #else Std.int(Maths.max(SDL.getCPUCount() - 2, 1)) #end;
+
     /**
      * The number of floats in each vertex.
      */
@@ -110,7 +113,7 @@ class OGL3Backend implements IRendererBackend
     /**
      * Transformation vector used for transforming geometry vertices by a matrix.
      */
-    final transformationVector : Vector;
+    final transformationVectors : Array<Vector>;
 
     /**
      * Tracks the position and number of vertices for draw commands uploaded into the dynamic buffer.
@@ -138,6 +141,11 @@ class OGL3Backend implements IRendererBackend
      * Will be destroyed when the associated image resource is destroyed.
      */
     final framebufferObjects : Map<String, Int>;
+
+    /**
+     * Job queue for multi-threaded geometry uploading.
+     */
+    final jobQueue : JobQueue;
 
     /**
      * The number of vertices that have been written into the vertex buffer this frame.
@@ -191,8 +199,9 @@ class OGL3Backend implements IRendererBackend
         textureObjects     = [];
         framebufferObjects = [];
 
-        transformationVector = new Vector();
-        dynamicCommandRanges = [];
+        jobQueue              = new JobQueue(RENDERER_THREADS);
+        transformationVectors = [ for (i in 0...RENDERER_THREADS) new Vector() ];
+        dynamicCommandRanges  = [];
 
         vertexOffset      = 0;
         vertexFloatOffset = 0;
@@ -297,39 +306,65 @@ class OGL3Backend implements IRendererBackend
         {
             dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexByteOffset));
 
-            var rangeIndexOffset = 0;
+            var split     = Maths.floor(command.geometry.length / RENDERER_THREADS);
+            var remainder = command.geometry.length % RENDERER_THREADS;
+            var range     = command.geometry.length < RENDERER_THREADS ? command.geometry.length : RENDERER_THREADS;
+            for (i in 0...range)
+            {
+                var geomStartIdx   = split * i;
+                var geomEndIdx     = geomStartIdx + (i != range - 1 ? split : split + remainder);
+                var idxValueOffset = 0;
+                var idxWriteOffset = indexOffset;
+                var vtxWriteOffset = vertexFloatOffset;
+
+                for (j in 0...geomStartIdx)
+                {
+                    idxValueOffset += command.geometry[j].vertices.length;
+                    idxWriteOffset += command.geometry[j].indices.length;
+                    vtxWriteOffset += command.geometry[j].vertices.length * VERTEX_FLOAT_SIZE;
+                }
+
+                jobQueue.queue(() -> {
+                    for (j in geomStartIdx...geomEndIdx)
+                    {
+                        for (index in command.geometry[j].indices)
+                        {
+                            idxDst[idxWriteOffset++] = idxValueOffset + index;
+                        }
+
+                        for (vertex in command.geometry[j].vertices)
+                        {
+                            // Copy the vertex into another vertex.
+                            // This allows us to apply the transformation without permanently modifying the original geometry.
+                            transformationVectors[i].copyFrom(vertex.position);
+                            transformationVectors[i].transform(command.geometry[j].transformation.transformation);
+
+                            vtxDst[vtxWriteOffset++] = transformationVectors[i].x;
+                            vtxDst[vtxWriteOffset++] = transformationVectors[i].y;
+                            vtxDst[vtxWriteOffset++] = transformationVectors[i].z;
+                            vtxDst[vtxWriteOffset++] = vertex.color.r;
+                            vtxDst[vtxWriteOffset++] = vertex.color.g;
+                            vtxDst[vtxWriteOffset++] = vertex.color.b;
+                            vtxDst[vtxWriteOffset++] = vertex.color.a;
+                            vtxDst[vtxWriteOffset++] = vertex.texCoord.x;
+                            vtxDst[vtxWriteOffset++] = vertex.texCoord.y;
+                        }
+
+                        idxValueOffset += command.geometry[j].vertices.length;
+                    }
+                });
+            }
+
             for (geom in command.geometry)
             {
-                var matrix = geom.transformation.transformation;
-
-                for (index in geom.indices)
-                {
-                    idxDst[indexOffset++] = rangeIndexOffset + index;
-                }
-
-                for (vertex in geom.vertices)
-                {
-                    // Copy the vertex into another vertex.
-                    // This allows us to apply the transformation without permanently modifying the original geometry.
-                    transformationVector.copyFrom(vertex.position);
-                    transformationVector.transform(matrix);
-
-                    vtxDst[vertexFloatOffset++] = transformationVector.x;
-                    vtxDst[vertexFloatOffset++] = transformationVector.y;
-                    vtxDst[vertexFloatOffset++] = transformationVector.z;
-                    vtxDst[vertexFloatOffset++] = vertex.color.r;
-                    vtxDst[vertexFloatOffset++] = vertex.color.g;
-                    vtxDst[vertexFloatOffset++] = vertex.color.b;
-                    vtxDst[vertexFloatOffset++] = vertex.color.a;
-                    vtxDst[vertexFloatOffset++] = vertex.texCoord.x;
-                    vtxDst[vertexFloatOffset++] = vertex.texCoord.y;
-                }
-
-                vertexOffset     += geom.vertices.length;
-                vertexByteOffset += (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT) * geom.vertices.length;
-                indexByteOffset  += UInt16Array.BYTES_PER_ELEMENT * geom.indices.length;
-                rangeIndexOffset += geom.vertices.length;
+                vertexOffset      += geom.vertices.length;
+                vertexFloatOffset += geom.vertices.length * VERTEX_FLOAT_SIZE;
+                vertexByteOffset  += (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT) * geom.vertices.length;
+                indexOffset       += geom.indices.length;
+                indexByteOffset   += UInt16Array.BYTES_PER_ELEMENT * geom.indices.length;
             }
+
+            jobQueue.wait();
         }
 
         glUnmapBuffer(GL_ARRAY_BUFFER);

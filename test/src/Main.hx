@@ -34,6 +34,8 @@ class Main implements Buddy<[
 
     tests.api.resources.ResourceSystemTests,
 
+    tests.api.thread.JobQueueTests,
+
     tests.api.EventBusTests,
 
     tests.modules.differ.shapes.CircleTests,

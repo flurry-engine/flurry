@@ -1,7 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilFunction;
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher.ComparisonFunction;
 import haxe.io.Bytes;
 import haxe.io.Float32Array;
 import haxe.io.UInt32Array;
@@ -22,14 +20,11 @@ import opengl.GL.GLSync;
 import opengl.WebGL;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
-import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
-import uk.aidanlee.flurry.api.gpu.geometry.Geometry.PrimitiveType;
-import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
-import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
+import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.thread.JobQueue;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
@@ -37,6 +32,13 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
+import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
+import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
+import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilFunction;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.ComparisonFunction;
+import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
+import uk.aidanlee.flurry.api.gpu.geometry.Geometry.PrimitiveType;
 
 using Safety;
 using cpp.NativeArray;
@@ -178,6 +180,9 @@ class OGL4Backend implements IRendererBackend
      */
     final framebufferObjects : Map<String, Int>;
 
+    /**
+     * OpenGL sync objects used to lock writing into buffer ranges until they are visible to the GPU.
+     */
     final rangeSyncPrimitives : Array<GLSyncWrapper>;
 
     var currentRange : Int;
@@ -1092,12 +1097,22 @@ private class ShaderLocations
  */
 private class StreamBufferManager
 {
+    /**
+     * The maximum number of threads for writing to buffers.
+     */
+    static final RENDERER_THREADS = #if flurry_ogl4_no_multithreading 1 #else Std.int(Maths.max(SDL.getCPUCount() - 2, 1)) #end;
+
     final forceIncludeGL : GLSyncWrapper;
 
     /**
      * Constant vector for transforming vertices before being uploaded.
      */
-    final transformationVector : Vector;
+    final transformationVectors : Array<Vector>;
+
+    /**
+     * Queue to distribute writing tasks to multiple threads
+     */
+    final jobQueue : JobQueue;
 
     /**
      * The base vertex offset into the buffer that the stream buffer starts.
@@ -1157,7 +1172,8 @@ private class StreamBufferManager
     public function new(_vtxBaseOffset : Int, _idxBaseOffset : Int, _vtxRange : Int, _idxRange : Int, _vtxPtr : Pointer<UInt8>, _idxPtr : Pointer<UInt8>)
     {
         forceIncludeGL         = new GLSyncWrapper();
-        transformationVector   = new Vector();
+        transformationVectors  = [ for (i in 0...RENDERER_THREADS) new Vector() ];
+        jobQueue               = new JobQueue(RENDERER_THREADS);
         vtxBaseOffset          = _vtxBaseOffset;
         idxBaseOffset          = _idxBaseOffset;
         vtxRangeSize           = _vtxRange;
@@ -1194,38 +1210,63 @@ private class StreamBufferManager
         commandVtxOffsets.set(_command.id, vtxBaseOffset + currentVertexPosition);
         commandIdxOffsets.set(_command.id, idxBaseOffset + currentIdxTypePosition);
 
-        var commandIndexOffset = 0;
+        var split     = Maths.floor(_command.geometry.length / RENDERER_THREADS);
+        var remainder = _command.geometry.length % RENDERER_THREADS;
+        var range     = _command.geometry.length < RENDERER_THREADS ? _command.geometry.length : RENDERER_THREADS;
+        for (i in 0...range)
+        {
+            var geomStartIdx   = split * i;
+            var geomEndIdx     = geomStartIdx + (i != range - 1 ? split : split + remainder);
+            var idxValueOffset = 0;
+            var idxWriteOffset = currentIdxTypePosition;
+            var vtxWriteOffset = currentVtxTypePosition;
+
+            for (j in 0...geomStartIdx)
+            {
+                idxValueOffset += _command.geometry[j].vertices.length;
+                idxWriteOffset += _command.geometry[j].indices.length;
+                vtxWriteOffset += _command.geometry[j].vertices.length * 9;
+            }
+
+            jobQueue.queue(() -> {
+                for (j in geomStartIdx...geomEndIdx)
+                {
+                    for (index in _command.geometry[j].indices)
+                    {
+                        idxBuffer[idxWriteOffset++] = idxValueOffset + index;
+                    }
+
+                    for (vertex in _command.geometry[j].vertices)
+                    {
+                        // Copy the vertex into another vertex.
+                        // This allows us to apply the transformation without permanently modifying the original geometry.
+                        transformationVectors[i].copyFrom(vertex.position);
+                        transformationVectors[i].transform(_command.geometry[j].transformation.transformation);
+
+                        vtxBuffer[vtxWriteOffset++] = transformationVectors[i].x;
+                        vtxBuffer[vtxWriteOffset++] = transformationVectors[i].y;
+                        vtxBuffer[vtxWriteOffset++] = transformationVectors[i].z;
+                        vtxBuffer[vtxWriteOffset++] = vertex.color.r;
+                        vtxBuffer[vtxWriteOffset++] = vertex.color.g;
+                        vtxBuffer[vtxWriteOffset++] = vertex.color.b;
+                        vtxBuffer[vtxWriteOffset++] = vertex.color.a;
+                        vtxBuffer[vtxWriteOffset++] = vertex.texCoord.x;
+                        vtxBuffer[vtxWriteOffset++] = vertex.texCoord.y;
+                    }
+
+                    idxValueOffset += _command.geometry[j].vertices.length;
+                }
+            });
+        }
 
         for (geom in _command.geometry)
         {
-            var matrix = geom.transformation.transformation;
-
-            for (index in geom.indices)
-            {
-                idxBuffer[currentIdxTypePosition++] = commandIndexOffset + index;
-            }
-
-            for (vertex in geom.vertices)
-            {
-                // Copy the vertex into another vertex.
-                // This allows us to apply the transformation without permanently modifying the original geometry.
-                transformationVector.copyFrom(vertex.position);
-                transformationVector.transform(matrix);
-
-                vtxBuffer[currentVtxTypePosition++] = transformationVector.x;
-                vtxBuffer[currentVtxTypePosition++] = transformationVector.y;
-                vtxBuffer[currentVtxTypePosition++] = transformationVector.z;
-                vtxBuffer[currentVtxTypePosition++] = vertex.color.r;
-                vtxBuffer[currentVtxTypePosition++] = vertex.color.g;
-                vtxBuffer[currentVtxTypePosition++] = vertex.color.b;
-                vtxBuffer[currentVtxTypePosition++] = vertex.color.a;
-                vtxBuffer[currentVtxTypePosition++] = vertex.texCoord.x;
-                vtxBuffer[currentVtxTypePosition++] = vertex.texCoord.y;
-            }
-
-            currentVertexPosition += geom.vertices.length;
-            commandIndexOffset += geom.vertices.length;
+            currentIdxTypePosition += geom.indices.length;
+            currentVtxTypePosition += geom.vertices.length * 9;
+            currentVertexPosition  += geom.vertices.length;
         }
+
+        jobQueue.wait();
     }
 
     /**
@@ -1297,6 +1338,11 @@ private class StreamBufferManager
  */
 private class StaticBufferManager
 {
+    /**
+     * The maximum number of threads for writing to buffers.
+     */
+    static final RENDERER_THREADS = #if flurry_ogl4_no_multithreading 1 #else Std.int(Maths.max(SDL.getCPUCount() - 2, 1)) #end;
+
     final forceIncludeGL : GLSyncWrapper;
 
     /**
@@ -1337,6 +1383,11 @@ private class StaticBufferManager
     final rangesToRemove : Array<Int>;
 
     /**
+     * Queue to distribute writing tasks to multiple threads
+     */
+    final jobQueue : JobQueue;
+
+    /**
      * Current vertex write position for uploading new commands.
      */
     var vtxPosition : Int;
@@ -1350,6 +1401,7 @@ private class StaticBufferManager
     {
         forceIncludeGL = new GLSyncWrapper();
         identityMatrix = new Matrix();
+        jobQueue       = new JobQueue(RENDERER_THREADS);
         maxVertices    = _vtxBufferSize;
         maxIndices     = _idxBufferSize;
         glVbo          = _glVbo;
@@ -1390,81 +1442,114 @@ private class StaticBufferManager
             {
                 ranges.remove(id);
             }
-        }
+        }       
 
         if (!ranges.exists(_command.id))
         {
-            var vtxPtr = new Float32Array(_command.vertices * 9);
-            var idxPtr = new UInt16Array(_command.indices);
-            var vtxIdx = 0;
-            var idxIdx = 0;
+            var buffers = [ 0, 0 ];
+            glCreateBuffers(buffers.length, buffers);
 
-            for (geom in _command.geometry)
+            // Distribute uploading the vertex data and generating command buffers to threads.
+            // Vertex data is spread across RENDERER_THREADS - 1 so the command buffer uploading will have its own thread.
+
+            // Distribute
+
+            var vtxPtr    = new Float32Array(_command.vertices * 9);
+            var idxPtr    = new UInt16Array(_command.indices);
+            var split     = Maths.floor(_command.geometry.length / RENDERER_THREADS);
+            var remainder = _command.geometry.length % RENDERER_THREADS;
+            var range     = _command.geometry.length < RENDERER_THREADS ? _command.geometry.length : RENDERER_THREADS;
+
+            for (i in 0...range)
             {
-                for (index in geom.indices)
+                var vtxIdx       = 0;
+                var idxIdx       = 0;
+                var geomStartIdx = split * i;
+                var geomEndIdx   = geomStartIdx + (i != range - 1 ? split : split + remainder);
+
+                for (j in 0...geomStartIdx)
                 {
-                    idxPtr[idxIdx++] = index;
+                    vtxIdx += _command.geometry[j].vertices.length * 9;
+                    idxIdx += _command.geometry[j].indices.length;
                 }
 
-                for (vertex in geom.vertices)
-                {
-                    vtxPtr[vtxIdx++] = vertex.position.x;
-                    vtxPtr[vtxIdx++] = vertex.position.y;
-                    vtxPtr[vtxIdx++] = vertex.position.z;
-                    vtxPtr[vtxIdx++] = vertex.color.r;
-                    vtxPtr[vtxIdx++] = vertex.color.g;
-                    vtxPtr[vtxIdx++] = vertex.color.b;
-                    vtxPtr[vtxIdx++] = vertex.color.a;
-                    vtxPtr[vtxIdx++] = vertex.texCoord.x;
-                    vtxPtr[vtxIdx++] = vertex.texCoord.y;
-                }
+                jobQueue.queue(() -> {
+                    for (j in geomStartIdx...geomEndIdx)
+                    {
+                        for (index in _command.geometry[j].indices)
+                        {
+                            idxPtr[idxIdx++] = index;
+                        }
+
+                        for (vertex in _command.geometry[j].vertices)
+                        {
+                            vtxPtr[vtxIdx++] = vertex.position.x;
+                            vtxPtr[vtxIdx++] = vertex.position.y;
+                            vtxPtr[vtxIdx++] = vertex.position.z;
+                            vtxPtr[vtxIdx++] = vertex.color.r;
+                            vtxPtr[vtxIdx++] = vertex.color.g;
+                            vtxPtr[vtxIdx++] = vertex.color.b;
+                            vtxPtr[vtxIdx++] = vertex.color.a;
+                            vtxPtr[vtxIdx++] = vertex.texCoord.x;
+                            vtxPtr[vtxIdx++] = vertex.texCoord.y;
+                        }
+                    }
+                });
             }
+
+            // Create command buffer
+            var mdiCommands : Null<UInt32Array> = null;
+
+            // thread
+            jobQueue.queue(() -> {
+                if (_command.indices > 0)
+                {
+                    mdiCommands = new UInt32Array(_command.geometry.length * 5);
+                    var writePos     = 0;
+                    var cmdVtxOffset = vtxPosition;
+                    var cmdIdxOffset = idxPosition;
+
+                    for (geom in _command.geometry)
+                    {
+                        mdiCommands[writePos++] = geom.indices.length;
+                        mdiCommands[writePos++] = 1;
+                        mdiCommands[writePos++] = cmdIdxOffset;
+                        mdiCommands[writePos++] = cmdVtxOffset;
+                        mdiCommands[writePos++] = 0;
+
+                        cmdVtxOffset += geom.vertices.length;
+                    }
+                }
+                else
+                {
+                    mdiCommands = new UInt32Array(_command.geometry.length * 4);
+                    var writePos     = 0;
+                    var cmdVtxOffset = 0;
+
+                    for (geom in _command.geometry)
+                    {
+                        mdiCommands[writePos++] = geom.vertices.length;
+                        mdiCommands[writePos++] = 1;
+                        mdiCommands[writePos++] = cmdVtxOffset;
+                        mdiCommands[writePos++] = 0;
+
+                        cmdVtxOffset += geom.vertices.length;
+                    }
+                }
+            });
+
+            jobQueue.wait();
 
             glNamedBufferSubData(glVbo, vtxPosition * 9 * 4, vtxPtr.view.buffer.length, vtxPtr.view.buffer.getData());
             glNamedBufferSubData(glIbo, idxPosition * 2, idxPtr.view.buffer.length, idxPtr.view.buffer.getData());
 
-            // TODO : Create a matrix and command buffer for the draw command.
-            var buffers = [ 0, 0 ];
-            glCreateBuffers(buffers.length, buffers);
-
-            // Create command buffer
             if (_command.indices > 0)
             {
-                var mdiCommands  = new UInt32Array(_command.geometry.length * 5);
-                var writePos     = 0;
-                var cmdVtxOffset = vtxPosition;
-                var cmdIdxOffset = idxPosition;
-
-                for (geom in _command.geometry)
-                {
-                    mdiCommands[writePos++] = geom.indices.length;
-                    mdiCommands[writePos++] = 1;
-                    mdiCommands[writePos++] = cmdIdxOffset;
-                    mdiCommands[writePos++] = cmdVtxOffset;
-                    mdiCommands[writePos++] = 0;
-
-                    cmdVtxOffset += geom.vertices.length;
-                }
-
-                glNamedBufferStorage(buffers[0], _command.geometry.length * 20, mdiCommands.view.buffer.getData(), 0);
+                glNamedBufferStorage(buffers[0], _command.geometry.length * 20, mdiCommands.unsafe().view.buffer.getData(), 0);
             }
             else
             {
-                var mdiCommands  = new UInt32Array(_command.geometry.length * 4);
-                var writePos     = 0;
-                var cmdVtxOffset = 0;
-
-                for (geom in _command.geometry)
-                {
-                    mdiCommands[writePos++] = geom.vertices.length;
-                    mdiCommands[writePos++] = 1;
-                    mdiCommands[writePos++] = cmdVtxOffset;
-                    mdiCommands[writePos++] = 0;
-
-                    cmdVtxOffset += geom.vertices.length;
-                }
-
-                glNamedBufferStorage(buffers[0], _command.geometry.length * 16, mdiCommands.view.buffer.getData(), 0);
+                glNamedBufferStorage(buffers[0], _command.geometry.length * 16, mdiCommands.unsafe().view.buffer.getData(), 0);
             }
 
             // Create matrix buffer
@@ -1480,12 +1565,24 @@ private class StaticBufferManager
 
         // Upload the model matrices for all geometry in the command.
 
-        var rng = inline get(_command);
-        var ptr = Pointer.arrayElem(rng.matrixBuffer.view.buffer.getData(), 64);
-        for (geom in _command.geometry)
+        var split     = Maths.floor(_command.geometry.length / RENDERER_THREADS);
+        var remainder = _command.geometry.length % RENDERER_THREADS;
+        var range     = _command.geometry.length < RENDERER_THREADS ? _command.geometry.length : RENDERER_THREADS;
+        var data      = get(_command).matrixBuffer.view.buffer.getData();
+        for (i in 0...range)
         {
-            Stdlib.memcpy(ptr.incBy(64), (geom.transformation.transformation : Float32Array).view.buffer.getData().address(0), 64);
+            var geomStartIdx = split * i;
+            var geomEndIdx   = geomStartIdx + (i != range - 1 ? split : split + remainder);
+            
+            for (j in geomStartIdx...geomEndIdx)
+            {
+                jobQueue.queue(() -> {
+                    Stdlib.memcpy(data.address(128 + (j * 64)), (_command.geometry[j].transformation.transformation : Float32Array).view.buffer.getData().address(0), 64);
+                });
+            }
         }
+
+        jobQueue.wait();
     }
 
     /**

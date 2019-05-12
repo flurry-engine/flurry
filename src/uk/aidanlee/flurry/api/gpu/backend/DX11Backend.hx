@@ -62,6 +62,8 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.thread.JobQueue;
+import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.utils.BytesPacker;
@@ -77,6 +79,8 @@ using cpp.Native;
 ')
 class DX11Backend implements IRendererBackend
 {
+    static final RENDERER_THREADS = #if flurry_dx11_no_multithreading 1 #else Std.int(Maths.max(SDL.getCPUCount() - 2, 1)) #end;
+
     /**
      * Signals for when shaders and images are created and removed.
      */
@@ -95,7 +99,12 @@ class DX11Backend implements IRendererBackend
     /**
      * Constant vector instance which is used to transform vertices when copying into the vertex buffer.
      */
-    final transformationVector : Vector;
+    final transformationVectors : Array<Vector>;
+
+    /**
+     * Queue for running functions on another thread.
+     */
+    final jobQueue : JobQueue;
 
     /**
      * Tracks the position and number of vertices for draw commands uploaded into the dynamic buffer.
@@ -449,8 +458,9 @@ class DX11Backend implements IRendererBackend
         vertexFloatOffset = 0;
         indexOffset       = 0;
 
-        transformationVector = new Vector();
-        dynamicCommandRanges = new Map();
+        dynamicCommandRanges  = new Map();
+        transformationVectors = [ for (i in 0...RENDERER_THREADS) new Vector() ];
+        jobQueue              = new JobQueue(RENDERER_THREADS);
 
         // Setup initial state tracker
         viewport = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
@@ -497,44 +507,70 @@ class DX11Backend implements IRendererBackend
         }
 
         // Get a buffer to float32s so we can copy our float32array over.
-        var vtx : Pointer<Float32> = Pointer.fromRaw(mappedVtxBuffer.sysMem).reinterpret();
-        var idx : Pointer<UInt16>  = Pointer.fromRaw(mappedIdxBuffer.sysMem).reinterpret();
+        var vtxDst : Pointer<Float32> = Pointer.fromRaw(mappedVtxBuffer.sysMem).reinterpret();
+        var idxDst : Pointer<UInt16>  = Pointer.fromRaw(mappedIdxBuffer.sysMem).reinterpret();
 
         for (command in _commands)
         {
             dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexOffset));
 
-            var rangeIndexOffset = 0;
+            var split     = Maths.floor(command.geometry.length / RENDERER_THREADS);
+            var remainder = command.geometry.length % RENDERER_THREADS;
+            var range     = command.geometry.length < RENDERER_THREADS ? command.geometry.length : RENDERER_THREADS;
+            for (i in 0...range)
+            {
+                var geomStartIdx   = split * i;
+                var geomEndIdx     = geomStartIdx + (i != range - 1 ? split : split + remainder);
+                var idxValueOffset = 0;
+                var idxWriteOffset = indexOffset;
+                var vtxWriteOffset = vertexFloatOffset;
+
+                for (j in 0...geomStartIdx)
+                {
+                    idxValueOffset += command.geometry[j].vertices.length;
+                    idxWriteOffset += command.geometry[j].indices.length;
+                    vtxWriteOffset += command.geometry[j].vertices.length * 9;
+                }
+
+                jobQueue.queue(() -> {
+                    for (j in geomStartIdx...geomEndIdx)
+                    {
+                        for (index in command.geometry[j].indices)
+                        {
+                            idxDst[idxWriteOffset++] = idxValueOffset + index;
+                        }
+
+                        for (vertex in command.geometry[j].vertices)
+                        {
+                            // Copy the vertex into another vertex.
+                            // This allows us to apply the transformation without permanently modifying the original geometry.
+                            transformationVectors[i].copyFrom(vertex.position);
+                            transformationVectors[i].transform(command.geometry[j].transformation.transformation);
+
+                            vtxDst[vtxWriteOffset++] = transformationVectors[i].x;
+                            vtxDst[vtxWriteOffset++] = transformationVectors[i].y;
+                            vtxDst[vtxWriteOffset++] = transformationVectors[i].z;
+                            vtxDst[vtxWriteOffset++] = vertex.color.r;
+                            vtxDst[vtxWriteOffset++] = vertex.color.g;
+                            vtxDst[vtxWriteOffset++] = vertex.color.b;
+                            vtxDst[vtxWriteOffset++] = vertex.color.a;
+                            vtxDst[vtxWriteOffset++] = vertex.texCoord.x;
+                            vtxDst[vtxWriteOffset++] = vertex.texCoord.y;
+                        }
+
+                        idxValueOffset += command.geometry[j].vertices.length;
+                    }
+                });
+            }
+
             for (geom in command.geometry)
             {
-                var matrix = geom.transformation.transformation;
-
-                for (index in geom.indices)
-                {
-                    idx[indexOffset++] = rangeIndexOffset + index;
-                }
-
-                for (vertex in geom.vertices)
-                {
-                    // Copy the vertex into another vertex.
-                    // This allows us to apply the transformation without permanently modifying the original geometry.
-                    transformationVector.copyFrom(vertex.position);
-                    transformationVector.transform(matrix);
-
-                    vtx[vertexFloatOffset++] = transformationVector.x;
-                    vtx[vertexFloatOffset++] = transformationVector.y;
-                    vtx[vertexFloatOffset++] = transformationVector.z;
-                    vtx[vertexFloatOffset++] = vertex.color.r;
-                    vtx[vertexFloatOffset++] = vertex.color.g;
-                    vtx[vertexFloatOffset++] = vertex.color.b;
-                    vtx[vertexFloatOffset++] = vertex.color.a;
-                    vtx[vertexFloatOffset++] = vertex.texCoord.x;
-                    vtx[vertexFloatOffset++] = vertex.texCoord.y;
-                }
-
-                vertexOffset     += geom.vertices.length;
-                rangeIndexOffset += geom.vertices.length;
+                vertexFloatOffset += geom.vertices.length * 9;
+                indexOffset       += geom.indices.length;
+                vertexOffset      += geom.vertices.length;
             }
+
+            jobQueue.wait();
         }
 
         context.unmap(vertexBuffer, 0);
