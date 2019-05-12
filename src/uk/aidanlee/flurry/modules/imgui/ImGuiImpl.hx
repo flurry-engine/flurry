@@ -14,6 +14,8 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.gpu.UploadType;
 import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.DepthOptions;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilOptions;
 import imgui.ImGui;
 import imgui.draw.ImDrawData;
 import imgui.util.ImVec2;
@@ -26,11 +28,33 @@ class ImGuiImpl
     final vtxData  : Float32Array;
     final idxData  : UInt16Array;
     final camera   : OrthographicCamera;
+    final depth    : DepthOptions;
+    final stencil  : StencilOptions;
 
     public function new(_flurry : Flurry)
     {
         flurry = _flurry;
         camera = new OrthographicCamera(flurry.display.width, flurry.display.height);
+        depth  = {
+            depthTesting  : false,
+            depthMasking  : false,
+            depthFunction : Always
+        };
+        stencil = {
+            stencilTesting : false,
+
+            stencilFrontMask          : 0xff,
+            stencilFrontFunction      : Always,
+            stencilFrontTestFail      : Keep,
+            stencilFrontDepthTestFail : Keep,
+            stencilFrontDepthTestPass : Keep,
+            
+            stencilBackMask          : 0xff,
+            stencilBackFunction      : Always,
+            stencilBackTestFail      : Keep,
+            stencilBackDepthTestFail : Keep,
+            stencilBackDepthTestPass : Keep
+        }
 
         ImGui.createContext();
 
@@ -218,6 +242,8 @@ class ImGuiImpl
                     null,
                     [ t.value ],
                     clip,
+                    depth,
+                    stencil,
                     true,
                     SrcAlpha,
                     OneMinusSrcAlpha,
