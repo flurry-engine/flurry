@@ -13,7 +13,7 @@ pool:
 steps:
 - task: InstallSSHKey@0
   inputs:
-    hostName: github.com
+    hostName: dXElp6xUxUU0uEFSSYE5k0njNtQ=|060t5zjUbAvj5Es68NMEwyBVOpo=
     sshPublicKey: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCl8fzt0pSMHDoFDAMRjIZCkCF4KIFDVLMh+UxXTu8mQsPQbxKgiJDLgbmAwPRoSKjMQD2dJrFuPmeDsB69H4DG8uFqDJypQyvTZPbuk0q2pzw8fjy7R1B8avYvxFwvoe1GTUg431yIbfYQua9LyNz0Yp08PgQcSFyHOHOi+YI9+qZzJEVNo6ah7sO4aEHekhpv84RNLovZH0RJztVJbh83mvti8meOIueBomjBZBlQ5z5h07qY1ovBzEI7U6upsU3P0pYerebe/eC11yFQTEFNQFwqgCR1IR9nb8YQhYbzyxSgpxlf74T006ilwdOXhrHCLgaPJQDlgpDUph2GimSj aidan@aidan
     sshKeySecureFile: id_rsa
 
