@@ -1,3 +1,3 @@
 -D linc_directx=0.0.0
-# @install: lix --silent download "gh://github.com/Aidan63/linc_directx#7b72cc6c393c07a387f8958d4f0e897d30774218" into linc_directx/0.0.0/github/7b72cc6c393c07a387f8958d4f0e897d30774218
--cp ${HAXE_LIBCACHE}/linc_directx/0.0.0/github/7b72cc6c393c07a387f8958d4f0e897d30774218/
+# @install: lix --silent download "gh://github.com/aidan63/linc_directx#f6a8cd661d999f4c902885a0837361b86ca27bf6" into linc_directx/0.0.0/github/f6a8cd661d999f4c902885a0837361b86ca27bf6
+-cp ${HAXE_LIBCACHE}/linc_directx/0.0.0/github/f6a8cd661d999f4c902885a0837361b86ca27bf6/

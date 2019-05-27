@@ -1,4 +1,4 @@
 -D hxcpp=4.0.0
-# @install: lix --silent download "gh://github.com/HaxeFoundation/hxcpp#7572961891a9012b1430da6dc6133f8cb80bcb7e" into hxcpp/4.0.0/github/7572961891a9012b1430da6dc6133f8cb80bcb7e
-# @run: haxelib run-dir hxcpp ${HAXE_LIBCACHE}/hxcpp/4.0.0/github/7572961891a9012b1430da6dc6133f8cb80bcb7e
--cp ${HAXE_LIBCACHE}/hxcpp/4.0.0/github/7572961891a9012b1430da6dc6133f8cb80bcb7e/
+# @install: lix --silent download "gh://github.com/HaxeFoundation/hxcpp#bfd7420cb2fd3f05750e0409f880ecf8e42ff299" into hxcpp/4.0.0/github/bfd7420cb2fd3f05750e0409f880ecf8e42ff299
+# @run: haxelib run-dir hxcpp ${HAXE_LIBCACHE}/hxcpp/4.0.0/github/bfd7420cb2fd3f05750e0409f880ecf8e42ff299
+-cp ${HAXE_LIBCACHE}/hxcpp/4.0.0/github/bfd7420cb2fd3f05750e0409f880ecf8e42ff299/
