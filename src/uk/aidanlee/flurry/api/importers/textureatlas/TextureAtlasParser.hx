@@ -24,7 +24,7 @@ class TextureAtlasParser
         }
 
         // Filter out empty lines. Atlas files from the libGDX have an empty first line.
-        var lines = _atlasData.split('\r\n').filter(f -> f != '');
+        var lines = _atlasData.split('\n').filter(f -> f != '');
 
         var name   = lines[0];
         var size   = readSize  (lines[1]);
