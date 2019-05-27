@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.importers.textureatlas;
 
+import haxe.io.Eof;
+import haxe.io.StringInput;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas.TextureAtlasRepeat;
@@ -24,8 +26,23 @@ class TextureAtlasParser
         }
 
         // Filter out empty lines. Atlas files from the libGDX have an empty first line.
-        var lines = _atlasData.split('\n').filter(f -> f != '');
+        var input   = new StringInput(_atlasData);
+        var lines   = [];
+        var reading = true;
+        while (reading)
+        {
+            try
+            {
+                lines.push(input.readLine());
+            }
+            catch (_e : Eof)
+            {
+                reading = false;
+            }
+        }
 
+        lines = lines.filter(f -> f != '');
+        
         var name   = lines[0];
         var size   = readSize  (lines[1]);
         var format = readFormat(lines[2]);

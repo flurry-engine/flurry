@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.importers.bmfont;
 
+import haxe.io.Eof;
+import haxe.io.StringInput;
 import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontData.Character;
 /**
  * Parses and returns an anonymous structure of font data based on a font file description.
@@ -20,7 +22,20 @@ class BitmapFontParser
         }
 
         // Split the input string into its lines.
-        var lines = _fontData.split('\n');
+        var input   = new StringInput(_fontData);
+        var lines   = [];
+        var reading = true;
+        while (reading)
+        {
+            try
+            {
+                lines.push(input.readLine());
+            }
+            catch (_e : Eof)
+            {
+                reading = false;
+            }
+        }
         var first = lines[0];
 
         // Check if the first 4 characters is 'info', it not its not a valid BMFont string.
