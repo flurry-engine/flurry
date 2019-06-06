@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import d3d11.enumerations.D3d11CreateDeviceFlags;
 import d3d11.enumerations.D3d11PrimitiveTopology;
 import d3d11.enumerations.D3d11ClearFlag;
 import d3d11.enumerations.D3d11StencilOp;
@@ -17,7 +18,7 @@ import d3d11.structures.D3d11SamplerDescription;
 import d3d11.interfaces.D3d11RenderTargetView;
 import d3d11.structures.D3d11SubResourceData;
 import d3dcompiler.D3dCompiler;
-import d3dcompiler.interfaces.D3dBlob;
+import d3dcommon.interfaces.D3dBlob;
 import d3d11.structures.D3d11MappedSubResource;
 import d3d11.interfaces.D3d11DepthStencilView;
 import d3d11.structures.D3d11DepthStencilViewDescription;
@@ -331,8 +332,13 @@ class DX11Backend implements IRendererBackend
         description.bufferUsage       = RenderTargetOutput;
         description.windowed          = true;
 
+        var deviceCreationFlags = D3d11CreateDeviceFlags.SingleThreaded;
+#if debug
+        deviceCreationFlags |= D3d11CreateDeviceFlags.Debug;
+#end
+
         // Create our actual device and swapchain
-        if (D3d11.createDevice(adapter, Unknown, null, None, null, D3d11.SdkVersion, device, null, context) != Ok)
+        if (D3d11.createDevice(adapter, Unknown, null, deviceCreationFlags, null, D3d11.SdkVersion, device, null, context) != Ok)
         {
             throw 'DirectX 11 Backend Exception : Failed to create D3D11 device';
         }
@@ -340,11 +346,6 @@ class DX11Backend implements IRendererBackend
         {
             throw 'DirectX 11 Backend Exception : Failed to create DXGI swapchain';
         }
-
-        // Release now un-needed DXGI resources
-        factory.release();
-        adapter.release();
-        output.release();
 
         // Create the backbuffer render target.
         backbuffer = new BackBuffer(_windowConfig.width, _windowConfig.height, 1);
@@ -792,14 +793,14 @@ class DX11Backend implements IRendererBackend
 
         // Create the vertex shader
         var vertexShader = new D3d11VertexShader();
-        if (device.createVertexShader(vertexBytecode.getBufferPointer(), vertexBytecode.getBufferSize(), null, vertexShader) != Ok)
+        if (device.createVertexShader(vertexBytecode, null, vertexShader) != Ok)
         {
             throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to create vertex shader';
         }
 
         // Create the fragment shader
         var pixelShader = new D3d11PixelShader();
-        if (device.createPixelShader(pixelBytecode.getBufferPointer(), pixelBytecode.getBufferSize(), null, pixelShader) != Ok)
+        if (device.createPixelShader(pixelBytecode, null, pixelShader) != Ok)
         {
             throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to create pixel shader';
         }
@@ -830,14 +831,10 @@ class DX11Backend implements IRendererBackend
         elementTex.instanceDataStepRate = 0;
 
         var inputLayout = new D3d11InputLayout();
-        if (device.createInputLayout([ elementPos, elementCol, elementTex ], vertexBytecode.getBufferPointer(), vertexBytecode.getBufferSize(), inputLayout) != Ok)
+        if (device.createInputLayout([ elementPos, elementCol, elementTex ], vertexBytecode, inputLayout) != Ok)
         {
             throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to creating input layout';
         }
-
-        // Release the blob bytecode.
-        vertexBytecode.release();
-        pixelBytecode.release();
 
         // Create our shader and a class to store its resources.
         var resource = new DXShaderInformation(_resource.layout, vertexShader, pixelShader, inputLayout);
