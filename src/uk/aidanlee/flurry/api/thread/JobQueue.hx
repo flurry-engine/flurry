@@ -3,6 +3,7 @@ package uk.aidanlee.flurry.api.thread;
 import sys.thread.Thread;
 import hx.concurrent.atomic.AtomicInt;
 
+
 /**
  * Basic queue which allows running functions on separate threads and blocking until all work is finished.
  * Tries to keep synchronisation to a minimum for speed so it can be used in the rendering backends.
@@ -12,8 +13,9 @@ class JobQueue
     /**
      * The number of active jobs.
      * Active jobs include functions currently running and queued to run.
+     * This is a stack allocated native type so does not need to be created.
      */
-    public var activeJobs : AtomicInt;
+    public var activeJobs : StdAtomicInt;
 
     /**
      * All of the active threads in this job queue.
@@ -33,7 +35,7 @@ class JobQueue
     {
         threads      = [ for (i in 0..._threads) Thread.create(waitForWork) ];
         threadIndex  = 0;
-        activeJobs   = new AtomicInt(0);
+        activeJobs.store(0);
     }
 
     /**
@@ -42,7 +44,7 @@ class JobQueue
      */
     public function queue(_fn : Void->Void)
     {
-        activeJobs.increment();
+        activeJobs.fetch_add(1);
 
         threads[threadIndex].sendMessage(_fn);
 
@@ -54,7 +56,7 @@ class JobQueue
      */
     public function wait()
     {
-        while (activeJobs.value > 0)
+        while (activeJobs.load() > 0)
         {
             // bugger all
         }
@@ -67,7 +69,7 @@ class JobQueue
     {
         for (thread in threads)
         {
-            activeJobs.increment();
+            activeJobs.fetch_add(1);
 
             thread.sendMessage(true);
         }
@@ -85,14 +87,14 @@ class JobQueue
             var msg = Thread.readMessage(true);
             if (Std.is(msg, Bool))
             {
-                activeJobs.decrement();
+                activeJobs.fetch_sub(1);
 
                 return;
             }
 
             (msg : Void->Void)();
             
-            activeJobs.decrement();
+            activeJobs.fetch_sub(1);
         }
     }
 }
