@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry.modules.imgui;
 
 import cpp.Pointer;
-import cpp.RawPointer;
+import cpp.Star;
 import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
 import uk.aidanlee.flurry.api.input.Keycodes;
@@ -16,10 +16,7 @@ import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher.DepthOptions;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilOptions;
-import imgui.ImGui;
-import imgui.draw.ImDrawData;
-import imgui.util.ImVec2;
-import imgui.util.ImVec4;
+import imgui.NativeImGui;
 
 class ImGuiImpl
 {
@@ -56,9 +53,9 @@ class ImGuiImpl
             stencilBackDepthTestPass : Keep
         }
 
-        ImGui.createContext();
+        NativeImGui.createContext();
 
-        var io = ImGui.getIO();
+        var io = NativeImGui.getIO();
         io.configFlags = ImGuiConfigFlags.NavEnableKeyboard;
         io.keyMap[ImGuiKey.Tab       ] = Scancodes.tab;
         io.keyMap[ImGuiKey.LeftArrow ] = Scancodes.left;
@@ -84,22 +81,27 @@ class ImGuiImpl
         io.setClipboardTextFn = cpp.Callable.fromStaticFunction(setClipboard);
         io.getClipboardTextFn = cpp.Callable.fromStaticFunction(getClipboard);
 
-        var atlas  = Pointer.fromRaw(io.fonts).ref;
+        var data : cpp.Star<cpp.UInt8> = null;
         var width  = 0;
         var height = 0;
-        var pixels : Array<Int> = null;
-        atlas.getTexDataAsRGBA32(pixels, width, height);
+        var bpp    = 0;
+
+        io.fonts.getTexDataAsRGBA32(
+            cpp.Native.addressOf(data),
+            cpp.Native.addressOf(width),
+            cpp.Native.addressOf(height),
+            cpp.Native.addressOf(bpp));
 
         vtxData = new Float32Array(1000000);
         idxData = new UInt16Array(1000000);
 
-        texture = new ImageResource('imgui_texture', width, height, cast pixels);
-        atlas.texID = Pointer.addressOf(texture).rawCast();
+        texture = new ImageResource('imgui_texture', width, height, Pointer.fromRaw(cast data).toUnmanagedArray(width * height * bpp));
+        io.fonts.texID = cast cpp.Native.addressOf(texture);
 
         flurry.resources.addResource(texture);
 
         // Change the imgui style.
-        var style = ImGui.getStyle();
+        var style = NativeImGui.getStyle();
         style.windowBorderSize = 0;
         style.frameRounding    = 4;
         style.windowRounding   = 4;
@@ -118,7 +120,7 @@ class ImGuiImpl
      */
     public function newFrame()
     {
-        var io = ImGui.getIO();
+        var io = NativeImGui.getIO();
         io.displaySize  = ImVec2.create(flurry.display.width, flurry.display.height);
         io.mousePos.x   = flurry.display.mouseX;
         io.mousePos.y   = flurry.display.mouseY;
@@ -149,7 +151,7 @@ class ImGuiImpl
         io.keysDown[Scancodes.key_y    ] = flurry.input.isKeyDown(Keycodes.key_y);
         io.keysDown[Scancodes.key_z    ] = flurry.input.isKeyDown(Keycodes.key_z);
 
-        ImGui.newFrame();
+        NativeImGui.newFrame();
     }
 
     /**
@@ -161,8 +163,8 @@ class ImGuiImpl
         camera.size.set_xy(camera.viewport.w, camera.viewport.h);
         camera.update();
 
-        ImGui.render();
-        onRender(ImGui.getDrawData());
+        NativeImGui.render();
+        onRender(NativeImGui.getDrawData());
     }
 
     /**
@@ -179,38 +181,36 @@ class ImGuiImpl
      */
     public function onTextInput(_text : String)
     {
-        var io = ImGui.getIO();
+        var io = NativeImGui.getIO();
         io.addInputCharactersUTF8(_text);
     }
 
     /**
      * Creates immediate geometry and places them in the batcher.
-     * @param _dataRawPtr Draw data to render.
+     * @param _drawData Draw data to render.
      */
-    function onRender(_dataRawPtr : RawPointer<ImDrawData>) : Void
+    function onRender(_drawData : Star<ImDrawData>) : Void
     {
-        var drawData = Pointer.fromRaw(_dataRawPtr).value;
-
         var commands  = [];
         var vtxOffset = 0;
         var idxOffset = 0;
 
-        for (i in 0...drawData.cmdListsCount)
+        for (i in 0..._drawData.cmdListsCount)
         {
-            var cmdList   = Pointer.fromRaw(drawData.cmdLists[i]).value;
+            var cmdList   = _drawData.cmdLists[i];
             var cmdBuffer = cmdList.cmdBuffer.data;
             var vtxBuffer = cmdList.vtxBuffer.data;
             var idxBuffer = cmdList.idxBuffer.data;
-            for (j in 0...cmdList.cmdBuffer.size)
+            for (j in 0...cmdList.cmdBuffer.size())
             {
                 var vtxStart = vtxOffset;
                 var idxStart = idxOffset;
 
                 var cmd  = cmdBuffer[j];
                 var clip = new Rectangle(cmd.clipRect.x, cmd.clipRect.y, cmd.clipRect.z - cmd.clipRect.x, cmd.clipRect.w - cmd.clipRect.y);
-                var t : Pointer<ImageResource> = Pointer.fromRaw(cmd.textureID).reinterpret();
+                var t : Pointer<ImageResource> = Pointer.fromRaw(cast cmd.textureId).reinterpret();
 
-                for (i in 0...cmdList.vtxBuffer.size)
+                for (i in 0...cmdList.vtxBuffer.size())
                 {
                     vtxData[vtxOffset++] = vtxBuffer[i].pos.x;
                     vtxData[vtxOffset++] = vtxBuffer[i].pos.y;
@@ -223,7 +223,7 @@ class ImGuiImpl
                     vtxData[vtxOffset++] = vtxBuffer[i].uv.y;
                 }
 
-                for (i in 0...cmdList.idxBuffer.size)
+                for (i in 0...cmdList.idxBuffer.size())
                 {
                     idxData[idxOffset++] = idxBuffer[i];
                 }
@@ -259,12 +259,12 @@ class ImGuiImpl
 
     // Callbacks
 
-    static function getClipboard(_data : cpp.RawPointer<cpp.Void>) : cpp.ConstCharStar
+    static function getClipboard(_data : cpp.Star<cpp.Void>) : cpp.ConstCharStar
     {
         return sdl.SDL.getClipboardText();
     }
 
-    static function setClipboard(_data : cpp.RawPointer<cpp.Void>, _text : cpp.ConstCharStar)
+    static function setClipboard(_data : cpp.Star<cpp.Void>, _text : cpp.ConstCharStar)
     {
         sdl.SDL.setClipboardText(_text);
     }
