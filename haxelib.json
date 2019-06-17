@@ -6,5 +6,22 @@
         "Aidan"
     ],
     "releasenote": "initial release",
-    "classPath": "src"
+    "classPath": "src",
+    "dependencies": {
+        "hxcpp" : "",
+        "snow" : "",
+        "format" : "",
+        "haxe-concurrent" : "",
+        "signals" : "",
+        "safety" : "",
+        "exception" : "",
+        "hxtelemetry" : "",
+        "sys.io.abstractions" : "",
+        "linc_opengl" : "",
+        "linc_imgui" : "",
+        "linc_sdl" : "",
+        "linc_stb" : "",
+        "linc_timestamp" : "",
+        "linc_directx" : ""
+    }
 }
