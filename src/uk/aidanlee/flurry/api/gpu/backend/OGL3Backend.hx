@@ -9,6 +9,7 @@ import cpp.UInt16;
 import cpp.Float32;
 import cpp.Int32;
 import cpp.Pointer;
+import cpp.Stdlib;
 import opengl.GL.*;
 import opengl.WebGL.getShaderParameter;
 import opengl.WebGL.shaderSource;
@@ -26,6 +27,7 @@ import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilFunction;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher.ComparisonFunction;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
+import uk.aidanlee.flurry.api.gpu.geometry.Geometry.PrimitiveType;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Rectangle;
@@ -116,11 +118,6 @@ class OGL3Backend implements IRendererBackend
     final transformationVectors : Array<Vector>;
 
     /**
-     * Tracks the position and number of vertices for draw commands uploaded into the dynamic buffer.
-     */
-    final dynamicCommandRanges : Map<Int, DrawCommandRange>;
-
-        /**
      * Shader programs keyed by their associated shader resource IDs.
      */
     final shaderPrograms : Map<String, Int>;
@@ -158,19 +155,19 @@ class OGL3Backend implements IRendererBackend
     var vertexFloatOffset : Int;
 
     /**
-     * The number of bytes that have been written into the vertex buffer this frame.
-     */
-    var vertexByteOffset : Int;
-
-    /**
      * The number of indices that have been written into the index buffer this frame.
      */
     var indexOffset : Int;
 
     /**
-     * The number of bytes that have been written into the index buffer this frame.
+     * Map of command IDs and the vertex offset into the buffer.
      */
-    var indexByteOffset : Int;
+    var commandVtxOffsets : Map<Int, Int>;
+
+    /**
+     * Map of command IDs and the index offset into the buffer.
+     */
+    var commandIdxOffsets : Map<Int, Int>;
 
     // GL state variables
 
@@ -201,14 +198,12 @@ class OGL3Backend implements IRendererBackend
 
         jobQueue              = new JobQueue(RENDERER_THREADS);
         transformationVectors = [ for (i in 0...RENDERER_THREADS) new Vector() ];
-        dynamicCommandRanges  = [];
+        commandVtxOffsets     = [];
+        commandIdxOffsets     = [];
 
         vertexOffset      = 0;
         vertexFloatOffset = 0;
-        vertexByteOffset  = 0;
-
-        indexOffset     = 0;
-        indexByteOffset = 0;
+        indexOffset       = 0;
 
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
@@ -287,10 +282,9 @@ class OGL3Backend implements IRendererBackend
     {
         vertexOffset      = 0;
         vertexFloatOffset = 0;
-        vertexByteOffset  = 0;
-
-        indexOffset     = 0;
-        indexByteOffset = 0;
+        indexOffset       = 0;
+        commandVtxOffsets = [];
+        commandIdxOffsets = [];
     }
 
     /**
@@ -304,7 +298,8 @@ class OGL3Backend implements IRendererBackend
 
         for (command in _commands)
         {
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexByteOffset));
+            commandVtxOffsets.set(command.id, vertexOffset);
+            commandIdxOffsets.set(command.id, indexOffset);
 
             var split     = Maths.floor(command.geometry.length / RENDERER_THREADS);
             var remainder = command.geometry.length % RENDERER_THREADS;
@@ -359,9 +354,7 @@ class OGL3Backend implements IRendererBackend
             {
                 vertexOffset      += geom.vertices.length;
                 vertexFloatOffset += geom.vertices.length * VERTEX_FLOAT_SIZE;
-                vertexByteOffset  += (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT) * geom.vertices.length;
                 indexOffset       += geom.indices.length;
-                indexByteOffset   += UInt16Array.BYTES_PER_ELEMENT * geom.indices.length;
             }
 
             jobQueue.wait();
@@ -379,24 +372,24 @@ class OGL3Backend implements IRendererBackend
     {
         for (command in _commands)
         {
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexByteOffset));
+            commandVtxOffsets.set(command.id, vertexOffset);
+            commandIdxOffsets.set(command.id, indexOffset);
 
             var vtxDst : Pointer<Float32> = Pointer.fromRaw(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
             var idxDst : Pointer<UInt16>  = Pointer.fromRaw(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
 
-            for (i in command.vtxStartIndex...command.vtxEndIndex)
-            {
-                vtxDst[vertexFloatOffset++] = command.vtxData[i];
-            }
+            Stdlib.memcpy(
+                idxDst.incBy(indexOffset),
+                Pointer.arrayElem(command.idxData.view.buffer.getData(), command.idxStartIndex * 2),
+                command.indices * 2);
+            Stdlib.memcpy(
+                vtxDst.incBy(vertexOffset * 9),
+                Pointer.arrayElem(command.vtxData.view.buffer.getData(), command.vtxStartIndex * 9 * 4),
+                command.vertices * 9 * 4);
 
-            for (i in command.idxStartIndex...command.idxEndIndex)
-            {
-                idxDst[indexOffset++] = command.idxData[i];
-            }
-
-            vertexOffset     += command.vertices;
-            vertexByteOffset += command.vertices * (VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT);
-            indexByteOffset  += command.indices * UInt16Array.BYTES_PER_ELEMENT;
+            vertexOffset      += command.vertices;
+            vertexFloatOffset += command.vertices * 9;
+            indexOffset       += command.indices;
 
             glUnmapBuffer(GL_ARRAY_BUFFER);
             glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
@@ -412,40 +405,27 @@ class OGL3Backend implements IRendererBackend
     {
         for (command in _commands)
         {
-            var range = dynamicCommandRanges.get(command.id);
-
             // Change the state so the vertices are drawn correctly.
             setState(command, !_recordStats);
 
             // Draw the actual vertices
-            if (range.indices > 0)
+            if (command.indices > 0)
             {
-                switch (command.primitive)
-                {
-                    case Points        : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_POINTS        , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                    case Lines         : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINES         , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                    case LineStrip     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_LINE_STRIP    , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                    case Triangles     : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLES     , command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                    case TriangleStrip : untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', GL_TRIANGLE_STRIP, command.indices, GL_UNSIGNED_SHORT, range.indexByteOffset, range.vertexOffset);
-                }
+                var idxOffset = commandIdxOffsets.get(command.id) * 2;
+                var vtxOffset = commandVtxOffsets.get(command.id);
+                untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', getPrimitiveType(command.primitive), command.indices, GL_UNSIGNED_SHORT, idxOffset, vtxOffset);
             }
             else
             {
-                switch (command.primitive)
-                {
-                    case Points        : glDrawArrays(GL_POINTS        , range.vertexOffset, range.vertices);
-                    case Lines         : glDrawArrays(GL_LINES         , range.vertexOffset, range.vertices);
-                    case LineStrip     : glDrawArrays(GL_LINE_STRIP    , range.vertexOffset, range.vertices);
-                    case Triangles     : glDrawArrays(GL_TRIANGLES     , range.vertexOffset, range.vertices);
-                    case TriangleStrip : glDrawArrays(GL_TRIANGLE_STRIP, range.vertexOffset, range.vertices);
-                }
-            }            
+                var vtxOffset = commandVtxOffsets.get(command.id);
+                glDrawArrays(getPrimitiveType(command.primitive), vtxOffset, command.vertices);
+            }      
 
             // Record stats about this draw call.
             if (_recordStats)
             {
                 rendererStats.dynamicDraws++;
-                rendererStats.totalVertices += range.vertices;
+                rendererStats.totalVertices += command.vertices;
             }
         }
     }
@@ -1003,6 +983,18 @@ class OGL3Backend implements IRendererBackend
             case IncrementWrap: GL_INCR_WRAP;
             case Decrement: GL_DECR;
             case DecrementWrap: GL_DECR_WRAP;
+        }
+    }
+
+    function getPrimitiveType(_primitive : PrimitiveType) : Int
+    {
+        return switch (_primitive)
+        {
+            case Points        : GL_POINTS;
+            case Lines         : GL_LINES;
+            case LineStrip     : GL_LINE_STRIP;
+            case Triangles     : GL_TRIANGLES;
+            case TriangleStrip : GL_TRIANGLE_STRIP;
         }
     }
 }
