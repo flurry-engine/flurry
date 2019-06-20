@@ -6,6 +6,7 @@ import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
 import uk.aidanlee.flurry.api.input.Keycodes;
 import uk.aidanlee.flurry.api.input.Scancodes;
+import uk.aidanlee.flurry.api.input.InputEvents.InputEventTextInput;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Hash;
@@ -100,19 +101,11 @@ class ImGuiImpl
 
         flurry.resources.addResource(texture);
 
-        // Change the imgui style.
-        var style = NativeImGui.getStyle();
-        style.windowBorderSize = 0;
-        style.frameRounding    = 4;
-        style.windowRounding   = 4;
-        style.colors[10] = ImVec4.create(0.1, 0.1, 0.1, 1.0);
-        style.colors[11] = ImVec4.create(0.1, 0.1, 0.1, 1.0);
-        style.colors[12] = ImVec4.create(0.1, 0.1, 0.1, 1.0);
-
         // Hook into flurry events
         flurry.events.preUpdate.add(newFrame);
         flurry.events.postUpdate.add(render);
         flurry.events.shutdown.add(dispose);
+        flurry.events.input.textInput.add(onTextInput);
     }
 
     /**
@@ -179,10 +172,10 @@ class ImGuiImpl
      * Add text to imgui.
      * @param _text Text to add.
      */
-    public function onTextInput(_text : String)
+    public function onTextInput(_text : InputEventTextInput)
     {
         var io = NativeImGui.getIO();
-        io.addInputCharactersUTF8(_text);
+        io.addInputCharactersUTF8(_text.text);
     }
 
     /**
@@ -195,42 +188,49 @@ class ImGuiImpl
         var vtxOffset = 0;
         var idxOffset = 0;
 
+        var globalVtxOffset = 0;
+        var globalIdxOffset = 0;
+
         for (i in 0..._drawData.cmdListsCount)
         {
             var cmdList   = _drawData.cmdLists[i];
             var cmdBuffer = cmdList.cmdBuffer.data;
             var vtxBuffer = cmdList.vtxBuffer.data;
             var idxBuffer = cmdList.idxBuffer.data;
+            var vtxStart  = vtxOffset;
+            var idxStart  = idxOffset;
+
+            for (j in 0...cmdList.vtxBuffer.size())
+            {
+                vtxData[vtxOffset++] = vtxBuffer[j].pos.x;
+                vtxData[vtxOffset++] = vtxBuffer[j].pos.y;
+                vtxData[vtxOffset++] = 0;
+                vtxData[vtxOffset++] = ((vtxBuffer[j].col) & 0xFF) / 255;
+                vtxData[vtxOffset++] = ((vtxBuffer[j].col >>  8) & 0xFF) / 255;
+                vtxData[vtxOffset++] = ((vtxBuffer[j].col >> 16) & 0xFF) / 255;
+                vtxData[vtxOffset++] = ((vtxBuffer[j].col >> 24) & 0xFF) / 255;
+                vtxData[vtxOffset++] = vtxBuffer[j].uv.x;
+                vtxData[vtxOffset++] = vtxBuffer[j].uv.y;
+            }
+
+            for (j in 0...cmdList.idxBuffer.size())
+            {
+                idxData[idxOffset++] = idxBuffer[j];
+            }
+
             for (j in 0...cmdList.cmdBuffer.size())
             {
-                var vtxStart = vtxOffset;
-                var idxStart = idxOffset;
-
-                var cmd  = cmdBuffer[j];
-                var clip = new Rectangle(cmd.clipRect.x, cmd.clipRect.y, cmd.clipRect.z - cmd.clipRect.x, cmd.clipRect.w - cmd.clipRect.y);
-                var t : Pointer<ImageResource> = Pointer.fromRaw(cast cmd.textureId).reinterpret();
-
-                for (i in 0...cmdList.vtxBuffer.size())
-                {
-                    vtxData[vtxOffset++] = vtxBuffer[i].pos.x;
-                    vtxData[vtxOffset++] = vtxBuffer[i].pos.y;
-                    vtxData[vtxOffset++] = 0;
-                    vtxData[vtxOffset++] = ((vtxBuffer[i].col) & 0xFF) / 255;
-                    vtxData[vtxOffset++] = ((vtxBuffer[i].col >>  8) & 0xFF) / 255;
-                    vtxData[vtxOffset++] = ((vtxBuffer[i].col >> 16) & 0xFF) / 255;
-                    vtxData[vtxOffset++] = ((vtxBuffer[i].col >> 24) & 0xFF) / 255;
-                    vtxData[vtxOffset++] = vtxBuffer[i].uv.x;
-                    vtxData[vtxOffset++] = vtxBuffer[i].uv.y;
-                }
-
-                for (i in 0...cmdList.idxBuffer.size())
-                {
-                    idxData[idxOffset++] = idxBuffer[i];
-                }
+                var draw = cmdBuffer[j];
+                var clip = new Rectangle(
+                    draw.clipRect.x,
+                    draw.clipRect.y,
+                    draw.clipRect.z - draw.clipRect.x,
+                    draw.clipRect.w - draw.clipRect.y);
+                var t : Pointer<ImageResource> = Pointer.fromRaw(cast draw.textureId).reinterpret();
 
                 commands.push(new BufferDrawCommand(
-                    vtxData, vtxStart, vtxOffset,
-                    idxData, idxStart, idxOffset,
+                    vtxData, globalVtxOffset + draw.vtxOffset, vtxOffset,
+                    idxData, globalIdxOffset + draw.idxOffset, globalIdxOffset + draw.idxOffset + draw.elemCount,
                     Hash.uniqueHash(),
                     Stream,
                     camera.projection,
@@ -250,6 +250,9 @@ class ImGuiImpl
                     One,
                     Zero));
             }
+
+            globalIdxOffset += cmdList.idxBuffer.size();
+            globalVtxOffset += cmdList.vtxBuffer.size();
         }
         
         // Send commands to renderer backend.
