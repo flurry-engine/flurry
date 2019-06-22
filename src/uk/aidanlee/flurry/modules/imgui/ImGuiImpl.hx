@@ -222,8 +222,8 @@ class ImGuiImpl
             {
                 var draw = cmdBuffer[j];
                 var clip = new Rectangle(
-                    draw.clipRect.x,
-                    draw.clipRect.y,
+                    draw.clipRect.x - _drawData.displayPos.x,
+                    draw.clipRect.y - _drawData.displayPos.y,
                     draw.clipRect.z - draw.clipRect.x,
                     draw.clipRect.w - draw.clipRect.y);
                 var t : Pointer<ImageResource> = Pointer.fromRaw(cast draw.textureId).reinterpret();
