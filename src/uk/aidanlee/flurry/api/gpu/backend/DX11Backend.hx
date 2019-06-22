@@ -1001,6 +1001,7 @@ class DX11Backend implements IRendererBackend
             nativeView.topLeftY = viewport.y;
             nativeView.width    = viewport.w;
             nativeView.height   = viewport.h;
+
             context.rsSetViewports([ nativeView ]);
 
             rendererStats.viewportSwaps++;
@@ -1011,17 +1012,17 @@ class DX11Backend implements IRendererBackend
         {
             scissor.copyFrom(_command.clip);
 
-            nativeClip.left   = cast scissor.x;
-            nativeClip.top    = cast scissor.y;
-            nativeClip.right  = cast scissor.w;
-            nativeClip.bottom = cast scissor.h;
+            nativeClip.left   = Std.int(_command.clip.x);
+            nativeClip.top    = Std.int(_command.clip.y);
+            nativeClip.right  = Std.int(_command.clip.x + _command.clip.w);
+            nativeClip.bottom = Std.int(_command.clip.y + _command.clip.h);
 
             // If the clip rectangle has an area of 0 then set the width and height to that of the viewport
             // This essentially disables clipping by clipping the entire backbuffer size.
             if (scissor.area() == 0)
             {
-                nativeClip.right  = backbuffer.width;
-                nativeClip.bottom = backbuffer.height;
+                nativeClip.right  = Std.int(_command.clip.x + backbuffer.width);
+                nativeClip.bottom = Std.int(_command.clip.y + backbuffer.height);
             }
 
             context.rsSetScissorRects([ nativeClip ]);
