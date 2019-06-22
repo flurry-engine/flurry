@@ -497,6 +497,8 @@ class DX11Backend implements IRendererBackend
 
         resourceEvents.created.add(onResourceCreated);
         resourceEvents.removed.add(onResourceRemoved);
+        displayEvents.sizeChanged.add(onSizeChanged);
+        displayEvents.changeRequested.add(onSizeChangeRequest);
     }
 
     public function clear()
@@ -703,7 +705,11 @@ class DX11Backend implements IRendererBackend
     {
         backbuffer.width  = _width;
         backbuffer.height = _height;
+
+        context.omSetRenderTargets(null, null);
+
         backbuffer.renderTargetView.release();
+        swapchainTexture.release();
 
         if (swapchain.resizeBuffers(0, _width, _height, Unknown, 0) != Ok)
         {
@@ -733,6 +739,8 @@ class DX11Backend implements IRendererBackend
     {
         resourceEvents.created.remove(onResourceCreated);
         resourceEvents.removed.remove(onResourceRemoved);
+        displayEvents.sizeChanged.remove(onSizeChanged);
+        displayEvents.changeRequested.remove(onSizeChangeRequest);
 
         SDL.destroyWindow(window);
     }
@@ -1238,6 +1246,18 @@ class DX11Backend implements IRendererBackend
             case Decrement     : DecrSat;
             case DecrementWrap : Decr;
         }
+    }
+
+    function onSizeChanged(_data : DisplayEventData)
+    {
+        resize(_data.width, _data.height);
+    }
+
+    function onSizeChangeRequest(_data : DisplayEventChangeRequest)
+    {
+        SDL.setWindowFullscreen(window, _data.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : NONE);
+
+        resize(_data.width, _data.height);
     }
 }
 
