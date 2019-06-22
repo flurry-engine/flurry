@@ -206,6 +206,11 @@ class DX11Backend implements IRendererBackend
     final backbuffer : BackBuffer;
 
     /**
+     * Normalised RGBA colour to clear the backbuffer with each frame.
+     */
+    final clearColour : Array<Float>;
+
+    /**
      * Map of shader name to the D3D11 resources required to use the shader.
      */
     var shaderResources : Map<String, DXShaderInformation>;
@@ -479,6 +484,7 @@ class DX11Backend implements IRendererBackend
         commandVtxOffsets     = [];
         commandIdxOffsets     = [];
         transformationVectors = [ for (i in 0...RENDERER_THREADS) new Vector() ];
+        clearColour           = [ _rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a ];
         jobQueue              = new JobQueue(RENDERER_THREADS);
 
         // Setup initial state tracker
@@ -495,7 +501,7 @@ class DX11Backend implements IRendererBackend
 
     public function clear()
     {
-        context.clearRenderTargetView(backbuffer.renderTargetView, [ 0.2, 0.2, 0.2, 1.0 ]);
+        context.clearRenderTargetView(backbuffer.renderTargetView, clearColour);
         context.clearDepthStencilView(depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
     }
 
