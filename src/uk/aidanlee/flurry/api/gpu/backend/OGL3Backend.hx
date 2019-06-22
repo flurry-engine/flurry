@@ -370,30 +370,36 @@ class OGL3Backend implements IRendererBackend
      */
     public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void
     {
+        var idxDst : Pointer<UInt16>  = Pointer.fromRaw(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
+        var vtxDst : Pointer<Float32> = Pointer.fromRaw(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
+
+        idxDst.incBy(indexOffset);
+        vtxDst.incBy(vertexOffset * 9);
+
         for (command in _commands)
         {
-            commandVtxOffsets.set(command.id, vertexOffset);
             commandIdxOffsets.set(command.id, indexOffset);
-
-            var vtxDst : Pointer<Float32> = Pointer.fromRaw(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
-            var idxDst : Pointer<UInt16>  = Pointer.fromRaw(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
+            commandVtxOffsets.set(command.id, vertexOffset);
 
             Stdlib.memcpy(
-                idxDst.incBy(indexOffset),
+                idxDst,
                 Pointer.arrayElem(command.idxData.view.buffer.getData(), command.idxStartIndex * 2),
                 command.indices * 2);
             Stdlib.memcpy(
-                vtxDst.incBy(vertexOffset * 9),
+                vtxDst,
                 Pointer.arrayElem(command.vtxData.view.buffer.getData(), command.vtxStartIndex * 9 * 4),
                 command.vertices * 9 * 4);
 
+            indexOffset       += command.indices;
             vertexOffset      += command.vertices;
             vertexFloatOffset += command.vertices * 9;
-            indexOffset       += command.indices;
 
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+            idxDst.incBy(command.indices);
+            vtxDst.incBy(command.vertices * 9);
         }
+
+        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+        glUnmapBuffer(GL_ARRAY_BUFFER);
     }
 
     /**
