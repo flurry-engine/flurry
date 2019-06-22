@@ -1,59 +1,59 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import d3d11.enumerations.D3d11CreateDeviceFlags;
-import d3d11.enumerations.D3d11PrimitiveTopology;
-import d3d11.enumerations.D3d11ClearFlag;
-import d3d11.enumerations.D3d11StencilOp;
-import d3d11.structures.D3d11DepthStencilDescription;
-import d3d11.interfaces.D3d11InputLayout;
-import d3d11.structures.D3d11InputElementDescription;
-import d3d11.interfaces.D3d11PixelShader;
-import d3d11.interfaces.D3d11VertexShader;
-import d3d11.interfaces.D3d11DepthStencilState;
-import d3d11.enumerations.D3d11ComparisonFunction;
-import d3d11.enumerations.D3d11Blend;
-import d3d11.interfaces.D3d11SamplerState;
-import d3d11.interfaces.D3d11ShaderResourceView;
-import d3d11.structures.D3d11SamplerDescription;
-import d3d11.interfaces.D3d11RenderTargetView;
-import d3d11.structures.D3d11SubResourceData;
-import d3dcompiler.D3dCompiler;
-import d3dcommon.interfaces.D3dBlob;
-import d3d11.structures.D3d11MappedSubResource;
-import d3d11.interfaces.D3d11DepthStencilView;
-import d3d11.structures.D3d11DepthStencilViewDescription;
-import d3d11.structures.D3d11Texture2DDescription;
-import d3d11.enumerations.D3d11CpuAccessFlag;
-import d3d11.enumerations.D3d11BindFlag;
-import d3d11.structures.D3d11BufferDescription;
-import d3d11.enumerations.D3d11ColorWriteEnable;
-import d3d11.interfaces.D3d11Texture2D;
-import d3d11.D3d11;
-import dxgi.structures.DxgiSwapChainDescription;
-import dxgi.interfaces.DxgiOutput;
-import dxgi.interfaces.DxgiAdapter;
-import dxgi.interfaces.DxgiFactory;
-import dxgi.Dxgi;
-import d3d11.interfaces.D3d11RasterizerState;
-import d3d11.interfaces.D3d11BlendState;
-import d3d11.structures.D3d11RasterizerDescription;
-import d3d11.structures.D3d11BlendDescription;
-import d3d11.structures.D3d11Rect;
-import d3d11.structures.D3d11Viewport;
-import d3d11.interfaces.D3d11Buffer;
-import dxgi.interfaces.DxgiSwapChain;
-import d3d11.interfaces.D3d11DeviceContext;
-import d3d11.interfaces.D3d11Device;
 import haxe.io.Bytes;
-import haxe.ds.Map;
+import haxe.io.Float32Array;
 import cpp.Float32;
 import cpp.Int32;
 import cpp.UInt8;
 import cpp.UInt16;
 import cpp.Pointer;
+import cpp.Stdlib;
 import sdl.Window;
 import sdl.SDL;
-import haxe.io.Float32Array;
+import dxgi.Dxgi;
+import dxgi.structures.DxgiSwapChainDescription;
+import dxgi.interfaces.DxgiOutput;
+import dxgi.interfaces.DxgiAdapter;
+import dxgi.interfaces.DxgiFactory;
+import dxgi.interfaces.DxgiSwapChain;
+import d3dcompiler.D3dCompiler;
+import d3dcommon.interfaces.D3dBlob;
+import d3d11.D3d11;
+import d3d11.enumerations.D3d11CreateDeviceFlags;
+import d3d11.enumerations.D3d11PrimitiveTopology;
+import d3d11.enumerations.D3d11ClearFlag;
+import d3d11.enumerations.D3d11StencilOp;
+import d3d11.enumerations.D3d11ComparisonFunction;
+import d3d11.enumerations.D3d11Blend;
+import d3d11.enumerations.D3d11CpuAccessFlag;
+import d3d11.enumerations.D3d11BindFlag;
+import d3d11.enumerations.D3d11ColorWriteEnable;
+import d3d11.structures.D3d11DepthStencilDescription;
+import d3d11.structures.D3d11SamplerDescription;
+import d3d11.structures.D3d11InputElementDescription;
+import d3d11.structures.D3d11SubResourceData;
+import d3d11.structures.D3d11BufferDescription;
+import d3d11.structures.D3d11MappedSubResource;
+import d3d11.structures.D3d11DepthStencilViewDescription;
+import d3d11.structures.D3d11Texture2DDescription;
+import d3d11.structures.D3d11RasterizerDescription;
+import d3d11.structures.D3d11BlendDescription;
+import d3d11.structures.D3d11Rect;
+import d3d11.structures.D3d11Viewport;
+import d3d11.interfaces.D3d11InputLayout;
+import d3d11.interfaces.D3d11PixelShader;
+import d3d11.interfaces.D3d11VertexShader;
+import d3d11.interfaces.D3d11DepthStencilState;
+import d3d11.interfaces.D3d11SamplerState;
+import d3d11.interfaces.D3d11ShaderResourceView;
+import d3d11.interfaces.D3d11RenderTargetView;
+import d3d11.interfaces.D3d11DepthStencilView;
+import d3d11.interfaces.D3d11Texture2D;
+import d3d11.interfaces.D3d11RasterizerState;
+import d3d11.interfaces.D3d11BlendState;
+import d3d11.interfaces.D3d11Buffer;
+import d3d11.interfaces.D3d11DeviceContext;
+import d3d11.interfaces.D3d11Device;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
@@ -113,11 +113,6 @@ class DX11Backend implements IRendererBackend
      * Queue for running functions on another thread.
      */
     final jobQueue : JobQueue;
-
-    /**
-     * Tracks the position and number of vertices for draw commands uploaded into the dynamic buffer.
-     */
-    final dynamicCommandRanges : Map<Int, DrawCommandRange>;
 
     /**
      * D3D11 device for this window.
@@ -246,6 +241,10 @@ class DX11Backend implements IRendererBackend
      * The number of indices that have been written into the index buffer this frame.
      */
     var indexOffset : Int;
+
+    var commandVtxOffsets : Map<Int, Int>;
+
+    var commandIdxOffsets : Map<Int, Int>;
 
     // State trackers
     var viewport : Rectangle;
@@ -477,7 +476,8 @@ class DX11Backend implements IRendererBackend
         vertexFloatOffset = 0;
         indexOffset       = 0;
 
-        dynamicCommandRanges  = [];
+        commandVtxOffsets     = [];
+        commandIdxOffsets     = [];
         transformationVectors = [ for (i in 0...RENDERER_THREADS) new Vector() ];
         jobQueue              = new JobQueue(RENDERER_THREADS);
 
@@ -504,6 +504,8 @@ class DX11Backend implements IRendererBackend
         vertexOffset      = 0;
         vertexFloatOffset = 0;
         indexOffset       = 0;
+        commandVtxOffsets = [];
+        commandIdxOffsets = [];
     }
 
     /**
@@ -529,7 +531,8 @@ class DX11Backend implements IRendererBackend
 
         for (command in _commands)
         {
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexOffset));
+            commandVtxOffsets.set(command.id, vertexOffset);
+            commandIdxOffsets.set(command.id, indexOffset);
 
             var split     = Maths.floor(command.geometry.length / RENDERER_THREADS);
             var remainder = command.geometry.length % RENDERER_THREADS;
@@ -611,28 +614,36 @@ class DX11Backend implements IRendererBackend
         }
 
         // Get a buffer to float32s so we can copy our float32array over.
-        var vtx : Pointer<Float32> = mappedVertexBuffer.data.reinterpret();
-        var idx : Pointer<UInt16>  = mappedIndexBuffer.data.reinterpret();
+        var idxDst : Pointer<UInt16>  = mappedIndexBuffer.data.reinterpret();
+        var vtxDst : Pointer<Float32> = mappedVertexBuffer.data.reinterpret();
+
+        idxDst.incBy(indexOffset);
+        vtxDst.incBy(vertexOffset * 9);
 
         for (command in _commands)
         {
-            dynamicCommandRanges.set(command.id, new DrawCommandRange(command.vertices, vertexOffset, command.indices, indexOffset));
+            commandIdxOffsets.set(command.id, indexOffset);
+            commandVtxOffsets.set(command.id, vertexOffset);
 
-            for (i in command.vtxStartIndex...command.vtxEndIndex)
-            {
-                vtx[vertexFloatOffset++] = command.vtxData[i];
-            }
+            Stdlib.memcpy(
+                idxDst,
+                Pointer.arrayElem(command.idxData.view.buffer.getData(), command.idxStartIndex * 2),
+                command.indices * 2);
+            Stdlib.memcpy(
+                vtxDst,
+                Pointer.arrayElem(command.vtxData.view.buffer.getData(), command.vtxStartIndex * 9 * 4),
+                command.vertices * 9 * 4);
 
-            for (i in command.idxStartIndex...command.idxEndIndex)
-            {
-                idx[indexOffset++] = command.idxData[i];
-            }
+            indexOffset       += command.indices;
+            vertexOffset      += command.vertices;
+            vertexFloatOffset += command.vertices * 9;
 
-            vertexOffset += command.vertices;
+            idxDst.incBy(command.indices);
+            vtxDst.incBy(command.vertices * 9);
         }
 
-        context.unmap(vertexBuffer, 0);
         context.unmap(indexBuffer, 0);
+        context.unmap(vertexBuffer, 0);
     }
 
     /**
@@ -644,19 +655,20 @@ class DX11Backend implements IRendererBackend
     {
         for (command in _commands)
         {
-            var range = dynamicCommandRanges.get(command.id);
+            var idxOffset = commandIdxOffsets.get(command.id);
+            var vtxOffset = commandVtxOffsets.get(command.id);
 
             // Set context state
             setState(command);
 
             // Draw
             if (command.indices > 0)
-            {
-                context.drawIndexed(command.indices, range.indexOffset, range.vertexOffset);
+            {               
+                context.drawIndexed(command.indices, idxOffset, vtxOffset);
             }
             else
             {
-                context.draw(range.vertices, range.vertexOffset);
+                context.draw(command.vertices, vtxOffset);
             }
 
             // Record stats
