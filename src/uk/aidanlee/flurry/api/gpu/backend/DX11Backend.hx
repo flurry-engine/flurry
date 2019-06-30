@@ -729,6 +729,10 @@ class DX11Backend implements IRendererBackend
         context.omSetRenderTargets([ backbuffer.renderTargetView ], depthStencilView);
         target = null;
 
+        // Set the scissor to the new width and height.
+        // This is needed to force a clip change so it doesn't stay with the old backbuffer size.
+        scissor.set(0, 0, _width, _height);
+
         rendererStats.targetSwaps++;
     }
 
