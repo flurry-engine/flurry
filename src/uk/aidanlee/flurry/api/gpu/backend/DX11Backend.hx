@@ -369,6 +369,8 @@ class DX11Backend implements IRendererBackend
         nativeView.topLeftY = 0;
         nativeView.width    = _windowConfig.width;
         nativeView.height   = _windowConfig.height;
+        nativeView.minDepth = 0;
+        nativeView.maxDepth = 1;
 
         // Create the default clip
         nativeClip = new D3d11Rect();
