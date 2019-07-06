@@ -521,14 +521,11 @@ class DX11Backend implements IRendererBackend
         displayEvents.changeRequested.add(onSizeChangeRequest);
     }
 
-    public function clear()
+    public function preDraw()
     {
         context.clearRenderTargetView(backbuffer.renderTargetView, clearColour);
         context.clearDepthStencilView(depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
-    }
 
-    public function preDraw()
-    {
         vertexOffset      = 0;
         vertexFloatOffset = 0;
         indexOffset       = 0;

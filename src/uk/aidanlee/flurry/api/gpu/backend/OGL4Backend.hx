@@ -333,14 +333,6 @@ class OGL4Backend implements IRendererBackend
     }
 
     /**
-     * Clears the display with the colour bit.
-     */
-    public function clear()
-    {
-        //
-    }
-
-    /**
      * Unlock the range we will be writing into and set the offsets to that of the range.
      */
     public function preDraw()

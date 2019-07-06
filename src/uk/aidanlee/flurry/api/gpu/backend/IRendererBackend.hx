@@ -11,11 +11,6 @@ import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 interface IRendererBackend
 {
     /**
-     * Clear the render target.
-     */
-    function clear() : Void;
-
-    /**
      * Called before any draw() functions.
      */
     function preDraw() : Void;

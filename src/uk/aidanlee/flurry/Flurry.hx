@@ -144,7 +144,6 @@ class Flurry extends App
         }
 
         // Pre-draw
-        renderer.clear();
         renderer.preRender();
 
         // Our game specific logic, only do it if our default parcel has loaded.

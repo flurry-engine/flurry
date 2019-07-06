@@ -98,14 +98,6 @@ class Renderer
     }
 
     /**
-     * Clears the display.
-     */
-    public function clear()
-    {
-        backend.clear();
-    }
-
-    /**
      * Create and return a batcher. The returned batcher is automatically added to the renderer.
      * @param _options Batcher options.
      * @return Batcher

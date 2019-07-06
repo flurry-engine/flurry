@@ -278,20 +278,14 @@ class OGL3Backend implements IRendererBackend
         displayEvents.changeRequested.add(onChangeRequest);
     }
 
-    /**
-     * Clear the render target.
-     */
-    public function clear()
+    public function preDraw()
     {
         // Disable the clip to clear the entire target.
         clip.set(0, 0, backbuffer.width, backbuffer.height);
         glScissor(0, 0, backbuffer.width, backbuffer.height);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    }
 
-    public function preDraw()
-    {
         vertexOffset      = 0;
         vertexFloatOffset = 0;
         indexOffset       = 0;
