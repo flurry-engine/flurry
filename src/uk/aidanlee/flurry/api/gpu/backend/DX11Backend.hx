@@ -73,6 +73,7 @@ import uk.aidanlee.flurry.api.thread.JobQueue;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.utils.BytesPacker;
 
 using Safety;
@@ -209,6 +210,11 @@ class DX11Backend implements IRendererBackend
      * Normalised RGBA colour to clear the backbuffer with each frame.
      */
     final clearColour : Array<Float>;
+
+    /**
+     * dummy identity matrix for passing into shaders so they have parity with OGL4 shaders.
+     */
+    final dummyModelMatrix : Matrix;
 
     /**
      * Map of shader name to the D3D11 resources required to use the shader.
@@ -488,6 +494,7 @@ class DX11Backend implements IRendererBackend
         transformationVectors = [ for (i in 0...RENDERER_THREADS) new Vector() ];
         clearColour           = [ _rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a ];
         jobQueue              = new JobQueue(RENDERER_THREADS);
+        dummyModelMatrix      = new Matrix();
 
         // Setup initial state tracker
         viewport = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
@@ -1161,6 +1168,7 @@ class DX11Backend implements IRendererBackend
             {
                 cpp.Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
                 cpp.Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
+                cpp.Stdlib.memcpy(ptr.incBy(64), (dummyModelMatrix    : Float32Array).view.buffer.getData().address(0), 64);
             }
             else
             {

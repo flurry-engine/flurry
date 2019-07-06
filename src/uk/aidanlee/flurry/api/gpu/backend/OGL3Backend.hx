@@ -30,6 +30,7 @@ import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry.PrimitiveType;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
@@ -145,6 +146,11 @@ class OGL3Backend implements IRendererBackend
     final jobQueue : JobQueue;
 
     /**
+     * dummy identity matrix for passing into shaders so they have parity with OGL4 shaders.
+     */
+    final dummyModelMatrix : Matrix;
+
+    /**
      * The number of vertices that have been written into the vertex buffer this frame.
      */
     var vertexOffset : Int;
@@ -196,6 +202,7 @@ class OGL3Backend implements IRendererBackend
         textureObjects     = [];
         framebufferObjects = [];
 
+        dummyModelMatrix      = new Matrix();
         jobQueue              = new JobQueue(RENDERER_THREADS);
         transformationVectors = [ for (i in 0...RENDERER_THREADS) new Vector() ];
         commandVtxOffsets     = [];
@@ -903,13 +910,13 @@ class OGL3Backend implements IRendererBackend
         {
             glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[i]);
 
-            //var ptr : Pointer<UInt8> = Pointer.fromRaw(glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY)).reinterpret();
             var ptr = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
 
             if (cache.layout.blocks[i].name == 'defaultMatrices')
             {
                 cpp.Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
                 cpp.Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
+                cpp.Stdlib.memcpy(ptr.incBy(64), (dummyModelMatrix    : Float32Array).view.buffer.getData().address(0), 64);
             }
             else
             {
