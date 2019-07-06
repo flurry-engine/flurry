@@ -4,7 +4,7 @@ import snow.Snow;
 import snow.api.Debug._debug;
 
 typedef RuntimeConfig = {}
-typedef WindowHandle = Int
+typedef WindowHandle = Int;
 
 class FlurryRuntimeCLI extends snow.core.native.Runtime
 {
