@@ -1,13 +1,13 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilOptions;
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher.DepthOptions;
 import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry.PrimitiveType;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilOptions;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.DepthOptions;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Matrix;
@@ -20,20 +20,34 @@ class BufferDrawCommand extends DrawCommand
     public final vtxData : Float32Array;
 
     /**
-     * The start index for this command.
+     * The start location for the vertex data.
      */
     public final vtxStartIndex : Int;
 
     /**
-     * The end index for this command.
+     * The end location ffor the vertex data.
      */
     public final vtxEndIndex : Int;
 
+    /**
+     * The buffer containing index data.
+     */
     public final idxData : UInt16Array;
 
+    /**
+     * The start location for the index data.
+     */
     public final idxStartIndex : Int;
 
+    /**
+     * The end location for the index data.
+     */
     public final idxEndIndex : Int;
+
+    /**
+     * Model matrix used to transform the vertex data.
+     */
+    public final model : Matrix;
 
     inline public function new(
         _vtxData       : Float32Array,
@@ -42,6 +56,7 @@ class BufferDrawCommand extends DrawCommand
         _idxData       : UInt16Array,
         _idxStartIndex : Int,
         _idxEndIndex   : Int,
+        _model         : Matrix,
 
         _id         : Int,
         _uploadType : UploadType,
@@ -69,6 +84,7 @@ class BufferDrawCommand extends DrawCommand
         idxData       = _idxData;
         idxStartIndex = _idxStartIndex;
         idxEndIndex   = _idxEndIndex;
+        model         = _model;
 
         super(_id, _uploadType, _projection, _view, vtxEndIndex - vtxStartIndex, idxEndIndex - idxStartIndex, _viewport, _primitive, _target, _shader, _uniforms, _textures, _clip, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
     }

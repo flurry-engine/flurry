@@ -253,9 +253,20 @@ class DX11Backend implements IRendererBackend
      */
     var indexOffset : Int;
 
+    /**
+     * Map of command IDs and the vertex offset into the buffer.
+     */
     var commandVtxOffsets : Map<Int, Int>;
 
+    /**
+     * Map of command IDs and the index offset into the buffer.
+     */
     var commandIdxOffsets : Map<Int, Int>;
+
+    /**
+     * Map of all the model matices to transform buffer commands.
+     */
+    var bufferModelMatrix : Map<Int, Matrix>;
 
     // State trackers
     var viewport : Rectangle;
@@ -523,6 +534,7 @@ class DX11Backend implements IRendererBackend
         indexOffset       = 0;
         commandVtxOffsets = [];
         commandIdxOffsets = [];
+        bufferModelMatrix = [];
     }
 
     /**
@@ -641,6 +653,7 @@ class DX11Backend implements IRendererBackend
         {
             commandIdxOffsets.set(command.id, indexOffset);
             commandVtxOffsets.set(command.id, vertexOffset);
+            bufferModelMatrix.set(command.id, command.model);
 
             Stdlib.memcpy(
                 idxDst,
@@ -1166,9 +1179,11 @@ class DX11Backend implements IRendererBackend
 
             if (shaderResource.layout.blocks[i].name == 'defaultMatrices')
             {
+                var modelMatrix = bufferModelMatrix.exists(_command.id) ? bufferModelMatrix.get(_command.id) : dummyModelMatrix;
+
                 cpp.Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
                 cpp.Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
-                cpp.Stdlib.memcpy(ptr.incBy(64), (dummyModelMatrix    : Float32Array).view.buffer.getData().address(0), 64);
+                cpp.Stdlib.memcpy(ptr.incBy(64), (modelMatrix         : Float32Array).view.buffer.getData().address(0), 64);
             }
             else
             {

@@ -9,6 +9,7 @@ import uk.aidanlee.flurry.api.input.Scancodes;
 import uk.aidanlee.flurry.api.input.InputEvents.InputEventTextInput;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
@@ -28,6 +29,7 @@ class ImGuiImpl
     final camera   : OrthographicCamera;
     final depth    : DepthOptions;
     final stencil  : StencilOptions;
+    final model    : Matrix;
 
     public function new(_flurry : Flurry)
     {
@@ -53,6 +55,7 @@ class ImGuiImpl
             stencilBackDepthTestFail : Keep,
             stencilBackDepthTestPass : Keep
         }
+        model = new Matrix();
 
         NativeImGui.createContext();
 
@@ -231,6 +234,7 @@ class ImGuiImpl
                 commands.push(new BufferDrawCommand(
                     vtxData, globalVtxOffset + draw.vtxOffset, vtxOffset,
                     idxData, globalIdxOffset + draw.idxOffset, globalIdxOffset + draw.idxOffset + draw.elemCount,
+                    model,
                     Hash.uniqueHash(),
                     Stream,
                     camera.projection,

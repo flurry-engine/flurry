@@ -185,6 +185,9 @@ class OGL4Backend implements IRendererBackend
      */
     final rangeSyncPrimitives : Array<GLSyncWrapper>;
 
+    /**
+     * The index of the current buffer range which is being written into this frame.
+     */
     var currentRange : Int;
 
     // GL state variables
@@ -893,9 +896,9 @@ class OGL4Backend implements IRendererBackend
                 // The matrix buffer for static draws is uploaded in the static draw manager.
                 // 
                 // TODO : have static buffer draws use the default shader ssbo?
-                switch (_command.uploadType)
+                switch _command.uploadType
                 {
-                    case Static :
+                    case Static:
                         var rng = staticStorage.get(_command);
                         var ptr = Pointer.arrayElem(rng.matrixBuffer.view.buffer.getData(), 0);
                         Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
@@ -913,11 +916,12 @@ class OGL4Backend implements IRendererBackend
                             cmds = rng.glCommandBuffer;
                         }
                         
-                    case Stream, Immediate :
-                        var ptr = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
+                    case Stream, Immediate:
+                        var model = streamStorage.getModelMatrix(_command.id);
+                        var ptr   = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
                         Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
                         Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
-                        Stdlib.memcpy(ptr.incBy(64), (identityMatrix      : Float32Array).view.buffer.getData().address(0), 64);
+                        Stdlib.memcpy(ptr.incBy(64), (model               : Float32Array).view.buffer.getData().address(0), 64);
                         glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
 
                         if (ssbo != cache.blockBuffers[i])
@@ -1105,6 +1109,11 @@ private class StreamBufferManager
     final forceIncludeGL : GLSyncWrapper;
 
     /**
+     * Standard identity matrix used for geometry commands model matrix.
+     */
+    final identityMatrix : Matrix;
+
+    /**
      * Constant vector for transforming vertices before being uploaded.
      */
     final transformationVectors : Array<Vector>;
@@ -1155,6 +1164,12 @@ private class StreamBufferManager
     var commandIdxOffsets : Map<Int, Int>;
 
     /**
+     * Model matrix for each range.
+     * If the command is not a buffer command no model matrix will be stored.
+     */
+    var bufferModelMatrix : Map<Int, Matrix>;
+
+    /**
      * Current vertex float write position.
      */
     var currentVtxTypePosition : Int;
@@ -1174,6 +1189,7 @@ private class StreamBufferManager
         forceIncludeGL         = new GLSyncWrapper();
         transformationVectors  = [ for (i in 0...RENDERER_THREADS) new Vector() ];
         jobQueue               = new JobQueue(RENDERER_THREADS);
+        identityMatrix         = new Matrix();
         vtxBaseOffset          = _vtxBaseOffset;
         idxBaseOffset          = _idxBaseOffset;
         vtxRangeSize           = _vtxRange;
@@ -1182,9 +1198,28 @@ private class StreamBufferManager
         idxBuffer              = _idxPtr.reinterpret();
         commandVtxOffsets      = [];
         commandIdxOffsets      = [];
+        bufferModelMatrix      = [];
         currentVtxTypePosition = 0;
         currentIdxTypePosition = 0;
         currentVertexPosition  = 0;
+    }
+
+    /**
+     * Returns a model matrix for the provided command ID.
+     * If the command id does not belong to an uploaded buffer command an identity matrix is returned.
+     * @param _id Geometry command.
+     * @return Matrix
+     */
+    public function getModelMatrix(_id : Int) : Matrix
+    {
+        if (bufferModelMatrix.exists(_id))
+        {
+            return bufferModelMatrix.get(_id);
+        }
+        else
+        {
+            return identityMatrix;
+        }
     }
 
     /**
@@ -1199,6 +1234,7 @@ private class StreamBufferManager
         currentIdxTypePosition = _currentRange * idxRangeSize;
         commandVtxOffsets      = [];
         commandIdxOffsets      = [];
+        bufferModelMatrix      = [];
     }
 
     /**
@@ -1277,6 +1313,7 @@ private class StreamBufferManager
     {
         commandVtxOffsets.set(_command.id, vtxBaseOffset + currentVertexPosition);
         commandIdxOffsets.set(_command.id, idxBaseOffset + currentIdxTypePosition);
+        bufferModelMatrix.set(_command.id, _command.model);
 
         Stdlib.memcpy(
             idxBuffer.incBy(currentIdxTypePosition),
@@ -1346,13 +1383,6 @@ private class StaticBufferManager
     final forceIncludeGL : GLSyncWrapper;
 
     /**
-     * Constant identity matrix.
-     * 
-     * Used by `BufferDrawCommand` as the lone model matrix as `BufferDrawCommand` currently does not provide a model matrix.
-     */
-    final identityMatrix : Matrix;
-
-    /**
      * The maximum number of vertices which can fix in the buffer.
      */
     final maxVertices : Int;
@@ -1400,7 +1430,6 @@ private class StaticBufferManager
     public function new(_vtxBufferSize : Int, _idxBufferSize : Int, _glVbo : Int, _glIbo : Int)
     {
         forceIncludeGL = new GLSyncWrapper();
-        identityMatrix = new Matrix();
         jobQueue       = new JobQueue(RENDERER_THREADS);
         maxVertices    = _vtxBufferSize;
         maxIndices     = _idxBufferSize;
@@ -1606,8 +1635,6 @@ private class StaticBufferManager
                 if ((0 < (range.vtxPosition + range.vtxLength) && (0 + _command.vertices) > 0) || (0 < (range.idxPosition + range.idxLength) && (0 + _command.indices) > 0))
                 {
                     rangesToRemove.push(key);
-
-                    trace('removing $key');
                 }
 
                 glDeleteBuffers(2, [ range.glCommandBuffer, range.glMatrixBuffer ]);
@@ -1660,17 +1687,16 @@ private class StaticBufferManager
                 glNamedBufferStorage(buffers[0], 16, mdiCommands.view.buffer.getData(), 0);
             }
 
-            // Create matrix buffer
-            var matrixBuffer = new Float32Array(48);
-            Stdlib.memcpy(matrixBuffer.view.buffer.getData().address(128), (identityMatrix : Float32Array).view.buffer.getData().address(0), 64);
-            glNamedBufferStorage(buffers[1], matrixBuffer.view.buffer.length, matrixBuffer.view.buffer.getData(), GL_DYNAMIC_STORAGE_BIT);
-
-            // TODO : Add a new range entry to the map.
-            ranges.set(_command.id, new StaticBufferRange(buffers[0], buffers[1], matrixBuffer, vtxPosition, idxPosition, _command.vertices, _command.indices, 1));
+            ranges.set(_command.id, new StaticBufferRange(buffers[0], buffers[1], new Float32Array(48), vtxPosition, idxPosition, _command.vertices, _command.indices, 1));
 
             vtxPosition += _command.vertices;
             idxPosition += _command.indices;
         }
+
+        var range        = ranges.get(_command.id);
+        var matrixBuffer = range.matrixBuffer;
+        Stdlib.memcpy(matrixBuffer.view.buffer.getData().address(128), (_command.model : Float32Array).view.buffer.getData().address(0), 64);
+        glNamedBufferStorage(range.glMatrixBuffer, matrixBuffer.view.buffer.length, matrixBuffer.view.buffer.getData(), GL_DYNAMIC_STORAGE_BIT);
     }
 
     /**

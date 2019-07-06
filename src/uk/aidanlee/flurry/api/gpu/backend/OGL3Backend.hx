@@ -175,6 +175,11 @@ class OGL3Backend implements IRendererBackend
      */
     var commandIdxOffsets : Map<Int, Int>;
 
+    /**
+     * Map of all the model matices to transform buffer commands.
+     */
+    var bufferModelMatrix : Map<Int, Matrix>;
+
     // GL state variables
 
     var target   : ImageResource;
@@ -292,6 +297,7 @@ class OGL3Backend implements IRendererBackend
         indexOffset       = 0;
         commandVtxOffsets = [];
         commandIdxOffsets = [];
+        bufferModelMatrix = [];
     }
 
     /**
@@ -387,6 +393,7 @@ class OGL3Backend implements IRendererBackend
         {
             commandIdxOffsets.set(command.id, indexOffset);
             commandVtxOffsets.set(command.id, vertexOffset);
+            bufferModelMatrix.set(command.id, command.model);
 
             Stdlib.memcpy(
                 idxDst,
@@ -914,9 +921,11 @@ class OGL3Backend implements IRendererBackend
 
             if (cache.layout.blocks[i].name == 'defaultMatrices')
             {
+                var modelMatrix = bufferModelMatrix.exists(_command.id) ? bufferModelMatrix.get(_command.id) : dummyModelMatrix;
+
                 cpp.Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
                 cpp.Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
-                cpp.Stdlib.memcpy(ptr.incBy(64), (dummyModelMatrix    : Float32Array).view.buffer.getData().address(0), 64);
+                cpp.Stdlib.memcpy(ptr.incBy(64), (modelMatrix         : Float32Array).view.buffer.getData().address(0), 64);
             }
             else
             {
