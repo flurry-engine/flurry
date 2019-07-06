@@ -4,25 +4,31 @@ import cpp.Pointer;
 import cpp.Star;
 import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
-import uk.aidanlee.flurry.api.input.Keycodes;
-import uk.aidanlee.flurry.api.input.Scancodes;
-import uk.aidanlee.flurry.api.input.InputEvents.InputEventTextInput;
-import uk.aidanlee.flurry.api.maths.Vector;
-import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Matrix;
-import uk.aidanlee.flurry.api.maths.Hash;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.gpu.UploadType;
+import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.gpu.DepthOptions;
 import uk.aidanlee.flurry.api.gpu.StencilOptions;
 import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
+import uk.aidanlee.flurry.api.input.Input;
+import uk.aidanlee.flurry.api.input.Keycodes;
+import uk.aidanlee.flurry.api.input.Scancodes;
+import uk.aidanlee.flurry.api.input.InputEvents.InputEventTextInput;
+import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.maths.Matrix;
+import uk.aidanlee.flurry.api.maths.Hash;
+import uk.aidanlee.flurry.api.display.Display;
+import uk.aidanlee.flurry.api.resources.Resource;
+import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import imgui.NativeImGui;
 
 class ImGuiImpl
 {
-    final flurry   : Flurry;
+    final events    : FlurryEvents;
+    final display   : Display;
+    final resources : ResourceSystem;
+    final input     : Input;
+    final renderer  : Renderer;
+    
     final texture  : ImageResource;
     final vtxData  : Float32Array;
     final idxData  : UInt16Array;
@@ -31,11 +37,15 @@ class ImGuiImpl
     final stencil  : StencilOptions;
     final model    : Matrix;
 
-    public function new(_flurry : Flurry)
+    public function new(_events : FlurryEvents, _display : Display, _resources : ResourceSystem, _input : Input, _renderer : Renderer)
     {
-        flurry = _flurry;
-        camera = new OrthographicCamera(flurry.display.width, flurry.display.height);
-        depth  = {
+        events    = _events;
+        display   = _display;
+        resources = _resources;
+        input     = _input;
+        renderer  = _renderer;
+        camera    = new OrthographicCamera(display.width, display.height);
+        depth     = {
             depthTesting  : false,
             depthMasking  : false,
             depthFunction : Always
@@ -102,13 +112,13 @@ class ImGuiImpl
         texture = new ImageResource('imgui_texture', width, height, Pointer.fromRaw(cast data).toUnmanagedArray(width * height * bpp));
         io.fonts.texID = cast cpp.Native.addressOf(texture);
 
-        flurry.resources.addResource(texture);
+        resources.addResource(texture);
 
         // Hook into flurry events
-        flurry.events.preUpdate.add(newFrame);
-        flurry.events.postUpdate.add(render);
-        flurry.events.shutdown.add(dispose);
-        flurry.events.input.textInput.add(onTextInput);
+        events.preUpdate.add(newFrame);
+        events.postUpdate.add(render);
+        events.shutdown.add(dispose);
+        events.input.textInput.add(onTextInput);
     }
 
     /**
@@ -117,35 +127,35 @@ class ImGuiImpl
     public function newFrame()
     {
         var io = NativeImGui.getIO();
-        io.displaySize  = ImVec2.create(flurry.display.width, flurry.display.height);
-        io.mousePos.x   = flurry.display.mouseX;
-        io.mousePos.y   = flurry.display.mouseY;
-        io.mouseDown[0] = flurry.input.isMouseDown(1);
-        io.mouseDown[1] = flurry.input.isMouseDown(3);
-        io.keyCtrl      = flurry.input.isKeyDown(Keycodes.lctrl);
-        io.keyAlt       = flurry.input.isKeyDown(Keycodes.lalt);
-        io.keyShift     = flurry.input.isKeyDown(Keycodes.lshift);
-        io.keySuper     = flurry.input.isKeyDown(Keycodes.lmeta);
+        io.displaySize  = ImVec2.create(display.width, display.height);
+        io.mousePos.x   = display.mouseX;
+        io.mousePos.y   = display.mouseY;
+        io.mouseDown[0] = input.isMouseDown(1);
+        io.mouseDown[1] = input.isMouseDown(3);
+        io.keyCtrl      = input.isKeyDown(Keycodes.lctrl);
+        io.keyAlt       = input.isKeyDown(Keycodes.lalt);
+        io.keyShift     = input.isKeyDown(Keycodes.lshift);
+        io.keySuper     = input.isKeyDown(Keycodes.lmeta);
 
-        io.keysDown[Scancodes.tab      ] = flurry.input.isKeyDown(Keycodes.tab);
-        io.keysDown[Scancodes.left     ] = flurry.input.isKeyDown(Keycodes.left);
-        io.keysDown[Scancodes.right    ] = flurry.input.isKeyDown(Keycodes.right);
-        io.keysDown[Scancodes.up       ] = flurry.input.isKeyDown(Keycodes.up);
-        io.keysDown[Scancodes.down     ] = flurry.input.isKeyDown(Keycodes.down);
-        io.keysDown[Scancodes.pageup   ] = flurry.input.isKeyDown(Keycodes.pageup);
-        io.keysDown[Scancodes.pagedown ] = flurry.input.isKeyDown(Keycodes.pagedown);
-        io.keysDown[Scancodes.home     ] = flurry.input.isKeyDown(Keycodes.home);
-        io.keysDown[Scancodes.end      ] = flurry.input.isKeyDown(Keycodes.end);
-        io.keysDown[Scancodes.enter    ] = flurry.input.isKeyDown(Keycodes.enter);
-        io.keysDown[Scancodes.backspace] = flurry.input.isKeyDown(Keycodes.backspace);
-        io.keysDown[Scancodes.escape   ] = flurry.input.isKeyDown(Keycodes.escape);
-        io.keysDown[Scancodes.delete   ] = flurry.input.isKeyDown(Keycodes.delete);
-        io.keysDown[Scancodes.key_a    ] = flurry.input.isKeyDown(Keycodes.key_a);
-        io.keysDown[Scancodes.key_c    ] = flurry.input.isKeyDown(Keycodes.key_c);
-        io.keysDown[Scancodes.key_v    ] = flurry.input.isKeyDown(Keycodes.key_v);
-        io.keysDown[Scancodes.key_x    ] = flurry.input.isKeyDown(Keycodes.key_x);
-        io.keysDown[Scancodes.key_y    ] = flurry.input.isKeyDown(Keycodes.key_y);
-        io.keysDown[Scancodes.key_z    ] = flurry.input.isKeyDown(Keycodes.key_z);
+        io.keysDown[Scancodes.tab      ] = input.isKeyDown(Keycodes.tab);
+        io.keysDown[Scancodes.left     ] = input.isKeyDown(Keycodes.left);
+        io.keysDown[Scancodes.right    ] = input.isKeyDown(Keycodes.right);
+        io.keysDown[Scancodes.up       ] = input.isKeyDown(Keycodes.up);
+        io.keysDown[Scancodes.down     ] = input.isKeyDown(Keycodes.down);
+        io.keysDown[Scancodes.pageup   ] = input.isKeyDown(Keycodes.pageup);
+        io.keysDown[Scancodes.pagedown ] = input.isKeyDown(Keycodes.pagedown);
+        io.keysDown[Scancodes.home     ] = input.isKeyDown(Keycodes.home);
+        io.keysDown[Scancodes.end      ] = input.isKeyDown(Keycodes.end);
+        io.keysDown[Scancodes.enter    ] = input.isKeyDown(Keycodes.enter);
+        io.keysDown[Scancodes.backspace] = input.isKeyDown(Keycodes.backspace);
+        io.keysDown[Scancodes.escape   ] = input.isKeyDown(Keycodes.escape);
+        io.keysDown[Scancodes.delete   ] = input.isKeyDown(Keycodes.delete);
+        io.keysDown[Scancodes.key_a    ] = input.isKeyDown(Keycodes.key_a);
+        io.keysDown[Scancodes.key_c    ] = input.isKeyDown(Keycodes.key_c);
+        io.keysDown[Scancodes.key_v    ] = input.isKeyDown(Keycodes.key_v);
+        io.keysDown[Scancodes.key_x    ] = input.isKeyDown(Keycodes.key_x);
+        io.keysDown[Scancodes.key_y    ] = input.isKeyDown(Keycodes.key_y);
+        io.keysDown[Scancodes.key_z    ] = input.isKeyDown(Keycodes.key_z);
 
         NativeImGui.newFrame();
     }
@@ -155,7 +165,7 @@ class ImGuiImpl
      */
     public function render()
     {
-        camera.viewport.set(0, 0, flurry.display.width, flurry.display.height);
+        camera.viewport.set(0, 0, display.width, display.height);
         camera.size.set_xy(camera.viewport.w, camera.viewport.h);
         camera.update();
 
@@ -168,7 +178,7 @@ class ImGuiImpl
      */
     public function dispose()
     {
-        flurry.resources.removeResource(texture);
+        resources.removeResource(texture);
     }
 
     /**
@@ -200,8 +210,6 @@ class ImGuiImpl
             var cmdBuffer = cmdList.cmdBuffer.data;
             var vtxBuffer = cmdList.vtxBuffer.data;
             var idxBuffer = cmdList.idxBuffer.data;
-            var vtxStart  = vtxOffset;
-            var idxStart  = idxOffset;
 
             for (j in 0...cmdList.vtxBuffer.size())
             {
@@ -242,7 +250,7 @@ class ImGuiImpl
                     camera.viewport,
                     Triangles,
                     null,
-                    flurry.resources.get('std-shader-textured.json', ShaderResource),
+                    resources.get('std-shader-textured.json', ShaderResource),
                     null,
                     [ t.value ],
                     clip,
@@ -260,8 +268,8 @@ class ImGuiImpl
         }
         
         // Send commands to renderer backend.
-        flurry.renderer.backend.uploadBufferCommands(commands);
-        flurry.renderer.backend.submitCommands(cast commands, true);
+        renderer.backend.uploadBufferCommands(commands);
+        renderer.backend.submitCommands(cast commands, true);
     }
 
     // Callbacks
