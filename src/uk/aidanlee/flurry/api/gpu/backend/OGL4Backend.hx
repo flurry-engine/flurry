@@ -32,13 +32,13 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
+import uk.aidanlee.flurry.api.gpu.BlendMode;
+import uk.aidanlee.flurry.api.gpu.PrimitiveType;
+import uk.aidanlee.flurry.api.gpu.StencilFunction;
+import uk.aidanlee.flurry.api.gpu.ComparisonFunction;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilFunction;
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher.ComparisonFunction;
-import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
-import uk.aidanlee.flurry.api.gpu.geometry.Geometry.PrimitiveType;
 
 using Safety;
 using cpp.NativeArray;

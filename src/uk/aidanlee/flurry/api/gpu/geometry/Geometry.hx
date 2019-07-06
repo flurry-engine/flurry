@@ -12,14 +12,6 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 
 using Safety;
 
-enum PrimitiveType {
-    Points;
-    Lines;
-    LineStrip;
-    Triangles;
-    TriangleStrip;
-}
-
 typedef GeometryOptions = {
     var ?vertices   : Array<Vertex>;
     var ?indices    : Array<Int>;

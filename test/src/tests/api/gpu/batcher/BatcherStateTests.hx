@@ -5,6 +5,7 @@ import uk.aidanlee.flurry.api.gpu.batcher.BatcherState;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending;
+import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import buddy.BuddySuite;

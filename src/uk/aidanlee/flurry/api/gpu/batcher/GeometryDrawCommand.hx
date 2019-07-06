@@ -1,14 +1,14 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilOptions;
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher.DepthOptions;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.maths.Matrix;
-import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
-import uk.aidanlee.flurry.api.gpu.geometry.Blending.BlendMode;
+import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.gpu.BlendMode;
+import uk.aidanlee.flurry.api.gpu.DepthOptions;
+import uk.aidanlee.flurry.api.gpu.StencilOptions;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
+import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 
 class GeometryDrawCommand extends DrawCommand
 {

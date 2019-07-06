@@ -9,50 +9,6 @@ import uk.aidanlee.flurry.api.maths.Hash;
 
 using Safety;
 
-enum ComparisonFunction {
-    Always;
-    Never;
-    Equal;
-    LessThan;
-    LessThanOrEqual;
-    GreaterThan;
-    GreaterThanOrEqual;
-    NotEqual;
-}
-
-enum StencilFunction {
-    Keep;
-    Zero;
-    Replace;
-    Invert;
-    Increment;
-    IncrementWrap;
-    Decrement;
-    DecrementWrap;
-}
-
-typedef DepthOptions = {
-    final depthTesting : Bool;
-    final depthMasking : Bool;
-    final depthFunction : ComparisonFunction;
-}
-
-typedef StencilOptions = {
-    final stencilTesting : Bool;
-
-    final stencilFrontMask : Int;
-    final stencilFrontFunction : ComparisonFunction;
-    final stencilFrontTestFail : StencilFunction;
-    final stencilFrontDepthTestFail : StencilFunction;
-    final stencilFrontDepthTestPass : StencilFunction;
-
-    final stencilBackMask : Int;
-    final stencilBackFunction : ComparisonFunction;
-    final stencilBackTestFail : StencilFunction;
-    final stencilBackDepthTestFail : StencilFunction;
-    final stencilBackDepthTestPass : StencilFunction;
-}
-
 typedef BatcherOptions = {
     /**
      * The initial camera this batcher will use.

@@ -14,10 +14,10 @@ import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.gpu.UploadType;
+import uk.aidanlee.flurry.api.gpu.DepthOptions;
+import uk.aidanlee.flurry.api.gpu.StencilOptions;
 import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher.DepthOptions;
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher.StencilOptions;
 import imgui.NativeImGui;
 
 class ImGuiImpl
