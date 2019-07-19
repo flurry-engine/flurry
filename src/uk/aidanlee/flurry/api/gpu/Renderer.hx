@@ -151,8 +151,8 @@ class Renderer
         }
         else
         {
-            if (_a.target != null && _b.target == null) return  1;
-            if (_a.target == null && _b.target != null) return -1;
+            if (_a.target != null && _b.target == null) return -1;
+            if (_a.target == null && _b.target != null) return  1;
         }
 
         // Then depth
