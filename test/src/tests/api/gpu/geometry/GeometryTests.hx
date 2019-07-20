@@ -103,7 +103,7 @@ class GeometryTests extends BuddySuite
                 var r = new Rectangle(12, 4, 20, 7);
 
                 var g = new Geometry({});
-                g.clip.equals(new Rectangle()).should.be(true);
+                g.clip.should.be(null);
 
                 var g = new Geometry({ clip : r });
                 g.clip.equals(r).should.be(true);

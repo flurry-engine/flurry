@@ -23,7 +23,7 @@ class BatcherStateTests extends BuddySuite
                 var state = new BatcherState(mock(Batcher));
                 state.textures.should.containExactly([]);
                 state.blend.equals(new Blending()).should.be(true);
-                state.clip.equals(new Rectangle()).should.be(true);
+                state.clip.should.be(null);
             });
 
             it('Can set its state to that of a geometry', {
