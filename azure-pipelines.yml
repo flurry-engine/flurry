@@ -15,13 +15,17 @@ steps:
   inputs:
     versionSpec: '10.15.x'
 
-- bash: ci/install.sh
+- bash: |
+    chmod a+x ci/install.sh
+    ci/install.sh
   displayName: Install Dependencies
   workingDirectory: $(Build.SourcesDirectory)
   env:
     AGENT_OS: $(Agent.OS)
 
-- bash: ci/test_engine.sh
+- bash: |
+    chmod a+x ci/test_engine.sh
+    ci/test_engine.sh
   displayName: Engine Tests
   workingDirectory: $(Build.SourcesDirectory)
   env:
