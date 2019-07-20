@@ -944,7 +944,7 @@ class DX11Backend implements IRendererBackend
         imgDesc.sampleDesc.count   = 1;
         imgDesc.sampleDesc.quality = 0;
         imgDesc.usage              = Default;
-        imgDesc.bindFlags          = ShaderResource;
+        imgDesc.bindFlags          = ShaderResource | RenderTarget;
         imgDesc.cpuAccessFlags     = 0;
         imgDesc.miscFlags          = 0;
 
@@ -1005,12 +1005,13 @@ class DX11Backend implements IRendererBackend
         // Set the render target
         if (_command.target != target)
         {
-            if (target != null && !targetResources.exists(target.id))
+            if (_command.target != null && !targetResources.exists(_command.target.id))
             {
                 var rtv = new D3d11RenderTargetView();
-                if (device.createRenderTargetView(textureResources.get(_command.target.id).texture, null, rtv) != Ok)
+                var ret = device.createRenderTargetView(textureResources.get(_command.target.id).texture, null, rtv);
+                if (ret != Ok)
                 {
-                    throw 'Failed to create render target view';
+                    throw 'Failed to create render target view : $ret';
                 }
 
                 targetResources.set(_command.target.id, rtv);
