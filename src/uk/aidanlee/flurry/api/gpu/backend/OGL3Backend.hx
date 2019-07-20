@@ -703,6 +703,51 @@ class OGL3Backend implements IRendererBackend
      */
     function setState(_command : DrawCommand, _disableStats : Bool)
     {
+        // Set the render target.
+        // If the target is null then the backbuffer is used.
+        // Render targets are created on the fly as and when needed since most textures probably won't be used as targets.
+        if (_command.target != target)
+        {
+            target = _command.target;
+
+            if (target != null && !framebufferObjects.exists(target.id))
+            {
+                // Create the framebuffer
+                var fbo = [ 0 ];
+                glGenFramebuffers(1, fbo);
+                glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureObjects.get(target.id), 0);
+
+                if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                {
+                    throw new GL32IncompleteFramebufferException(target.id);
+                }
+
+                framebufferObjects.set(target.id, fbo[0]);
+
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            }
+
+            glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebufferObject);
+
+            if (!_disableStats)
+            {
+                rendererStats.targetSwaps++;
+            }
+        }
+
+        // Apply shader changes.
+        if (shader != _command.shader)
+        {
+            shader = _command.shader;
+            glUseProgram(shaderPrograms.get(shader.id));
+
+            if (!_disableStats)
+            {
+                rendererStats.shaderSwaps++;
+            }
+        }
+
         // Apply depth and stencil settings.
         if (_command.depth.depthTesting)
         {
@@ -741,11 +786,22 @@ class OGL3Backend implements IRendererBackend
         }
 
         // Set the viewport.
-        // If the viewport of the command is null then the backbuffer size is used (size of the window).
-        var cmdViewport = _command.viewport != null ? _command.viewport : new Rectangle(0, 0, backbuffer.width, backbuffer.height);
+        var cmdViewport = _command.viewport;
+        if (_command.viewport == null)
+        {
+            if (target == null)
+            {
+                cmdViewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
+            }
+            else
+            {
+                cmdViewport = new Rectangle(0, 0, target.width, target.height);
+            }
+        }
+
         if (!viewport.equals(cmdViewport))
         {
-            viewport.set(cmdViewport.x, cmdViewport.y, cmdViewport.w, cmdViewport.h);
+            viewport.copyFrom(cmdViewport);
             
             var x = viewport.x *= target == null ? backbuffer.viewportScale : 1;
             var y = viewport.y *= target == null ? backbuffer.viewportScale : 1;
@@ -762,23 +818,28 @@ class OGL3Backend implements IRendererBackend
             }
         }
 
-        // Apply the scissor clip.
-        if (!_command.clip.equals(clip))
+        // Set the scissor region.
+        var cmdClip = _command.clip;
+        if (_command.clip == null)
         {
-            clip.copyFrom(_command.clip);
-
-            var x = clip.x * (target == null ? backbuffer.viewportScale : 1);
-            var y = clip.y * (target == null ? backbuffer.viewportScale : 1);
-            var w = clip.w * (target == null ? backbuffer.viewportScale : 1);
-            var h = clip.h * (target == null ? backbuffer.viewportScale : 1);
-
-            // If the clip rectangle has an area of 0 then set the width and height to that of the viewport
-            // This essentially disables clipping by clipping the entire backbuffer size.
-            if (clip.area() == 0)
+            if (target == null)
             {
-                w = backbuffer.width  * (target == null ? backbuffer.viewportScale : 1);
-                h = backbuffer.height * (target == null ? backbuffer.viewportScale : 1);
+                cmdClip = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
             }
+            else
+            {
+                cmdClip = new Rectangle(0, 0, target.width, target.height);
+            }
+        }
+
+        if (!clip.equals(cmdClip))
+        {
+            clip.copyFrom(cmdClip);
+
+            var x = cmdClip.x * (target == null ? backbuffer.viewportScale : 1);
+            var y = cmdClip.y * (target == null ? backbuffer.viewportScale : 1);
+            var w = cmdClip.w * (target == null ? backbuffer.viewportScale : 1);
+            var h = cmdClip.h * (target == null ? backbuffer.viewportScale : 1);
 
             // OpenGL works 0x0 is bottom left so we need to flip the y.
             y = (target == null ? backbuffer.height : target.height) - (y + h);
@@ -789,55 +850,6 @@ class OGL3Backend implements IRendererBackend
                 rendererStats.scissorSwaps++;
             }
         }
-
-        // Set the render target.
-        // If the target is null then the backbuffer is used.
-        // Render targets are created on the fly as and when needed since most textures probably won't be used as targets.
-        if (_command.target != target)
-        {
-            target = _command.target;
-
-            if (target != null && !framebufferObjects.exists(target.id))
-            {
-                // Create the framebuffer
-                var fbo = [ 0 ];
-                glCreateFramebuffers(1, fbo);
-                glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureObjects.get(target.id), 0);
-
-                if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-                {
-                    throw new GL32IncompleteFramebufferException(target.id);
-                }
-
-                framebufferObjects.set(target.id, fbo[0]);
-
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            }
-
-            glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebufferObject);
-
-            if (!_disableStats)
-            {
-                rendererStats.targetSwaps++;
-            }
-        }
-
-        // Apply shader changes.
-        if (shader != _command.shader)
-        {
-            shader = _command.shader;
-            glUseProgram(shaderPrograms.get(shader.id));
-
-            if (!_disableStats)
-            {
-                rendererStats.shaderSwaps++;
-            }
-        }
-        
-        // Apply the shaders uniforms
-        // TODO : Only set uniforms if the value has changed.
-        setUniforms(_command, _disableStats);
 
         // Set the blending
         if (_command.blending)
@@ -859,6 +871,10 @@ class OGL3Backend implements IRendererBackend
                 rendererStats.blendSwaps++;
             }
         }
+
+        // Apply the shaders uniforms
+        // TODO : Only set uniforms if the value has changed.
+        setUniforms(_command, _disableStats);
     }
 
     /**

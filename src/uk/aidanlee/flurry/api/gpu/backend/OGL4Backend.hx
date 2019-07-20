@@ -687,93 +687,6 @@ class OGL4Backend implements IRendererBackend
      */
     function setState(_command : DrawCommand, _enableStats : Bool)
     {
-        // Apply depth and stencil settings.
-        if (_command.depth.depthTesting)
-        {
-            glEnable(GL_DEPTH_TEST);
-            glDepthMask(_command.depth.depthMasking);
-            glDepthFunc(getComparisonFunc(_command.depth.depthFunction));
-        }
-        else
-        {
-            glDisable(GL_DEPTH_TEST);
-        }
-
-        if (_command.stencil.stencilTesting)
-        {
-            glEnable(GL_STENCIL_TEST);
-            
-            glStencilMaskSeparate(GL_FRONT, _command.stencil.stencilFrontMask);
-            glStencilFuncSeparate(GL_FRONT, getComparisonFunc(_command.stencil.stencilFrontFunction), 1, 0xff);
-            glStencilOpSeparate(
-                GL_FRONT,
-                getStencilFunc(_command.stencil.stencilFrontTestFail),
-                getStencilFunc(_command.stencil.stencilFrontDepthTestFail),
-                getStencilFunc(_command.stencil.stencilFrontDepthTestPass));
-
-            glStencilMaskSeparate(GL_BACK, _command.stencil.stencilBackMask);
-            glStencilFuncSeparate(GL_BACK, getComparisonFunc(_command.stencil.stencilBackFunction), 1, 0xff);
-            glStencilOpSeparate(
-                GL_BACK,
-                getStencilFunc(_command.stencil.stencilBackTestFail),
-                getStencilFunc(_command.stencil.stencilBackDepthTestFail),
-                getStencilFunc(_command.stencil.stencilBackDepthTestPass));
-        }
-        else
-        {
-            glDisable(GL_STENCIL_TEST);
-        }
-
-        // Set the viewport.
-        // If the viewport of the command is null then the backbuffer size is used (size of the window).
-        var cmdViewport = _command.viewport != null ? _command.viewport : new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-        if (!viewport.equals(cmdViewport))
-        {
-            viewport.set(cmdViewport.x, cmdViewport.y, cmdViewport.w, cmdViewport.h);
-
-            var x = viewport.x *= target == null ? backbuffer.viewportScale : 1;
-            var y = viewport.y *= target == null ? backbuffer.viewportScale : 1;
-            var w = viewport.w *= target == null ? backbuffer.viewportScale : 1;
-            var h = viewport.h *= target == null ? backbuffer.viewportScale : 1;
-
-            // OpenGL works 0x0 is bottom left so we need to flip the y.
-            y = (target == null ? backbuffer.height : target.height) - (y + h);
-            glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
-
-            if (_enableStats)
-            {
-                rendererStats.viewportSwaps++;
-            }
-        }
-
-        // Apply the scissor clip.
-        if (!_command.clip.equals(clip))
-        {
-            clip.copyFrom(_command.clip);
-
-            var x = clip.x * (target == null ? backbuffer.viewportScale : 1);
-            var y = clip.y * (target == null ? backbuffer.viewportScale : 1);
-            var w = clip.w * (target == null ? backbuffer.viewportScale : 1);
-            var h = clip.h * (target == null ? backbuffer.viewportScale : 1);
-
-            // If the clip rectangle has an area of 0 then set the width and height to that of the viewport
-            // This essentially disables clipping by clipping the entire backbuffer size.
-            if (clip.area() == 0)
-            {
-                w = backbuffer.width  * (target == null ? backbuffer.viewportScale : 1);
-                h = backbuffer.height * (target == null ? backbuffer.viewportScale : 1);
-            }
-
-            // OpenGL works 0x0 is bottom left so we need to flip the y.
-            y = (target == null ? backbuffer.height : target.height) - (y + h);
-            glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
-
-            if (_enableStats)
-            {
-                rendererStats.scissorSwaps++;
-            }
-        }
-
         // Set the render target.
         // If the target is null then the backbuffer is used.
         // Render targets are created on the fly as and when needed since most textures probably won't be used as targets.
@@ -815,9 +728,110 @@ class OGL4Backend implements IRendererBackend
                 rendererStats.shaderSwaps++;
             }
         }
-        
-        // Update shader blocks and bind any textures required.
-        setUniforms(_command, _enableStats);
+
+        // Apply depth and stencil settings.
+        if (_command.depth.depthTesting)
+        {
+            glEnable(GL_DEPTH_TEST);
+            glDepthMask(_command.depth.depthMasking);
+            glDepthFunc(getComparisonFunc(_command.depth.depthFunction));
+        }
+        else
+        {
+            glDisable(GL_DEPTH_TEST);
+        }
+
+        if (_command.stencil.stencilTesting)
+        {
+            glEnable(GL_STENCIL_TEST);
+            
+            glStencilMaskSeparate(GL_FRONT, _command.stencil.stencilFrontMask);
+            glStencilFuncSeparate(GL_FRONT, getComparisonFunc(_command.stencil.stencilFrontFunction), 1, 0xff);
+            glStencilOpSeparate(
+                GL_FRONT,
+                getStencilFunc(_command.stencil.stencilFrontTestFail),
+                getStencilFunc(_command.stencil.stencilFrontDepthTestFail),
+                getStencilFunc(_command.stencil.stencilFrontDepthTestPass));
+
+            glStencilMaskSeparate(GL_BACK, _command.stencil.stencilBackMask);
+            glStencilFuncSeparate(GL_BACK, getComparisonFunc(_command.stencil.stencilBackFunction), 1, 0xff);
+            glStencilOpSeparate(
+                GL_BACK,
+                getStencilFunc(_command.stencil.stencilBackTestFail),
+                getStencilFunc(_command.stencil.stencilBackDepthTestFail),
+                getStencilFunc(_command.stencil.stencilBackDepthTestPass));
+        }
+        else
+        {
+            glDisable(GL_STENCIL_TEST);
+        }
+
+        // Set the viewport.
+        // If the viewport of the command is null then the backbuffer size is used (size of the window).
+        var cmdViewport = _command.viewport;
+        if (_command.viewport == null)
+        {
+            if (target == null)
+            {
+                cmdViewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
+            }
+            else
+            {
+                cmdViewport = new Rectangle(0, 0, target.width, target.height);
+            }
+        }
+
+        if (!viewport.equals(cmdViewport))
+        {
+            viewport.set(cmdViewport.x, cmdViewport.y, cmdViewport.w, cmdViewport.h);
+
+            var x = viewport.x *= target == null ? backbuffer.viewportScale : 1;
+            var y = viewport.y *= target == null ? backbuffer.viewportScale : 1;
+            var w = viewport.w *= target == null ? backbuffer.viewportScale : 1;
+            var h = viewport.h *= target == null ? backbuffer.viewportScale : 1;
+
+            // OpenGL works 0x0 is bottom left so we need to flip the y.
+            y = (target == null ? backbuffer.height : target.height) - (y + h);
+            glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
+
+            if (_enableStats)
+            {
+                rendererStats.viewportSwaps++;
+            }
+        }
+
+        // Apply the scissor clip.
+        var cmdClip = _command.clip;
+        if (_command.clip == null)
+        {
+            if (target == null)
+            {
+                cmdClip = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
+            }
+            else
+            {
+                cmdClip = new Rectangle(0, 0, target.width, target.height);
+            }
+        }
+
+        if (!clip.equals(cmdClip))
+        {
+            clip.copyFrom(cmdClip);
+
+            var x = cmdClip.x * (target == null ? backbuffer.viewportScale : 1);
+            var y = cmdClip.y * (target == null ? backbuffer.viewportScale : 1);
+            var w = cmdClip.w * (target == null ? backbuffer.viewportScale : 1);
+            var h = cmdClip.h * (target == null ? backbuffer.viewportScale : 1);
+
+            // OpenGL works 0x0 is bottom left so we need to flip the y.
+            y = (target == null ? backbuffer.height : target.height) - (y + h);
+            glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
+
+            if (_enableStats)
+            {
+                rendererStats.scissorSwaps++;
+            }
+        }
 
         // Set the blending
         if (_command.blending)
@@ -839,6 +853,9 @@ class OGL4Backend implements IRendererBackend
                 rendererStats.blendSwaps++;
             }
         }
+
+        // Update shader blocks and bind any textures required.
+        setUniforms(_command, _enableStats);
     }
 
     /**

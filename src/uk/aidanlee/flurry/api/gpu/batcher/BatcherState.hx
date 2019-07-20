@@ -42,7 +42,7 @@ class BatcherState
     /**
      * The clipping box currently active in this batcher.
      */
-    public var clip (default, null) : Rectangle;
+    public var clip (default, null) : Null<Rectangle>;
 
     /**
      * The blend state of the batcher.
@@ -61,15 +61,20 @@ class BatcherState
     final batcher : Batcher;
 
     /**
+     * 
+     */
+    final internalClip : Rectangle;
+
+    /**
      * Creates a batcher state.
      * @param _batcher Batcher this state belongs to.
      */
     public function new(_batcher : Batcher)
     {
-        textures = [];
-        batcher  = _batcher;
-        blend    = inline new Blending();
-        clip     = inline new Rectangle();
+        textures     = [];
+        batcher      = _batcher;
+        blend        = inline new Blending();
+        internalClip = inline new Rectangle();
     }
 
     /**
@@ -100,8 +105,11 @@ class BatcherState
         if (_geom.uploadType  != uploadType) return true;
         if (_geom.primitive   != primitive ) return true;
         if (_geom.isIndexed() != indexed   ) return true;
-        if (!_geom.clip.equals(clip)) return true;
         if (!_geom.blend.equals(blend)) return true;
+
+        if (_geom.clip == null && clip != null) return true;
+        if (_geom.clip != null && clip == null) return true;
+        if (_geom.clip != null && clip != null && !_geom.clip.equals(clip)) return true;
 
         return false;
     }
@@ -129,7 +137,26 @@ class BatcherState
         uploadType = _geom.uploadType;
         primitive  = _geom.primitive;
         indexed    = _geom.isIndexed();
-        clip.copyFrom(_geom.clip);
         blend.copyFrom(_geom.blend);
+
+        if (clip == null)
+        {
+            if (_geom.clip != null)
+            {
+                clip = internalClip;
+                clip.copyFrom(_geom.clip);
+            }
+        }
+        else
+        {
+            if (_geom.clip != null)
+            {
+                clip.copyFrom(_geom.clip);
+            }
+            else
+            {
+                clip = null;
+            }
+        }
     }
 }

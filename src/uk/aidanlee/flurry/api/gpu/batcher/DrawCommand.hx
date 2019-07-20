@@ -81,7 +81,7 @@ class DrawCommand
     /**
      * Clipping rectangle.
      */
-    public final clip : Rectangle;
+    public final clip : Null<Rectangle>;
 
     public final depth : DepthOptions;
 

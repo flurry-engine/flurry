@@ -77,7 +77,7 @@ class Geometry
     /**
      * Clipping rectangle for this geometry. Null if none.
      */
-    public final clip : Rectangle;
+    public final clip : Null<Rectangle>;
 
     /**
      * Provides a hint to the renderer about how this geometries data should be used.
@@ -176,12 +176,12 @@ class Geometry
         vertices       = _options.vertices  .or([]);
         indices        = _options.indices   .or([]);
         transformation = _options.transform .or(new Transformation());
-        clip           = _options.clip      .or(new Rectangle());
         textures       = _options.textures  .or([]);
         depth          = _options.depth     .or(0);
         primitive      = _options.primitive .or(Triangles);
         color          = _options.color     .or(new Color());
         blend          = _options.blend     .or(new Blending());
+        clip           = _options.clip;
         shader         = _options.shader;
         uniforms       = _options.uniforms;
 

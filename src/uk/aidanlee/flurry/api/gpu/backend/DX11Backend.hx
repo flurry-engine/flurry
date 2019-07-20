@@ -1002,6 +1002,42 @@ class DX11Backend implements IRendererBackend
      */
     function setState(_command : DrawCommand)
     {
+        // Set the render target
+        if (_command.target != target)
+        {
+            if (target != null && !targetResources.exists(target.id))
+            {
+                var rtv = new D3d11RenderTargetView();
+                if (device.createRenderTargetView(textureResources.get(_command.target.id).texture, null, rtv) != Ok)
+                {
+                    throw 'Failed to create render target view';
+                }
+
+                targetResources.set(_command.target.id, rtv);
+            }
+
+            target = _command.target;
+
+            context.omSetRenderTargets([ target == null ? backbuffer.renderTargetView : targetResources.get(target.id) ], depthStencilView);
+
+            rendererStats.targetSwaps++;
+        }
+
+        // Write shader cbuffers and set it
+        if (shader != _command.shader)
+        {
+            shader = _command.shader;
+
+            // Apply the actual shader and input layout.
+            var shaderResource = shaderResources.get(_command.shader.id);
+
+            context.iaSetInputLayout(shaderResource.inputLayout);
+            context.vsSetShader(shaderResource.vertexShader, null);
+            context.psSetShader(shaderResource.pixelShader, null);
+
+            rendererStats.shaderSwaps++;
+        }
+
         var depthStencilDescription = new D3d11DepthStencilDescription();
         depthStencilDescription.depthEnable    = _command.depth.depthTesting;
         depthStencilDescription.depthWriteMask = _command.depth.depthMasking ? All : Zero;
@@ -1029,10 +1065,22 @@ class DX11Backend implements IRendererBackend
         context.omSetDepthStencilState(depthStencilState, 1);
 
         // Update viewport
-        var cmdView = _command.viewport != null ? _command.viewport : new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-        if (!viewport.equals(cmdView))
+        var cmdViewport = _command.viewport;
+        if (_command.viewport == null)
         {
-            viewport.copyFrom(cmdView);
+            if (target == null)
+            {
+                cmdViewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
+            }
+            else
+            {
+                cmdViewport = new Rectangle(0, 0, target.width, target.height);
+            }
+        }
+
+        if (!viewport.equals(cmdViewport))
+        {
+            viewport.copyFrom(cmdViewport);
 
             nativeView.topLeftX = viewport.x;
             nativeView.topLeftY = viewport.y;
@@ -1045,65 +1093,31 @@ class DX11Backend implements IRendererBackend
         }
 
         // Update scissor
-        if (!scissor.equals(_command.clip))
+        var cmdClip = _command.clip;
+        if (_command.clip == null)
         {
-            scissor.copyFrom(_command.clip);
-
-            nativeClip.left   = Std.int(_command.clip.x);
-            nativeClip.top    = Std.int(_command.clip.y);
-            nativeClip.right  = Std.int(_command.clip.x + _command.clip.w);
-            nativeClip.bottom = Std.int(_command.clip.y + _command.clip.h);
-
-            // If the clip rectangle has an area of 0 then set the width and height to that of the viewport
-            // This essentially disables clipping by clipping the entire backbuffer size.
-            if (scissor.area() == 0)
+            if (target == null)
             {
-                nativeClip.right  = Std.int(_command.clip.x + backbuffer.width);
-                nativeClip.bottom = Std.int(_command.clip.y + backbuffer.height);
+                cmdClip = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
             }
+            else
+            {
+                cmdClip = new Rectangle(0, 0, target.width, target.height);
+            }
+        }
+
+        if (!scissor.equals(cmdClip))
+        {
+            scissor.copyFrom(cmdClip);
+
+            nativeClip.left   = Std.int(cmdClip.x);
+            nativeClip.top    = Std.int(cmdClip.y);
+            nativeClip.right  = Std.int(cmdClip.x + cmdClip.w);
+            nativeClip.bottom = Std.int(cmdClip.y + cmdClip.h);
 
             context.rsSetScissorRects([ nativeClip ]);
 
             rendererStats.scissorSwaps++;
-        }
-
-        // Set the render target
-        if (_command.target != target)
-        {
-            if (target != null && !targetResources.exists(target.id))
-            {
-                var rtv = new D3d11RenderTargetView();
-                if (device.createRenderTargetView(textureResources.get(_command.target.id).texture, null, rtv) != Ok)
-                {
-                    throw 'Failed to create render target view';
-                }
-
-                targetResources.set(_command.target.id, rtv);
-            }
-
-            target = _command.target;
-
-            context.omSetRenderTargets([ target == null ? backbuffer.renderTargetView : targetResources.get(target.id) ], depthStencilView);
-
-            rendererStats.targetSwaps++;
-        }
-
-        // Always update the cbuffers and textures for now
-        setShaderValues(_command);
-
-        // Write shader cbuffers and set it
-        if (shader != _command.shader)
-        {
-            shader = _command.shader;
-
-            // Apply the actual shader and input layout.
-            var shaderResource = shaderResources.get(_command.shader.id);
-
-            context.iaSetInputLayout(shaderResource.inputLayout);
-            context.vsSetShader(shaderResource.vertexShader, null);
-            context.psSetShader(shaderResource.pixelShader, null);
-
-            rendererStats.shaderSwaps++;
         }
 
         // SET BLENDING OPTIONS AND APPLY TO CONTEXT
@@ -1134,6 +1148,9 @@ class DX11Backend implements IRendererBackend
             topology = _command.primitive;
             context.iaSetPrimitiveTopology(getPrimitive(_command.primitive));
         }
+
+        // Always update the cbuffers and textures for now
+        setShaderValues(_command);
     }
 
     /**
