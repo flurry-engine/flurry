@@ -1,11 +1,12 @@
 package uk.aidanlee.flurry.api.gpu;
 
+import haxe.Exception;
 import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
-import uk.aidanlee.flurry.api.gpu.backend.NullBackend;
+import uk.aidanlee.flurry.api.gpu.backend.MockBackend;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 
@@ -43,24 +44,25 @@ class Renderer
         api            = _rendererConfig.backend;
         stats          = new RendererStats();
 
-        switch (api)
+        switch api
         {
-            #if cpp
-            case OGL4:
+#if cpp
+            case Ogl4:
                 backend = new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
 
-            case OGL3:
+            case Ogl3:
                 backend = new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
 
-                #if windows
-                case DX11:
-                    backend = new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
-                #end
+            case Dx11:
+#if windows
+                backend = new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+#else
+                throw new BackendNotAvailableException(api);
+#end
 
-            #end
-
-            default:
-                backend = new NullBackend();
+#end
+            case _:
+                backend = new MockBackend(_resourceEvents);
         }
     }
 
@@ -164,5 +166,13 @@ class Renderer
         if (_a.shader.id > _b.shader.id) return  1;
 
         return 0;
+    }
+}
+
+class BackendNotAvailableException extends Exception
+{
+    public function new(_backend : RendererBackend)
+    {
+        super('$_backend is not available on this platform');
     }
 }

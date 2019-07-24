@@ -3,11 +3,11 @@ package uk.aidanlee.flurry;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelList;
 
 enum RendererBackend {
-    OGL3;
-    OGL4;
-    DX11;
-    NULL;
-    AUTO;
+    Ogl3;
+    Ogl4;
+    Dx11;
+    Mock;
+    Auto;
 }
 
 class FlurryConfig
@@ -129,7 +129,7 @@ class FlurryRendererConfig
      */
     public function new()
     {
-        backend            = OGL3;
+        backend            = Ogl3;
         dynamicVertices    = 1000000;
         unchangingVertices = 1000000;
         dynamicIndices     = 1000000;
