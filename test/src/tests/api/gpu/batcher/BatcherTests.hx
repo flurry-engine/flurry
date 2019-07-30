@@ -115,7 +115,7 @@ class BatcherTests extends BuddySuite
 
                     var camera = mock(Camera);
                     camera.projection.returns(new Matrix());
-                    camera.viewInverted.returns(new Matrix());
+                    camera.view.returns(new Matrix());
                     camera.viewport.returns(new Rectangle());
 
                     var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
@@ -158,7 +158,7 @@ class BatcherTests extends BuddySuite
 
                     var camera = mock(Camera);
                     camera.projection.returns(new Matrix());
-                    camera.viewInverted.returns(new Matrix());
+                    camera.view.returns(new Matrix());
                     camera.viewport.returns(new Rectangle());
 
                     var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
@@ -206,7 +206,7 @@ class BatcherTests extends BuddySuite
 
                     var camera = mock(Camera);
                     camera.projection.returns(new Matrix());
-                    camera.viewInverted.returns(new Matrix());
+                    camera.view.returns(new Matrix());
                     camera.viewport.returns(new Rectangle());
 
                     var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
@@ -252,7 +252,7 @@ class BatcherTests extends BuddySuite
 
                     var camera = mock(Camera);
                     camera.projection.returns(new Matrix());
-                    camera.viewInverted.returns(new Matrix());
+                    camera.view.returns(new Matrix());
                     camera.viewport.returns(new Rectangle());
 
                     var batcher = new Batcher({ shader: shader, camera: mock(Camera) });

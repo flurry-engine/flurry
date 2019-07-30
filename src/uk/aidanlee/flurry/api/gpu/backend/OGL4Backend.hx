@@ -36,6 +36,9 @@ import uk.aidanlee.flurry.api.gpu.BlendMode;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.StencilFunction;
 import uk.aidanlee.flurry.api.gpu.ComparisonFunction;
+import uk.aidanlee.flurry.api.gpu.camera.Camera;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
+import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
@@ -100,11 +103,6 @@ class OGL4Backend implements IRendererBackend
      */
     final glVao : Int;
 
-    /**
-     * Backbuffer display, default target if none is specified.
-     */
-    final backbuffer : BackBuffer;
-
     final streamStorage : StreamBufferManager;
 
     final staticStorage : StaticBufferManager;
@@ -118,6 +116,43 @@ class OGL4Backend implements IRendererBackend
      * Constant identity matrix, used as the model matrix for non multi draw shaders.
      */
     final identityMatrix : Matrix;
+
+    /**
+     * Shader programs keyed by their associated shader resource IDs.
+     */
+    final shaderPrograms : Map<String, Int>;
+
+    /**
+     * Shader uniform locations keyed by their associated shader resource IDs.
+     */
+    final shaderUniforms : Map<String, ShaderLocations>;
+
+    /**
+     * Texture objects keyed by their associated image resource IDs.
+     */
+    final textureObjects : Map<String, Int>;
+
+    /**
+     * 64bit texture handles keyed by their associated image resource IDs.
+     * This will not be used if bindless is false.
+     */
+    final textureHandles : Map<String, haxe.Int64>;
+
+    /**
+     * Framebuffer objects keyed by their associated image resource IDs.
+     * Framebuffers will only be generated when an image resource is used as a target.
+     * Will be destroyed when the associated image resource is destroyed.
+     */
+    final framebufferObjects : Map<String, Int>;
+
+    /**
+     * OpenGL sync objects used to lock writing into buffer ranges until they are visible to the GPU.
+     */
+    final rangeSyncPrimitives : Array<GLSyncWrapper>;
+
+    final perspectiveYFlipVector : Vector;
+
+    final clearColour : Array<cpp.Float32>;
 
     /**
      * Index pointing to the current writable vertex buffer range.
@@ -153,37 +188,9 @@ class OGL4Backend implements IRendererBackend
     var indexByteOffset : Int;
 
     /**
-     * Shader programs keyed by their associated shader resource IDs.
+     * Backbuffer display, default target if none is specified.
      */
-    final shaderPrograms : Map<String, Int>;
-
-    /**
-     * Shader uniform locations keyed by their associated shader resource IDs.
-     */
-    final shaderUniforms : Map<String, ShaderLocations>;
-
-    /**
-     * Texture objects keyed by their associated image resource IDs.
-     */
-    final textureObjects : Map<String, Int>;
-
-    /**
-     * 64bit texture handles keyed by their associated image resource IDs.
-     * This will not be used if bindless is false.
-     */
-    final textureHandles : Map<String, haxe.Int64>;
-
-    /**
-     * Framebuffer objects keyed by their associated image resource IDs.
-     * Framebuffers will only be generated when an image resource is used as a target.
-     * Will be destroyed when the associated image resource is destroyed.
-     */
-    final framebufferObjects : Map<String, Int>;
-
-    /**
-     * OpenGL sync objects used to lock writing into buffer ranges until they are visible to the GPU.
-     */
-    final rangeSyncPrimitives : Array<GLSyncWrapper>;
+    var backbuffer : Null<BackBuffer>;
 
     /**
      * The index of the current buffer range which is being written into this frame.
@@ -287,18 +294,15 @@ class OGL4Backend implements IRendererBackend
         var vtxBuffer : Pointer<UInt8> = Pointer.fromRaw(glMapNamedBufferRange(glVbo, staticVertexBuffer * 9 * 4, (streamVertexBuffer * 9 * 4) * 3, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
         var idxBuffer : Pointer<UInt8> = Pointer.fromRaw(glMapNamedBufferRange(glIbo, staticIndexBuffer * 2     , (streamIndexBuffer * 2) * 3     , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
 
-        transformationVector = new Vector();
-        identityMatrix       = new Matrix();
-        streamStorage        = new StreamBufferManager(staticVertexBuffer, staticIndexBuffer, streamVertexBuffer, streamIndexBuffer, vtxBuffer, idxBuffer);
-        staticStorage        = new StaticBufferManager(staticVertexBuffer, staticIndexBuffer, glVbo, glIbo);
-        rangeSyncPrimitives  = [ for (i in 0...3) new GLSyncWrapper() ];
-        currentRange         = 0;
+        perspectiveYFlipVector = new Vector(1, -1, 1);
+        transformationVector   = new Vector();
+        identityMatrix         = new Matrix();
+        streamStorage          = new StreamBufferManager(staticVertexBuffer, staticIndexBuffer, streamVertexBuffer, streamIndexBuffer, vtxBuffer, idxBuffer);
+        staticStorage          = new StaticBufferManager(staticVertexBuffer, staticIndexBuffer, glVbo, glIbo);
+        rangeSyncPrimitives    = [ for (i in 0...3) new GLSyncWrapper() ];
+        currentRange           = 0;
 
-        // Create a representation of the backbuffer and manually insert it into the target structure.
-        var backbufferID = [ 0 ];
-        glGetIntegerv(GL_FRAMEBUFFER, backbufferID);
-
-        backbuffer = new BackBuffer(_windowConfig.width, _windowConfig.height, 1, backbufferID[0]);
+        backbuffer = createBackbuffer(_windowConfig.width, _windowConfig.height);
 
         // Default blend mode
         // TODO : Move this to be a settable property in the geometry or renderer or something
@@ -306,11 +310,13 @@ class OGL4Backend implements IRendererBackend
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
         // Set the clear colour
-        glClearColor(_rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a);
+        clearColour = [ _rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a ];
 
         // Default scissor test
         glEnable(GL_SCISSOR_TEST);
         glScissor(0, 0, backbuffer.width, backbuffer.height);
+
+        glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
         // default state
         viewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
@@ -351,11 +357,11 @@ class OGL4Backend implements IRendererBackend
 
         streamStorage.unlockBuffers(currentRange);
 
-        // Disable the clip to clear the entire target.
         clip.set(0, 0, backbuffer.width, backbuffer.height);
         glScissor(0, 0, backbuffer.width, backbuffer.height);
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearNamedFramebufferfv(backbuffer.framebuffer, GL_COLOR, 0, clearColour);
     }
 
     /**
@@ -422,6 +428,12 @@ class OGL4Backend implements IRendererBackend
         rangeSyncPrimitives[currentRange].sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 
         currentRange = (currentRange + 1) % 3;
+
+        glBlitNamedFramebuffer(
+            backbuffer.framebuffer, 0,
+            0, 0, backbuffer.width, backbuffer.height,
+            0, backbuffer.height, backbuffer.width, 0,
+            GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
 
         SDL.GL_SwapWindow(window);
     }
@@ -497,8 +509,7 @@ class OGL4Backend implements IRendererBackend
 
     function onSizeChanged(_event : DisplayEventData)
     {
-        backbuffer.width  = _event.width;
-        backbuffer.height = _event.height;
+        backbuffer = createBackbuffer(_event.width, _event.height);
     }
 
     // #endregion
@@ -709,7 +720,7 @@ class OGL4Backend implements IRendererBackend
                 framebufferObjects.set(target.id, fbo[0]);
             }
 
-            glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebufferObject);
+            glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebuffer);
 
             if (_enableStats)
             {
@@ -768,8 +779,8 @@ class OGL4Backend implements IRendererBackend
 
         // Set the viewport.
         // If the viewport of the command is null then the backbuffer size is used (size of the window).
-        var cmdViewport = _command.viewport;
-        if (_command.viewport == null)
+        var cmdViewport = _command.camera.viewport;
+        if (cmdViewport == null)
         {
             if (target == null)
             {
@@ -785,13 +796,12 @@ class OGL4Backend implements IRendererBackend
         {
             viewport.set(cmdViewport.x, cmdViewport.y, cmdViewport.w, cmdViewport.h);
 
-            var x = viewport.x *= target == null ? backbuffer.viewportScale : 1;
-            var y = viewport.y *= target == null ? backbuffer.viewportScale : 1;
-            var w = viewport.w *= target == null ? backbuffer.viewportScale : 1;
-            var h = viewport.h *= target == null ? backbuffer.viewportScale : 1;
+            var x = viewport.x *= target == null ? backbuffer.scale : 1;
+            var y = viewport.y *= target == null ? backbuffer.scale : 1;
+            var w = viewport.w *= target == null ? backbuffer.scale : 1;
+            var h = viewport.h *= target == null ? backbuffer.scale : 1;
 
             // OpenGL works 0x0 is bottom left so we need to flip the y.
-            y = (target == null ? backbuffer.height : target.height) - (y + h);
             glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
 
             if (_enableStats)
@@ -802,7 +812,7 @@ class OGL4Backend implements IRendererBackend
 
         // Apply the scissor clip.
         var cmdClip = _command.clip;
-        if (_command.clip == null)
+        if (cmdClip == null)
         {
             if (target == null)
             {
@@ -818,13 +828,12 @@ class OGL4Backend implements IRendererBackend
         {
             clip.copyFrom(cmdClip);
 
-            var x = cmdClip.x * (target == null ? backbuffer.viewportScale : 1);
-            var y = cmdClip.y * (target == null ? backbuffer.viewportScale : 1);
-            var w = cmdClip.w * (target == null ? backbuffer.viewportScale : 1);
-            var h = cmdClip.h * (target == null ? backbuffer.viewportScale : 1);
+            var x = cmdClip.x * (target == null ? backbuffer.scale : 1);
+            var y = cmdClip.y * (target == null ? backbuffer.scale : 1);
+            var w = cmdClip.w * (target == null ? backbuffer.scale : 1);
+            var h = cmdClip.h * (target == null ? backbuffer.scale : 1);
 
             // OpenGL works 0x0 is bottom left so we need to flip the y.
-            y = (target == null ? backbuffer.height : target.height) - (y + h);
             glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
 
             if (_enableStats)
@@ -899,6 +908,11 @@ class OGL4Backend implements IRendererBackend
         {
             if (cache.layout.blocks[i].name == 'defaultMatrices')
             {
+                buildCameraMatrices(_command.camera);
+
+                var view       = _command.camera.view;
+                var projection = _command.camera.projection;
+
                 // The matrix ssbo used depends on if its a static or stream command
                 // stream draws are batched and only have a single model matrix, they use the shaders default matrix ssbo.
                 // static draws have individual ssbos for each command. These ssbos fit a model matrix per geometry.
@@ -910,8 +924,8 @@ class OGL4Backend implements IRendererBackend
                     case Static:
                         var rng = staticStorage.get(_command);
                         var ptr = Pointer.arrayElem(rng.matrixBuffer.view.buffer.getData(), 0);
-                        Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
-                        Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
+                        Stdlib.memcpy(ptr          , (projection : Float32Array).view.buffer.getData().address(0), 64);
+                        Stdlib.memcpy(ptr.incBy(64), (view       : Float32Array).view.buffer.getData().address(0), 64);
                         glNamedBufferSubData(rng.glMatrixBuffer, 0, rng.matrixBuffer.view.buffer.length, rng.matrixBuffer.view.buffer.getData());
 
                         if (ssbo != rng.glMatrixBuffer)
@@ -926,11 +940,11 @@ class OGL4Backend implements IRendererBackend
                         }
                         
                     case Stream, Immediate:
-                        var model = streamStorage.getModelMatrix(_command.id);
                         var ptr   = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
-                        Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
-                        Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
-                        Stdlib.memcpy(ptr.incBy(64), (model               : Float32Array).view.buffer.getData().address(0), 64);
+                        var model = streamStorage.getModelMatrix(_command.id);
+                        Stdlib.memcpy(ptr          , (projection : Float32Array).view.buffer.getData().address(0), 64);
+                        Stdlib.memcpy(ptr.incBy(64), (view       : Float32Array).view.buffer.getData().address(0), 64);
+                        Stdlib.memcpy(ptr.incBy(64), (model      : Float32Array).view.buffer.getData().address(0), 64);
                         glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
 
                         if (ssbo != cache.blockBuffers[i])
@@ -973,6 +987,67 @@ class OGL4Backend implements IRendererBackend
                 glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
             }
         }
+    }
+
+    function buildCameraMatrices(_camera : Camera)
+    {
+        switch _camera.type
+        {
+            case Orthographic:
+                var orth = (cast _camera : Camera2D);
+                if (orth.dirty)
+                {
+                    orth.projection.makeHeterogeneousOrthographic(0, orth.viewport.w, orth.viewport.h, 0, -100, 100);
+                    orth.view.copy(orth.transformation.transformation).invert();
+                    orth.dirty = false;
+                }
+            case Projection:
+                var proj = (cast _camera : Camera3D);
+                if (proj.dirty)
+                {
+                    proj.projection.makeHeterogeneousPerspective(Maths.toDegrees(proj.fov), proj.aspect, proj.near, proj.far);
+                    proj.projection.scale(perspectiveYFlipVector);
+                    proj.view.copy(proj.transformation.transformation).invert();
+                    proj.dirty = false;
+                }
+            case Custom:
+                // Do nothing, user is responsible for building their custom camera matrices.
+        }
+    }
+
+    function createBackbuffer(_width : Int, _height : Int) : BackBuffer
+    {
+        if (backbuffer != null)
+        {
+            glDeleteTextures(1, [ backbuffer.texture ]);
+            glDeleteRenderbuffers(1, [ backbuffer.depthStencil ]);
+            glDeleteFramebuffers(1, [ backbuffer.framebuffer ]);
+        }
+
+        var tex = [ 0 ];
+        glCreateTextures(GL_TEXTURE_2D, 1, tex);
+        glTextureStorage2D(tex[0], 1, GL_RGB8, _width, _height);
+
+        var rbo = [ 0 ];
+        glCreateRenderbuffers(1, rbo);
+        glNamedRenderbufferStorage(rbo[0], GL_DEPTH24_STENCIL8, _width, _height);
+
+        var fbo = [ 0 ];
+        glCreateFramebuffers(1, fbo);
+        glNamedFramebufferTexture(fbo[0], GL_COLOR_ATTACHMENT0, tex[0], 0);
+        glNamedFramebufferRenderbuffer(fbo[0], GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo[0]);
+
+        if (glCheckNamedFramebufferStatus(fbo[0], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        {
+            throw 'unable to create framebuffer';
+        }
+
+        if (target == null)
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
+        }
+
+        return new BackBuffer(_width, _height, 1, tex[0], rbo[0], fbo[0]);
     }
 
     /**
@@ -1036,32 +1111,26 @@ class OGL4Backend implements IRendererBackend
  */
 private class BackBuffer
 {
-    /**
-     * Width of the backbuffer.
-     */
-    public var width : Int;
+    public final width : Int;
 
-    /**
-     * Height of the backbuffer.
-     */
-    public var height : Int;
+    public final height : Int;
 
-    /**
-     * View scale of the backbuffer.
-     */
-    public var viewportScale : Float;
+    public final scale : Float;
 
-    /**
-     * Framebuffer object for the backbuffer.
-     */
-    public var framebufferObject : Int;
+    public final texture : Int;
 
-    public function new(_width : Int, _height : Int, _viewportScale : Float, _framebuffer : Int)
+    public final depthStencil : Int;
+
+    public final framebuffer : Int;
+
+    public function new(_width : Int, _height : Int, _scale : Float, _tex : Int, _depthStencil : Int, _fbo : Int)
     {
-        width             = _width;
-        height            = _height;
-        viewportScale     = _viewportScale;
-        framebufferObject = _framebuffer;
+        width        = _width;
+        height       = _height;
+        scale        = _scale;
+        texture      = _tex;
+        depthStencil = _depthStencil;
+        framebuffer  = _fbo;
     }
 }
 

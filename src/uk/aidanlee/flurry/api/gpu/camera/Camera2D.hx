@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.camera;
 
+import uk.aidanlee.flurry.api.gpu.geometry.Transformation;
+import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector;
 
@@ -27,19 +29,50 @@ enum SizeMode {
 /**
  * Orthographic camera.
  */
-class OrthographicCamera extends Camera
+class Camera2D extends Camera
 {
-    /**
-     * Size mode determines how the camera will scale the view.
-     */
-    public var sizeMode : SizeMode;
-
     /**
      * The virtual size of this camera.
      * Size relative within the world space, not the view space.
      */
     public final size : Vector;
+
+    /**
+     * //
+     */
+    public final transformation : Transformation;
+
+    /**
+     * 
+     */
+    public var dirty : Bool;
+
+    /**
+     * 
+     */
+    public var position (get, never) : Vector;
+
+    inline function get_position() : Vector return transformation.origin;
+
+    /**
+     * 
+     */
+    public var scale (get, never) : Vector;
+
+    inline function get_scale() : Vector return transformation.scale;
+
+    /**
+     * 
+     */
+    public var origin (get, never) : Vector;
+
+    inline function get_origin() : Vector return transformation.origin;
     
+    /**
+     * Size mode determines how the camera will scale the view.
+     */
+    public var sizeMode : SizeMode;
+
     /**
      * The zoom of this orthographic camera.
      */
@@ -77,19 +110,18 @@ class OrthographicCamera extends Camera
      */
     public function new(_width : Float, _height : Float)
     {
-        super();
+        super(Orthographic);
 
-        viewport.set(0, 0, _width, _height);
-
-        zoom        = 1;
-        minimumZoom = 0.01;
-        sizeMode    = Fit;
-        size        = new Vector(viewport.w, viewport.h);
-
-        shaking      = false;
-        shakeAmount  = 0;
-        shakeMinimum = 0.1;
-        shakeVector  = new Vector();
+        viewport       = new Rectangle(0, 0, _width, _height);
+        size           = new Vector(_width, _height);
+        transformation = new Transformation();
+        zoom           = 1;
+        minimumZoom    = 0.01;
+        sizeMode       = Fit;
+        shaking        = false;
+        shakeAmount    = 0;
+        shakeMinimum   = 0.1;
+        shakeVector    = new Vector();
 
         update();
     }
@@ -97,7 +129,7 @@ class OrthographicCamera extends Camera
     /**
      * Creates the projection matrix and combines it with the view matrix.
      */
-    override public function update()
+    public function update()
     {
         // Clamp the zoom
         if (zoom < minimumZoom)
@@ -147,11 +179,7 @@ class OrthographicCamera extends Camera
             );
         }
 
-        // Create the projection and combined matrices.
-        projection.makeOrthographic(0, viewport.w, 0, viewport.h, 0, 1000);
-        view.copy(transformation.transformation);
-        
-        viewInverted.copy(view).invert();
+        dirty = true;
     }
 
     /**

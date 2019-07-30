@@ -1,12 +1,12 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.gpu.BlendMode;
 import uk.aidanlee.flurry.api.gpu.DepthOptions;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.StencilOptions;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
-import uk.aidanlee.flurry.api.maths.Matrix;
-import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 
@@ -31,12 +31,9 @@ class DrawCommand
     /**
      * Projection matrix to draw this command with.
      */
-    public final projection : Matrix;
+    public final camera : Camera;
 
-    /**
-     * View matrix to draw this command with.
-     */
-    public final view : Matrix;
+    public final clip : Null<Rectangle>;
 
     /**
      * Number of vertices in this draw command.
@@ -47,11 +44,6 @@ class DrawCommand
      * Number of indices in this draw command.
      */
     public final indices : Int;
-
-    /**
-     * Viewport for this draw command.
-     */
-    public final viewport : Rectangle;
 
     /**
      * Primitive type of this draw command.
@@ -78,11 +70,6 @@ class DrawCommand
      */
     public final textures : Array<ImageResource>;
 
-    /**
-     * Clipping rectangle.
-     */
-    public final clip : Null<Rectangle>;
-
     public final depth : DepthOptions;
 
     public final stencil : StencilOptions;
@@ -103,17 +90,15 @@ class DrawCommand
     inline public function new(
         _id         : Int,
         _uploadType : UploadType,
-        _projection : Matrix,
-        _view       : Matrix,
+        _camera     : Camera,
+        _clip       : Null<Rectangle>,
         _vertices   : Int,
         _indices    : Int,
-        _viewport   : Rectangle,
         _primitive  : PrimitiveType,
         _target     : ImageResource,
         _shader     : ShaderResource,
         _uniforms   : Uniforms,
         _textures   : Array<ImageResource>,
-        _clip       : Rectangle,
         _depth      : DepthOptions,
         _stencil    : StencilOptions,
         _blending   : Bool,
@@ -125,17 +110,15 @@ class DrawCommand
     {
         id         = _id;
         uploadType = _uploadType;
-        projection = _projection;
-        view       = _view;
+        camera     = _camera;
+        clip       = _clip;
         vertices   = _vertices;
         indices    = _indices;
-        viewport   = _viewport;
         primitive  = _primitive;
         target     = _target;
         shader     = _shader;
         uniforms   = _uniforms;
         textures   = _textures;
-        clip       = _clip;
         depth      = _depth;
         stencil    = _stencil;
         blending   = _blending;

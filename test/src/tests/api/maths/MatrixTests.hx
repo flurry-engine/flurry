@@ -170,7 +170,7 @@ class MatrixTests extends BuddySuite
                     m.toString().should.be(s);
                 });
                 it('Can invert itself', {
-                    var m = new Matrix().makeOrthographic(0, 1280, 0, 720, 1, 0).invert();
+                    var m = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 1, 0).invert();
                     
                     m[ 0].should.beCloseTo(640);
                     m[ 4].should.beCloseTo(0);
@@ -196,11 +196,11 @@ class MatrixTests extends BuddySuite
 
             describe('Maths', {
                 it('Can calculate the determinant of the matrix', {
-                    var determinant = new Matrix().makeOrthographic(0, 1280, 0, 720, 1, 0).determinant();
+                    var determinant = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 1, 0).determinant();
                     determinant.should.beCloseTo(-8.68055589510025e-06);
                 });
                 it('Can transpose the matrix', {
-                    var m = new Matrix().makeOrthographic(0, 1280, 0, 720, 1, 0).transpose();
+                    var m = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 1, 0).transpose();
                     
                     m[ 0].should.beCloseTo(0.001);
                     m[ 4].should.beCloseTo(0);
@@ -223,7 +223,7 @@ class MatrixTests extends BuddySuite
                     m[15].should.beCloseTo(1);
                 });
                 it('Can scale the matrix', {
-                    var m = new Matrix().makeOrthographic(0, 1280, 0, 720, 1, 0).scale(new Vector(2.3, 0.75, -0.4));
+                    var m = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 1, 0).scale(new Vector(2.3, 0.75, -0.4));
                     
                     m[ 0].should.beCloseTo(0.003);
                     m[ 4].should.beCloseTo(0);
@@ -246,7 +246,7 @@ class MatrixTests extends BuddySuite
                     m[15].should.beCloseTo(1);
                 });
                 it('Can compose a matrix from a position, rotation, and scale', {
-                    var m = new Matrix().makeOrthographic(0, 1280, 0, 720, 1, 0).transpose();
+                    var m = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 1, 0).transpose();
 
                     m[ 0].should.beCloseTo(0.001);
                     m[ 4].should.beCloseTo(0);
@@ -269,7 +269,7 @@ class MatrixTests extends BuddySuite
                     m[15].should.beCloseTo(1);
                 });
                 it('Can decompose a matrix into a position, rotation, and scale', {
-                    var t = new Matrix().makeOrthographic(0, 1280, 0, 720, 1, 0).decompose(null, null, null);
+                    var t = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 1, 0).decompose(null, null, null);
                     
                     t.position.x.should.beCloseTo(-1);
                     t.position.y.should.beCloseTo(1);
@@ -291,7 +291,7 @@ class MatrixTests extends BuddySuite
             describe('Operations', {
                 it('Can multiply itself with another matrix', {
                     var m1 = new Matrix().makeScale(0.5, 2.3, -0.7);
-                    var m2 = new Matrix().makeOrthographic(0, 1280, 0, 720, 0, 1);
+                    var m2 = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1);
                     m1.multiply(m2);
 
                     m1[ 0].should.beCloseTo(0);
@@ -316,7 +316,7 @@ class MatrixTests extends BuddySuite
                 });
                 it('Can multiply to matrices together and store the result in itself', {
                     var m1 = new Matrix().makeScale(0.5, 2.3, -0.7);
-                    var m2 = new Matrix().makeOrthographic(0, 1280, 0, 720, 0, 1);
+                    var m2 = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1);
                     var m3 = new Matrix().multiplyMatrices(m1, m2);
 
                     m3[ 0].should.beCloseTo(0);
@@ -340,7 +340,7 @@ class MatrixTests extends BuddySuite
                     m3[15].should.beCloseTo(1);
                 });
                 it('Can multiply itself by a scalar value', {
-                    var m = new Matrix().makeOrthographic(0, 1280, 0, 720, 0, 1).multiplyScalar(2.3);
+                    var m = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1).multiplyScalar(2.3);
                     
                     m[ 0].should.beCloseTo(0.003);
                     m[ 4].should.beCloseTo(0);
@@ -363,42 +363,42 @@ class MatrixTests extends BuddySuite
                     m[15].should.beCloseTo(2.299);
                 });
                 it('Can get the up vector of this matrix', {
-                    var v = new Matrix().makeOrthographic(0, 1280, 0, 720, 0, 1).up();
+                    var v = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1).up();
                     v.x.should.beCloseTo(0);
                     v.y.should.beCloseTo(-0.002);
                     v.z.should.beCloseTo(0);
                     v.w.should.beCloseTo(0);
                 });
                 it('Can get the down vector of this matrix', {
-                    var v = new Matrix().makeOrthographic(0, 1280, 0, 720, 0, 1).down();
+                    var v = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1).down();
                     v.x.should.beCloseTo(0);
                     v.y.should.beCloseTo(-0.002);
                     v.z.should.beCloseTo(0);
                     v.w.should.beCloseTo(0);
                 });
                 it('Can get the left vector of this matrix', {
-                    var v = new Matrix().makeOrthographic(0, 1280, 0, 720, 0, 1).left();
+                    var v = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1).left();
                     v.x.should.beCloseTo(0);
                     v.y.should.beCloseTo(-0.001);
                     v.z.should.beCloseTo(0);
                     v.w.should.beCloseTo(0);
                 });
                 it('Can get the right vector of this matrix', {
-                    var v = new Matrix().makeOrthographic(0, 1280, 0, 720, 0, 1).right();
+                    var v = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1).right();
                     v.x.should.beCloseTo(0);
                     v.y.should.beCloseTo(-0.001);
                     v.z.should.beCloseTo(0);
                     v.w.should.beCloseTo(0);
                 });
                 it('Can get the forward vector of this matrix', {
-                    var v = new Matrix().makeOrthographic(0, 1280, 0, 720, 0, 1).forward();
+                    var v = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1).forward();
                     v.x.should.beCloseTo(0);
                     v.y.should.beCloseTo(0);
                     v.z.should.beCloseTo(2);
                     v.w.should.beCloseTo(0);
                 });
                 it('Can get the backwards vector of this matrix', {
-                    var v = new Matrix().makeOrthographic(0, 1280, 0, 720, 0, 1).backwards();
+                    var v = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1).backwards();
                     v.x.should.beCloseTo(0);
                     v.y.should.beCloseTo(0);
                     v.z.should.beCloseTo(-2);
@@ -692,8 +692,8 @@ class MatrixTests extends BuddySuite
                     m[14].should.beCloseTo(0);
                     m[15].should.beCloseTo(1);
                 });
-                it('Can create a frumstum matrix', {
-                    var m = new Matrix().makeFrustum(0, 1280, 720, 0, 0, 1);
+                it('Can create a homogeneous frumstum matrix', {
+                    var m = new Matrix().makeHomogeneousFrustum(0, 1280, 720, 0, 0, 1);
 
                     m[ 0].should.beCloseTo(0);
                     m[ 1].should.beCloseTo(0);
@@ -715,8 +715,8 @@ class MatrixTests extends BuddySuite
                     m[14].should.beCloseTo(0);
                     m[15].should.beCloseTo(0);
                 });
-                it('Can create a perspective matrix', {
-                    var m = new Matrix().makePerspective(70, 1280 / 720, 0, 100);
+                it('Can create a homogeneous perspective matrix', {
+                    var m = new Matrix().makeHomogeneousPerspective(70, 1280 / 720, 0, 100);
 
                     Math.isNaN(m[0]).should.be(true);
                     m[ 1].should.beCloseTo(0);
@@ -738,8 +738,8 @@ class MatrixTests extends BuddySuite
                     m[14].should.beCloseTo(0);
                     m[15].should.beCloseTo(0);
                 });
-                it('Can create a orthographic matrix', {
-                    var m = new Matrix().makeOrthographic(0, 1600, 0, 1280, 0, 1);
+                it('Can create a homogeneous orthographic matrix', {
+                    var m = new Matrix().makeHomogeneousOrthographic(0, 1600, 0, 1280, 0, 1);
 
                     m[ 0].should.beCloseTo(0.001);
                     m[ 1].should.beCloseTo(0);
@@ -761,12 +761,81 @@ class MatrixTests extends BuddySuite
                     m[14].should.beCloseTo(-1);
                     m[15].should.beCloseTo(1);
                 });
+                it('Can create a heterogeneous frumstum matrix', {
+                    var m = new Matrix().makeHeterogeneousFrustum(0, 1280, 720, 0, 0, 1);
+
+                    m[ 0].should.beCloseTo(0);
+                    m[ 1].should.beCloseTo(0);
+                    m[ 2].should.beCloseTo(0);
+                    m[ 3].should.beCloseTo(0);
+
+                    m[ 4].should.beCloseTo(0);
+                    m[ 5].should.beCloseTo(0);
+                    m[ 6].should.beCloseTo(0);
+                    m[ 7].should.beCloseTo(0);
+
+                    m[ 8].should.beCloseTo(1);
+                    m[ 9].should.beCloseTo(-1);
+                    m[10].should.beCloseTo(-1);
+                    m[11].should.beCloseTo(-1);
+
+                    m[12].should.beCloseTo(0);
+                    m[13].should.beCloseTo(0);
+                    m[14].should.beCloseTo(-1);
+                    m[15].should.beCloseTo(0);
+                });
+                it('Can create a heterogeneous perspective matrix', {
+                    var m = new Matrix().makeHeterogeneousPerspective(70, 1280 / 720, 0, 100);
+
+                    Math.isNaN(m[0]).should.be(true);
+                    m[ 1].should.beCloseTo(0);
+                    m[ 2].should.beCloseTo(0);
+                    m[ 3].should.beCloseTo(0);
+
+                    m[ 4].should.beCloseTo(0);
+                    Math.isNaN(m[5]).should.be(true);
+                    m[ 6].should.beCloseTo(0);
+                    m[ 7].should.beCloseTo(0);
+
+                    Math.isNaN(m[8]).should.be(true);
+                    Math.isNaN(m[9]).should.be(true);
+                    m[10].should.beCloseTo(-1);
+                    m[11].should.beCloseTo(-1);
+
+                    m[12].should.beCloseTo(0);
+                    m[13].should.beCloseTo(0);
+                    m[14].should.beCloseTo(-1);
+                    m[15].should.beCloseTo(0);
+                });
+                it('Can create a heterogeneous orthographic matrix', {
+                    var m = new Matrix().makeHeterogeneousOrthographic(0, 1600, 0, 1280, 0, 1);
+
+                    m[ 0].should.beCloseTo(0.001);
+                    m[ 1].should.beCloseTo(0);
+                    m[ 2].should.beCloseTo(0);
+                    m[ 3].should.beCloseTo(0);
+
+                    m[ 4].should.beCloseTo(0);
+                    m[ 5].should.beCloseTo(-0.001);
+                    m[ 6].should.beCloseTo(0);
+                    m[ 7].should.beCloseTo(0);
+
+                    m[ 8].should.beCloseTo(0);
+                    m[ 9].should.beCloseTo(0);
+                    m[10].should.beCloseTo(-1);
+                    m[11].should.beCloseTo(0);
+
+                    m[12].should.beCloseTo(-1);
+                    m[13].should.beCloseTo(1);
+                    m[14].should.beCloseTo(-1);
+                    m[15].should.beCloseTo(1);
+                });
             });
 
             describe('Operator Overloading', {
                 it('Can multiply itself with another matrix', {
                     var m1 = new Matrix().makeScale(0.5, 2.3, -0.7);
-                    var m2 = new Matrix().makeOrthographic(0, 1280, 0, 720, 0, 1);
+                    var m2 = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1);
                     var m3 = m1 * m2;
 
                     m3[ 0].should.beCloseTo(0);
@@ -790,7 +859,7 @@ class MatrixTests extends BuddySuite
                     m3[15].should.beCloseTo(1);
                 });
                 it('Can multiply itself by a scalar value', {
-                    var m = new Matrix().makeOrthographic(0, 1280, 0, 720, 0, 1) * 2.3;
+                    var m = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1) * 2.3;
                     
                     m[ 0].should.beCloseTo(0.003);
                     m[ 4].should.beCloseTo(0);

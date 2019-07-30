@@ -7,7 +7,7 @@ import haxe.io.UInt16Array;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.gpu.DepthOptions;
 import uk.aidanlee.flurry.api.gpu.StencilOptions;
-import uk.aidanlee.flurry.api.gpu.camera.OrthographicCamera;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.input.Input;
 import uk.aidanlee.flurry.api.input.Keycodes;
@@ -32,7 +32,7 @@ class ImGuiImpl
     final texture  : ImageResource;
     final vtxData  : Float32Array;
     final idxData  : UInt16Array;
-    final camera   : OrthographicCamera;
+    final camera   : Camera2D;
     final depth    : DepthOptions;
     final stencil  : StencilOptions;
     final model    : Matrix;
@@ -44,7 +44,7 @@ class ImGuiImpl
         resources = _resources;
         input     = _input;
         renderer  = _renderer;
-        camera    = new OrthographicCamera(display.width, display.height);
+        camera    = new Camera2D(display.width, display.height);
         depth     = {
             depthTesting  : false,
             depthMasking  : false,
@@ -245,15 +245,13 @@ class ImGuiImpl
                     model,
                     Hash.uniqueHash(),
                     Stream,
-                    camera.projection,
-                    camera.viewInverted,
-                    camera.viewport,
+                    camera,
+                    clip,
                     Triangles,
                     null,
                     resources.get('std-shader-textured.json', ShaderResource),
                     null,
                     [ t.value ],
-                    clip,
                     depth,
                     stencil,
                     true,

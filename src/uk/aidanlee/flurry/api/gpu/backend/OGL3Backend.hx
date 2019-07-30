@@ -25,6 +25,9 @@ import uk.aidanlee.flurry.api.gpu.BlendMode;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.StencilFunction;
 import uk.aidanlee.flurry.api.gpu.ComparisonFunction;
+import uk.aidanlee.flurry.api.gpu.camera.Camera;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
+import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
@@ -109,11 +112,6 @@ class OGL3Backend implements IRendererBackend
     final indexBuffer : UInt16Array;
 
     /**
-     * Backbuffer display, default target if none is specified.
-     */
-    final backbuffer : BackBuffer;
-
-    /**
      * Transformation vector used for transforming geometry vertices by a matrix.
      */
     final transformationVectors : Array<Vector>;
@@ -149,6 +147,13 @@ class OGL3Backend implements IRendererBackend
      * dummy identity matrix for passing into shaders so they have parity with OGL4 shaders.
      */
     final dummyModelMatrix : Matrix;
+
+    final perspectiveYFlipVector : Vector;
+
+    /**
+     * Backbuffer display, default target if none is specified.
+     */
+    var backbuffer : Null<BackBuffer>;
 
     /**
      * The number of vertices that have been written into the vertex buffer this frame.
@@ -186,7 +191,7 @@ class OGL3Backend implements IRendererBackend
     var shader   : ShaderResource;
     var clip     : Rectangle;
     var viewport : Rectangle;
-    var boundTextures : Array<Int>;
+    final boundTextures : Array<Int>;
 
     // SDL Window and GL Context
 
@@ -207,11 +212,12 @@ class OGL3Backend implements IRendererBackend
         textureObjects     = [];
         framebufferObjects = [];
 
-        dummyModelMatrix      = new Matrix();
-        jobQueue              = new JobQueue(RENDERER_THREADS);
-        transformationVectors = [ for (i in 0...RENDERER_THREADS) new Vector() ];
-        commandVtxOffsets     = [];
-        commandIdxOffsets     = [];
+        perspectiveYFlipVector = new Vector(1, -1, 1);
+        dummyModelMatrix       = new Matrix();
+        jobQueue               = new JobQueue(RENDERER_THREADS);
+        transformationVectors  = [ for (i in 0...RENDERER_THREADS) new Vector() ];
+        commandVtxOffsets      = [];
+        commandIdxOffsets      = [];
 
         vertexOffset      = 0;
         vertexFloatOffset = 0;
@@ -248,10 +254,16 @@ class OGL3Backend implements IRendererBackend
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 1, 4, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_COL);
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 2, 2, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
 
-        // Create a representation of the backbuffer.
-        var backbufferID = [ 0 ];
-        glGetIntegerv(GL_FRAMEBUFFER, backbufferID);
-        backbuffer = new BackBuffer(_windowConfig.width, _windowConfig.height, 1, backbufferID[0]);
+        // default state
+        viewport = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
+        clip     = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
+        shader   = null;
+        target   = null;
+        boundTextures = [];
+
+        // Create our own custom backbuffer.
+        // we blit a flipped version to the actual backbuffer before swapping.
+        backbuffer = createBackbuffer(_windowConfig.width, _windowConfig.height);
 
         // Default blend mode
         // TODO : Move this to be a settable property in the geometry or renderer or something
@@ -265,13 +277,6 @@ class OGL3Backend implements IRendererBackend
         glEnable(GL_SCISSOR_TEST);
         glScissor(0, 0, backbuffer.width, backbuffer.height);
 
-        // default state
-        viewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-        clip     = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-        shader   = null;
-        target   = null;
-        boundTextures = [];
-
         resourceEvents.created.add(onResourceCreated);
         resourceEvents.removed.add(onResourceRemoved);
         displayEvents.sizeChanged.add(onSizeChanged);
@@ -280,10 +285,10 @@ class OGL3Backend implements IRendererBackend
 
     public function preDraw()
     {
-        // Disable the clip to clear the entire target.
+        target = null;
         clip.set(0, 0, backbuffer.width, backbuffer.height);
-        glScissor(0, 0, backbuffer.width, backbuffer.height);
 
+        glScissor(0, 0, backbuffer.width, backbuffer.height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         vertexOffset      = 0;
@@ -446,6 +451,16 @@ class OGL3Backend implements IRendererBackend
 
     public function postDraw()
     {
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, backbuffer.framebuffer);
+
+        glBlitFramebuffer(
+            0, 0, backbuffer.width, backbuffer.height,
+            0, backbuffer.height, backbuffer.width, 0,
+            GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, backbuffer.framebuffer);
+
         SDL.GL_SwapWindow(window);
     }
 
@@ -509,8 +524,7 @@ class OGL3Backend implements IRendererBackend
 
     function onSizeChanged(_event : DisplayEventData)
     {
-        backbuffer.width  = _event.width;
-        backbuffer.height = _event.height;
+        backbuffer = createBackbuffer(_event.width, _event.height);
     }
 
     // #endregion
@@ -728,7 +742,7 @@ class OGL3Backend implements IRendererBackend
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
             }
 
-            glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebufferObject);
+            glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebuffer);
 
             if (!_disableStats)
             {
@@ -786,8 +800,8 @@ class OGL3Backend implements IRendererBackend
         }
 
         // Set the viewport.
-        var cmdViewport = _command.viewport;
-        if (_command.viewport == null)
+        var cmdViewport = _command.camera.viewport;
+        if (cmdViewport == null)
         {
             if (target == null)
             {
@@ -803,13 +817,11 @@ class OGL3Backend implements IRendererBackend
         {
             viewport.copyFrom(cmdViewport);
             
-            var x = viewport.x *= target == null ? backbuffer.viewportScale : 1;
-            var y = viewport.y *= target == null ? backbuffer.viewportScale : 1;
-            var w = viewport.w *= target == null ? backbuffer.viewportScale : 1;
-            var h = viewport.h *= target == null ? backbuffer.viewportScale : 1;
+            var x = viewport.x *= target == null ? backbuffer.scale : 1;
+            var y = viewport.y *= target == null ? backbuffer.scale : 1;
+            var w = viewport.w *= target == null ? backbuffer.scale : 1;
+            var h = viewport.h *= target == null ? backbuffer.scale : 1;
 
-            // OpenGL works 0x0 is bottom left so we need to flip the y.
-            y = (target == null ? backbuffer.height : target.height) - (y + h);
             glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
 
             if (!_disableStats)
@@ -820,7 +832,7 @@ class OGL3Backend implements IRendererBackend
 
         // Set the scissor region.
         var cmdClip = _command.clip;
-        if (_command.clip == null)
+        if (cmdClip == null)
         {
             if (target == null)
             {
@@ -836,13 +848,11 @@ class OGL3Backend implements IRendererBackend
         {
             clip.copyFrom(cmdClip);
 
-            var x = cmdClip.x * (target == null ? backbuffer.viewportScale : 1);
-            var y = cmdClip.y * (target == null ? backbuffer.viewportScale : 1);
-            var w = cmdClip.w * (target == null ? backbuffer.viewportScale : 1);
-            var h = cmdClip.h * (target == null ? backbuffer.viewportScale : 1);
+            var x = cmdClip.x * (target == null ? backbuffer.scale : 1);
+            var y = cmdClip.y * (target == null ? backbuffer.scale : 1);
+            var w = cmdClip.w * (target == null ? backbuffer.scale : 1);
+            var h = cmdClip.h * (target == null ? backbuffer.scale : 1);
 
-            // OpenGL works 0x0 is bottom left so we need to flip the y.
-            y = (target == null ? backbuffer.height : target.height) - (y + h);
             glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
 
             if (!_disableStats)
@@ -931,11 +941,15 @@ class OGL3Backend implements IRendererBackend
 
             if (cache.layout.blocks[i].name == 'defaultMatrices')
             {
-                var modelMatrix = bufferModelMatrix.exists(_command.id) ? bufferModelMatrix.get(_command.id) : dummyModelMatrix;
+                buildCameraMatrices(_command.camera);
 
-                cpp.Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
-                cpp.Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
-                cpp.Stdlib.memcpy(ptr.incBy(64), (modelMatrix         : Float32Array).view.buffer.getData().address(0), 64);
+                var model      = bufferModelMatrix.exists(_command.id) ? bufferModelMatrix.get(_command.id) : dummyModelMatrix;
+                var view       = _command.camera.view;
+                var projection = _command.camera.projection;
+
+                cpp.Stdlib.memcpy(ptr          , (projection : Float32Array).view.buffer.getData().address(0), 64);
+                cpp.Stdlib.memcpy(ptr.incBy(64), (view       : Float32Array).view.buffer.getData().address(0), 64);
+                cpp.Stdlib.memcpy(ptr.incBy(64), (model      : Float32Array).view.buffer.getData().address(0), 64);
             }
             else
             {
@@ -968,6 +982,82 @@ class OGL3Backend implements IRendererBackend
             
             glBufferSubData(GL_UNIFORM_BUFFER, 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
         }
+    }
+
+    function buildCameraMatrices(_camera : Camera)
+    {
+        switch _camera.type
+        {
+            case Orthographic:
+                var orth = (cast _camera : Camera2D);
+                if (orth.dirty)
+                {
+                    orth.projection.makeHomogeneousOrthographic(0, orth.viewport.w, orth.viewport.h, 0, -100, 100);
+                    orth.view.copy(orth.transformation.transformation).invert();
+                    orth.dirty = false;
+                }
+            case Projection:
+                var proj = (cast _camera : Camera3D);
+                if (proj.dirty)
+                {
+                    proj.projection.makeHomogeneousPerspective(Maths.toDegrees(proj.fov), proj.aspect, proj.near, proj.far);
+                    proj.projection.scale(perspectiveYFlipVector);
+                    proj.view.copy(proj.transformation.transformation).invert();
+                    proj.dirty = false;
+                }
+            case Custom:
+                // Do nothing, user is responsible for building their custom camera matrices.
+        }
+    }
+
+    function createBackbuffer(_width : Int, _height : Int) : BackBuffer
+    {
+        // Cleanup previous backbuffer
+        if (backbuffer != null)
+        {
+            glDeleteTextures(1, [ backbuffer.texture ]);
+            glDeleteRenderbuffers(1, [ backbuffer.depthStencil ]);
+            glDeleteFramebuffers(1, [ backbuffer.framebuffer ]);
+        }
+
+        var tex = [ 0 ];
+        glGenTextures(1, tex);
+        glBindTexture(GL_TEXTURE_2D, tex[0]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        untyped __cpp__('glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, {0}, {1}, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr)', _width, _height);
+
+        var rbo = [ 0 ];
+        glGenRenderbuffers(1, rbo);
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo[0]);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, _width, _height);
+
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        var fbo = [ 0 ];
+        glGenFramebuffers(1, fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rbo[0], 0);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo[0]);
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        {
+            throw new GL32IncompleteFramebufferException('backbuffer');
+        }
+
+        // Cleanup / reset state after setting up new framebuffer.
+        boundTextures.resize(0);
+        if (target == null)
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
+        }
+        else
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects.get(target.id));
+        }
+
+        return new BackBuffer(_width, _height, 1, tex[0], rbo[0], fbo[0]);
     }
 
     function getBlendMode(_mode : BlendMode) : Int
@@ -1036,32 +1126,26 @@ class OGL3Backend implements IRendererBackend
  */
 private class BackBuffer
 {
-    /**
-     * Width of the backbuffer.
-     */
-    public var width : Int;
+    public final width : Int;
 
-    /**
-     * Height of the backbuffer.
-     */
-    public var height : Int;
+    public final height : Int;
 
-    /**
-     * View scale of the backbuffer.
-     */
-    public var viewportScale : Float;
+    public final scale : Float;
 
-    /**
-     * Framebuffer object for the backbuffer.
-     */
-    public var framebufferObject : Int;
+    public final texture : Int;
 
-    public function new(_width : Int, _height : Int, _viewportScale : Float, _framebuffer : Int)
+    public final depthStencil : Int;
+
+    public final framebuffer : Int;
+
+    public function new(_width : Int, _height : Int, _scale : Float, _tex : Int, _depthStencil : Int, _fbo : Int)
     {
-        width             = _width;
-        height            = _height;
-        viewportScale     = _viewportScale;
-        framebufferObject = _framebuffer;
+        width        = _width;
+        height       = _height;
+        scale        = _scale;
+        texture      = _tex;
+        depthStencil = _depthStencil;
+        framebuffer  = _fbo;
     }
 }
 

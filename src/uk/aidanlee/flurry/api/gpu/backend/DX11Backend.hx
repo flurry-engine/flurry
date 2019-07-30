@@ -60,6 +60,9 @@ import uk.aidanlee.flurry.api.gpu.StencilFunction;
 import uk.aidanlee.flurry.api.gpu.ComparisonFunction;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.BlendMode;
+import uk.aidanlee.flurry.api.gpu.camera.Camera;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
+import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
@@ -1066,8 +1069,8 @@ class DX11Backend implements IRendererBackend
         context.omSetDepthStencilState(depthStencilState, 1);
 
         // Update viewport
-        var cmdViewport = _command.viewport;
-        if (_command.viewport == null)
+        var cmdViewport = _command.camera.viewport;
+        if (cmdViewport == null)
         {
             if (target == null)
             {
@@ -1095,7 +1098,7 @@ class DX11Backend implements IRendererBackend
 
         // Update scissor
         var cmdClip = _command.clip;
-        if (_command.clip == null)
+        if (cmdClip == null)
         {
             if (target == null)
             {
@@ -1194,11 +1197,15 @@ class DX11Backend implements IRendererBackend
 
             if (shaderResource.layout.blocks[i].name == 'defaultMatrices')
             {
-                var modelMatrix = bufferModelMatrix.exists(_command.id) ? bufferModelMatrix.get(_command.id) : dummyModelMatrix;
+                buildCameraMatrices(_command.camera);
 
-                cpp.Stdlib.memcpy(ptr          , (_command.projection : Float32Array).view.buffer.getData().address(0), 64);
-                cpp.Stdlib.memcpy(ptr.incBy(64), (_command.view       : Float32Array).view.buffer.getData().address(0), 64);
-                cpp.Stdlib.memcpy(ptr.incBy(64), (modelMatrix         : Float32Array).view.buffer.getData().address(0), 64);
+                var model      = bufferModelMatrix.exists(_command.id) ? bufferModelMatrix.get(_command.id) : dummyModelMatrix;
+                var view       = _command.camera.view;
+                var projection = _command.camera.projection;
+
+                cpp.Stdlib.memcpy(ptr          , (projection : Float32Array).view.buffer.getData().address(0), 64);
+                cpp.Stdlib.memcpy(ptr.incBy(64), (view       : Float32Array).view.buffer.getData().address(0), 64);
+                cpp.Stdlib.memcpy(ptr.incBy(64), (model      : Float32Array).view.buffer.getData().address(0), 64);
             }
             else
             {
@@ -1230,6 +1237,31 @@ class DX11Backend implements IRendererBackend
 
             context.vsSetConstantBuffers(i, [ shaderResource.constantBuffers[i] ]);
             context.psSetConstantBuffers(i, [ shaderResource.constantBuffers[i] ]);
+        }
+    }
+
+    function buildCameraMatrices(_camera : Camera)
+    {
+        switch _camera.type
+        {
+            case Orthographic:
+                var orth = (cast _camera : Camera2D);
+                if (orth.dirty)
+                {
+                    orth.projection.makeHeterogeneousOrthographic(0, orth.viewport.w, 0, orth.viewport.h, -100, 100);
+                    orth.view.copy(orth.transformation.transformation).invert();
+                    orth.dirty = false;
+                }
+            case Projection:
+                var proj = (cast _camera : Camera3D);
+                if (proj.dirty)
+                {
+                    proj.projection.makeHeterogeneousPerspective(Maths.toDegrees(proj.fov), proj.aspect, proj.near, proj.far);
+                    proj.view.copy(proj.transformation.transformation).invert();
+                    proj.dirty = false;
+                }
+            case Custom:
+                // Do nothing, user is responsible for building their custom camera matrices.
         }
     }
 

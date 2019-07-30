@@ -1,13 +1,13 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.gpu.BlendMode;
 import uk.aidanlee.flurry.api.gpu.DepthOptions;
 import uk.aidanlee.flurry.api.gpu.StencilOptions;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
+import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 
 class GeometryDrawCommand extends DrawCommand
@@ -21,17 +21,15 @@ class GeometryDrawCommand extends DrawCommand
         _geometry   : Array<Geometry>,
         _id         : Int,
         _uploadType : UploadType,
-        _projection : Matrix,
-        _view       : Matrix,
+        _camera     : Camera,
+        _clip       : Null<Rectangle>,
         _vertices   : Int,
         _indices    : Int,
-        _viewport   : Rectangle,
         _primitive  : PrimitiveType,
         _target     : ImageResource,
         _shader     : ShaderResource,
         _uniforms   : Uniforms,
         _textures   : Array<ImageResource>,
-        _clip       : Rectangle,
         _depth      : DepthOptions,
         _stencil    : StencilOptions,
         _blending   : Bool,
@@ -43,6 +41,6 @@ class GeometryDrawCommand extends DrawCommand
     {
         geometry = _geometry;
 
-        super(_id, _uploadType, _projection, _view, _vertices, _indices, _viewport, _primitive, _target, _shader, _uniforms, _textures, _clip, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
+        super(_id, _uploadType, _camera, _clip, _vertices, _indices, _primitive, _target, _shader, _uniforms, _textures, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
     }
 }
