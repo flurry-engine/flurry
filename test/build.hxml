@@ -8,7 +8,6 @@
 -lib buddy
 -lib hxcpp
 -lib haxe-concurrent
--lib snow
 -lib mockatoo
 -lib safety
 -lib format

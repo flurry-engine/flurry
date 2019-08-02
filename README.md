@@ -1,6 +1,6 @@
 # Flurry
 
-[![Build Status](https://dev.azure.com/flurry-engine/flurry/_apis/build/status/flurry-engine.flurry?branchName=master)](https://dev.azure.com/flurry-engine/flurry/_build/latest?definitionId=3&branchName=master)
+[![Build Status](https://dev.azure.com/flurry-engine/flurry/_apis/build/status/flurry-engine.flurry?branchName=dev)](https://dev.azure.com/flurry-engine/flurry/_build/latest?definitionId=3&branchName=dev)
 
 This engine is currently WIP so nothing is set in stone or stable.
 
