@@ -1,0 +1,4 @@
+-D build=0.0.1
+# @install: lix --silent download "gh://github.com/flurry-engine/build#bf952659a3b125ec72e0809d7dbbcf225efe5adb" into build/0.0.1/github/bf952659a3b125ec72e0809d7dbbcf225efe5adb
+# @run: haxelib run-dir build ${HAXE_LIBCACHE}/build/0.0.1/github/bf952659a3b125ec72e0809d7dbbcf225efe5adb
+-cp ${HAXE_LIBCACHE}/build/0.0.1/github/bf952659a3b125ec72e0809d7dbbcf225efe5adb/

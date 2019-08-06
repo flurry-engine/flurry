@@ -1,0 +1,19 @@
+
+class Build extends Project
+{
+    override function setup()
+    {
+        app.name      = 'SystemTests';
+        app.main      = 'BatchingGeometry';
+        app.output    = 'bin';
+        app.codepaths = [ 'src', '../../src' ];
+
+        build.dependencies = [
+            'flurry-snow-host' => null
+        ];
+
+        files = [
+            'assets' => 'assets'
+        ];
+    }
+}

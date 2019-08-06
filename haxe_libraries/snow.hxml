@@ -1,0 +1,3 @@
+-D snow=1.0.0-alpha.2
+# @install: lix --silent download "gh://github.com/snowkit/snow#fe93eb1ecfc82131a6143be1b3e3e0a274f4cf65" into snow/1.0.0-alpha.2/github/fe93eb1ecfc82131a6143be1b3e3e0a274f4cf65
+-cp ${HAXE_LIBCACHE}/snow/1.0.0-alpha.2/github/fe93eb1ecfc82131a6143be1b3e3e0a274f4cf65/

@@ -35,7 +35,7 @@ steps:
   condition: succeededOrFailed()
   inputs:
     testResultsFormat: xUnit
-    testResultsFiles: test/test-engine.xml
+    testResultsFiles: tests/unit/test-engine.xml
     searchFolder: $(Build.SourcesDirectory)
     testRunTitle: Engine Tests $(Agent.OS)
     buildPlatform: $(Agent.OS)

@@ -1,7 +1,7 @@
 -main Main
 
 -cp src
--cp ../src
+-cp ../../src
 
 -cpp bin
 

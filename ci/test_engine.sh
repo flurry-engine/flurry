@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd test
+cd tests/unit
 
 haxe build.hxml -D reporter=XUnit2Reporter -D report-name=Engine-Tests-$AGENT_OS --debug
 
