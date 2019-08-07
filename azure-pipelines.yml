@@ -1,11 +1,11 @@
 strategy:
   matrix:
     linux:
-      imageName: 'ubuntu-16.04'
+      imageName: 'ubuntu-latest'
     mac:
-      imageName: 'macos-10.14'
+      imageName: 'macos-latest'
     windows:
-      imageName: 'windows-2019'
+      imageName: 'windows-latest'
 
 pool:
   vmImage: $(imageName)
@@ -31,12 +31,31 @@ steps:
   env:
     AGENT_OS: $(Agent.OS)
 
+# - bash: |
+#     chmod a+x ci/test_system.sh
+#     ci/test_system.sh
+#   displayName: System Tests
+#   condition: eq( variables['Agent.OS'], 'Linux' )
+#   workingDirectory: $(Build.SourcesDirectory)
+#   env:
+#     AGENT_OS: $(Agent.OS)
+
 - task: PublishTestResults@2
   condition: succeededOrFailed()
   inputs:
     testResultsFormat: xUnit
-    testResultsFiles: tests/unit/test-engine.xml
-    searchFolder: $(Build.SourcesDirectory)
+    testResultsFiles: test-engine.xml
+    searchFolder: $(Build.SourcesDirectory)/tests/unit
     testRunTitle: Engine Tests $(Agent.OS)
     buildPlatform: $(Agent.OS)
     failTaskOnFailedTests: true
+
+# - task: PublishTestResults@2
+#   condition: and(succeededOrFailed(), eq( variables['Agent.OS'], 'Linux' ))
+#   inputs:
+#     testResultsFormat: xUnit
+#     searchFolder: $(Build.SourcesDirectory)/tests/system
+#     testResultsFiles: test-engine.xml
+#     testRunTitle: System Tests $(Agent.OS)
+#     buildPlatform: $(Agent.OS)
+#     failTaskOnFailedTests: true

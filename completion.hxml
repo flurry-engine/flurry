@@ -1,6 +1,6 @@
 # This build file should give you full auto-completion in any area of the engine.
 
--cpp out
+-cpp out/
 
 -cp src
 -cp tests/unit/src
