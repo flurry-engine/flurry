@@ -513,6 +513,9 @@ class OGL3Backend implements IRendererBackend
 
         // TODO : Error handling if GLEW doesn't return OK.
         glew.GLEW.init();
+        
+        // flushing `GL_INVALID_ENUM` error which GLEW generates if `glewExperimental` is true.
+        glGetError();
     }
 
     function onChangeRequest(_event : DisplayEventChangeRequest)
