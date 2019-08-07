@@ -457,7 +457,7 @@ class OGL3Backend implements IRendererBackend
         glBlitFramebuffer(
             0, 0, backbuffer.width, backbuffer.height,
             0, backbuffer.height, backbuffer.width, 0,
-            GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+            GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, backbuffer.framebuffer);
 
