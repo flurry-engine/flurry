@@ -15,6 +15,9 @@ class Test extends SingleSuite
     public function new()
     {
         describe('System Tests', {
+            Sys.putEnv('DISPLAY', ':99');
+
+            final xvfb  = new Process('Xvfb', [ ':99', '-screen', '0', '768x512x24' ]);
             final cases = [
                 'BatcherDepth',
                 'BatchingGeometry',
@@ -42,6 +45,9 @@ class Test extends SingleSuite
                 FileSystem.deleteFile('screenshot.png');
                 FileSystem.deleteFile('Build.hxp');
             }
+
+            xvfb.kill();
+            xvfb.close();
         });
     }
 

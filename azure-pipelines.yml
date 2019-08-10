@@ -31,12 +31,10 @@ steps:
   env:
     AGENT_OS: $(Agent.OS)
 
-# - bash: |
-#     chmod a+x ci/test_system.sh
-#     ci/test_system.sh
+# - bash: haxe -L buddy -L format -D reporter=XUnit2Reporter -D report-name=System-Tests-$AGENT_OS --debug --run Test
 #   displayName: System Tests
 #   condition: eq( variables['Agent.OS'], 'Linux' )
-#   workingDirectory: $(Build.SourcesDirectory)
+#   workingDirectory: $(Build.SourcesDirectory)/tests/system
 #   env:
 #     AGENT_OS: $(Agent.OS)
 
