@@ -1,9 +1,7 @@
--main Main
+--main Main
 
 -cp src
 -cp ../../src
-
--cpp bin
 
 -lib buddy
 -lib hxcpp
@@ -19,3 +17,7 @@
 -resource assets/images/dots.png@dots-data
 
 --no-inline
+
+--macro nullSafety('uk.aidanlee.flurry.modules.differ', Strict)
+
+--cpp bin

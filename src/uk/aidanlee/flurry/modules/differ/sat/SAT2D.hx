@@ -27,7 +27,7 @@ class SAT2D
      * @param _flip    If the polygon is to be treated as the first shape.
      * @return Null<ShapeCollision>
      */
-    public static function testCircleVsPolygon(_circle : Circle, _polygon : Polygon, ?_into : Null<ShapeCollision>, _flip : Bool = false) : Null<ShapeCollision>
+    public static function testCircleVsPolygon(_circle : Circle, _polygon : Polygon, _into : ShapeCollision = null, _flip : Bool = false) : Bool
     {
         var verts = _polygon.transformedVertices;
 
@@ -82,7 +82,7 @@ class SAT2D
         var test2 = min2 - max1;
 
         // if either test is greater than 0, there is a gap, we can give up now.
-        if (test1 > 0 || test2 > 0) return null;
+        if (test1 > 0 || test2 > 0) return false;
 
         // circle distance check
         var distMin = -(max2 - min1);
@@ -130,7 +130,7 @@ class SAT2D
             test2 = min2 - max1;
 
             // failed.. quit now
-            if (test1 > 0 || test2 > 0) return null;
+            if (test1 > 0 || test2 > 0) return false;
 
             distMin = -(max2 - min1);
             if (_flip) distMin *= -1;
@@ -144,9 +144,9 @@ class SAT2D
             }
         }
 
-        if (_into == null)
+        if (_into != null)
         {
-            return new ShapeCollision(
+            _into.set(
                 _circle,
                 _polygon,
                 overlap,
@@ -157,19 +157,8 @@ class SAT2D
                 0, 0, 0, 0, 0
             );
         }
-        else
-        {
-            return _into.set(
-                _circle,
-                _polygon,
-                overlap,
-                unitVectorX * overlap,
-                unitVectorY * overlap,
-                _flip ? unitVectorX : -unitVectorX,
-                _flip ? unitVectorY : -unitVectorY,
-                0, 0, 0, 0, 0
-            );
-        }
+
+        return true;
     }
 
     /**
@@ -182,7 +171,7 @@ class SAT2D
      * @param _flip    If circle B is to be treated as the first circle.
      * @return Null<ShapeCollision>
      */
-    public static function testCircleVsCircle(_circleA : Circle, _circleB : Circle, ?_into : Null<ShapeCollision>, _flip :  Bool = false) : Null<ShapeCollision>
+    public static function testCircleVsCircle(_circleA : Circle, _circleB : Circle, _into : ShapeCollision = null, _flip :  Bool = false) : Bool
     {
         var circle1 = _flip ? _circleB : _circleA;
         var circle2 = _flip ? _circleA : _circleB;
@@ -207,9 +196,9 @@ class SAT2D
             unitVecX = vecNormalize(unitVecLen, unitVecX);
             unitVecY = vecNormalize(unitVecLen, unitVecY);
 
-            if (_into == null)
+            if (_into != null)
             {
-                return new ShapeCollision(
+                _into.set(
                     _circleA,
                     _circleB,
                     difference,
@@ -220,22 +209,11 @@ class SAT2D
                     0, 0, 0, 0, 0
                 );
             }
-            else
-            {
-                return _into.set(
-                    _circleA,
-                    _circleB,
-                    difference,
-                    unitVecX * difference,
-                    unitVecY * difference,
-                    unitVecX,
-                    unitVecY,
-                    0, 0, 0, 0, 0
-                );
-            }
+
+            return true;
         }
 
-        return null;
+        return false;
     }
 
     /**
@@ -248,52 +226,30 @@ class SAT2D
      * @param _flip     If polygon2 is to be treated as the first polygon.
      * @return Null<ShapeCollision>
      */
-    public static function testPolygonVsPolygon(_polygon1 : Polygon, _polygon2 : Polygon, ?_into : Null<ShapeCollision>, _flip : Bool = false) : Null<ShapeCollision>
+    public static function testPolygonVsPolygon(_polygon1 : Polygon, _polygon2 : Polygon, _into : ShapeCollision = null, _flip : Bool = false) : Bool
     {
-        if (checkPolygons(_polygon1, _polygon2, tmp1, _flip) == null)
+        if (!checkPolygons(_polygon1, _polygon2, tmp1, _flip))
         {
-            return null;
+            return false;
         }
 
-        if (checkPolygons(_polygon2, _polygon1, tmp2, !_flip) == null)
+        if (!checkPolygons(_polygon2, _polygon1, tmp2, !_flip))
         {
-            return null;
+            return false;
         }
 
-        var result = null;
-        var other  = null;
+        var result = tmp2;
+        var other  = tmp1;
 
         if (Math.abs(tmp1.overlap) < Math.abs(tmp2.overlap))
         {
             result = tmp1;
             other  = tmp2;
         }
-        else
-        {
-            result = tmp2;
-            other  = tmp1;
-        }
 
-        if (_into == null)
+        if (_into != null)
         {
-            return new ShapeCollision(
-                _flip ? _polygon2 : _polygon1,
-                _flip ? _polygon1 : _polygon2,
-                result.overlap,
-                result.separationX,
-                result.separationY,
-                result.unitVectorX,
-                result.unitVectorY,
-                other.overlap,
-                other.separationX,
-                other.separationY,
-                other.unitVectorX,
-                other.unitVectorY
-            );
-        }
-        else
-        {
-            return _into.set(
+            _into.set(
                 _flip ? _polygon2 : _polygon1,
                 _flip ? _polygon1 : _polygon2,
                 result.overlap,
@@ -309,7 +265,7 @@ class SAT2D
             );
         }
 
-        return _into;
+        return true;
     }
 
     /**
@@ -321,7 +277,7 @@ class SAT2D
      * @param _into   An existing collision result instance to place the result into.
      * @return Null<RayCollision>
      */
-    public static function testRayVsCircle(_ray : Ray, _circle : Circle, ?_into : Null<RayCollision>) : Null<RayCollision>
+    public static function testRayVsCircle(_ray : Ray, _circle : Circle, _into : RayCollision = null) : Bool
     {
         var deltaX = _ray.end.x - _ray.start.x;
         var deltaY = _ray.end.y - _ray.start.y;
@@ -349,18 +305,16 @@ class SAT2D
 
             if (valid)
             {
-                if (_into == null)
+                if (_into != null)
                 {
-                    return new RayCollision(_circle, _ray, t1, t2);
+                    _into.set(_circle, _ray, t1, t2);
                 }
-                else
-                {
-                    return _into.set(_circle, _ray, t1, t2);
-                }
+
+                return true;
             }
         }
 
-        return null;
+        return false;
     }
 
     /**
@@ -372,7 +326,7 @@ class SAT2D
      * @param _into    An existing collision result instance to place the result into.
      * @return Null<RayCollision>
      */
-    public static function testRayVsPolygon(_ray : Ray, _polygon : Polygon, ?_into : Null<RayCollision>) : Null<RayCollision>
+    public static function testRayVsPolygon(_ray : Ray, _polygon : Polygon, _into : RayCollision = null) : Bool
     {
         var min_u = Math.POSITIVE_INFINITY;
         var max_u = Math.NEGATIVE_INFINITY;
@@ -421,17 +375,15 @@ class SAT2D
 
         if (valid)
         {
-            if (_into == null)
+            if (_into != null)
             {
-                return new RayCollision(_polygon, _ray, min_u, max_u);
+                _into.set(_polygon, _ray, min_u, max_u);
             }
-            else
-            {
-                return _into.set(_polygon, _ray, min_u, max_u);
-            }
+
+            return true;
         }
 
-        return null;
+        return false;
     }
 
     /**
@@ -443,7 +395,7 @@ class SAT2D
      * @param _into An existing collision result instance to place the result into.
      * @return Null<RayIntersection>
      */
-    public static function testRayVsRay(_ray1 : Ray, _ray2 : Ray, ?_into : Null<RayIntersection>) : Null<RayIntersection>
+    public static function testRayVsRay(_ray1 : Ray, _ray2 : Ray, _into : RayIntersection = null) : Bool
     {
         var delta1X = _ray1.end.x - _ray1.start.x;
         var delta1Y = _ray1.end.y - _ray1.start.y;
@@ -453,39 +405,37 @@ class SAT2D
         var diffY = _ray1.start.y - _ray2.start.y;
         var ud = delta2Y * delta1X - delta2X * delta1Y;
 
-        if (ud == 0.0) return null;
+        if (ud == 0) return false;
 
         var u1 = (delta2X * diffY - delta2Y * diffX) / ud;
         var u2 = (delta1X * diffY - delta1Y * diffX) / ud;
 
         // TODO : ask if ray hit condition difference is intentional (> 0 and not >= 0 like other checks)
-        var valid1 = switch (_ray1.infinite)
+        var valid1 = switch _ray1.infinite
         {
-            case NotInfinite: (u1 > 0.0 && u1 <= 1.0);
-            case InfiniteFromStart: u1 > 0.0;
+            case NotInfinite: (u1 > 0 && u1 <= 1);
+            case InfiniteFromStart: u1 > 0;
             case Infinite: true;
         }
 
-        var valid2 = switch (_ray2.infinite)
+        var valid2 = switch _ray2.infinite
         {
-            case NotInfinite: (u2 > 0.0 && u2 <= 1.0);
-            case InfiniteFromStart: u2 > 0.0;
+            case NotInfinite: (u2 > 0 && u2 <= 1);
+            case InfiniteFromStart: u2 > 0;
             case Infinite: true;
         }
 
         if (valid1 && valid2)
         {
-            if (_into == null)
+            if (_into != null)
             {
-                return new RayIntersection(_ray1, _ray2, u1, u2);
+                _into.set(_ray1, _ray2, u1, u2);
             }
-            else
-            {
-                return _into.set(_ray1, _ray2, u1, u2);
-            }
+
+            return true;
         }
 
-        return null;
+        return false;
     }
 
     /**
@@ -500,7 +450,7 @@ class SAT2D
      * @param _flip     If polygon 2 is to be treated as the first polygon.
      * @return ShapeCollision
      */
-    static function checkPolygons(_polygon1 : Polygon, _polygon2 : Polygon, _into : PolygonCollisionData, _flip : Bool = false) : Null<PolygonCollisionData>
+    static function checkPolygons(_polygon1 : Polygon, _polygon2 : Polygon, _into : PolygonCollisionData = null, _flip : Bool = false) : Bool
     {
         var test1   = 0.0;
         var test2   = 0.0;
@@ -554,7 +504,7 @@ class SAT2D
             test1 = min1 - max2;
             test2 = min2 - max1;
 
-            if (test1 > 0 || test2 > 0) return null;
+            if (test1 > 0 || test2 > 0) return false;
 
             var distMin = -(max2 - min1);
             if (_flip) distMin *= -1;
@@ -568,14 +518,19 @@ class SAT2D
             }
         }
 
-        return _into.set(
-            overlap,
-            -unitVecX * overlap,
-            -unitVecY * overlap,
-            _flip ? -unitVecX : unitVecX,
-            _flip ? -unitVecY : unitVecY,
-            0, 0, 0, 0, 0
-        );
+        if (_into != null)
+        {
+            _into.set(
+                overlap,
+                -unitVecX * overlap,
+                -unitVecY * overlap,
+                _flip ? -unitVecX : unitVecX,
+                _flip ? -unitVecY : unitVecY,
+                0, 0, 0, 0, 0
+            );
+        }
+
+        return true;
     }
 
     /**

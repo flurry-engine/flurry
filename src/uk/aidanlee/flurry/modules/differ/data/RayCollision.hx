@@ -3,6 +3,8 @@ package uk.aidanlee.flurry.modules.differ.data;
 import uk.aidanlee.flurry.modules.differ.shapes.Ray;
 import uk.aidanlee.flurry.modules.differ.shapes.Shape;
 
+using Safety;
+
 /**
  * Ray collision intersection data, obtained by testing a shape and a ray.
  */
@@ -11,12 +13,12 @@ class RayCollision
     /**
      * Shape the intersection was with.
      */
-    public var shape (default, null) : Shape;
+    public var shape (default, null) : Null<Shape>;
 
     /**
      * The ray involved in the intersection.
      */
-    public var ray (default, null) : Ray;
+    public var ray (default, null) : Null<Ray>;
 
     /**
      * Distance along ray that the intersection start at.
@@ -35,7 +37,7 @@ class RayCollision
      * @param _start The distance along the ray the collision starts.
      * @param _end   The distance from the end of the ray where the collision ends.
      */
-    public inline function new(_shape : Shape, _ray : Ray, _start : Float, _end : Float)
+    public inline function new(_shape : Shape = null, _ray : Ray = null, _start : Float = 0, _end : Float = 0)
     {
         shape = _shape;
         ray   = _ray;
@@ -110,7 +112,12 @@ class RayCollisionHelper
      */
     public static inline function hitStartX(_data : RayCollision) : Float
     {
-        return _data.ray.start.x + (_data.ray.dir.x * _data.start);
+        if (_data.ray != null)
+        {
+            return _data.ray.unsafe().start.x + (_data.ray.unsafe().dir.x * _data.start);
+        }
+
+        return 0;
     }
 
     /**
@@ -131,7 +138,12 @@ class RayCollisionHelper
      */
     public static inline function hitStartY(_data : RayCollision) : Float
     {
-        return _data.ray.start.y + (_data.ray.dir.y * _data.start);
+        if (_data.ray != null)
+        {
+            return _data.ray.unsafe().start.y + (_data.ray.unsafe().dir.y * _data.start);
+        }
+
+        return 0;
     }
 
     /**
@@ -152,7 +164,12 @@ class RayCollisionHelper
      */
     public static inline function hitEndX(_data : RayCollision) : Float
     {
-        return _data.ray.start.x + (_data.ray.dir.x * _data.end);
+        if (_data.ray != null)
+        {
+            return _data.ray.unsafe().start.x + (_data.ray.unsafe().dir.x * _data.end);
+        }
+
+        return 0;
     }
 
     /**
@@ -173,6 +190,11 @@ class RayCollisionHelper
      */
     public static inline function hitEndY(_data : RayCollision) : Float
     {
-        return _data.ray.start.y + (_data.ray.dir.y * _data.end);
+        if (_data.ray != null)
+        {
+            return _data.ray.unsafe().start.y + (_data.ray.unsafe().dir.y * _data.end);
+        }
+
+        return 0;
     }
 }

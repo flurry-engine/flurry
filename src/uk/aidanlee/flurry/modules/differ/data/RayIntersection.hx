@@ -10,12 +10,12 @@ class RayIntersection
     /**
      * The first ray in the test
      */
-    public var ray1 (default, null) : Ray;
+    public var ray1 (default, null) : Null<Ray>;
 
     /**
      * The second ray in the test
      */
-    public var ray2 (default, null) : Ray;
+    public var ray2 (default, null) : Null<Ray>;
 
     /**
      * u value for ray1.
@@ -34,7 +34,7 @@ class RayIntersection
      * @param _u1 u value for ray 1.
      * @param _u2 u value for ray 2.
      */
-    public inline function new(_ray1 : Ray, _ray2 : Ray, _u1 : Float, _u2 : Float)
+    public inline function new(_ray1 : Ray = null, _ray2 : Ray = null, _u1 : Float = 0, _u2 : Float = 0)
     {
         ray1 = _ray1;
         ray2 = _ray2;

@@ -32,29 +32,31 @@ class Circle extends Shape
     /**
      * Test for collision against a shape.
      */
-    override public function test(_shape : Shape, ?_into : Null<ShapeCollision>) : Null<ShapeCollision>
+    override public function test(_shape : Shape, _into : ShapeCollision = null) : Bool
     {
-        return _shape.testCircle(this, _into, true);
+        return _shape.testCircle(this, _into);
     }
 
     /**
      * Test for collision against a circle.
      */
-    override public function testCircle(_circle : Circle, ?_into : Null<ShapeCollision>, _flip : Bool = false) : Null<ShapeCollision>
+    override public function testCircle(_circle : Circle, _into : ShapeCollision = null) : Bool
     {
-        return SAT2D.testCircleVsCircle(this, _circle, _into, _flip);
+        return SAT2D.testCircleVsCircle(this, _circle, _into, false);
     }
 
     /**
      * Test for collision against a polygon.
      */
-    override public function testPolygon(_polygon : Polygon, ?_into : Null<ShapeCollision>, _flip : Bool = false) : Null<ShapeCollision>
+    override public function testPolygon(_polygon : Polygon, _into : ShapeCollision = null) : Bool
     {
-        return SAT2D.testCircleVsPolygon(this, _polygon, _into, _flip);
+        return SAT2D.testCircleVsPolygon(this, _polygon, _into, false);
     }
 
-    /** Test for collision against a ray. */
-    override public function testRay(_ray : Ray, ?_into : Null<RayCollision>) : Null<RayCollision>
+    /**
+     * Test for collision against a ray.
+     */
+    override public function testRay(_ray : Ray, _into : RayCollision = null) : Bool
     {
         return SAT2D.testRayVsCircle(_ray, this, _into);
     }

@@ -7,6 +7,7 @@ import uk.aidanlee.flurry.modules.differ.data.*;
 
 class Shape
 {
+   
     /**
      * The name of this shape, to help in debugging.
      */
@@ -54,14 +55,16 @@ class Shape
     /**
      * The rotation of this shape, in degrees
      */
-    public var rotation (default, set) : Float;
+    public var rotation (get, set) : Float;
+
+    inline function get_rotation() : Float return rotationRadians * (180 / Math.PI);
 
     inline function set_rotation(_v : Float) : Float {
         rotationRadians = _v * (Math.PI / 180);
 
         refreshTransform();
 
-        return rotation = _v;
+        return rotationRadians;
     }
 
     /**
@@ -99,11 +102,17 @@ class Shape
     }
 
     final position : Vector;
+
     final scale : Vector;
+
     final transformMatrix : Matrix;
+
     final transformQuaternion : Quaternion;
+    
     final transformRotation : Vector;
+
     var rotationRadians : Float;
+
     var transformed : Bool;
 
     /**
@@ -113,35 +122,34 @@ class Shape
     {
         name                = _name;
         active              = true;
+        transformed         = false;
         position            = new Vector(_x, _y);
         scale               = new Vector(1, 1);
-        transformMatrix     = new Matrix().makeTranslation(x, y, 0);
+        transformMatrix     = new Matrix().makeTranslation(_x, _y, 0);
         transformQuaternion = new Quaternion();
         transformRotation   = new Vector(0, 0, 1);
-        rotation            = 0;
         rotationRadians     = 0;
-        transformed         = false;
     }
 
     /**
      * Test this shape against another shape
      */
-    public function test(_shape : Shape, ?_into : Null<ShapeCollision>) : Null<ShapeCollision> return null;
+    public function test(_shape : Shape, _into : ShapeCollision = null) : Bool return false;
 
     /**
      * Test this shape against a circle.
      */
-    public function testCircle(_circle : Circle, ?_into : Null<ShapeCollision>, _flip : Bool = false) : Null<ShapeCollision> return null;
+    public function testCircle(_circle : Circle, _into : ShapeCollision = null) : Bool return false;
 
     /**
      * Test this shape against a polygon.
      */
-    public function testPolygon(_polygon : Polygon, ?_into : Null<ShapeCollision>, _flip : Bool = false) : Null<ShapeCollision> return null;
+    public function testPolygon(_polygon : Polygon, _into : ShapeCollision = null) : Bool return false;
 
     /**
      * Test this shape against a ray.
      */
-    public function testRay(_ray : Ray, ?_into : Null<RayCollision>) : Null<RayCollision> return null;
+    public function testRay(_ray : Ray, _into : RayCollision = null) : Bool return false;
 
     function refreshTransform()
     {

@@ -13,8 +13,8 @@ class ShapeCollisionTests extends BuddySuite
     {
         describe('ShapeCollisionTests', {
             it('can copy its values from another shape collision', {
-                var result1 = new ShapeCollision(mock(Shape), mock(Shape), 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
-                var result2 = new ShapeCollision(mock(Shape), mock(Shape), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+                var result1 = new ShapeCollision(null, null, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+                var result2 = new ShapeCollision(null, null, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
                 result2.copyFrom(result1);
                 result2.overlap.should.be(result1.overlap);
@@ -30,7 +30,7 @@ class ShapeCollisionTests extends BuddySuite
             });
 
             it('can create a recursive clone of itself', {
-                var result1 = new ShapeCollision(mock(Shape), mock(Shape), 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+                var result1 = new ShapeCollision(null, null, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
                 var result2 = result1.clone();
                 result2.shape1.should.be(result1.shape1);
                 result2.shape2.should.be(result1.shape2);

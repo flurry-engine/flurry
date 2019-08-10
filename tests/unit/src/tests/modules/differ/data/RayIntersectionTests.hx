@@ -1,9 +1,9 @@
 package tests.modules.differ.data;
 
+import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.modules.differ.shapes.Ray;
 import uk.aidanlee.flurry.modules.differ.data.RayIntersection;
 import buddy.BuddySuite;
-import mockatoo.Mockatoo.mock;
 
 using buddy.Should;
 
@@ -13,8 +13,8 @@ class RayIntersectionTests extends BuddySuite
     {
         describe('RayIntersectionTests', {
             it('can copy its values from another ray intersection', {
-                var result1 = new RayIntersection(mock(Ray), mock(Ray), 2, 6);
-                var result2 = new RayIntersection(mock(Ray), mock(Ray), 0, 0);
+                var result1 = new RayIntersection(null, null, 2, 6);
+                var result2 = new RayIntersection(null, null, 0, 0);
                 result2.copyFrom(result1);
 
                 result2.ray1.should.be(result1.ray1);
@@ -24,7 +24,7 @@ class RayIntersectionTests extends BuddySuite
             });
 
             it('can create a clone of itself', {
-                var result1 = new RayIntersection(mock(Ray), mock(Ray), 2, 6);
+                var result1 = new RayIntersection(null, null, 2, 6);
                 var result2 = result1.clone();
                 result2.ray1.should.be(result1.ray1);
                 result2.ray2.should.be(result1.ray2);
@@ -33,9 +33,9 @@ class RayIntersectionTests extends BuddySuite
             });
 
             it('can update its values allowing re-use', {
-                var result1 = new RayIntersection(mock(Ray), mock(Ray), 2, 6);
-                var newR1 = mock(Ray);
-                var newR2 = mock(Ray);
+                var result1 = new RayIntersection(null, null, 2, 6);
+                var newR1 = new Ray(new Vector(), new Vector());
+                var newR2 = new Ray(new Vector(), new Vector());
                 
                 result1.set(newR1, newR2, 3, 5);
                 result1.ray1.should.be(newR1);

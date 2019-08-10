@@ -36,4 +36,6 @@
 -lib signals
 -lib format
 
+--macro nullSafety('uk.aidanlee.flurry.modules.differ', Strict)
+
 --no-inline

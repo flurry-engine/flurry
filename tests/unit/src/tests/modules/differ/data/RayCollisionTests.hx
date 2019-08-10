@@ -15,24 +15,20 @@ class RayCollisionTests extends BuddySuite
     {
         describe('RayCollisionTests', {
             it('can copy its values from another ray collision', {
-                var r1 = new RayCollision(mock(Shape), mock(Ray), 2, 7);
-                var r2 = new RayCollision(mock(Shape), mock(Ray), 3, 8);
+                var r1 = new RayCollision(null, null, 2, 7);
+                var r2 = new RayCollision(null, null, 3, 8);
 
-                r1.shape.should.not.be(r2.shape);
-                r1.ray.should.not.be(r2.ray);
                 r1.start.should.not.be(r2.start);
                 r1.end.should.not.be(r2.end);
 
                 r2.copyFrom(r1);
 
-                r1.shape.should.be(r2.shape);
-                r1.ray.should.be(r2.ray);
                 r1.start.should.be(r2.start);
                 r1.end.should.be(r2.end);
             });
 
             it('can create a recursive clone of itself', {
-                var r1 = new RayCollision(mock(Shape), mock(Ray), 2, 7);
+                var r1 = new RayCollision(null, null, 2, 7);
                 var r2 = r1.clone();
                 r2.shape.should.be(r1.shape);
                 r2.ray.should.be(r1.ray);
@@ -47,9 +43,9 @@ class RayCollisionTests extends BuddySuite
             });
 
             it('can update its values allowing re-use', {
-                var result = new RayCollision(mock(Shape), mock(Ray), 2, 6);
-                var newS = mock(Shape);
-                var newR = mock(Ray);
+                var result = new RayCollision(null, null, 2, 6);
+                var newS = new Shape(0, 0);
+                var newR = new Ray(new Vector(), new Vector());
                 
                 result.set(newS, newR, 3, 5);
                 result.shape.should.be(newS);

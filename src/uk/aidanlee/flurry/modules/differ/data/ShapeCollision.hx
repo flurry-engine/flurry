@@ -11,12 +11,12 @@ class ShapeCollision
     /**
      * The shape that was tested
      */
-    public var shape1 (default, null) : Shape;
+    public var shape1 (default, null) : Null<Shape>;
 
     /**
      * The shape that shape1 was tested against
      */
-    public var shape2 (default, null) : Shape;
+    public var shape2 (default, null) : Null<Shape>;
 
     /**
      * The overlap amount
@@ -54,18 +54,18 @@ class ShapeCollision
     public var otherUnitVectorY (default, null) : Float;
 
     public inline function new(
-        _shape1 : Shape,
-        _shape2 : Shape,
-        _overlap : Float,
-        _separationX : Float,
-        _separationY : Float,
-        _unitVectorX : Float,
-        _unitVectorY : Float,
-        _otherOverlap : Float,
-        _otherSeparationX : Float,
-        _otherSeparationY : Float,
-        _otherUnitVectorX : Float,
-        _otherUnitVectorY : Float
+        _shape1 : Shape = null,
+        _shape2 : Shape = null,
+        _overlap : Float = 0,
+        _separationX : Float = 0,
+        _separationY : Float = 0,
+        _unitVectorX : Float = 0,
+        _unitVectorY : Float = 0,
+        _otherOverlap : Float = 0,
+        _otherSeparationX : Float = 0,
+        _otherSeparationY : Float = 0,
+        _otherUnitVectorX : Float = 0,
+        _otherUnitVectorY : Float = 0
     )
     {
         shape1           = _shape1;
