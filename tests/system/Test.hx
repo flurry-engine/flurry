@@ -12,12 +12,13 @@ using StringTools;
 
 class Test extends SingleSuite
 {
+    var xvfb : Process;
+
     public function new()
     {
         describe('System Tests', {
-            Sys.putEnv('DISPLAY', ':99');
+            startup();
 
-            final xvfb  = new Process('Xvfb', [ ':99', '-screen', '0', '768x512x24' ]);
             final cases = [
                 'BatcherDepth',
                 'BatchingGeometry',
@@ -46,8 +47,7 @@ class Test extends SingleSuite
                 FileSystem.deleteFile('Build.hxp');
             }
 
-            xvfb.kill();
-            xvfb.close();
+            shutdown();
         });
     }
 
@@ -62,12 +62,26 @@ class Test extends SingleSuite
 
     function screenshot()
     {
-        new Process('bin/linux-x64/SystemTests');
+        switch Sys.systemName()
+        {
+            case 'Windows':
+                var proc = new Process('bin\\windows-x64\\SystemTests.exe');
 
-        Sys.sleep(1);
+                Sys.sleep(1);
+                Sys.command('screenshot.exe');
 
-        Sys.command('import', [ '-window', 'root', 'screenshot.png' ]);
-        Sys.command('pkill SystemTests');
+                // For some reason kill / close don't function properly on windows?
+                Sys.command('taskkill /f /t /im SystemTests.exe');
+
+            case 'Linux':
+                var proc = new Process('bin/linux-x64/SystemTests');
+
+                Sys.sleep(1);
+                Sys.command('import', [ '-window', 'root', 'screenshot.png' ]);
+
+                proc.kill();
+                proc.close();
+        }
     }
 
     function difference(_test : String) : Float
@@ -97,5 +111,23 @@ class Test extends SingleSuite
         }
 
         return 100 * (difference / 255) / (768 * 512 * 3);
+    }
+
+    function startup()
+    {
+        if (Sys.systemName() == 'Linux')
+        {
+            Sys.putEnv('DISPLAY', ':99');
+            xvfb = new Process('Xvfb', [ ':99', '-screen', '0', '768x512x24' ]);
+        }
+    }
+
+    function shutdown()
+    {
+        if (Sys.systemName() == 'Linux')
+        {
+            xvfb.kill();
+            xvfb.close();
+        }
     }
 }
