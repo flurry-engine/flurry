@@ -31,12 +31,12 @@ steps:
   env:
     AGENT_OS: $(Agent.OS)
 
-- bash: haxe -L buddy -L format -D reporter=XUnit2Reporter -D report-name=System-Tests-$AGENT_OS --debug --run Test
-  displayName: System Tests
-  condition: eq( variables['Agent.OS'], 'Windows_NT' )
-  workingDirectory: $(Build.SourcesDirectory)/tests/system
-  env:
-    AGENT_OS: $(Agent.OS)
+# - bash: haxe -L buddy -L format -D reporter=XUnit2Reporter -D report-name=System-Tests-$AGENT_OS --debug --run Test
+#   displayName: System Tests
+#   condition: eq( variables['Agent.OS'], 'Windows_NT' )
+#   workingDirectory: $(Build.SourcesDirectory)/tests/system
+#   env:
+#     AGENT_OS: $(Agent.OS)
 
 - task: PublishTestResults@2
   condition: succeededOrFailed()
@@ -48,12 +48,12 @@ steps:
     buildPlatform: $(Agent.OS)
     failTaskOnFailedTests: true
 
-- task: PublishTestResults@2
-  condition: and(succeededOrFailed(), eq( variables['Agent.OS'], 'Windows_NT' ))
-  inputs:
-    testResultsFormat: xUnit
-    searchFolder: $(Build.SourcesDirectory)/tests/system
-    testResultsFiles: test-engine.xml
-    testRunTitle: System Tests $(Agent.OS)
-    buildPlatform: $(Agent.OS)
-    failTaskOnFailedTests: true
+# - task: PublishTestResults@2
+#   condition: and(succeededOrFailed(), eq( variables['Agent.OS'], 'Windows_NT' ))
+#   inputs:
+#     testResultsFormat: xUnit
+#     searchFolder: $(Build.SourcesDirectory)/tests/system
+#     testResultsFiles: test-engine.xml
+#     testRunTitle: System Tests $(Agent.OS)
+#     buildPlatform: $(Agent.OS)
+#     failTaskOnFailedTests: true
