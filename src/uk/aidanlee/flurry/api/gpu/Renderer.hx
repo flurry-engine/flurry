@@ -48,7 +48,7 @@ class Renderer
         {
             #if cpp
                 case Ogl4:
-                    backend = new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+                    backend = new uk.aidanlee.flurry.api.gpu.backend.ogl4.OGL4Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
 
                 case Ogl3:
                     backend = new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);

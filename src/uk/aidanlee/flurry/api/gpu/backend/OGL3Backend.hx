@@ -21,10 +21,6 @@ import sdl.GLContext;
 import sdl.SDL;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
-import uk.aidanlee.flurry.api.gpu.BlendMode;
-import uk.aidanlee.flurry.api.gpu.PrimitiveType;
-import uk.aidanlee.flurry.api.gpu.StencilFunction;
-import uk.aidanlee.flurry.api.gpu.ComparisonFunction;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
@@ -46,6 +42,7 @@ import uk.aidanlee.flurry.api.thread.JobQueue;
 
 using Safety;
 using cpp.NativeArray;
+using uk.aidanlee.flurry.utils.opengl.GLConverters;
 
 /**
  * WebGL backend written against the webGL 1.0 spec (openGL ES 2.0).
@@ -432,12 +429,12 @@ class OGL3Backend implements IRendererBackend
             {
                 var idxOffset = commandIdxOffsets.get(command.id) * 2;
                 var vtxOffset = commandVtxOffsets.get(command.id);
-                untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', getPrimitiveType(command.primitive), command.indices, GL_UNSIGNED_SHORT, idxOffset, vtxOffset);
+                untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', command.primitive.getPrimitiveType(), command.indices, GL_UNSIGNED_SHORT, idxOffset, vtxOffset);
             }
             else
             {
                 var vtxOffset = commandVtxOffsets.get(command.id);
-                glDrawArrays(getPrimitiveType(command.primitive), vtxOffset, command.vertices);
+                glDrawArrays(command.primitive.getPrimitiveType(), vtxOffset, command.vertices);
             }      
 
             // Record stats about this draw call.
@@ -770,7 +767,7 @@ class OGL3Backend implements IRendererBackend
         {
             glEnable(GL_DEPTH_TEST);
             glDepthMask(_command.depth.depthMasking);
-            glDepthFunc(getComparisonFunc(_command.depth.depthFunction));
+            glDepthFunc(_command.depth.depthFunction.getComparisonFunc());
         }
         else
         {
@@ -782,20 +779,20 @@ class OGL3Backend implements IRendererBackend
             glEnable(GL_STENCIL_TEST);
             
             glStencilMaskSeparate(GL_FRONT, _command.stencil.stencilFrontMask);
-            glStencilFuncSeparate(GL_FRONT, getComparisonFunc(_command.stencil.stencilFrontFunction), 1, 0xff);
+            glStencilFuncSeparate(GL_FRONT, _command.stencil.stencilFrontFunction.getComparisonFunc(), 1, 0xff);
             glStencilOpSeparate(
                 GL_FRONT,
-                getStencilFunc(_command.stencil.stencilFrontTestFail),
-                getStencilFunc(_command.stencil.stencilFrontDepthTestFail),
-                getStencilFunc(_command.stencil.stencilFrontDepthTestPass));
+                _command.stencil.stencilFrontTestFail.getStencilFunc(),
+                _command.stencil.stencilFrontDepthTestFail.getStencilFunc(),
+                _command.stencil.stencilFrontDepthTestPass.getStencilFunc());
 
             glStencilMaskSeparate(GL_BACK, _command.stencil.stencilBackMask);
-            glStencilFuncSeparate(GL_BACK, getComparisonFunc(_command.stencil.stencilBackFunction), 1, 0xff);
+            glStencilFuncSeparate(GL_BACK, _command.stencil.stencilBackFunction.getComparisonFunc(), 1, 0xff);
             glStencilOpSeparate(
                 GL_BACK,
-                getStencilFunc(_command.stencil.stencilBackTestFail),
-                getStencilFunc(_command.stencil.stencilBackDepthTestFail),
-                getStencilFunc(_command.stencil.stencilBackDepthTestPass));
+                _command.stencil.stencilBackTestFail.getStencilFunc(),
+                _command.stencil.stencilBackDepthTestFail.getStencilFunc(),
+                _command.stencil.stencilBackDepthTestPass.getStencilFunc());
         }
         else
         {
@@ -868,7 +865,11 @@ class OGL3Backend implements IRendererBackend
         if (_command.blending)
         {
             glEnable(GL_BLEND);
-            glBlendFuncSeparate(getBlendMode(_command.srcRGB), getBlendMode(_command.dstRGB), getBlendMode(_command.srcAlpha), getBlendMode(_command.dstAlpha));
+            glBlendFuncSeparate(
+                _command.srcRGB.getBlendMode(),
+                _command.dstRGB.getBlendMode(),
+                _command.srcAlpha.getBlendMode(),
+                _command.dstAlpha.getBlendMode());
 
             if (!_disableStats)
             {
@@ -1061,66 +1062,6 @@ class OGL3Backend implements IRendererBackend
         }
 
         return new BackBuffer(_width, _height, 1, tex[0], rbo[0], fbo[0]);
-    }
-
-    function getBlendMode(_mode : BlendMode) : Int
-    {
-        return switch (_mode)
-        {
-            case Zero             : GL_ZERO;
-            case One              : GL_ONE;
-            case SrcAlphaSaturate : GL_SRC_ALPHA_SATURATE;
-            case SrcColor         : GL_SRC_COLOR;
-            case OneMinusSrcColor : GL_ONE_MINUS_SRC_COLOR;
-            case SrcAlpha         : GL_SRC_ALPHA;
-            case OneMinusSrcAlpha : GL_ONE_MINUS_SRC_ALPHA;
-            case DstAlpha         : GL_DST_ALPHA;
-            case OneMinusDstAlpha : GL_ONE_MINUS_DST_ALPHA;
-            case DstColor         : GL_DST_COLOR;
-            case OneMinusDstColor : GL_ONE_MINUS_DST_COLOR;
-            case _: 0;
-        }
-    }
-
-    function getComparisonFunc(_func : ComparisonFunction) : Int
-    {
-        return switch (_func) {
-            case Always: GL_ALWAYS;
-            case Never: GL_NEVER;
-            case LessThan: GL_LESS;
-            case Equal: GL_EQUAL;
-            case LessThanOrEqual: GL_LEQUAL;
-            case GreaterThan: GL_GREATER;
-            case GreaterThanOrEqual: GL_GEQUAL;
-            case NotEqual: GL_NOTEQUAL;
-        }
-    }
-
-    function getStencilFunc(_func : StencilFunction) : Int
-    {
-        return switch (_func)
-        {
-            case Keep: GL_KEEP;
-            case Zero: GL_ZERO;
-            case Replace: GL_REPLACE;
-            case Invert: GL_INVERT;
-            case Increment: GL_INCR;
-            case IncrementWrap: GL_INCR_WRAP;
-            case Decrement: GL_DECR;
-            case DecrementWrap: GL_DECR_WRAP;
-        }
-    }
-
-    function getPrimitiveType(_primitive : PrimitiveType) : Int
-    {
-        return switch (_primitive)
-        {
-            case Points        : GL_POINTS;
-            case Lines         : GL_LINES;
-            case LineStrip     : GL_LINE_STRIP;
-            case Triangles     : GL_TRIANGLES;
-            case TriangleStrip : GL_TRIANGLE_STRIP;
-        }
     }
 }
 

@@ -1,13 +1,10 @@
-package uk.aidanlee.flurry.api.gpu.backend;
+package uk.aidanlee.flurry.api.gpu.backend.ogl4;
 
 import haxe.io.Bytes;
 import haxe.io.Float32Array;
-import haxe.io.UInt32Array;
-import haxe.io.UInt16Array;
 import haxe.ds.Map;
 import cpp.Stdlib;
 import cpp.Float32;
-import cpp.UInt16;
 import cpp.Int32;
 import cpp.UInt64;
 import cpp.UInt8;
@@ -16,7 +13,6 @@ import sdl.GLContext;
 import sdl.Window;
 import sdl.SDL;
 import opengl.GL.*;
-import opengl.GL.GLSync;
 import opengl.WebGL;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
@@ -24,7 +20,6 @@ import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.thread.JobQueue;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
@@ -32,19 +27,17 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
-import uk.aidanlee.flurry.api.gpu.BlendMode;
-import uk.aidanlee.flurry.api.gpu.PrimitiveType;
-import uk.aidanlee.flurry.api.gpu.StencilFunction;
-import uk.aidanlee.flurry.api.gpu.ComparisonFunction;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
+import uk.aidanlee.flurry.utils.opengl.GLSyncWrapper;
 
 using Safety;
 using cpp.NativeArray;
+using uk.aidanlee.flurry.utils.opengl.GLConverters;
 
 class OGL4Backend implements IRendererBackend
 {
@@ -745,7 +738,7 @@ class OGL4Backend implements IRendererBackend
         {
             glEnable(GL_DEPTH_TEST);
             glDepthMask(_command.depth.depthMasking);
-            glDepthFunc(getComparisonFunc(_command.depth.depthFunction));
+            glDepthFunc(_command.depth.depthFunction.getComparisonFunc());
         }
         else
         {
@@ -757,20 +750,20 @@ class OGL4Backend implements IRendererBackend
             glEnable(GL_STENCIL_TEST);
             
             glStencilMaskSeparate(GL_FRONT, _command.stencil.stencilFrontMask);
-            glStencilFuncSeparate(GL_FRONT, getComparisonFunc(_command.stencil.stencilFrontFunction), 1, 0xff);
+            glStencilFuncSeparate(GL_FRONT, _command.stencil.stencilFrontFunction.getComparisonFunc(), 1, 0xff);
             glStencilOpSeparate(
                 GL_FRONT,
-                getStencilFunc(_command.stencil.stencilFrontTestFail),
-                getStencilFunc(_command.stencil.stencilFrontDepthTestFail),
-                getStencilFunc(_command.stencil.stencilFrontDepthTestPass));
+                _command.stencil.stencilFrontTestFail.getStencilFunc(),
+                _command.stencil.stencilFrontDepthTestFail.getStencilFunc(),
+                _command.stencil.stencilFrontDepthTestPass.getStencilFunc());
 
             glStencilMaskSeparate(GL_BACK, _command.stencil.stencilBackMask);
-            glStencilFuncSeparate(GL_BACK, getComparisonFunc(_command.stencil.stencilBackFunction), 1, 0xff);
+            glStencilFuncSeparate(GL_BACK, _command.stencil.stencilBackFunction.getComparisonFunc(), 1, 0xff);
             glStencilOpSeparate(
                 GL_BACK,
-                getStencilFunc(_command.stencil.stencilBackTestFail),
-                getStencilFunc(_command.stencil.stencilBackDepthTestFail),
-                getStencilFunc(_command.stencil.stencilBackDepthTestPass));
+                _command.stencil.stencilBackTestFail.getStencilFunc(),
+                _command.stencil.stencilBackDepthTestFail.getStencilFunc(),
+                _command.stencil.stencilBackDepthTestPass.getStencilFunc());
         }
         else
         {
@@ -846,7 +839,11 @@ class OGL4Backend implements IRendererBackend
         if (_command.blending)
         {
             glEnable(GL_BLEND);
-            glBlendFuncSeparate(getBlendMode(_command.srcRGB), getBlendMode(_command.dstRGB), getBlendMode(_command.srcAlpha), getBlendMode(_command.dstAlpha));
+            glBlendFuncSeparate(
+                _command.srcRGB.getBlendMode(),
+                _command.dstRGB.getBlendMode(),
+                _command.srcAlpha.getBlendMode(),
+                _command.dstAlpha.getBlendMode());
 
             if (_enableStats)
             {
@@ -1050,59 +1047,6 @@ class OGL4Backend implements IRendererBackend
         return new BackBuffer(_width, _height, 1, tex[0], rbo[0], fbo[0]);
     }
 
-    /**
-     * Returns the equivalent openGL blend mode from the abstract blend enum
-     * @param _mode Blend mode to fetch.
-     * @return Int
-     */
-    function getBlendMode(_mode : BlendMode) : Int
-    {
-        return switch (_mode)
-        {
-            case Zero             : GL_ZERO;
-            case One              : GL_ONE;
-            case SrcAlphaSaturate : GL_SRC_ALPHA_SATURATE;
-            case SrcColor         : GL_SRC_COLOR;
-            case OneMinusSrcColor : GL_ONE_MINUS_SRC_COLOR;
-            case SrcAlpha         : GL_SRC_ALPHA;
-            case OneMinusSrcAlpha : GL_ONE_MINUS_SRC_ALPHA;
-            case DstAlpha         : GL_DST_ALPHA;
-            case OneMinusDstAlpha : GL_ONE_MINUS_DST_ALPHA;
-            case DstColor         : GL_DST_COLOR;
-            case OneMinusDstColor : GL_ONE_MINUS_DST_COLOR;
-            case _: 0;
-        }
-    }
-
-    function getComparisonFunc(_func : ComparisonFunction) : Int
-    {
-        return switch (_func) {
-            case Always: GL_ALWAYS;
-            case Never: GL_NEVER;
-            case LessThan: GL_LESS;
-            case Equal: GL_EQUAL;
-            case LessThanOrEqual: GL_LEQUAL;
-            case GreaterThan: GL_GREATER;
-            case GreaterThanOrEqual: GL_GEQUAL;
-            case NotEqual: GL_NOTEQUAL;
-        }
-    }
-
-    function getStencilFunc(_func : StencilFunction) : Int
-    {
-        return switch (_func)
-        {
-            case Keep: GL_KEEP;
-            case Zero: GL_ZERO;
-            case Replace: GL_REPLACE;
-            case Invert: GL_INVERT;
-            case Increment: GL_INCR;
-            case IncrementWrap: GL_INCR_WRAP;
-            case Decrement: GL_DECR;
-            case DecrementWrap: GL_DECR_WRAP;
-        }
-    }
-
     // #endregion
 }
 
@@ -1171,728 +1115,5 @@ private class ShaderLocations
         blockBindings    = _blockBindings;
         blockBuffers     = _blockBuffers;
         blockBytes       = _blockBytes;
-    }
-}
-
-/**
- * Manages a triple buffered stream buffer.
- */
-private class StreamBufferManager
-{
-    /**
-     * The maximum number of threads for writing to buffers.
-     */
-    static final RENDERER_THREADS = #if flurry_ogl4_no_multithreading 1 #else Std.int(Maths.max(SDL.getCPUCount() - 2, 1)) #end;
-
-    final forceIncludeGL : GLSyncWrapper;
-
-    /**
-     * Standard identity matrix used for geometry commands model matrix.
-     */
-    final identityMatrix : Matrix;
-
-    /**
-     * Constant vector for transforming vertices before being uploaded.
-     */
-    final transformationVectors : Array<Vector>;
-
-    /**
-     * Queue to distribute writing tasks to multiple threads
-     */
-    final jobQueue : JobQueue;
-
-    /**
-     * The base vertex offset into the buffer that the stream buffer starts.
-     */
-    final vtxBaseOffset : Int;
-
-    /**
-     * The base index offset into the buffer that the stream buffer starts.
-     */
-    final idxBaseOffset : Int;
-
-    /**
-     * The size of each vertex stream range.
-     */
-    final vtxRangeSize : Int;
-
-    /**
-     * The size of each index stream range.
-     */
-    final idxRangeSize : Int;
-
-    /**
-     * Pointer to each range in the vertex stream buffer.
-     */
-    final vtxBuffer : Pointer<Float32>;
-
-    /**
-     * Pointer to each range in the index stream buffer.
-     */
-    final idxBuffer : Pointer<UInt16>;
-
-    /**
-     * Each ranges vertex offset.
-     */
-    var commandVtxOffsets : Map<Int, Int>;
-
-    /**
-     * Each ranges index offset.
-     */
-    var commandIdxOffsets : Map<Int, Int>;
-
-    /**
-     * Model matrix for each range.
-     * If the command is not a buffer command no model matrix will be stored.
-     */
-    var bufferModelMatrix : Map<Int, Matrix>;
-
-    /**
-     * Current vertex float write position.
-     */
-    var currentVtxTypePosition : Int;
-
-    /**
-     * Current index uint write position.
-     */
-    var currentIdxTypePosition : Int;
-
-    /**
-     * Current vertex write position.
-     */
-    var currentVertexPosition : Int;
-
-    public function new(_vtxBaseOffset : Int, _idxBaseOffset : Int, _vtxRange : Int, _idxRange : Int, _vtxPtr : Pointer<UInt8>, _idxPtr : Pointer<UInt8>)
-    {
-        forceIncludeGL         = new GLSyncWrapper();
-        transformationVectors  = [ for (i in 0...RENDERER_THREADS) new Vector() ];
-        jobQueue               = new JobQueue(RENDERER_THREADS);
-        identityMatrix         = new Matrix();
-        vtxBaseOffset          = _vtxBaseOffset;
-        idxBaseOffset          = _idxBaseOffset;
-        vtxRangeSize           = _vtxRange;
-        idxRangeSize           = _idxRange;
-        vtxBuffer              = _vtxPtr.reinterpret();
-        idxBuffer              = _idxPtr.reinterpret();
-        commandVtxOffsets      = [];
-        commandIdxOffsets      = [];
-        bufferModelMatrix      = [];
-        currentVtxTypePosition = 0;
-        currentIdxTypePosition = 0;
-        currentVertexPosition  = 0;
-    }
-
-    /**
-     * Returns a model matrix for the provided command ID.
-     * If the command id does not belong to an uploaded buffer command an identity matrix is returned.
-     * @param _id Geometry command.
-     * @return Matrix
-     */
-    public function getModelMatrix(_id : Int) : Matrix
-    {
-        if (bufferModelMatrix.exists(_id))
-        {
-            return bufferModelMatrix.get(_id);
-        }
-        else
-        {
-            return identityMatrix;
-        }
-    }
-
-    /**
-     * Setup uploading to a specific stream buffer range.
-     * Must be done at the beginning off each frame.
-     * @param _currentRange Range to upload to.
-     */
-    public function unlockBuffers(_currentRange : Int)
-    {
-        currentVtxTypePosition = _currentRange * (vtxRangeSize * 9);
-        currentVertexPosition  = _currentRange * vtxRangeSize;
-        currentIdxTypePosition = _currentRange * idxRangeSize;
-        commandVtxOffsets      = [];
-        commandIdxOffsets      = [];
-        bufferModelMatrix      = [];
-    }
-
-    /**
-     * Upload a geometry draw command into the current range.
-     * @param _command Command to upload.
-     */
-    public function uploadGeometry(_command : GeometryDrawCommand)
-    {
-        commandVtxOffsets.set(_command.id, vtxBaseOffset + currentVertexPosition);
-        commandIdxOffsets.set(_command.id, idxBaseOffset + currentIdxTypePosition);
-
-        var split     = Maths.floor(_command.geometry.length / RENDERER_THREADS);
-        var remainder = _command.geometry.length % RENDERER_THREADS;
-        var range     = _command.geometry.length < RENDERER_THREADS ? _command.geometry.length : RENDERER_THREADS;
-        for (i in 0...range)
-        {
-            var geomStartIdx   = split * i;
-            var geomEndIdx     = geomStartIdx + (i != range - 1 ? split : split + remainder);
-            var idxValueOffset = 0;
-            var idxWriteOffset = currentIdxTypePosition;
-            var vtxWriteOffset = currentVtxTypePosition;
-
-            for (j in 0...geomStartIdx)
-            {
-                idxValueOffset += _command.geometry[j].vertices.length;
-                idxWriteOffset += _command.geometry[j].indices.length;
-                vtxWriteOffset += _command.geometry[j].vertices.length * 9;
-            }
-
-            jobQueue.queue(() -> {
-                for (j in geomStartIdx...geomEndIdx)
-                {
-                    for (index in _command.geometry[j].indices)
-                    {
-                        idxBuffer[idxWriteOffset++] = idxValueOffset + index;
-                    }
-
-                    for (vertex in _command.geometry[j].vertices)
-                    {
-                        // Copy the vertex into another vertex.
-                        // This allows us to apply the transformation without permanently modifying the original geometry.
-                        transformationVectors[i].copyFrom(vertex.position);
-                        transformationVectors[i].transform(_command.geometry[j].transformation.transformation);
-
-                        vtxBuffer[vtxWriteOffset++] = transformationVectors[i].x;
-                        vtxBuffer[vtxWriteOffset++] = transformationVectors[i].y;
-                        vtxBuffer[vtxWriteOffset++] = transformationVectors[i].z;
-                        vtxBuffer[vtxWriteOffset++] = vertex.color.r;
-                        vtxBuffer[vtxWriteOffset++] = vertex.color.g;
-                        vtxBuffer[vtxWriteOffset++] = vertex.color.b;
-                        vtxBuffer[vtxWriteOffset++] = vertex.color.a;
-                        vtxBuffer[vtxWriteOffset++] = vertex.texCoord.x;
-                        vtxBuffer[vtxWriteOffset++] = vertex.texCoord.y;
-                    }
-
-                    idxValueOffset += _command.geometry[j].vertices.length;
-                }
-            });
-        }
-
-        for (geom in _command.geometry)
-        {
-            currentIdxTypePosition += geom.indices.length;
-            currentVtxTypePosition += geom.vertices.length * 9;
-            currentVertexPosition  += geom.vertices.length;
-        }
-
-        jobQueue.wait();
-    }
-
-    /**
-     * Upload a buffer draw command into the current range.
-     * @param _command 
-     */
-    public function uploadBuffer(_command : BufferDrawCommand)
-    {
-        commandVtxOffsets.set(_command.id, vtxBaseOffset + currentVertexPosition);
-        commandIdxOffsets.set(_command.id, idxBaseOffset + currentIdxTypePosition);
-        bufferModelMatrix.set(_command.id, _command.model);
-
-        Stdlib.memcpy(
-            idxBuffer.incBy(currentIdxTypePosition),
-            Pointer.arrayElem(_command.idxData.view.buffer.getData(), _command.idxStartIndex * 2),
-            _command.indices * 2);
-        Stdlib.memcpy(
-            vtxBuffer.incBy(currentVtxTypePosition),
-            Pointer.arrayElem(_command.vtxData.view.buffer.getData(), _command.vtxStartIndex * 9 * 4),
-            _command.vertices * 9 * 4);
-
-        idxBuffer.incBy(-currentIdxTypePosition);
-        vtxBuffer.incBy(-currentVtxTypePosition);
-
-        currentIdxTypePosition += _command.indices;
-        currentVtxTypePosition += _command.vertices * 9;
-        currentVertexPosition  += _command.vertices;
-    }
-
-    /**
-     * Draw an uploaded draw command.
-     * @param _command Command to draw.
-     */
-    public function draw(_command : DrawCommand)
-    {
-        // Draw the actual vertices
-        if (_command.indices > 0)
-        {
-            var idxOffset = commandIdxOffsets.get(_command.id) * 2;
-            var vtxOffset = commandVtxOffsets.get(_command.id);
-            untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', getPrimitiveType(_command.primitive), _command.indices, GL_UNSIGNED_SHORT, idxOffset, vtxOffset);
-        }
-        else
-        {
-            var vtxOffset = commandVtxOffsets.get(_command.id);
-            glDrawArrays(getPrimitiveType(_command.primitive), vtxOffset, _command.vertices);
-        }
-    }
-
-    /**
-     * Returns an OpenGL primitive constant from a flurry primitive enum.
-     * @param _primitive Primitive type.
-     * @return Int
-     */
-    function getPrimitiveType(_primitive : PrimitiveType) : Int
-    {
-        return switch (_primitive)
-        {
-            case Points        : GL_POINTS;
-            case Lines         : GL_LINES;
-            case LineStrip     : GL_LINE_STRIP;
-            case Triangles     : GL_TRIANGLES;
-            case TriangleStrip : GL_TRIANGLE_STRIP;
-        }
-    }
-}
-
-/**
- * Managed upload, removing, and drawing static draw commands.
- */
-private class StaticBufferManager
-{
-    /**
-     * The maximum number of threads for writing to buffers.
-     */
-    static final RENDERER_THREADS = #if flurry_ogl4_no_multithreading 1 #else Std.int(Maths.max(SDL.getCPUCount() - 2, 1)) #end;
-
-    final forceIncludeGL : GLSyncWrapper;
-
-    /**
-     * The maximum number of vertices which can fix in the buffer.
-     */
-    final maxVertices : Int;
-
-    /**
-     * The maximum number of indices which can fix in the buffer.
-     */
-    final maxIndices : Int;
-
-    /**
-     * OpenGL buffer ID of the static buffer.
-     */
-    final glVbo : Int;
-
-    /**
-     * OpenGL buffer ID of the index buffer.
-     */
-    final glIbo : Int;
-
-    /**
-     * All of the uploaded ranges, keyed by their command ID.
-     */
-    final ranges : Map<Int, StaticBufferRange>;
-
-    /**
-     * Ranges to be removed to make space for a new range.
-     */
-    final rangesToRemove : Array<Int>;
-
-    /**
-     * Queue to distribute writing tasks to multiple threads
-     */
-    final jobQueue : JobQueue;
-
-    /**
-     * Current vertex write position for uploading new commands.
-     */
-    var vtxPosition : Int;
-
-    /**
-     * Current index write position for uploading new commands.
-     */
-    var idxPosition : Int;
-
-    public function new(_vtxBufferSize : Int, _idxBufferSize : Int, _glVbo : Int, _glIbo : Int)
-    {
-        forceIncludeGL = new GLSyncWrapper();
-        jobQueue       = new JobQueue(RENDERER_THREADS);
-        maxVertices    = _vtxBufferSize;
-        maxIndices     = _idxBufferSize;
-        glVbo          = _glVbo;
-        glIbo          = _glIbo;
-        ranges         = [];
-        rangesToRemove = [];
-        vtxPosition    = 0;
-        idxPosition    = 0;
-    }
-
-    /**
-     * Upload a geometry draw command to the static buffer.
-     * Will remove other ranges to make space.
-     * @param _command Command to upload.
-     */
-    public function uploadGeometry(_command : GeometryDrawCommand)
-    {
-        if (_command.vertices > maxVertices || _command.indices > maxIndices)
-        {
-            throw 'command ${_command.id} too large to fit in static buffer';
-        }
-
-        if (_command.vertices > (maxVertices - vtxPosition) || _command.indices > (maxIndices - idxPosition))
-        {
-            rangesToRemove.resize(0);
-
-            for (key => range in ranges)
-            {
-                if ((0 < (range.vtxPosition + range.vtxLength) && (0 + _command.vertices) > 0) || (0 < (range.idxPosition + range.idxLength) && (0 + _command.indices) > 0))
-                {
-                    rangesToRemove.push(key);
-                }
-
-                glDeleteBuffers(2, [ range.glCommandBuffer, range.glMatrixBuffer ]);
-            }
-
-            for (id in rangesToRemove)
-            {
-                ranges.remove(id);
-            }
-        }       
-
-        if (!ranges.exists(_command.id))
-        {
-            var buffers = [ 0, 0 ];
-            glCreateBuffers(buffers.length, buffers);
-
-            // Distribute uploading the vertex data and generating command buffers to threads.
-            // Vertex data is spread across RENDERER_THREADS - 1 so the command buffer uploading will have its own thread.
-
-            // Distribute
-
-            var vtxPtr    = new Float32Array(_command.vertices * 9);
-            var idxPtr    = new UInt16Array(_command.indices);
-            var split     = Maths.floor(_command.geometry.length / RENDERER_THREADS);
-            var remainder = _command.geometry.length % RENDERER_THREADS;
-            var range     = _command.geometry.length < RENDERER_THREADS ? _command.geometry.length : RENDERER_THREADS;
-
-            for (i in 0...range)
-            {
-                var vtxIdx       = 0;
-                var idxIdx       = 0;
-                var geomStartIdx = split * i;
-                var geomEndIdx   = geomStartIdx + (i != range - 1 ? split : split + remainder);
-
-                for (j in 0...geomStartIdx)
-                {
-                    vtxIdx += _command.geometry[j].vertices.length * 9;
-                    idxIdx += _command.geometry[j].indices.length;
-                }
-
-                jobQueue.queue(() -> {
-                    for (j in geomStartIdx...geomEndIdx)
-                    {
-                        for (index in _command.geometry[j].indices)
-                        {
-                            idxPtr[idxIdx++] = index;
-                        }
-
-                        for (vertex in _command.geometry[j].vertices)
-                        {
-                            vtxPtr[vtxIdx++] = vertex.position.x;
-                            vtxPtr[vtxIdx++] = vertex.position.y;
-                            vtxPtr[vtxIdx++] = vertex.position.z;
-                            vtxPtr[vtxIdx++] = vertex.color.r;
-                            vtxPtr[vtxIdx++] = vertex.color.g;
-                            vtxPtr[vtxIdx++] = vertex.color.b;
-                            vtxPtr[vtxIdx++] = vertex.color.a;
-                            vtxPtr[vtxIdx++] = vertex.texCoord.x;
-                            vtxPtr[vtxIdx++] = vertex.texCoord.y;
-                        }
-                    }
-                });
-            }
-
-            // Create command buffer
-            var mdiCommands : Null<UInt32Array> = null;
-
-            // thread
-            jobQueue.queue(() -> {
-                if (_command.indices > 0)
-                {
-                    mdiCommands = new UInt32Array(_command.geometry.length * 5);
-                    var writePos     = 0;
-                    var cmdVtxOffset = vtxPosition;
-                    var cmdIdxOffset = idxPosition;
-
-                    for (geom in _command.geometry)
-                    {
-                        mdiCommands[writePos++] = geom.indices.length;
-                        mdiCommands[writePos++] = 1;
-                        mdiCommands[writePos++] = cmdIdxOffset;
-                        mdiCommands[writePos++] = cmdVtxOffset;
-                        mdiCommands[writePos++] = 0;
-
-                        cmdVtxOffset += geom.vertices.length;
-                    }
-                }
-                else
-                {
-                    mdiCommands = new UInt32Array(_command.geometry.length * 4);
-                    var writePos     = 0;
-                    var cmdVtxOffset = 0;
-
-                    for (geom in _command.geometry)
-                    {
-                        mdiCommands[writePos++] = geom.vertices.length;
-                        mdiCommands[writePos++] = 1;
-                        mdiCommands[writePos++] = cmdVtxOffset;
-                        mdiCommands[writePos++] = 0;
-
-                        cmdVtxOffset += geom.vertices.length;
-                    }
-                }
-            });
-
-            jobQueue.wait();
-
-            glNamedBufferSubData(glVbo, vtxPosition * 9 * 4, vtxPtr.view.buffer.length, vtxPtr.view.buffer.getData());
-            glNamedBufferSubData(glIbo, idxPosition * 2, idxPtr.view.buffer.length, idxPtr.view.buffer.getData());
-
-            if (_command.indices > 0)
-            {
-                glNamedBufferStorage(buffers[0], _command.geometry.length * 20, mdiCommands.unsafe().view.buffer.getData(), 0);
-            }
-            else
-            {
-                glNamedBufferStorage(buffers[0], _command.geometry.length * 16, mdiCommands.unsafe().view.buffer.getData(), 0);
-            }
-
-            // Create matrix buffer
-            var matrixBuffer = new Float32Array(32 + (_command.geometry.length * 16));
-            glNamedBufferStorage(buffers[1], matrixBuffer.view.buffer.length, matrixBuffer.view.buffer.getData(), GL_DYNAMIC_STORAGE_BIT);
-
-            // TODO : Add a new range entry to the map.
-            ranges.set(_command.id, new StaticBufferRange(buffers[0], buffers[1], matrixBuffer, vtxPosition, idxPosition, _command.vertices, _command.indices, _command.geometry.length));
-
-            vtxPosition += _command.vertices;
-            idxPosition += _command.indices;
-        }
-
-        // Upload the model matrices for all geometry in the command.
-
-        var split     = Maths.floor(_command.geometry.length / RENDERER_THREADS);
-        var remainder = _command.geometry.length % RENDERER_THREADS;
-        var range     = _command.geometry.length < RENDERER_THREADS ? _command.geometry.length : RENDERER_THREADS;
-        var data      = get(_command).matrixBuffer.view.buffer.getData();
-        for (i in 0...range)
-        {
-            var geomStartIdx = split * i;
-            var geomEndIdx   = geomStartIdx + (i != range - 1 ? split : split + remainder);
-            
-            for (j in geomStartIdx...geomEndIdx)
-            {
-                jobQueue.queue(() -> {
-                    Stdlib.memcpy(data.address(128 + (j * 64)), (_command.geometry[j].transformation.transformation : Float32Array).view.buffer.getData().address(0), 64);
-                });
-            }
-        }
-
-        jobQueue.wait();
-    }
-
-    /**
-     * Upload a buffer draw command to the static buffer.
-     * Will remove other ranges to make space.
-     * @param _command Command to upload.
-     */
-    public function uploadBuffer(_command : BufferDrawCommand)
-    {
-        if (_command.vertices > maxVertices || _command.indices > maxIndices)
-        {
-            throw 'command ${_command.id} too large to fit in static buffer';
-        }
-
-        if (_command.vertices > (maxVertices - vtxPosition) || _command.indices > (maxIndices - idxPosition))
-        {
-            rangesToRemove.resize(0);
-
-            for (key => range in ranges)
-            {
-                if ((0 < (range.vtxPosition + range.vtxLength) && (0 + _command.vertices) > 0) || (0 < (range.idxPosition + range.idxLength) && (0 + _command.indices) > 0))
-                {
-                    rangesToRemove.push(key);
-                }
-
-                glDeleteBuffers(2, [ range.glCommandBuffer, range.glMatrixBuffer ]);
-            }
-
-            for (id in rangesToRemove)
-            {
-                ranges.remove(id);
-            }
-        }
-
-        if (!ranges.exists(_command.id))
-        {
-            var vtxRange = _command.vtxData.subarray(_command.vtxStartIndex, _command.vtxEndIndex);
-            var idxRange = _command.idxData.subarray(_command.idxStartIndex, _command.idxEndIndex);
-            glNamedBufferSubData(glVbo, vtxPosition * 9 * 4, vtxRange.length * 4, vtxRange.view.buffer.getData());
-            glNamedBufferSubData(glIbo, idxPosition * 2    , idxRange.length * 2, idxRange.view.buffer.getData());
-
-            // TODO : Create a matrix and command buffer for the draw command.
-            var buffers = [ 0, 0 ];
-            glCreateBuffers(buffers.length, buffers);
-
-            // Create command buffer
-            if (_command.indices > 0)
-            {
-                var mdiCommands  = new UInt32Array(5);
-                var writePos     = 0;
-                var cmdVtxOffset = vtxPosition;
-                var cmdIdxOffset = idxPosition;
-
-                mdiCommands[writePos++] = _command.indices;
-                mdiCommands[writePos++] = 1;
-                mdiCommands[writePos++] = cmdIdxOffset;
-                mdiCommands[writePos++] = cmdVtxOffset;
-                mdiCommands[writePos++] = 0;
-
-                glNamedBufferStorage(buffers[0], 20, mdiCommands.view.buffer.getData(), 0);
-            }
-            else
-            {
-                var mdiCommands  = new UInt32Array(4);
-                var writePos     = 0;
-                var cmdVtxOffset = 0;
-
-                mdiCommands[writePos++] = _command.vertices;
-                mdiCommands[writePos++] = 1;
-                mdiCommands[writePos++] = cmdVtxOffset;
-                mdiCommands[writePos++] = 0;
-
-                glNamedBufferStorage(buffers[0], 16, mdiCommands.view.buffer.getData(), 0);
-            }
-
-            ranges.set(_command.id, new StaticBufferRange(buffers[0], buffers[1], new Float32Array(48), vtxPosition, idxPosition, _command.vertices, _command.indices, 1));
-
-            vtxPosition += _command.vertices;
-            idxPosition += _command.indices;
-        }
-
-        var range        = ranges.get(_command.id);
-        var matrixBuffer = range.matrixBuffer;
-        Stdlib.memcpy(matrixBuffer.view.buffer.getData().address(128), (_command.model : Float32Array).view.buffer.getData().address(0), 64);
-        glNamedBufferStorage(range.glMatrixBuffer, matrixBuffer.view.buffer.length, matrixBuffer.view.buffer.getData(), GL_DYNAMIC_STORAGE_BIT);
-    }
-
-    /**
-     * Draw an uploaded draw command.
-     * @param _command Command to draw.
-     */
-    public function draw(_command : DrawCommand)
-    {
-        if (_command.indices > 0)
-        {
-            untyped __cpp__('glMultiDrawElementsIndirect({0}, GL_UNSIGNED_SHORT, 0, {1}, 0)', getPrimitiveType(_command.primitive), get(_command).drawCount);
-        }
-        else
-        {
-            untyped __cpp__('glMultiDrawArraysIndirect({0}, 0, {1}, 0)', getPrimitiveType(_command.primitive), get(_command).drawCount);
-        }
-    }
-
-    /**
-     * Get information about an uploaded range.
-     * @param _command Uploaded command to get info on.
-     * @return StaticBufferRange
-     */
-    public function get(_command : DrawCommand) : StaticBufferRange
-    {
-        return ranges.get(_command.id).sure();
-    }
-
-    /**
-     * Returns an OpenGL primitive constant from a flurry primitive enum.
-     * @param _primitive Primitive type.
-     * @return Int
-     */
-    function getPrimitiveType(_primitive : PrimitiveType) : Int
-    {
-        return switch (_primitive)
-        {
-            case Points        : GL_POINTS;
-            case Lines         : GL_LINES;
-            case LineStrip     : GL_LINE_STRIP;
-            case Triangles     : GL_TRIANGLES;
-            case TriangleStrip : GL_TRIANGLE_STRIP;
-        }
-    }
-}
-
-/**
- * Represents an uploaded `DrawCommand` in the static buffer.
- */
-private class StaticBufferRange
-{
-    /**
-     * OpenGL buffer ID for the buffer to be bound to `GL_DRAW_INDIRECT_BUFFER` to provide draw commands.
-     */
-    public final glCommandBuffer : Int;
-
-    /**
-     * OpenGL buffer ID for the buffer to be bound to the default matrix ssbo.
-     */
-    public final glMatrixBuffer : Int;
-    
-    /**
-     * Bytes to store matrices to be uploaded to the GPU.
-     * 
-     * Enough space for a projection, view, and `drawCount` model matrices.
-     */
-    public final matrixBuffer : Float32Array;
-
-    /**
-     * The vertex offset into the vertex buffer this draw command is found.
-     */
-    public final vtxPosition : Int;
-
-    /**
-     * The index offfset into the index buffer this draw command is found.
-     */
-    public final idxPosition : Int;
-
-    /**
-     * The number of vertices in this draw command.
-     */
-    public final vtxLength : Int;
-
-    /**
-     * The number of indices in this draw command.
-     */
-    public final idxLength : Int;
-
-    /**
-     * The number of draw calls to make for this draw command. Used for multi draw indirect functions.
-     * 
-     * Always 1 for `BufferDrawCommand`. Equal to the number of geometries for `GeometryDrawCommand`.
-     */
-    public final drawCount : Int;
-
-    public function new(_glCommandBuffer : Int, _glMatrixBuffer : Int, _matrixBuffer : Float32Array, _vtxPosition : Int, _idxPosition : Int, _vtxLength : Int, _idxLength : Int, _drawCount : Int)
-    {
-        glCommandBuffer = _glCommandBuffer;
-        glMatrixBuffer  = _glMatrixBuffer;
-        matrixBuffer    = _matrixBuffer;
-        vtxPosition     = _vtxPosition;
-        idxPosition     = _idxPosition;
-        vtxLength       = _vtxLength;
-        idxLength       = _idxLength;
-        drawCount       = _drawCount;
-    }
-}
-
-/**
- * Very simple wrapper around a GLSync object.
- * Needed to work around hxcpp's weirdness with native types in haxe arrays.
- */
-private class GLSyncWrapper
-{
-    public var sync : Null<GLSync>;
-
-    public function new()
-    {
-        sync = null;
     }
 }

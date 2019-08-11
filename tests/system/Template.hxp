@@ -8,6 +8,8 @@ class Build extends Project
         app.output    = 'bin';
         app.codepaths = [ 'src', '../../src' ];
 
+        build.profile = Debug;
+
         build.dependencies = [
             'flurry-snow-host' => null
         ];
