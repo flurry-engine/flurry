@@ -46,22 +46,30 @@ class Renderer
 
         switch api
         {
-#if cpp
-            case Ogl4:
-                backend = new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+            #if cpp
+                case Ogl4:
+                    backend = new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
 
-            case Ogl3:
-                backend = new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+                case Ogl3:
+                    backend = new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
 
-            case Dx11:
-#if windows
-                backend = new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
-#else
-                throw new BackendNotAvailableException(api);
-#end
+                case Dx11:
+                    #if windows
+                        backend = new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+                    #else
+                        throw new BackendNotAvailableException(api);
+                    #end
+            #end
 
-#end
-            case _:
+            case Auto:
+                #if (cpp && windows)
+                    backend = new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+                #elseif cpp
+                    backend = new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+                #else
+                    backend = new MockBackend(_resourceEvents);
+                #end
+            case Mock:
                 backend = new MockBackend(_resourceEvents);
         }
     }

@@ -18,7 +18,7 @@ class Text extends Flurry
         _config.window.width  = 768;
         _config.window.height = 512;
 
-        _config.renderer.backend = Ogl3;
+        _config.renderer.backend = Auto;
 
         _config.resources.preload.shaders = [
             {
