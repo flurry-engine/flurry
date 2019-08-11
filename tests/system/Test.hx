@@ -12,8 +12,6 @@ using StringTools;
 
 class Test extends SingleSuite
 {
-    var xvfb : Process;
-
     public function new()
     {
         describe('System Tests', {
@@ -65,22 +63,20 @@ class Test extends SingleSuite
         switch Sys.systemName()
         {
             case 'Windows':
-                var proc = new Process('bin\\windows-x64\\SystemTests.exe');
+                new Process('bin\\windows-x64\\SystemTests.exe');
 
                 Sys.sleep(1);
                 Sys.command('screenshot.exe');
 
-                // For some reason kill / close don't function properly on windows?
                 Sys.command('taskkill /f /t /im SystemTests.exe');
 
             case 'Linux':
-                var proc = new Process('bin/linux-x64/SystemTests');
+                new Process('bin/linux-x64/SystemTests');
 
                 Sys.sleep(1);
                 Sys.command('import', [ '-window', 'root', 'screenshot.png' ]);
 
-                proc.kill();
-                proc.close();
+                Sys.command('pkill SystemTests');
         }
     }
 
@@ -118,7 +114,7 @@ class Test extends SingleSuite
         if (Sys.systemName() == 'Linux')
         {
             Sys.putEnv('DISPLAY', ':99');
-            xvfb = new Process('Xvfb', [ ':99', '-screen', '0', '768x512x24' ]);
+            new Process('Xvfb', [ ':99', '-screen', '0', '768x512x24' ]);
         }
     }
 
@@ -126,8 +122,7 @@ class Test extends SingleSuite
     {
         if (Sys.systemName() == 'Linux')
         {
-            xvfb.kill();
-            xvfb.close();
+            Sys.command('pkill Xvfb');
         }
     }
 }
