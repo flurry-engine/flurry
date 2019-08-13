@@ -77,11 +77,6 @@ class OGL4Backend implements IRendererBackend
     final rendererStats : RendererStats;
 
     /**
-     * If we will be using bindless textures.
-     */
-    final bindless : Bool;
-
-    /**
      * The single VBO used by the backend.
      */
     final glVbo : Int;
@@ -96,8 +91,14 @@ class OGL4Backend implements IRendererBackend
      */
     final glVao : Int;
 
+    /**
+     * Stores all stream draw commands.
+     */
     final streamStorage : StreamBufferManager;
 
+    /**
+     * Stores all static draw commands.
+     */
     final staticStorage : StaticBufferManager;
 
     /**
@@ -126,12 +127,6 @@ class OGL4Backend implements IRendererBackend
     final textureObjects : Map<String, Int>;
 
     /**
-     * 64bit texture handles keyed by their associated image resource IDs.
-     * This will not be used if bindless is false.
-     */
-    final textureHandles : Map<String, haxe.Int64>;
-
-    /**
      * Framebuffer objects keyed by their associated image resource IDs.
      * Framebuffers will only be generated when an image resource is used as a target.
      * Will be destroyed when the associated image resource is destroyed.
@@ -143,9 +138,21 @@ class OGL4Backend implements IRendererBackend
      */
     final rangeSyncPrimitives : Array<GLSyncWrapper>;
 
+    /**
+     * Constant vector which will be used to flip perspective cameras on their y axis.
+     */
     final perspectiveYFlipVector : Vector;
 
+    /**
+     * Colour RGBA normalised float array used to clear the display
+     */
     final clearColour : Array<cpp.Float32>;
+
+    /**
+     * Array of opengl textures objects which will be bound.
+     * Size of this array is equal to the max number of texture bindings allowed .
+     */
+    final textureSlots : Array<Int>;
 
     /**
      * Index pointing to the current writable vertex buffer range.
@@ -242,9 +249,6 @@ class OGL4Backend implements IRendererBackend
         displayEvents  = _displayEvents;
         rendererStats  = _rendererStats;
 
-        // Check for ARB_bindless_texture support
-        bindless = SDL.GL_ExtensionSupported('GL_ARB_bindless_texutre');
-
         var staticVertexBuffer = _rendererConfig.unchangingVertices;
         var streamVertexBuffer = _rendererConfig.dynamicVertices;
         var staticIndexBuffer  = _rendererConfig.unchangingIndices;
@@ -319,10 +323,10 @@ class OGL4Backend implements IRendererBackend
         ssbo     = 0;
         cmds     = 0;
 
+        textureSlots       = [ for (i in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
         shaderPrograms     = [];
         shaderUniforms     = [];
         textureObjects     = [];
-        textureHandles     = [];
         framebufferObjects = [];
 
         resourceEvents.created.add(onResourceCreated);
@@ -453,12 +457,6 @@ class OGL4Backend implements IRendererBackend
 
         for (textureID in textureObjects.keys())
         {
-            if (bindless)
-            {
-                glMakeTextureHandleNonResidentARB(cast textureHandles.get(textureID));
-                textureHandles.remove(textureID);
-            }
-
             glDeleteTextures(1, [ textureObjects.get(textureID) ]);
             textureObjects.remove(textureID);
 
@@ -635,14 +633,6 @@ class OGL4Backend implements IRendererBackend
         glTextureSubImage2D(ids[0], 0, 0, 0, _resource.width, _resource.height, GL_BGRA, GL_UNSIGNED_BYTE, _resource.pixels);
 
         textureObjects.set(_resource.id, ids[0]);
-
-        if (bindless)
-        {
-            var handle = glGetTextureHandleARB(ids[0]);
-            glMakeTextureHandleResidentARB(handle);
-
-            textureHandles.set(_resource.id, handle);
-        }
     }
 
     /**
@@ -651,12 +641,6 @@ class OGL4Backend implements IRendererBackend
      */
     function removeTexture(_resource : ImageResource)
     {
-        if (bindless)
-        {
-            glMakeTextureHandleNonResidentARB(cast textureHandles.get(_resource.id));
-            textureHandles.remove(_resource.id);
-        }
-
         glDeleteTextures(1, [ textureObjects.get(_resource.id) ]);
         textureObjects.remove(_resource.id);
     }
@@ -877,28 +861,32 @@ class OGL4Backend implements IRendererBackend
         // TEMP : Set all textures all the time.
         // TODO : Store all bound texture IDs and check before binding textures.
 
-        if (cache.layout.textures.length > _command.textures.length)
+        if (cache.layout.textures.length == _command.textures.length)
         {
-            throw 'OpenGL 4.5 Backend Exception : ${_command.shader.id} : More textures required by the shader than are provided by the draw command';
+            // See how many texture actually need changing
+            var toChange = 0;
+            for (i in 0..._command.textures.length)
+            {
+                var tex = textureObjects.get(_command.textures[i].id);
+                if (tex != textureSlots[i])
+                {
+                    textureSlots[i] = tex;
+
+                    toChange++;
+                }
+            }
+
+            // If we need to update textures just re-bind them all for ease of gl api use.
+            if (toChange > 0)
+            {
+                glBindTextures(0, _command.textures.length, textureSlots);
+
+                rendererStats.textureSwaps += _command.textures.length;
+            }
         }
         else
         {
-            if (bindless)
-            {
-                var handlesToBind : Array<UInt64> = [ for (texture in _command.textures) cast textureHandles.get(texture.id) ];
-                glUniformHandleui64vARB(0, handlesToBind.length, handlesToBind);
-            }
-            else
-            {
-                // then go through each texture and bind it if it isn't already.
-                var texturesToBind : Array<Int> = [ for (texture in _command.textures) textureObjects.get(texture.id) ];
-                glBindTextures(0, texturesToBind.length, texturesToBind);
-
-                if (_enableStats)
-                {
-                    rendererStats.textureSwaps++;
-                }
-            }
+            throw 'OpenGL 4.5 Backend Exception : ${_command.shader.id} : More textures required by the shader than are provided by the draw command';
         }
         
         for (i in 0...cache.layout.blocks.length)

@@ -9,7 +9,7 @@ import cpp.UInt16;
 import cpp.Float32;
 import cpp.Int32;
 import cpp.Pointer;
-import cpp.Stdlib;
+import cpp.Stdlib.memcpy;
 import opengl.GL.*;
 import opengl.WebGL.getShaderParameter;
 import opengl.WebGL.shaderSource;
@@ -145,7 +145,16 @@ class OGL3Backend implements IRendererBackend
      */
     final dummyModelMatrix : Matrix;
 
+    /**
+     * Constant vector which will be used to flip perspective cameras on their y axis.
+     */
     final perspectiveYFlipVector : Vector;
+
+    /**
+     * Array of opengl textures objects which will be bound.
+     * Size of this array is equal to the max number of texture bindings allowed .
+     */
+    final textureSlots : Array<Int>;
 
     /**
      * Backbuffer display, default target if none is specified.
@@ -188,7 +197,6 @@ class OGL3Backend implements IRendererBackend
     var shader   : ShaderResource;
     var clip     : Rectangle;
     var viewport : Rectangle;
-    final boundTextures : Array<Int>;
 
     // SDL Window and GL Context
 
@@ -252,11 +260,11 @@ class OGL3Backend implements IRendererBackend
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 2, 2, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
 
         // default state
-        viewport = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
-        clip     = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
-        shader   = null;
-        target   = null;
-        boundTextures = [];
+        viewport     = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
+        clip         = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
+        shader       = null;
+        target       = null;
+        textureSlots = [ for (i in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
 
         // Create our own custom backbuffer.
         // we blit a flipped version to the actual backbuffer before swapping.
@@ -391,11 +399,11 @@ class OGL3Backend implements IRendererBackend
             commandVtxOffsets.set(command.id, vertexOffset);
             bufferModelMatrix.set(command.id, command.model);
 
-            Stdlib.memcpy(
+            memcpy(
                 idxDst,
                 Pointer.arrayElem(command.idxData.view.buffer.getData(), command.idxStartIndex * 2),
                 command.indices * 2);
-            Stdlib.memcpy(
+            memcpy(
                 vtxDst,
                 Pointer.arrayElem(command.vtxData.view.buffer.getData(), command.vtxStartIndex * 9 * 4),
                 command.vertices * 9 * 4);
@@ -902,39 +910,26 @@ class OGL3Backend implements IRendererBackend
         var cache = shaderUniforms.get(_command.shader.id);
         var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
 
-        // TEMP : Set all textures all the time.
-        // TODO : Store all bound texture IDs and check before binding textures.
-        if (cache.layout.textures.length > _command.textures.length)
+        if (cache.layout.textures.length == _command.textures.length)
         {
-            throw new GL32NotEnoughTexturesException(_command.shader.id, _command.id, cache.layout.textures.length, _command.textures.length);
+            // then go through each texture and bind it if it isn't already.
+            for (i in 0..._command.textures.length)
+            {
+                var glTextureID  = textureObjects.get(_command.textures[i].id);
+                if (glTextureID != textureSlots[i])
+                {
+                    glActiveTexture(GL_TEXTURE0 + cache.textureLocations[i]);
+                    glBindTexture(GL_TEXTURE_2D, glTextureID);
+
+                    textureSlots[i] = glTextureID;
+
+                    rendererStats.textureSwaps++;
+                }
+            }
         }
         else
         {
-            // First resize the bound texture arrays to the draw commands texture ammount
-            if (boundTextures.length != _command.textures.length)
-            {
-                boundTextures.resize(_command.textures.length);
-            }
-
-            // then go through each texture and bind it if it isn't already.
-            for (i in 0...boundTextures.length)
-            {
-                var glTextureID  = textureObjects.get(_command.textures[i].id);
-                if (glTextureID != boundTextures[i])
-                {
-                    glActiveTexture(GL_TEXTURE0 + i);
-                    glBindTexture(GL_TEXTURE_2D, textureObjects.get(_command.textures[i].id));
-
-                    glUniform1i(cache.textureLocations[i], i);
-
-                    boundTextures[i] = glTextureID;
-
-                    if (!_disableStats)
-                    {
-                        rendererStats.textureSwaps++;
-                    }
-                }
-            }
+            throw new GL32NotEnoughTexturesException(_command.shader.id, _command.id, cache.layout.textures.length, _command.textures.length);
         }
 
         for (i in 0...cache.layout.blocks.length)
@@ -951,9 +946,9 @@ class OGL3Backend implements IRendererBackend
                 var view       = _command.camera.view;
                 var projection = _command.camera.projection;
 
-                cpp.Stdlib.memcpy(ptr          , (projection : Float32Array).view.buffer.getData().address(0), 64);
-                cpp.Stdlib.memcpy(ptr.incBy(64), (view       : Float32Array).view.buffer.getData().address(0), 64);
-                cpp.Stdlib.memcpy(ptr.incBy(64), (model      : Float32Array).view.buffer.getData().address(0), 64);
+                memcpy(ptr          , (projection : Float32Array).view.buffer.getData().address(0), 64);
+                memcpy(ptr.incBy(64), (view       : Float32Array).view.buffer.getData().address(0), 64);
+                memcpy(ptr.incBy(64), (model      : Float32Array).view.buffer.getData().address(0), 64);
             }
             else
             {
@@ -966,11 +961,11 @@ class OGL3Backend implements IRendererBackend
                     {
                         case Matrix4:
                             var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            cpp.Stdlib.memcpy(ptr.incBy(pos), (mat : Float32Array).view.buffer.getData().address(0), 64);
+                            memcpy(ptr.incBy(pos), (mat : Float32Array).view.buffer.getData().address(0), 64);
                             pos += 64;
                         case Vector4:
                             var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            cpp.Stdlib.memcpy(ptr.incBy(pos), (vec : Float32Array).view.buffer.getData().address(0), 16);
+                            memcpy(ptr.incBy(pos), (vec : Float32Array).view.buffer.getData().address(0), 16);
                             pos += 16;
                         case Int:
                             var dst : Pointer<Int32> = ptr.reinterpret();
@@ -1051,7 +1046,6 @@ class OGL3Backend implements IRendererBackend
         }
 
         // Cleanup / reset state after setting up new framebuffer.
-        boundTextures.resize(0);
         if (target == null)
         {
             glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
@@ -1060,6 +1054,8 @@ class OGL3Backend implements IRendererBackend
         {
             glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects.get(target.id));
         }
+
+        for (i in 0...textureSlots.length) textureSlots[i] = 0;
 
         return new BackBuffer(_width, _height, 1, tex[0], rbo[0], fbo[0]);
     }

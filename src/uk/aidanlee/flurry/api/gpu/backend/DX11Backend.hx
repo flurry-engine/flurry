@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import d3d11.interfaces.D3d11Resourse.D3d11Resource;
 import haxe.io.Bytes;
 import haxe.io.Float32Array;
 import cpp.Float32;
@@ -7,7 +8,7 @@ import cpp.Int32;
 import cpp.UInt8;
 import cpp.UInt16;
 import cpp.Pointer;
-import cpp.Stdlib;
+import cpp.Stdlib.memcpy;
 import sdl.Window;
 import sdl.SDL;
 import dxgi.Dxgi;
@@ -220,26 +221,29 @@ class DX11Backend implements IRendererBackend
     final dummyModelMatrix : Matrix;
 
     /**
+     * All the resource views which will be bound for the shader.
+     */
+    final shaderTextureResources : Array<Null<D3d11ShaderResourceView>>;
+
+    /**
+     * All the samplers which will be bound for the shader.
+     */
+    final shaderTextureSamplers : Array<Null<D3d11SamplerState>>;
+
+    /**
      * Map of shader name to the D3D11 resources required to use the shader.
      */
-    var shaderResources : Map<String, DXShaderInformation>;
+    final shaderResources : Map<String, DXShaderInformation>;
 
     /**
      * Map of texture name to the D3D11 resources required to use the texture.
      */
-    var textureResources : Map<String, DXTextureInformation>;
+    final textureResources : Map<String, DXTextureInformation>;
 
     /**
      * Map of target IDs to the D3D11 resources required to use the target.
      */
-    var targetResources : Map<String, D3d11RenderTargetView>;
-
-    /**
-     * Sequence number render texture IDs.
-     * For each generated render texture this number is incremented and given to the render texture as a unique ID.
-     * Allows batchers to sort render textures.
-     */
-    var targetSequence : Int;
+    final targetResources : Map<String, D3d11RenderTargetView>;
 
     /**
      * The number of vertices that have been written into the vertex buffer this frame.
@@ -310,6 +314,8 @@ class DX11Backend implements IRendererBackend
         shaderResources  = [];
         textureResources = [];
         targetResources  = [];
+        shaderTextureResources = [ for (i in 0...16) null ];
+        shaderTextureSamplers  = [ for (i in 0...16) null ];
 
         // Persistent D3D11 objects
         swapchain           = new DxgiSwapChain();
@@ -357,9 +363,6 @@ class DX11Backend implements IRendererBackend
         description.windowed          = true;
 
         var deviceCreationFlags = D3d11CreateDeviceFlags.SingleThreaded;
-#if debug
-        deviceCreationFlags |= D3d11CreateDeviceFlags.Debug;
-#end
 
         // Create our actual device and swapchain
         if (D3d11.createDevice(adapter, Unknown, null, deviceCreationFlags, null, D3d11.SdkVersion, device, null, context) != Ok)
@@ -485,8 +488,6 @@ class DX11Backend implements IRendererBackend
         {
             throw 'DirectX 11 Backend Exception : Failed to create depth stencil view';
         }
-
-        targetSequence++;
 
         // Set the initial context state.
         var stride = (9 * 4);
@@ -655,11 +656,11 @@ class DX11Backend implements IRendererBackend
             commandVtxOffsets.set(command.id, vertexOffset);
             bufferModelMatrix.set(command.id, command.model);
 
-            Stdlib.memcpy(
+            memcpy(
                 idxDst,
                 Pointer.arrayElem(command.idxData.view.buffer.getData(), command.idxStartIndex * 2),
                 command.indices * 2);
-            Stdlib.memcpy(
+            memcpy(
                 vtxDst,
                 Pointer.arrayElem(command.vtxData.view.buffer.getData(), command.vtxStartIndex * 9 * 4),
                 command.vertices * 9 * 4);
@@ -1167,20 +1168,26 @@ class DX11Backend implements IRendererBackend
         var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
 
         // Set all textures.
-        if (shaderResource.layout.textures.length > _command.textures.length)
+        if (shaderResource.layout.textures.length == _command.textures.length)
         {
-            throw 'DirectX 11 Backend Exception : More textures required by the shader than are provided by the draw command';
+            shaderTextureResources.resize(_command.textures.length);
+            shaderTextureSamplers.resize(_command.textures.length);
+            
+            for (i in 0..._command.textures.length)
+            {
+                var textureResource = textureResources.get(_command.textures[i].id);
+                shaderTextureResources[i] = textureResource.shaderResourceView;
+                shaderTextureSamplers[i] = textureResource.samplerState;
+            }
+
+            context.psSetShaderResources(0, shaderTextureResources);
+            context.psSetSamplers(0, shaderTextureSamplers);
+
+            rendererStats.textureSwaps += _command.textures.length;
         }
         else
         {
-            for (i in 0...shaderResource.layout.textures.length)
-            {
-                var textureResource = textureResources.get(_command.textures[i].id);
-                context.psSetShaderResources(i, [ textureResource.shaderResourceView ]);
-                context.psSetSamplers(i, [ textureResource.samplerState ]);
-
-                rendererStats.textureSwaps++;
-            }
+            throw 'DirectX 11 Backend Exception : More textures required by the shader than are provided by the draw command';
         }
 
         // Update the user defined shader blocks.
@@ -1203,9 +1210,9 @@ class DX11Backend implements IRendererBackend
                 var view       = _command.camera.view;
                 var projection = _command.camera.projection;
 
-                cpp.Stdlib.memcpy(ptr          , (projection : Float32Array).view.buffer.getData().address(0), 64);
-                cpp.Stdlib.memcpy(ptr.incBy(64), (view       : Float32Array).view.buffer.getData().address(0), 64);
-                cpp.Stdlib.memcpy(ptr.incBy(64), (model      : Float32Array).view.buffer.getData().address(0), 64);
+                memcpy(ptr          , (projection : Float32Array).view.buffer.getData().address(0), 64);
+                memcpy(ptr.incBy(64), (view       : Float32Array).view.buffer.getData().address(0), 64);
+                memcpy(ptr.incBy(64), (model      : Float32Array).view.buffer.getData().address(0), 64);
             }
             else
             {
@@ -1219,10 +1226,10 @@ class DX11Backend implements IRendererBackend
                     {
                         case Matrix4:
                             var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            cpp.Stdlib.memcpy(ptr.incBy(pos), (mat : Float32Array).view.buffer.getData().address(0), 64);
+                            memcpy(ptr.incBy(pos), (mat : Float32Array).view.buffer.getData().address(0), 64);
                         case Vector4:
                             var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            cpp.Stdlib.memcpy(ptr.incBy(pos), (vec : Float32Array).view.buffer.getData().address(0), 16);
+                            memcpy(ptr.incBy(pos), (vec : Float32Array).view.buffer.getData().address(0), 16);
                         case Int:
                             var dst : Pointer<Int32> = ptr.reinterpret();
                             dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
