@@ -14,6 +14,7 @@ import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.utils.opengl.GLSyncWrapper;
 
 using Safety;
+using uk.aidanlee.flurry.utils.opengl.GLConverters;
 using cpp.NativeArray;
 
 /**
