@@ -129,7 +129,7 @@ class FlurryRendererConfig
      */
     public function new()
     {
-        backend            = Ogl3;
+        backend            = Auto;
         dynamicVertices    = 1000000;
         unchangingVertices = 1000000;
         dynamicIndices     = 1000000;
