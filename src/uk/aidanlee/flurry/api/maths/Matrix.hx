@@ -975,7 +975,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      */
     public function makeHomogeneousPerspective(_fov : Float, _aspect : Float, _near : Float, _far : Float) : Matrix
     {
-        var ymax = _near * Maths.tan( Maths.toRadians(_fov * 0.5) );
+        var ymax = _near * Maths.tan(_fov * 0.5);
         var ymin = -ymax;
         var xmin = ymin * _aspect;
         var xmax = ymax * _aspect;
@@ -994,7 +994,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      */
     public function makeHeterogeneousPerspective(_fov : Float, _aspect : Float, _near : Float, _far : Float) : Matrix
     {
-        var ymax = _near * Maths.tan( Maths.toRadians(_fov * 0.5) );
+        var ymax = _near * Maths.tan(_fov * 0.5);
         var ymin = -ymax;
         var xmin = ymin * _aspect;
         var xmax = ymax * _aspect;

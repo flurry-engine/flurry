@@ -1030,7 +1030,7 @@ class OGL4Backend implements IRendererBackend
                 var proj = (cast _camera : Camera3D);
                 if (proj.dirty)
                 {
-                    proj.projection.makeHeterogeneousPerspective(Maths.toDegrees(proj.fov), proj.aspect, proj.near, proj.far);
+                    proj.projection.makeHeterogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
                     proj.projection.scale(perspectiveYFlipVector);
                     proj.view.copy(proj.transformation.transformation).invert();
                     proj.dirty = false;
