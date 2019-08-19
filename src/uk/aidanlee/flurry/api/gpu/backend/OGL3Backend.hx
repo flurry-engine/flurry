@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import cpp.Function;
+import cpp.Callable;
 import haxe.io.Bytes;
 import haxe.Exception;
 import haxe.io.UInt8Array;
@@ -516,11 +518,10 @@ class OGL3Backend implements IRendererBackend
 
         SDL.GL_MakeCurrent(window, glContext);
 
-        // TODO : Error handling if GLEW doesn't return OK.
-        glew.GLEW.init();
-        
-        // flushing `GL_INVALID_ENUM` error which GLEW generates if `glewExperimental` is true.
-        glGetError();
+        if (glad.Glad.gladLoadGLLoader(untyped __cpp__('&SDL_GL_GetProcAddress')) == 0)
+        {
+            throw 'failed to load gl library';
+        }
     }
 
     function onChangeRequest(_event : DisplayEventChangeRequest)
@@ -586,7 +587,7 @@ class OGL3Backend implements IRendererBackend
 
         // Create vertex shader.
         var vertex = glCreateShader(GL_VERTEX_SHADER);
-        shaderSource(vertex, _resource.ogl3.vertex);
+        shaderSource(vertex, _resource.ogl3.vertex.toString());
         glCompileShader(vertex);
 
         if (getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
@@ -596,7 +597,7 @@ class OGL3Backend implements IRendererBackend
 
         // Create fragment shader.
         var fragment = glCreateShader(GL_FRAGMENT_SHADER);
-        shaderSource(fragment, _resource.ogl3.fragment);
+        shaderSource(fragment, _resource.ogl3.fragment.toString());
         glCompileShader(fragment);
 
         if (getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)

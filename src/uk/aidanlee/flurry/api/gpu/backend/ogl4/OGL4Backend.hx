@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend.ogl4;
 
+import cpp.Function;
+import cpp.Callable;
 import haxe.io.Bytes;
 import haxe.io.Float32Array;
 import haxe.ds.Map;
@@ -484,11 +486,10 @@ class OGL4Backend implements IRendererBackend
 
         SDL.GL_MakeCurrent(window, glContext);
 
-        // TODO : Error handling if GLEW doesn't return OK.
-        glew.GLEW.init();
-
-        // flushing `GL_INVALID_ENUM` error which GLEW generates if `glewExperimental` is true.
-        glGetError();
+        if (glad.Glad.gladLoadGLLoader(untyped __cpp__('&SDL_GL_GetProcAddress')) == 0)
+        {
+            throw 'failed to load gl library';
+        }
     }
 
     function onChangeRequest(_event : DisplayEventChangeRequest)
@@ -549,24 +550,17 @@ class OGL4Backend implements IRendererBackend
             throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Attempting to create a shader which already exists';
         }
 
-        // Create vertex shader.
-        var vertex = glCreateShader(GL_VERTEX_SHADER);
-        WebGL.shaderSource(vertex, _resource.ogl4.vertex);
-        glCompileShader(vertex);
-
-        if (WebGL.getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
+        var vertex   = 0;
+        var fragment = 0;
+        if (_resource.ogl4.compiled)
         {
-            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Error compiling vertex shader : ${WebGL.getShaderInfoLog(vertex)}';
+            vertex   = vertexFromSPIRV(_resource.ogl4.vertex);
+            fragment = fragmentFromSPIRV(_resource.ogl4.fragment);
         }
-
-        // Create fragment shader.
-        var fragment = glCreateShader(GL_FRAGMENT_SHADER);
-        WebGL.shaderSource(fragment, _resource.ogl4.fragment);
-        glCompileShader(fragment);
-
-        if (WebGL.getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
+        else
         {
-            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Error compiling fragment shader : ${WebGL.getShaderInfoLog(fragment)}';
+            vertex   = vertexFromSource(_resource.ogl4.vertex.toString());
+            fragment = fragmentFromSource(_resource.ogl4.fragment.toString());
         }
 
         // Link the shaders into a program.
@@ -601,6 +595,52 @@ class OGL4Backend implements IRendererBackend
 
         shaderPrograms.set(_resource.id, program);
         shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings, blockBuffers, blockBytes));
+    }
+
+    function vertexFromSPIRV(_spirv : Bytes) : Int
+    {
+        var vertex = glCreateShader(GL_VERTEX_SHADER);
+        glShaderBinary(1, [ vertex ], GL_SHADER_BINARY_FORMAT_SPIR_V, _spirv.getData(), _spirv.length);
+        glSpecializeShader(vertex, 'main', 0, [ 0 ], [ 0 ]);
+
+        return vertex;
+    }
+
+    function fragmentFromSPIRV(_spirv : Bytes) : Int
+    {
+        var fragment = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderBinary(1, [ fragment ], GL_SHADER_BINARY_FORMAT_SPIR_V, _spirv.getData(), _spirv.length);
+        glSpecializeShader(fragment, 'main', 0, [ 0 ], [ 0 ]);
+
+        return fragment;
+    }
+
+    function vertexFromSource(_source : String) : Int
+    {
+        var vertex = glCreateShader(GL_VERTEX_SHADER);
+        WebGL.shaderSource(vertex, _source);
+        glCompileShader(vertex);
+
+        if (WebGL.getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
+        {
+            throw 'OpenGL 4.5 Backend Exception : Error compiling vertex shader : ${WebGL.getShaderInfoLog(vertex)}';
+        }
+
+        return vertex;
+    }
+
+    function fragmentFromSource(_source : String) : Int
+    {
+        var fragment = glCreateShader(GL_FRAGMENT_SHADER);
+        WebGL.shaderSource(fragment, _source);
+        glCompileShader(fragment);
+
+        if (WebGL.getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
+        {
+            throw 'OpenGL 4.5 Backend Exception : Error compiling fragment shader : ${WebGL.getShaderInfoLog(fragment)}';
+        }
+
+        return fragment;
     }
 
     /**

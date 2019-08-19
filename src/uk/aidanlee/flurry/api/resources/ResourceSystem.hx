@@ -273,9 +273,9 @@ class ResourceSystem
                     }
 
                     var layout = Json.parse(fileSystem.file.getText(getResourceInfoPath(asset)));
-                    var sourceOGL3 = asset.ogl3 == null ? null : { vertex : fileSystem.file.getText(asset.ogl3.vertex), fragment : fileSystem.file.getText(asset.ogl3.fragment) };
-                    var sourceOGL4 = asset.ogl4 == null ? null : { vertex : fileSystem.file.getText(asset.ogl4.vertex), fragment : fileSystem.file.getText(asset.ogl4.fragment) };
-                    var sourceHLSL = asset.hlsl == null ? null : { vertex : fileSystem.file.getText(asset.hlsl.vertex), fragment : fileSystem.file.getText(asset.hlsl.fragment) };
+                    var sourceOGL3 = asset.ogl3 == null ? null : { vertex : fileSystem.file.getBytes(asset.ogl3.vertex), fragment : fileSystem.file.getBytes(asset.ogl3.fragment), compiled : asset.ogl3.compiled.or(false) };
+                    var sourceOGL4 = asset.ogl4 == null ? null : { vertex : fileSystem.file.getBytes(asset.ogl4.vertex), fragment : fileSystem.file.getBytes(asset.ogl4.fragment), compiled : asset.ogl4.compiled.or(false) };
+                    var sourceHLSL = asset.hlsl == null ? null : { vertex : fileSystem.file.getBytes(asset.hlsl.vertex), fragment : fileSystem.file.getBytes(asset.hlsl.fragment), compiled : asset.hlsl.compiled.or(false) };
 
                     resources.push(new ShaderResource(asset.id, layout, sourceOGL3, sourceOGL4, sourceHLSL));
 

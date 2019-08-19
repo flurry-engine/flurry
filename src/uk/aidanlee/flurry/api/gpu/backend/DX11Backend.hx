@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import d3d11.interfaces.D3d11Resourse.D3d11Resource;
 import haxe.io.Bytes;
 import haxe.io.Float32Array;
 import cpp.Float32;
@@ -828,20 +827,36 @@ class DX11Backend implements IRendererBackend
             throw 'DirectX 11 Backend Exception : ${_resource.id} : Attempting to create a shader which already exists';
         }
 
-        // Compile the HLSL vertex shader
         var vertexBytecode = new D3dBlob();
-        var vertexErrors   = new D3dBlob();
-        if (D3dCompiler.compile(Bytes.ofString(_resource.hlsl.vertex).getData(), null, null, null, "VShader", "vs_4_0", 0, 0, vertexBytecode, vertexErrors) != 0)
-        {
-            throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to compile vertex shader';
-        }
+        var pixelBytecode  = new D3dBlob();
 
-        // Compile the HLSL pixel shader
-        var pixelBytecode = new D3dBlob();
-        var pixelErrors   = new D3dBlob();
-        if (D3dCompiler.compile(Bytes.ofString(_resource.hlsl.fragment).getData(), null, null, null, "PShader", "ps_4_0", 0, 0, pixelBytecode, pixelErrors) != 0)
+        if (_resource.hlsl.compiled)
         {
-            throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to compile pixel shader';
+            if (D3dCompiler.createBlob(_resource.hlsl.vertex.length, vertexBytecode) != 0)
+            {
+                throw 'DirectX 11 Backend Exception : failed to create blob for vertex shader data';
+            }
+            if (D3dCompiler.createBlob(_resource.hlsl.fragment.length, pixelBytecode) != 0)
+            {
+                throw 'DirectX 11 Backend Exception : failed to create blob for fragment shader data';
+            }
+
+            memcpy(vertexBytecode.getBufferPointer(), _resource.hlsl.vertex.getData().address(0), _resource.hlsl.vertex.length);
+            memcpy(pixelBytecode.getBufferPointer(), _resource.hlsl.fragment.getData().address(0), _resource.hlsl.fragment.length);
+        }
+        else
+        {
+            var vertexErrors = new D3dBlob();
+            if (D3dCompiler.compile(_resource.hlsl.vertex.getData(), null, null, null, 'VShader', 'vs_5_0', 0, 0, vertexBytecode, vertexErrors) != 0)
+            {
+                throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to compile vertex shader';
+            }
+
+            var pixelErrors = new D3dBlob();
+            if (D3dCompiler.compile(_resource.hlsl.fragment.getData(), null, null, null, 'PShader', 'ps_5_0', 0, 0, pixelBytecode, pixelErrors) != 0)
+            {
+                throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to compile pixel shader';
+            }
         }
 
         // Create the vertex shader

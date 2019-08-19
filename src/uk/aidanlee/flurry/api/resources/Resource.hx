@@ -13,7 +13,7 @@ enum ShaderType
     Float;
 }
 
-typedef ShaderBackend = { vertex : String, fragment : String };
+typedef ShaderBackend = { vertex : Bytes, fragment : Bytes, compiled : Bool };
 
 typedef ShaderLayout = { textures : Array<String>, blocks : Array<ShaderBlock> };
 
