@@ -1,7 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import cpp.Function;
-import cpp.Callable;
 import haxe.io.Bytes;
 import haxe.Exception;
 import haxe.io.UInt8Array;
@@ -161,7 +159,7 @@ class OGL3Backend implements IRendererBackend
     /**
      * Backbuffer display, default target if none is specified.
      */
-    var backbuffer : Null<BackBuffer>;
+    var backbuffer : BackBuffer;
 
     /**
      * The number of vertices that have been written into the vertex buffer this frame.
@@ -222,7 +220,7 @@ class OGL3Backend implements IRendererBackend
         perspectiveYFlipVector = new Vector(1, -1, 1);
         dummyModelMatrix       = new Matrix();
         jobQueue               = new JobQueue(RENDERER_THREADS);
-        transformationVectors  = [ for (i in 0...RENDERER_THREADS) new Vector() ];
+        transformationVectors  = [ for (_ in 0...RENDERER_THREADS) new Vector() ];
         commandVtxOffsets      = [];
         commandIdxOffsets      = [];
 
@@ -266,11 +264,11 @@ class OGL3Backend implements IRendererBackend
         clip         = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
         shader       = null;
         target       = null;
-        textureSlots = [ for (i in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
+        textureSlots = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
 
         // Create our own custom backbuffer.
         // we blit a flipped version to the actual backbuffer before swapping.
-        backbuffer = createBackbuffer(_windowConfig.width, _windowConfig.height);
+        backbuffer = createBackbuffer(_windowConfig.width, _windowConfig.height, false);
 
         // Default blend mode
         // TODO : Move this to be a settable property in the geometry or renderer or something
@@ -1010,10 +1008,10 @@ class OGL3Backend implements IRendererBackend
         }
     }
 
-    function createBackbuffer(_width : Int, _height : Int) : BackBuffer
+    function createBackbuffer(_width : Int, _height : Int, _remove : Bool = true) : BackBuffer
     {
         // Cleanup previous backbuffer
-        if (backbuffer != null)
+        if (_remove)
         {
             glDeleteTextures(1, [ backbuffer.texture ]);
             glDeleteRenderbuffers(1, [ backbuffer.depthStencil ]);

@@ -1,14 +1,11 @@
 package uk.aidanlee.flurry.api.gpu.backend.ogl4;
 
-import cpp.Function;
-import cpp.Callable;
 import haxe.io.Bytes;
 import haxe.io.Float32Array;
 import haxe.ds.Map;
 import cpp.Stdlib;
 import cpp.Float32;
 import cpp.Int32;
-import cpp.UInt64;
 import cpp.UInt8;
 import cpp.Pointer;
 import sdl.GLContext;
@@ -18,7 +15,6 @@ import opengl.GL.*;
 import opengl.WebGL;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
-import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Rectangle;
@@ -192,7 +188,7 @@ class OGL4Backend implements IRendererBackend
     /**
      * Backbuffer display, default target if none is specified.
      */
-    var backbuffer : Null<BackBuffer>;
+    var backbuffer : BackBuffer;
 
     /**
      * The index of the current buffer range which is being written into this frame.
@@ -301,7 +297,7 @@ class OGL4Backend implements IRendererBackend
         rangeSyncPrimitives    = [ for (i in 0...3) new GLSyncWrapper() ];
         currentRange           = 0;
 
-        backbuffer = createBackbuffer(_windowConfig.width, _windowConfig.height);
+        backbuffer = createBackbuffer(_windowConfig.width, _windowConfig.height, false);
 
         // Default blend mode
         // TODO : Move this to be a settable property in the geometry or renderer or something
@@ -1040,9 +1036,9 @@ class OGL4Backend implements IRendererBackend
         }
     }
 
-    function createBackbuffer(_width : Int, _height : Int) : BackBuffer
+    function createBackbuffer(_width : Int, _height : Int, _remove : Bool = true) : BackBuffer
     {
-        if (backbuffer != null)
+        if (_remove)
         {
             glDeleteTextures(1, [ backbuffer.texture ]);
             glDeleteRenderbuffers(1, [ backbuffer.depthStencil ]);
