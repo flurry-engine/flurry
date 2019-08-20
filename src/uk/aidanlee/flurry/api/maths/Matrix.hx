@@ -922,18 +922,18 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      */
     public inline function makeHomogeneousFrustum(_left : Float, _right : Float, _bottom : Float, _top : Float, _near : Float, _far : Float) : Matrix
     {
-        var tx = 2 * _near / (_right - _left);
-        var ty = 2 * _near / (_top - _bottom);
+        var a = (2 * _near) / (_right - _left);
+        var b = (2 * _near) / (_top - _bottom);
+        var c = (_right + _left) / (_right - _left);
+        var d = (_top + _bottom) / (_top - _bottom);
+        var e = - (_far + _near) / (_far - _near);
+        var f = -1;
+        var g = - (2 * _far * _near) / (_far - _near);
 
-        var a =  (_right + _left) / (_right - _left);
-        var b =  (_top + _bottom) / (_top - _bottom);
-        var c = -(_far + _near)   / (_far - _near);
-        var d = -2 * _far * _near / (_far - _near);
-
-        this[0] = tx;  this[4] = 0;   this[8]  = a;   this[12] = 0;
-        this[1] = 0;   this[5] = ty;  this[9]  = b;   this[13] = 0;
-        this[2] = 0;   this[6] = 0;   this[10] = c;   this[14] = d;
-        this[3] = 0;   this[7] = 0;   this[11] = -1;  this[15] = 0;
+        this[0] = a;   this[4] = 0;   this[ 8] = c;   this[12] = 0;
+        this[1] = 0;   this[5] = b;   this[ 9] = d;   this[13] = 0;
+        this[2] = 0;   this[6] = 0;   this[10] = e;   this[14] = g;
+        this[3] = 0;   this[7] = 0;   this[11] = f;   this[15] = 0;
 
         return this;
     }
@@ -950,37 +950,42 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      */
     public inline function makeHeterogeneousFrustum(_left : Float, _right : Float, _bottom : Float, _top : Float, _near : Float, _far : Float) : Matrix
     {
-        var tx = 2 * _near / (_right - _left);
-        var ty = 2 * _near / (_top - _bottom);
-
-        var a =  (_right + _left) / (_right - _left);
-        var b =  (_top + _bottom) / (_top - _bottom);
-        var c = _far / (_near - _far);
-        var d = -(_far + _near) / (_far - _near);
-
-        this[0] = tx;  this[4] = 0;   this[8]  = a;   this[12] = 0;
-        this[1] = 0;   this[5] = ty;  this[9]  = b;   this[13] = 0;
-        this[2] = 0;   this[6] = 0;   this[10] = c;   this[14] = d;
-        this[3] = 0;   this[7] = 0;   this[11] = -1;  this[15] = 0;
+        var a = (2 * _near) / (_right - _left);
+        var b = (2 * _near) / (_top - _bottom);
+        var c = (_right + _left) / (_right - _left);
+        var d = (_top + _bottom) / (_top - _bottom);
+        var e = -_far / (_far - _near);
+        var f = -1;
+        var g = - (_far * _near) / (_far - _near);
+        
+        this[0] = a;   this[4] = 0;   this[ 8] = c;   this[12] = 0;
+        this[1] = 0;   this[5] = b;   this[ 9] = d;   this[13] = 0;
+        this[2] = 0;   this[6] = 0;   this[10] = e;   this[14] = g;
+        this[3] = 0;   this[7] = 0;   this[11] = f;   this[15] = 0;
 
         return this;
     }
 
     /**
      * Create a perspective matrix.
-     * @param _fov    - Vertical FOV of this perspective.
-     * @param _aspect - Aspect ratio.
-     * @param _near   - near clipping.
-     * @param _far    - far clipping.
+     * @param _fov    Vertical FOV in degrees.
+     * @param _aspect Aspect ratio.
+     * @param _near   Near clipping distance.
+     * @param _far    Far clipping distance.
      */
     public function makeHomogeneousPerspective(_fov : Float, _aspect : Float, _near : Float, _far : Float) : Matrix
     {
-        var ymax = _near * Maths.tan(_fov * 0.5);
-        var ymin = -ymax;
-        var xmin = ymin * _aspect;
-        var xmax = ymax * _aspect;
+        var tanHalfFov = Maths.tan(_fov / 2);
+        var a = 1 / (_aspect * tanHalfFov);
+        var b = 1 / tanHalfFov;
+        var c = - (_far + _near) / (_far - _near);
+        var d = - 1;
+        var e = - (2 * _far * _near) / (_far - _near);
 
-        makeHomogeneousFrustum(xmin, xmax, ymin, ymax, _near, _far);
+        this[0] = a;   this[4] = 0;   this[ 8] = 0;   this[12] = 0;
+        this[1] = 0;   this[5] = b;   this[ 9] = 0;   this[13] = 0;
+        this[2] = 0;   this[6] = 0;   this[10] = c;   this[14] = e;
+        this[3] = 0;   this[7] = 0;   this[11] = d;   this[15] = 0;
 
         return this;
     }
@@ -994,12 +999,17 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      */
     public function makeHeterogeneousPerspective(_fov : Float, _aspect : Float, _near : Float, _far : Float) : Matrix
     {
-        var ymax = _near * Maths.tan(_fov * 0.5);
-        var ymin = -ymax;
-        var xmin = ymin * _aspect;
-        var xmax = ymax * _aspect;
+        var tanHalfFov = Maths.tan(_fov / 2);
+        var a = 1 / (_aspect * tanHalfFov);
+        var b = 1 / tanHalfFov;
+        var c = _far / (_near - _far);
+        var d = - 1;
+        var e = - (_far * _near) / (_far - _near);
 
-        makeHeterogeneousFrustum(xmin, xmax, ymin, ymax, _near, _far);
+        this[0] = a;   this[4] = 0;   this[ 8] = 0;   this[12] = 0;
+        this[1] = 0;   this[5] = b;   this[ 9] = 0;   this[13] = 0;
+        this[2] = 0;   this[6] = 0;   this[10] = c;   this[14] = e;
+        this[3] = 0;   this[7] = 0;   this[11] = d;   this[15] = 0;
 
         return this;
     }
@@ -1016,17 +1026,13 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      */
     public inline function makeHomogeneousOrthographic(_left : Float, _right : Float, _top : Float, _bottom : Float, _near : Float, _far : Float) : Matrix
     {
-        var w = _right - _left;
-        var h = _top - _bottom;
-        var p = _far - _near;
+        var a =  2 / (_right - _left);
+        var b =  2 / (_top - _bottom);
+        var c = -2 / (_far - _near);
 
-        var tx = ( _right + _left )   / w;
-        var ty = ( _top   + _bottom ) / h;
-        var tz = ( _far   + _near )   / p;
-
-        this[0] = 2 / w;  this[4] = 0;      this[ 8] = 0;       this[12] = -tx;
-        this[1] = 0;      this[5] = 2 / h;  this[ 9] = 0;       this[13] = -ty;
-        this[2] = 0;      this[6] = 0;      this[10] = -2 / p;  this[14] = -tz;
+        this[0] = a;      this[4] = 0;      this[ 8] = 0;       this[12] = - (_right + _left) / (_right - _left);
+        this[1] = 0;      this[5] = b;      this[ 9] = 0;       this[13] = - (_top + _bottom) / (_top - _bottom);
+        this[2] = 0;      this[6] = 0;      this[10] = c;       this[14] = - (_far + _near) / (_far - _near);
         this[3] = 0;      this[7] = 0;      this[11] = 0;       this[15] = 1;
 
         return this;
@@ -1044,17 +1050,13 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      */
     public inline function makeHeterogeneousOrthographic(_left : Float, _right : Float, _top : Float, _bottom : Float, _near : Float, _far : Float) : Matrix
     {
-        var w = _right - _left;
-        var h = _top - _bottom;
-        var p = _far - _near;
+        var a =  2 / (_right - _left);
+        var b =  2 / (_top - _bottom);
+        var c = -1 / (_far - _near);
 
-        var tx = ( _right + _left )   / w;
-        var ty = ( _top   + _bottom ) / h;
-        var tz = ( _far   + _near )   / p;
-
-        this[0] = 2 / w;  this[4] = 0;      this[ 8] = 0;       this[12] = -tx;
-        this[1] = 0;      this[5] = 2 / h;  this[ 9] = 0;       this[13] = -ty;
-        this[2] = 0;      this[6] = 0;      this[10] = -1 / p;  this[14] = -tz;
+        this[0] = a;      this[4] = 0;      this[ 8] = 0;       this[12] = - (_right + _left) / (_right - _left);
+        this[1] = 0;      this[5] = b;      this[ 9] = 0;       this[13] = - (_top + _bottom) / (_top - _bottom);
+        this[2] = 0;      this[6] = 0;      this[10] = c;       this[14] = - _near / (_far - _near);
         this[3] = 0;      this[7] = 0;      this[11] = 0;       this[15] = 1;
 
         return this;

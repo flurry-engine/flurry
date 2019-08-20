@@ -718,18 +718,18 @@ class MatrixTests extends BuddySuite
                 it('Can create a homogeneous perspective matrix', {
                     var m = new Matrix().makeHomogeneousPerspective(70, 1280 / 720, 0, 100);
 
-                    Math.isNaN(m[0]).should.be(true);
+                    m[ 0].should.beCloseTo(1.19);
                     m[ 1].should.beCloseTo(0);
                     m[ 2].should.beCloseTo(0);
                     m[ 3].should.beCloseTo(0);
 
                     m[ 4].should.beCloseTo(0);
-                    Math.isNaN(m[5]).should.be(true);
+                    m[ 5].should.beCloseTo(2.11);
                     m[ 6].should.beCloseTo(0);
                     m[ 7].should.beCloseTo(0);
 
-                    Math.isNaN(m[8]).should.be(true);
-                    Math.isNaN(m[9]).should.be(true);
+                    m[ 8].should.beCloseTo(0);
+                    m[ 9].should.beCloseTo(0);
                     m[10].should.beCloseTo(-1);
                     m[11].should.beCloseTo(-1);
 
@@ -781,30 +781,30 @@ class MatrixTests extends BuddySuite
 
                     m[12].should.beCloseTo(0);
                     m[13].should.beCloseTo(0);
-                    m[14].should.beCloseTo(-1);
+                    m[14].should.beCloseTo(0);
                     m[15].should.beCloseTo(0);
                 });
                 it('Can create a heterogeneous perspective matrix', {
                     var m = new Matrix().makeHeterogeneousPerspective(70, 1280 / 720, 0, 100);
 
-                    Math.isNaN(m[0]).should.be(true);
+                    m[ 0].should.beCloseTo(1.19);
                     m[ 1].should.beCloseTo(0);
                     m[ 2].should.beCloseTo(0);
                     m[ 3].should.beCloseTo(0);
 
                     m[ 4].should.beCloseTo(0);
-                    Math.isNaN(m[5]).should.be(true);
+                    m[ 5].should.beCloseTo(2.11);
                     m[ 6].should.beCloseTo(0);
                     m[ 7].should.beCloseTo(0);
 
-                    Math.isNaN(m[8]).should.be(true);
-                    Math.isNaN(m[9]).should.be(true);
+                    m[ 8].should.beCloseTo(0);
+                    m[ 9].should.beCloseTo(0);
                     m[10].should.beCloseTo(-1);
                     m[11].should.beCloseTo(-1);
 
                     m[12].should.beCloseTo(0);
                     m[13].should.beCloseTo(0);
-                    m[14].should.beCloseTo(-1);
+                    m[14].should.beCloseTo(0);
                     m[15].should.beCloseTo(0);
                 });
                 it('Can create a heterogeneous orthographic matrix', {
@@ -827,7 +827,7 @@ class MatrixTests extends BuddySuite
 
                     m[12].should.beCloseTo(-1);
                     m[13].should.beCloseTo(1);
-                    m[14].should.beCloseTo(-1);
+                    m[14].should.beCloseTo(0);
                     m[15].should.beCloseTo(1);
                 });
             });
