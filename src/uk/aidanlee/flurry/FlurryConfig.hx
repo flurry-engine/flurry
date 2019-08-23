@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry;
 
+import uk.aidanlee.flurry.api.gpu.geometry.Color;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelList;
 
 enum RendererBackend {
@@ -117,12 +118,7 @@ class FlurryRendererConfig
     /**
      * The default clear colour used by the renderer.
      */
-    public final clearColour : { r : Float, g : Float, b : Float, a : Float };
-
-    /**
-     * Any extra variables which might be used by specific backends
-     */
-    public final extra : Dynamic;
+    public final clearColour : Color;
 
     /**
      * Creates a new renderer config with the default settings.
@@ -134,8 +130,7 @@ class FlurryRendererConfig
         unchangingVertices = 1000000;
         dynamicIndices     = 1000000;
         unchangingIndices  = 1000000;
-        clearColour        = { r : 0.2, g : 0.2, b : 0.2, a : 1.0 };
-        extra              = {};
+        clearColour        = new Color(0.2, 0.2, 0.2, 1.0);
     }
 }
 
