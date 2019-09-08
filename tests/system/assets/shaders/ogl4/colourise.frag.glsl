@@ -1,9 +1,9 @@
 #version 460 core
 
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
 
-in vec4 Color;
-in vec2 TexCoord;
+layout(location = 0) in vec4 Color;
+layout(location = 1) in vec2 TexCoord;
 
 layout(binding = 0) uniform sampler2D defaultTexture;
 

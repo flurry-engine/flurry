@@ -67,8 +67,8 @@ import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
+import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
@@ -782,29 +782,23 @@ class DX11Backend implements IRendererBackend
 
     // #region resource handling
 
-    function onResourceCreated(_event : ResourceEventCreated)
+    function onResourceCreated(_resource : Resource)
     {
-        switch (_event.type)
+        switch _resource.type
         {
-            case uk.aidanlee.flurry.api.resources.ImageResource:
-                createTexture(cast _event.resource);
-            case uk.aidanlee.flurry.api.resources.ShaderResource:
-                createShader(cast _event.resource);
+            case Image  : createTexture(cast _resource);
+            case Shader : createShader(cast _resource);
             case _:
-                //
         }
     }
 
-    function onResourceRemoved(_event : ResourceEventRemoved)
+    function onResourceRemoved(_resource : Resource)
     {
-        switch (_event.type)
+        switch _resource.type
         {
-            case uk.aidanlee.flurry.api.resources.ImageResource:
-                removeTexture(cast _event.resource);
-            case uk.aidanlee.flurry.api.resources.ShaderResource:
-                removeShader(cast _event.resource);
+            case Image  : removeTexture(cast _resource);
+            case Shader : removeShader(cast _resource);
             case _:
-                //
         }
     }
 
@@ -910,7 +904,7 @@ class DX11Backend implements IRendererBackend
         for (i in 0..._resource.layout.blocks.length)
         {
             var constantBuffer   = new D3d11Buffer();
-            var blockBytes       = BytesPacker.allocateBytes(Dx11, _resource.layout.blocks[i].vals);
+            var blockBytes       = BytesPacker.allocateBytes(Dx11, _resource.layout.blocks[i].values);
             var blockDescription = new D3d11BufferDescription();
             blockDescription.byteWidth      = blockBytes.length;
             blockDescription.usage          = Dynamic;
@@ -949,7 +943,7 @@ class DX11Backend implements IRendererBackend
     {
         // Sub resource struct to hold the raw image bytes.
         var imgData = new D3d11SubResourceData();
-        imgData.systemMemory           = _resource.pixels;
+        imgData.systemMemory           = _resource.pixels.getData();
         imgData.systemMemoryPitch      = 4 * _resource.width;
         imgData.systemMemorySlicePatch = 0;
 
@@ -1183,7 +1177,7 @@ class DX11Backend implements IRendererBackend
         var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
 
         // Set all textures.
-        if (shaderResource.layout.textures.length == _command.textures.length)
+        if (shaderResource.layout.textures.length <= _command.textures.length)
         {
             shaderTextureResources.resize(_command.textures.length);
             shaderTextureSamplers.resize(_command.textures.length);
@@ -1233,11 +1227,11 @@ class DX11Backend implements IRendererBackend
             {
                 // Otherwise upload all user specified uniform values.
                 // TODO : We should have some sort of error checking if the expected uniforms are not found.
-                for (val in shaderResource.layout.blocks[i].vals)
+                for (val in shaderResource.layout.blocks[i].values)
                 {
-                    var pos = BytesPacker.getPosition(Dx11, shaderResource.layout.blocks[i].vals, val.name);
+                    var pos = BytesPacker.getPosition(Dx11, shaderResource.layout.blocks[i].values, val.name);
 
-                    switch (ShaderType.createByName(val.type))
+                    switch val.type
                     {
                         case Matrix4:
                             var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);

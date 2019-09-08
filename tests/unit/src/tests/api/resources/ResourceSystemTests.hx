@@ -1,10 +1,12 @@
 package tests.api.resources;
 
+import sys.io.File;
 import buddy.SingleSuite;
+import uk.aidanlee.flurry.api.resources.Parcel.ParcelList;
+import uk.aidanlee.flurry.api.resources.Parcel.ParcelType;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.resources.Resource;
-import uk.aidanlee.flurry.api.resources.Parcel;
 import sys.io.abstractions.mock.MockFileSystem;
 import sys.io.abstractions.mock.MockFileData;
 import mockatoo.Mockatoo.*;
@@ -18,35 +20,30 @@ class ResourceSystemTests extends SingleSuite
     {
         describe('ResourceSystem', {
             
-            it('can create a parcel', {
-                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
-                var parcel = system.createParcel('myParcel', {
-                    bytes: [ { id: 'bytes' } ],
-                    texts: [ { id: 'texts' } ],
-                    jsons: [ { id: 'jsons' } ],
-                    images: [ { id: 'images' } ],
-                    shaders: [ { id: 'shaders' } ],
-                    parcels: [ 'parcels' ]
-                });
+            it('can create a user defined parcel', {
+                var assets : ParcelList = {
+                    bytes   : [ { path : '', id : 'bytes' } ],
+                    texts   : [ { path : '', id : 'texts' } ],
+                    images  : [ { path : '', id : 'images' } ],
+                    shaders : [ { path : '', id : 'shaders', ogl3 : null, ogl4 : null, hlsl : null } ]
+                };
+                var system = new ResourceSystem(new ResourceEvents(), new MockFileSystem([], []));
+                var parcel = system.create(Definition('myParcel', assets));
 
-                parcel.id.should.be('myParcel');
-                parcel.list.bytes[0].id.should.be('bytes');
-                parcel.list.texts[0].id.should.be('texts');
-                parcel.list.jsons[0].id.should.be('jsons');
-                parcel.list.images[0].id.should.be('images');
-                parcel.list.shaders[0].id.should.be('shaders');
-                parcel.list.parcels.should.contain('parcels');
+                parcel.name.should.be('myParcel');
+                parcel.type.should.equal(Definition('myParcel', assets));
             });
 
-            it('can add an existing parcel to the system', {
-                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
-                var parcel = new Parcel(system, 'myParcel', {});
+            it('can create a pre-packaged parcel', {
+                var system = new ResourceSystem(new ResourceEvents(), new MockFileSystem([], []));
+                var parcel = system.create(PrePackaged('parcel'));
 
-                system.addParcel(parcel);
+                parcel.name.should.be('parcel');
+                parcel.type.should.equal(PrePackaged('parcel'));
             });
 
             it('allows manually adding resources to the system', {
-                var sys = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
+                var sys = new ResourceSystem(new ResourceEvents(), new MockFileSystem([], []));
                 var res = mock(Resource);
                 res.id.returns('hello');
 
@@ -55,7 +52,7 @@ class ResourceSystemTests extends SingleSuite
             });
 
             it('allows manually removing resources from the system', {
-                var sys = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
+                var sys = new ResourceSystem(new ResourceEvents(), new MockFileSystem([], []));
                 var res = mock(Resource);
                 res.id.returns('hello');
 
@@ -65,7 +62,7 @@ class ResourceSystemTests extends SingleSuite
                 sys.get.bind('hello', Resource).should.throwType(ResourceNotFoundException);
             });
 
-            it('can load a parcels resources into the system', {
+            it('can load a user defined parcels resources into the system', {
                 var files = [
                     '/home/user/text.txt'  => MockFileData.fromText('hello world!'),
                     '/home/user/byte.bin'  => MockFileData.fromText('hello world!'),
@@ -80,17 +77,16 @@ class ResourceSystemTests extends SingleSuite
                     '/home/user/hlsl_fragment.txt' => MockFileData.fromText('hlsl_fragment')
                 ];
                 var system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []));
-                system.createParcel('myParcel', {
+                system.create(Definition('myParcel', {
                     texts   : [ { id : 'text', path : '/home/user/text.txt' } ],
                     bytes   : [ { id : 'byte', path : '/home/user/byte.bin' } ],
                     images  : [ { id : 'dots', path : '/home/user/dots.png' } ],
-                    jsons   : [ { id : 'json', path : '/home/user/json.json' } ],
                     shaders : [ { id : 'shdr', path : '/home/user/shdr.json',
-                        ogl3 : { vertex : '/home/user/ogl3_vertex.txt', fragment : '/home/user/ogl3_fragment.txt' },
-                        ogl4 : { vertex : '/home/user/ogl4_vertex.txt', fragment : '/home/user/ogl4_fragment.txt' },
-                        hlsl : { vertex : '/home/user/hlsl_vertex.txt', fragment : '/home/user/hlsl_fragment.txt' }
+                        ogl3 : { vertex : '/home/user/ogl3_vertex.txt', fragment : '/home/user/ogl3_fragment.txt', compiled : false },
+                        ogl4 : { vertex : '/home/user/ogl4_vertex.txt', fragment : '/home/user/ogl4_fragment.txt', compiled : false },
+                        hlsl : { vertex : '/home/user/hlsl_vertex.txt', fragment : '/home/user/hlsl_fragment.txt', compiled : false }
                     } ]
-                }).load();
+                })).load();
 
                 // Wait an amount of time then pump events.
                 // Hopefully this will be enough time for the parcel to load.
@@ -111,9 +107,6 @@ class ResourceSystemTests extends SingleSuite
                 res.width.should.be(2);
                 res.height.should.be(2);
 
-                var res = system.get('json', JSONResource);
-                res.id.should.be('json');
-
                 var res = system.get('shdr', ShaderResource);
                 res.id.should.be('shdr');
                 res.layout.textures.should.containExactly([ 'defaultTexture' ]);
@@ -124,6 +117,44 @@ class ResourceSystemTests extends SingleSuite
                 res.ogl4.fragment.should.be('ogl4_fragment');
                 res.hlsl.vertex.should.be('hlsl_vertex');
                 res.hlsl.fragment.should.be('hlsl_fragment');
+            });
+
+            it('can load a pre-packaged parcels resources', {
+                var files  = [
+                    'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel'))
+                ];
+                var system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []));
+                system.create(PrePackaged('images.parcel')).load();
+
+                // Wait an amount of time then pump events.
+                // Hopefully this will be enough time for the parcel to load.
+                Sys.sleep(0.1);
+
+                system.update();
+
+                var res = system.get('dots', ImageResource);
+                res.id.should.be('dots');
+                res.width.should.be(2);
+                res.height.should.be(2);
+            });
+
+            it('can load all the dependencies of a pre-packaged parcel', {
+                var files = [
+                    'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel')),
+                    'assets/parcels/preload.parcel' => MockFileData.fromBytes(File.getBytes('bin/preload.parcel'))
+                ];
+                var system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []));
+                system.create(PrePackaged('preload.parcel')).load();
+
+                // Wait an amount of time then pump events.
+                // Hopefully this will be enough time for the parcel to load.
+                Sys.sleep(0.1);
+
+                system.update();
+
+                system.get('dots'         , ImageResource).should.beType(ImageResource);
+                system.get('ubuntu'       , TextResource).should.beType(TextResource);
+                system.get('cavesofgallet', TextResource).should.beType(TextResource);
             });
 
             it('fires events for when images and shaders are added', {
@@ -139,41 +170,38 @@ class ResourceSystemTests extends SingleSuite
                 ];
                 var events = new ResourceEvents();
                 events.created.add(_created -> {
-                    if (Std.is(_created.type, ShaderResource))
+                    switch _created.type
                     {
-                        _created.resource.should.beType(ShaderResource);
-                        var res : ShaderResource = cast _created.resource;
-
-                        res.id.should.be('shdr');
-                        res.layout.textures.should.containExactly([ 'defaultTexture' ]);
-                        res.layout.blocks.should.containExactly([ ]);
-                        res.ogl3.vertex.should.be('ogl3_vertex');
-                        res.ogl3.fragment.should.be('ogl3_fragment');
-                        res.ogl4.vertex.should.be('ogl4_vertex');
-                        res.ogl4.fragment.should.be('ogl4_fragment');
-                        res.hlsl.vertex.should.be('hlsl_vertex');
-                        res.hlsl.fragment.should.be('hlsl_fragment');
-                    }
-                    if (Std.is(_created.type, ImageResource))
-                    {
-                        _created.resource.should.be(ImageResource);
-                        var res : ImageResource = cast _created.resource;
-
-                        res.id.should.be('dots');
-                        res.width.should.be(2);
-                        res.height.should.be(2);
+                        case Image:
+                            var res : ImageResource = cast _created;
+                            res.id.should.be('dots');
+                            res.width.should.be(2);
+                            res.height.should.be(2);
+                        case Shader:
+                            var res : ShaderResource = cast _created;
+                            res.id.should.be('shdr');
+                            res.layout.textures.should.containExactly([ 'defaultTexture' ]);
+                            res.layout.blocks.should.containExactly([ ]);
+                            res.ogl3.vertex.should.be('ogl3_vertex');
+                            res.ogl3.fragment.should.be('ogl3_fragment');
+                            res.ogl4.vertex.should.be('ogl4_vertex');
+                            res.ogl4.fragment.should.be('ogl4_fragment');
+                            res.hlsl.vertex.should.be('hlsl_vertex');
+                            res.hlsl.fragment.should.be('hlsl_fragment');
+                        case _:
+                            fail('no other resource type should have been created');
                     }
                 });
 
                 var system = new ResourceSystem(events, new MockFileSystem(files, []));
-                system.createParcel('myParcel', {
+                system.create(Definition('myParcel', {
                     images  : [ { id : 'dots', path : '/home/user/dots.png' } ],
                     shaders : [ { id : 'shdr', path : '/home/user/shdr.json',
-                        ogl3 : { vertex : '/home/user/ogl3_vertex.txt', fragment : '/home/user/ogl3_fragment.txt' },
-                        ogl4 : { vertex : '/home/user/ogl4_vertex.txt', fragment : '/home/user/ogl4_fragment.txt' },
-                        hlsl : { vertex : '/home/user/hlsl_vertex.txt', fragment : '/home/user/hlsl_fragment.txt' }
+                        ogl3 : { vertex : '/home/user/ogl3_vertex.txt', fragment : '/home/user/ogl3_fragment.txt', compiled : false },
+                        ogl4 : { vertex : '/home/user/ogl4_vertex.txt', fragment : '/home/user/ogl4_fragment.txt', compiled : false },
+                        hlsl : { vertex : '/home/user/hlsl_vertex.txt', fragment : '/home/user/hlsl_fragment.txt', compiled : false }
                     } ]
-                }).load();
+                })).load();
 
                 // Wait an amount of time then pump events.
                 // Hopefully this will be enough time for the parcel to load.
@@ -195,48 +223,46 @@ class ResourceSystemTests extends SingleSuite
                 ];
                 var events = new ResourceEvents();
                 events.removed.add(_removed -> {
-                    if (Std.is(_removed.type, ShaderResource))
+                    switch _removed.type
                     {
-                        _removed.resource.should.beType(ShaderResource);
-                        var res : ShaderResource = cast _removed.resource;
-
-                        res.id.should.be('shdr');
-                        res.layout.textures.should.containExactly([ 'defaultTexture' ]);
-                        res.layout.blocks.should.containExactly([ ]);
-                        res.ogl3.vertex.should.be('ogl3_vertex');
-                        res.ogl3.fragment.should.be('ogl3_fragment');
-                        res.ogl4.vertex.should.be('ogl4_vertex');
-                        res.ogl4.fragment.should.be('ogl4_fragment');
-                        res.hlsl.vertex.should.be('hlsl_vertex');
-                        res.hlsl.fragment.should.be('hlsl_fragment');
-                    }
-                    if (Std.is(_removed.type, ImageResource))
-                    {
-                        _removed.resource.should.be(ImageResource);
-                        var res : ImageResource = cast _removed.resource;
-
-                        res.id.should.be('dots');
-                        res.width.should.be(2);
-                        res.height.should.be(2);
+                        case Image:
+                            var res : ImageResource = cast _removed;
+                            res.id.should.be('dots');
+                            res.width.should.be(2);
+                            res.height.should.be(2);
+                        case Shader:
+                            var res : ShaderResource = cast _removed;
+                            res.id.should.be('shdr');
+                            res.layout.textures.should.containExactly([ 'defaultTexture' ]);
+                            res.layout.blocks.should.containExactly([ ]);
+                            res.ogl3.vertex.should.be('ogl3_vertex');
+                            res.ogl3.fragment.should.be('ogl3_fragment');
+                            res.ogl4.vertex.should.be('ogl4_vertex');
+                            res.ogl4.fragment.should.be('ogl4_fragment');
+                            res.hlsl.vertex.should.be('hlsl_vertex');
+                            res.hlsl.fragment.should.be('hlsl_fragment');
+                        case _:
+                            fail('no other resource type should have been created');
                     }
                 });
 
                 var system = new ResourceSystem(events, new MockFileSystem(files, []));
-                system.createParcel('myParcel', {
+                var parcel = system.create(Definition('myParcel', {
                     images  : [ { id : 'dots', path : '/home/user/dots.png' } ],
                     shaders : [ { id : 'shdr', path : '/home/user/shdr.json',
-                        ogl3 : { vertex : '/home/user/ogl3_vertex.txt', fragment : '/home/user/ogl3_fragment.txt' },
-                        ogl4 : { vertex : '/home/user/ogl4_vertex.txt', fragment : '/home/user/ogl4_fragment.txt' },
-                        hlsl : { vertex : '/home/user/hlsl_vertex.txt', fragment : '/home/user/hlsl_fragment.txt' }
+                        ogl3 : { vertex : '/home/user/ogl3_vertex.txt', fragment : '/home/user/ogl3_fragment.txt', compiled : false },
+                        ogl4 : { vertex : '/home/user/ogl4_vertex.txt', fragment : '/home/user/ogl4_fragment.txt', compiled : false },
+                        hlsl : { vertex : '/home/user/hlsl_vertex.txt', fragment : '/home/user/hlsl_fragment.txt', compiled : false }
                     } ]
-                }).load();
+                }));
+                parcel.load();
 
                 // Wait an amount of time then pump events.
                 // Hopefully this will be enough time for the parcel to load.
                 Sys.sleep(0.1);
 
                 system.update();
-                system.free('myParcel');
+                parcel.free();
             });
 
             it('can remove a parcels resources from the system', {
@@ -244,18 +270,19 @@ class ResourceSystemTests extends SingleSuite
                     '/home/user/text.txt' => MockFileData.fromText('hello world!'),
                     '/home/user/byte.bin' => MockFileData.fromText('hello world!')
                 ];
-                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem(files, []));
-                system.createParcel('myParcel', {
+                var system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []));
+                var parcel = system.create(Definition('myParcel', {
                     texts: [ { id : 'text', path : '/home/user/text.txt' } ],
                     bytes: [ { id : 'byte', path : '/home/user/byte.bin' } ]
-                }).load();
+                }));
+                parcel.load();
 
                 // Wait an amount of time then pump events.
                 // Hopefully this will be enough time for the parcel to load.
                 Sys.sleep(0.1);
 
                 system.update();
-                system.free('myParcel');
+                parcel.free();
                 system.get.bind('text', TextResource).should.throwType(ResourceNotFoundException);
                 system.get.bind('byte', BytesResource).should.throwType(ResourceNotFoundException);
             });
@@ -266,15 +293,17 @@ class ResourceSystemTests extends SingleSuite
                     '/home/user/text2.txt' => MockFileData.fromBytes(),
                     '/home/user/text3.txt' => MockFileData.fromBytes()
                 ];
-                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem(files, []));
-                system.createParcel('parcel1', {
+                var system  = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []));
+                var parcel1 = system.create(Definition('myParcel1', {
                     texts: [ { id : 'text1', path : '/home/user/text1.txt' } ],
                     bytes: [ { id : 'text2', path : '/home/user/text2.txt' } ]
-                }).load();
-                system.createParcel('parcel2', {
+                }));
+                var parcel2 = system.create(Definition('myParcel2', {
                     texts: [ { id : 'text2', path : '/home/user/text2.txt' } ],
                     bytes: [ { id : 'text3', path : '/home/user/text3.txt' } ]
-                }).load();
+                }));
+                parcel1.load();
+                parcel2.load();
 
                 // Wait an amount of time then pump events.
                 // Hopefully this will be enough time for the parcel to load.
@@ -285,15 +314,61 @@ class ResourceSystemTests extends SingleSuite
                 system.get('text2', Resource).id.should.be('text2');
                 system.get('text3', Resource).id.should.be('text3');
 
-                system.free('parcel2');
+                parcel2.free();
                 system.get.bind('text3', Resource).should.throwType(ResourceNotFoundException);
                 system.get('text1', Resource).id.should.be('text1');
                 system.get('text2', Resource).id.should.be('text2');
 
-                system.free('parcel1');
+                parcel1.free();
                 system.get.bind('text3', Resource).should.throwType(ResourceNotFoundException);
                 system.get.bind('text2', Resource).should.throwType(ResourceNotFoundException);
                 system.get.bind('text1', Resource).should.throwType(ResourceNotFoundException);
+            });
+
+            it('will decremement the references for pre-packaged parcels', {
+                var files  = [
+                    'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel'))
+                ];
+                var system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []));
+                var parcel = system.create(PrePackaged('images.parcel'));
+                parcel.load();
+
+                // Wait an amount of time then pump events.
+                // Hopefully this will be enough time for the parcel to load.
+                Sys.sleep(0.1);
+
+                system.update();
+                system.get('dots', ImageResource).should.beType(ImageResource);
+
+                parcel.free();
+
+                system.get.bind('dots', ImageResource).should.throwType(ResourceNotFoundException);
+            });
+
+            it('will decrement the resources in all pre-packaged parcels dependencies', {
+                var files = [
+                    'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel')),
+                    'assets/parcels/preload.parcel' => MockFileData.fromBytes(File.getBytes('bin/preload.parcel'))
+                ];
+                var system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []));
+                var parcel = system.create(PrePackaged('preload.parcel'));
+                parcel.load();
+
+                // Wait an amount of time then pump events.
+                // Hopefully this will be enough time for the parcel to load.
+                Sys.sleep(0.1);
+
+                system.update();
+
+                system.get('dots'         , ImageResource).should.beType(ImageResource);
+                system.get('ubuntu'       , TextResource).should.beType(TextResource);
+                system.get('cavesofgallet', TextResource).should.beType(TextResource);
+
+                parcel.free();
+
+                system.get.bind('dots'         , ImageResource).should.throwType(ResourceNotFoundException);
+                system.get.bind('ubuntu'       , TextResource).should.throwType(ResourceNotFoundException);
+                system.get.bind('cavesofgallet', TextResource).should.throwType(ResourceNotFoundException);
             });
 
             it('will throw an exception trying to fetch a resource which does not exist', {
@@ -306,54 +381,48 @@ class ResourceSystemTests extends SingleSuite
                     '/home/user/text.txt' => MockFileData.fromText('hello world!'),
                     '/home/user/byte.bin' => MockFileData.fromText('hello world!')
                 ];
-                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem(files, []));
-                system.createParcel('myParcel', {
+                var system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []));
+                var parcel = system.create(Definition('myParcel', {
                     texts: [ { id : 'text', path : '/home/user/text.txt' } ],
                     bytes: [ { id : 'byte', path : '/home/user/byte.bin' } ]
-                }).load();
+                }));
+                parcel.load();
 
                 // Wait an amount of time then pump events.
                 // Hopefully this will be enough time for the parcel to load.
                 Sys.sleep(0.1);
 
                 system.update();
-                system.load.bind('myParcel').should.throwType(ParcelAlreadyLoadedException);
+                parcel.load.bind().should.throwType(ParcelAlreadyLoadedException);
             });
 
             it('will throw an exception when trying to load a parcel which has not been added to the system', {
-                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
-                system.load.bind('myParcel').should.throwType(ParcelNotAddedException);
+                var system1 = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
+                var system2 = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
+
+                var parcel = system1.create(PrePackaged(''));
+                system2.load.bind(parcel).should.throwType(ParcelNotAddedException);
             });
 
             it('will thrown an exception when trying to get a resource as the wrong type', {
-                var files = [
-                    '/home/user/text.txt' => MockFileData.fromText('hello world!'),
-                    '/home/user/byte.bin' => MockFileData.fromText('hello world!')
-                ];
-                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem(files, []));
-                system.createParcel('myParcel', {
+                var files  = [ '/home/user/text.txt' => MockFileData.fromText('hello world!') ];
+                var system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []));
+                system.create(Definition('myParcel', {
                     texts: [ { id : 'text', path : '/home/user/text.txt' } ]
-                }).load();
+                })).load();
 
                 // Wait an amount of time then pump events.
                 // Hopefully this will be enough time for the parcel to load.
                 Sys.sleep(0.1);
 
                 system.update();
-                system.get.bind('text', BytesResource).should.throwType(InvalidResourceType);
+                system.get.bind('text', BytesResource).should.throwType(InvalidResourceTypeException);
             });
 
             it('contains a callback for when the parcel has finished loading', {
                 var result = '';
-
-                var parcel = mock(Parcel);
-                parcel.id.returns('myParcel');
-                parcel.list.returns({});
-                parcel.onLoaded.returns(_ -> result = 'finished');
-
-                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
-                system.addParcel(parcel);
-                system.load('myParcel');
+                var system = new ResourceSystem(new ResourceEvents(), new MockFileSystem([], []));
+                system.create(Definition('myParcel', {}), _ -> result = 'finished').load();
 
                 // Wait an amount of time then pump events.
                 // Hopefully this will be enough time for the parcel to load.
@@ -370,17 +439,11 @@ class ResourceSystemTests extends SingleSuite
                 ];
 
                 var results = [];
-                var parcel  = mock(Parcel);
-                parcel.id.returns('myParcel');
-                parcel.list.returns({
+                var system  = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []));
+                system.create(Definition('myParcel', {
                     texts: [ { id : 'text', path : '/home/user/text.txt' } ],
                     bytes: [ { id : 'byte', path : '/home/user/byte.bin' } ]
-                });
-                parcel.onProgress.returns(_ -> results.push(_));
-
-                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem(files, []));
-                system.addParcel(parcel);
-                system.load('myParcel');
+                }), null, _ -> results.push(_)).load();
 
                 // Wait an amount of time then pump events.
                 // Hopefully this will be enough time for the parcel to load.
@@ -392,15 +455,8 @@ class ResourceSystemTests extends SingleSuite
 
             it('contains a callback for when the parcel has failed to load', {
                 var result = '';
-
-                var parcel = mock(Parcel);
-                parcel.id.returns('myParcel');
-                parcel.list.returns({ texts : [ { id : 'text.txt' } ] });
-                parcel.onFailed.returns(_ -> result = _);
-
-                var system = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []));
-                system.addParcel(parcel);
-                system.load('myParcel');
+                var system = new ResourceSystem(new ResourceEvents(), new MockFileSystem([], []));
+                system.create(Definition('myParcel', { texts : [ { id : 'text.txt', path : '' } ] }), null, null, _ -> result = _).load();
 
                 // Wait an amount of time then pump events.
                 // Hopefully this will be enough time for the parcel to load.

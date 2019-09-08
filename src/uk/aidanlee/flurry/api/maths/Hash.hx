@@ -5,6 +5,8 @@ package uk.aidanlee.flurry.api.maths;
  */
 class Hash
 {
+    static final random = new Random(56219314);
+
     /**
      * Generates and returns a unique base62 string from a value.
      * 
@@ -73,6 +75,6 @@ class Hash
      */
     public static inline function uniqueHash() : Int
     {
-        return hash(uniqueID());
+        return random.get();
     }
 }

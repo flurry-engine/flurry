@@ -1,0 +1,17 @@
+{
+    "assets" : {
+        "bytes"   : [],
+        "shaders" : [],
+        "texts"   : [
+            { "id" : "ubuntu"       , "path" : "assets/fonts/ubuntu.fnt" },
+            { "id" : "cavesofgallet", "path" : "assets/atlas/cavesofgallet.atlas" }
+        ],
+        "images"  : [
+            { "id" : "dots", "path" : "assets/images/dots.png" }
+        ]
+    },
+    "parcels" : [
+        { "name" : "preload.parcel", "assets" : [ "ubuntu", "cavesofgallet" ], "depends" : [ "images.parcel" ] },
+        { "name" : "images.parcel" , "assets" : [ "dots" ], "depends" : [ ] }
+    ]
+}

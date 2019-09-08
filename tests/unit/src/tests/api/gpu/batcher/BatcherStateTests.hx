@@ -363,4 +363,9 @@ class BatcherStateTests extends BuddySuite
             });
         });
     }
+
+    function shader(_id : String) : ShaderResource
+    {
+        return new ShaderResource(_id, new ShaderLayout([], []), null, null, null);
+    }
 }

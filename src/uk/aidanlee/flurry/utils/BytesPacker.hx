@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.utils;
 
+import uk.aidanlee.flurry.api.resources.Resource.ShaderValue;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
 import haxe.io.Bytes;
 
@@ -12,7 +13,7 @@ enum AlignmentType
 
 class BytesPacker
 {
-    public static function getPosition(_aligment : AlignmentType, _values : Array<{ name : String, type : String }>, _requested : String) : Int
+    public static function getPosition(_aligment : AlignmentType, _values : Array<ShaderValue>, _requested : String) : Int
     {
         final registerMaxByteSize = 16;
 
@@ -21,7 +22,7 @@ class BytesPacker
 
         for (val in _values)
         {
-            var typeSize = switch (ShaderType.createByName(val.type))
+            var typeSize = switch val.type
             {
                 case Matrix4: 64;
                 case Vector4: 16;
@@ -70,7 +71,7 @@ class BytesPacker
         return 0;
     }
 
-    public static function allocateBytes(_alignment : AlignmentType, _values : Array<{ name : String, type : String }>) : Bytes
+    public static function allocateBytes(_alignment : AlignmentType, _values : Array<ShaderValue>) : Bytes
     {
         final registerMaxByteSize = 16;
 
@@ -79,7 +80,7 @@ class BytesPacker
 
         for (val in _values)
         {
-            var typeSize = switch (ShaderType.createByName(val.type))
+            var typeSize = switch val.type
             {
                 case Matrix4: 64;
                 case Vector4: 16;

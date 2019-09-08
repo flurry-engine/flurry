@@ -15,20 +15,7 @@ class BatcherDepth extends Flurry
         _config.window.width  = 768;
         _config.window.height = 512;
 
-        _config.resources.preload.shaders = [
-            {
-                id   : 'textured',
-                path : 'assets/shaders/textured.json',
-                ogl3 : { fragment : 'assets/shaders/ogl3/textured.frag', vertex : 'assets/shaders/ogl3/textured.vert' },
-                ogl4 : { fragment : 'assets/shaders/ogl4/textured.frag', vertex : 'assets/shaders/ogl4/textured.vert' },
-                hlsl : { fragment : 'assets/shaders/hlsl/textured.hlsl', vertex : 'assets/shaders/hlsl/textured.hlsl' }
-            }
-        ];
-        _config.resources.preload.images = [
-            { id : 'tank1', path: 'assets/images/tank1.png' },
-            { id : 'tank2', path: 'assets/images/tank2.png' },
-            { id : 'tank3', path: 'assets/images/tank3.png' }
-        ];
+        _config.resources.preload = PrePackaged('preload');
 
         return _config;
     }

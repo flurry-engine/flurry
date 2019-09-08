@@ -11,12 +11,14 @@ layout(std430, binding = 0) buffer defaultMatrices
     mat4 models[];
 };
 
-out vec4 Color;
-out vec2 TexCoord;
+layout(std430, binding = 1) buffer colours
+{
+    float red;
+    float green;
+    float blue;
+};
 
 void main()
 {
     gl_Position = projection * view * models[gl_DrawID] * vec4(aPos, 1.0);
-    Color       = aCol;
-    TexCoord    = aTex;
 }

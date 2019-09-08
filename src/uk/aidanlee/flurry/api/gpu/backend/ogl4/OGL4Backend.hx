@@ -19,7 +19,7 @@ import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
+import uk.aidanlee.flurry.api.resources.Resource.Resource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -504,29 +504,23 @@ class OGL4Backend implements IRendererBackend
 
     // #region Resource Management
 
-    function onResourceCreated(_event : ResourceEventCreated)
+    function onResourceCreated(_resource : Resource)
     {
-        switch (_event.type)
+        switch _resource.type
         {
-            case ImageResource:
-                createTexture(cast _event.resource);
-            case ShaderResource:
-                createShader(cast _event.resource);
+            case Image  : createTexture(cast _resource);
+            case Shader : createShader(cast _resource);
             case _:
-                //
         }
     }
 
-    function onResourceRemoved(_event : ResourceEventRemoved)
+    function onResourceRemoved(_resource : Resource)
     {
-        switch (_event.type)
+        switch _resource.type
         {
-            case ImageResource:
-                removeTexture(cast _event.resource);
-            case ShaderResource:
-                removeShader(cast _event.resource);
+            case Image  : removeTexture(cast _resource);
+            case Shader : removeShader(cast _resource);
             case _:
-                //
         }
     }
 
@@ -576,7 +570,7 @@ class OGL4Backend implements IRendererBackend
 
         var textureLocations = [ for (t in _resource.layout.textures) glGetUniformLocation(program, t) ];
         var blockLocations   = [ for (b in _resource.layout.blocks) glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, b.name) ];
-        var blockBindings    = [ for (i in 0..._resource.layout.blocks.length) _resource.layout.blocks[i].bind ];
+        var blockBindings    = [ for (i in 0..._resource.layout.blocks.length) _resource.layout.blocks[i].binding ];
 
         for (i in 0..._resource.layout.blocks.length)
         {
@@ -666,7 +660,7 @@ class OGL4Backend implements IRendererBackend
         glTextureParameteri(ids[0], GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
         glTextureStorage2D(ids[0], 1, GL_RGBA8, _resource.width, _resource.height);
-        glTextureSubImage2D(ids[0], 0, 0, 0, _resource.width, _resource.height, GL_BGRA, GL_UNSIGNED_BYTE, _resource.pixels);
+        glTextureSubImage2D(ids[0], 0, 0, 0, _resource.width, _resource.height, GL_BGRA, GL_UNSIGNED_BYTE, _resource.pixels.getData());
 
         textureObjects.set(_resource.id, ids[0]);
     }
@@ -684,9 +678,9 @@ class OGL4Backend implements IRendererBackend
     function generateUniformBlock(_block : ShaderBlock, _buffer : Int, _binding : Int) : Bytes
     {
         var blockSize = 0;
-        for (val in _block.vals)
+        for (val in _block.values)
         {
-            switch (ShaderType.createByName(val.type))
+            switch val.type
             {
                 case Matrix4: blockSize += 64;
                 case Vector4: blockSize += 16;
@@ -897,7 +891,7 @@ class OGL4Backend implements IRendererBackend
         // TEMP : Set all textures all the time.
         // TODO : Store all bound texture IDs and check before binding textures.
 
-        if (cache.layout.textures.length == _command.textures.length)
+        if (cache.layout.textures.length <= _command.textures.length)
         {
             // See how many texture actually need changing
             var toChange = 0;
@@ -982,9 +976,9 @@ class OGL4Backend implements IRendererBackend
                 // Otherwise upload all user specified uniform values.
                 // TODO : We should have some sort of error checking if the expected uniforms are not found.
                 var pos = 0;
-                for (val in cache.layout.blocks[i].vals)
+                for (val in cache.layout.blocks[i].values)
                 {
-                    switch (ShaderType.createByName(val.type))
+                    switch val.type
                     {
                         case Matrix4:
                             var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
@@ -1006,6 +1000,7 @@ class OGL4Backend implements IRendererBackend
                 }
 
                 glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
             }
         }
     }

@@ -6,15 +6,6 @@
 -cp tests/unit/src
 -cp tests/system/src
 
--D no-compilation
--D linux
--D target-cpp
--D arch-64
--D desktop
--D hxcpp_static_std
--D HXCPP_STACK_TRACE
--D HXCPP_TELEMETRY
--D snow
 -D hxcpp
 -D linc_imgui
 -D linc_opengl
@@ -35,7 +26,9 @@
 -lib sys.io.abstractions
 -lib signals
 -lib format
+-lib json2object
 
 --macro nullSafety('uk.aidanlee.flurry.modules.differ', Strict)
+--macro nullSafety('uk.aidanlee.flurry.api.resources', Strict)
 
 --no-inline

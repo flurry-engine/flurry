@@ -2,18 +2,18 @@
     "textures" : [ "defaultTexture" ],
     "blocks"   : [
         {
-            "name" : "defaultMatrices",
-            "bind" : 0,
-            "vals" : [
+            "name"    : "defaultMatrices",
+            "binding" : 0,
+            "values"  : [
                 { "type" : "Matrix4", "name" : "projection" },
                 { "type" : "Matrix4", "name" : "view" },
                 { "type" : "Matrix4", "name" : "models" }
             ]
         },
         {
-            "name" : "colours",
-            "bind" : 1,
-            "vals" : [
+            "name"    : "colours",
+            "binding" : 1,
+            "values"  : [
                 { "type" : "Float", "name" : "red" },
                 { "type" : "Float", "name" : "green" },
                 { "type" : "Float", "name" : "blue" }

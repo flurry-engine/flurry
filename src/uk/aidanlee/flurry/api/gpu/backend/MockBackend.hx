@@ -118,29 +118,23 @@ class MockBackend implements IRendererBackend
         }
     }
 
-    function onResourceCreated(_event : ResourceEventCreated)
+    function onResourceCreated(_resource : Resource)
     {
-        switch _event.type
+        switch _resource.type
         {
-            case uk.aidanlee.flurry.api.resources.ImageResource:
-                textures.set(_event.resource.id, cast _event.resource);
-            case uk.aidanlee.flurry.api.resources.ShaderResource:
-                shaders.set(_event.resource.id, cast _event.resource);
+            case Image  : textures.set(_resource.id, cast _resource);
+            case Shader : shaders.set(_resource.id, cast _resource);
             case _:
-                //
         }
     }
 
-    function onResourceRemoved(_event : ResourceEventRemoved)
+    function onResourceRemoved(_resource : Resource)
     {
-        switch _event.type
+        switch _resource.type
         {
-            case uk.aidanlee.flurry.api.resources.ImageResource:
-                textures.remove(_event.resource.id);
-            case uk.aidanlee.flurry.api.resources.ShaderResource:
-                textures.remove(_event.resource.id);
+            case Image  : textures.remove(_resource.id);
+            case Shader : shaders.remove(_resource.id);
             case _:
-                //
         }
     }
 }

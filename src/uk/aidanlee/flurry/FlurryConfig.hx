@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry;
 
+import uk.aidanlee.flurry.api.resources.Parcel.ParcelType;
 import uk.aidanlee.flurry.api.gpu.geometry.Color;
-import uk.aidanlee.flurry.api.resources.Parcel.ParcelList;
 
 enum RendererBackend {
     Ogl3;
@@ -137,28 +137,15 @@ class FlurryRendererConfig
 class FlurryResourceConfig
 {
     /**
-     * If the standard shader parcel should not be loaded. (Defaults true).
-     */
-    public var includeStdShaders : Bool;
-
-    /**
      * Any resources placed into this parcel list will be loaded before the Flurry's onReady function is called.
      */
-    public final preload : ParcelList;
+    public var preload : Null<ParcelType>;
 
     /**
      * Create a new resource config with the default settings.
      */
     public function new()
     {
-        includeStdShaders = true;
-        preload = {
-            bytes   : [],
-            texts   : [],
-            jsons   : [],
-            images  : [],
-            shaders : [],
-            parcels : []
-        };
+        //
     }
 }

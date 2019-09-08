@@ -16,20 +16,7 @@ class ShaderUniforms extends Flurry
         _config.window.width  = 768;
         _config.window.height = 512;
 
-        _config.resources.preload.shaders = [
-            {
-                id   : 'colourise',
-                path : 'assets/shaders/colourise.json',
-                ogl3 : { fragment : 'assets/shaders/ogl3/colourise.frag', vertex : 'assets/shaders/ogl3/colourise.vert' },
-                ogl4 : { fragment : 'assets/shaders/ogl4/colourise.frag', vertex : 'assets/shaders/ogl4/colourise.vert' },
-                hlsl : { fragment : 'assets/shaders/hlsl/colourise.hlsl', vertex : 'assets/shaders/hlsl/colourise.hlsl' },
-            }
-        ];
-        _config.resources.preload.images = [
-            { id : 'tank1', path: 'assets/images/tank1.png' },
-            { id : 'tank2', path: 'assets/images/tank2.png' },
-            { id : 'tank3', path: 'assets/images/tank3.png' }
-        ];
+        _config.resources.preload = PrePackaged('preload');
 
         return _config;
     }

@@ -1,23 +1,27 @@
---main Main
+-m Main
 
--cp src
--cp ../../src
+-p src
+-p ../../src
 
--lib buddy
--lib hxcpp
--lib haxe-concurrent
--lib mockatoo
--lib safety
--lib format
--lib sys.io.abstractions
--lib signals
+-L buddy
+-L hxcpp
+-L haxe-concurrent
+-L mockatoo
+-L safety
+-L format
+-L sys.io.abstractions
+-L signals
+-L json2object
 
--resource assets/atlas/cavesofgallet.atlas@atlas-data
--resource assets/fonts/ubuntu.fnt@font-data
--resource assets/images/dots.png@dots-data
+-r assets/atlas/cavesofgallet.atlas@atlas-data
+-r assets/fonts/ubuntu.fnt@font-data
+-r assets/images/dots.png@dots-data
+
+--cpp bin
 
 --no-inline
 
 --macro nullSafety('uk.aidanlee.flurry.modules.differ', Strict)
+--macro nullSafety('uk.aidanlee.flurry.api.resources', Strict)
 
---cpp bin
+--cmd lix run parcel pack --input=assets/assets.json --output=bin/

@@ -57,11 +57,6 @@ class Flurry
     public final function config()
     {
         flurryConfig = onConfig(new FlurryConfig());
-
-        if (flurryConfig.resources.includeStdShaders)
-        {
-            trace('TODO : Load a default shader parcel');
-        }
     }
 
     public final function ready()
@@ -75,12 +70,22 @@ class Flurry
         input      = new Input(events.input);
         display    = new Display(events.display, events.input, flurryConfig);
 
-        // Load the default parcel, this may contain the standard assets or user defined assets.
-        // Once it has loaded the overridable onReady function is called.
-        resources.createParcel('preload', flurryConfig.resources.preload, onPreloadParcelComplete, null, onPreloadParcelError).load();
-
         // Fire the init event once the engine has loaded all its components.
         events.init.dispatch();
+
+        if (flurryConfig.resources.preload != null)
+        {
+            resources.create(
+                flurryConfig.resources.preload,
+                onPreloadParcelComplete,
+                null,
+                onPreloadParcelError
+            ).load();
+        }
+        else
+        {
+            onPreloadParcelComplete(null);
+        }
     }
 
     public final function tick(_dt : Float)
@@ -134,8 +139,6 @@ class Flurry
         events.shutdown.dispatch();
 
         onShutdown();
-
-        resources.free('preload');
     }
 
     // Flurry functions the user can override.

@@ -18,8 +18,8 @@ layout(std430, binding = 1) buffer colours
     float blue;
 };
 
-out vec4 Color;
-out vec2 TexCoord;
+layout(location = 0) out vec4 Color;
+layout(location = 1) out vec2 TexCoord;
 
 void main()
 {

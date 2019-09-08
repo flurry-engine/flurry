@@ -12,8 +12,6 @@ class Build extends Project
             'flurry-snow-host' => null
         ];
 
-        files = [
-            'assets' => 'assets'
-        ];
+        parcels = [ 'assets/assets.json' ];
     }
 }
