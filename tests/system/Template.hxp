@@ -1,4 +1,3 @@
-
 class Build extends Project
 {
     override function setup()
@@ -7,10 +6,6 @@ class Build extends Project
         app.main      = '{TEST_CASE}';
         app.output    = 'bin';
         app.codepaths = [ 'src', '../../src' ];
-
-        build.dependencies = [
-            'flurry-snow-host' => null
-        ];
 
         parcels = [ 'assets/assets.json' ];
     }

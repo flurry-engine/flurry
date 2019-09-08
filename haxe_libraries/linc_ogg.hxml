@@ -1,0 +1,3 @@
+-D linc_ogg=0.0.0
+# @install: lix --silent download "gh://github.com/snowkit/linc_ogg#21d42010a1a8ee6eb8259083785ae03edeea3997" into linc_ogg/0.0.0/github/21d42010a1a8ee6eb8259083785ae03edeea3997
+-cp ${HAXE_LIBCACHE}/linc_ogg/0.0.0/github/21d42010a1a8ee6eb8259083785ae03edeea3997/
