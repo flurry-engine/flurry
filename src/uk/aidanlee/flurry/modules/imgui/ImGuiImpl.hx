@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.modules.imgui;
 
+import haxe.io.Bytes;
 import cpp.Pointer;
 import cpp.Star;
 import haxe.io.Float32Array;
@@ -109,7 +110,9 @@ class ImGuiImpl
         vtxData = new Float32Array(1000000);
         idxData = new UInt16Array(1000000);
 
-        texture = new ImageResource('imgui_texture', width, height, Pointer.fromRaw(cast data).toUnmanagedArray(width * height * bpp));
+        var bytes = @:privateAccess new Bytes(width * height * bpp, Pointer.fromRaw(cast data).toUnmanagedArray(width * height * bpp));
+
+        texture = new ImageResource('imgui_texture', width, height, bytes);
         io.fonts.texID = cast cpp.Native.addressOf(texture);
 
         resources.addResource(texture);
