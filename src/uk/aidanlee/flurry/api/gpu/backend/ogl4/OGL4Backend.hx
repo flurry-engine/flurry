@@ -31,6 +31,7 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.utils.opengl.GLSyncWrapper;
 
 using Safety;
@@ -125,11 +126,21 @@ class OGL4Backend implements IRendererBackend
     final textureObjects : Map<String, Int>;
 
     /**
+     * The sampler objects which have been created for each specific texture.
+     */
+    final samplerObjects : Map<String, Map<Int, Int>>;
+
+    /**
      * Framebuffer objects keyed by their associated image resource IDs.
      * Framebuffers will only be generated when an image resource is used as a target.
      * Will be destroyed when the associated image resource is destroyed.
      */
     final framebufferObjects : Map<String, Int>;
+
+    /**
+     * The default sampler object to use if none is specified.
+     */
+    final defaultSampler : Int;
 
     /**
      * OpenGL sync objects used to lock writing into buffer ranges until they are visible to the GPU.
@@ -285,6 +296,14 @@ class OGL4Backend implements IRendererBackend
         glBindVertexArray(glVao);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIbo);
 
+        var samplers = [ 0 ];
+        glGenSamplers(1, samplers);
+        defaultSampler = samplers[0];
+        glSamplerParameteri(defaultSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glSamplerParameteri(defaultSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glSamplerParameteri(defaultSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glSamplerParameteri(defaultSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
         // Map the streaming parts of the vertex and index buffer.
         var vtxBuffer : Pointer<UInt8> = Pointer.fromRaw(glMapNamedBufferRange(glVbo, staticVertexBuffer * 9 * 4, (streamVertexBuffer * 9 * 4) * 3, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
         var idxBuffer : Pointer<UInt8> = Pointer.fromRaw(glMapNamedBufferRange(glIbo, staticIndexBuffer * 2     , (streamIndexBuffer * 2) * 3     , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
@@ -321,10 +340,11 @@ class OGL4Backend implements IRendererBackend
         ssbo     = 0;
         cmds     = 0;
 
-        textureSlots       = [ for (i in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
+        textureSlots       = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
         shaderPrograms     = [];
         shaderUniforms     = [];
         textureObjects     = [];
+        samplerObjects     = [];
         framebufferObjects = [];
 
         resourceEvents.created.add(onResourceCreated);
@@ -662,7 +682,8 @@ class OGL4Backend implements IRendererBackend
         glTextureStorage2D(ids[0], 1, GL_RGBA8, _resource.width, _resource.height);
         glTextureSubImage2D(ids[0], 0, 0, 0, _resource.width, _resource.height, GL_BGRA, GL_UNSIGNED_BYTE, _resource.pixels.getData());
 
-        textureObjects.set(_resource.id, ids[0]);
+        textureObjects[_resource.id] = ids[0];
+        samplerObjects[_resource.id] = new Map();
     }
 
     /**
@@ -671,8 +692,16 @@ class OGL4Backend implements IRendererBackend
      */
     function removeTexture(_resource : ImageResource)
     {
+        var samplers = [];
+        for (sampler in samplerObjects[_resource.id])
+        {
+            samplers.push(sampler);
+        }
+        glDeleteSamplers(samplers.length, samplers);
         glDeleteTextures(1, [ textureObjects.get(_resource.id) ]);
+
         textureObjects.remove(_resource.id);
+        samplerObjects.remove(_resource.id);
     }
 
     function generateUniformBlock(_block : ShaderBlock, _buffer : Int, _binding : Int) : Bytes
@@ -897,6 +926,26 @@ class OGL4Backend implements IRendererBackend
             var toChange = 0;
             for (i in 0..._command.textures.length)
             {
+                // Handle samplers quickly, for now...
+
+                // Get / create and bind the sampler for the current texture.
+                var currentSampler = defaultSampler;
+                if (_command.samplers[i] != null)
+                {
+                    var samplerHash     = _command.samplers[i].hash();
+                    var textureSamplers = samplerObjects[_command.textures[i].id];
+
+                    if (!textureSamplers.exists(samplerHash))
+                    {
+                        textureSamplers[samplerHash] = createSamplerObject(_command.samplers[i]);
+                    }
+
+                    currentSampler = textureSamplers[samplerHash];
+                }
+                
+                glBindSampler(cache.textureLocations[i], currentSampler);
+
+                // see if textures need updating.
                 var tex = textureObjects.get(_command.textures[i].id);
                 if (tex != textureSlots[i])
                 {
@@ -1003,6 +1052,18 @@ class OGL4Backend implements IRendererBackend
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
             }
         }
+    }
+
+    function createSamplerObject(_sampler : SamplerState) : Int
+    {
+        var samplers = [ 0 ];
+        glGenSamplers(1, samplers);
+        glSamplerParameteri(samplers[0], GL_TEXTURE_MAG_FILTER, _sampler.minification.getFilterType());
+        glSamplerParameteri(samplers[0], GL_TEXTURE_MIN_FILTER, _sampler.magnification.getFilterType());
+        glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_S, _sampler.uClamping.getEdgeClamping());
+        glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_T, _sampler.vClamping.getEdgeClamping());
+
+        return samplers[0];
     }
 
     function buildCameraMatrices(_camera : Camera)

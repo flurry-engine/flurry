@@ -5,6 +5,8 @@ import uk.aidanlee.flurry.api.gpu.StencilFunction;
 import uk.aidanlee.flurry.api.gpu.ComparisonFunction;
 import uk.aidanlee.flurry.api.gpu.BlendMode;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
+import uk.aidanlee.flurry.api.gpu.textures.Filtering;
+import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
 
 class GLConverters
 {
@@ -66,6 +68,26 @@ class GLConverters
             case IncrementWrap : GL_INCR_WRAP;
             case Decrement     : GL_DECR;
             case DecrementWrap : GL_DECR_WRAP;
+        }
+    }
+
+    public static function getFilterType(_filter : Filtering) : Int
+    {
+        return switch _filter
+        {
+            case Nearest : GL_NEAREST;
+            case Linear  : GL_LINEAR;
+        }
+    }
+
+    public static function getEdgeClamping(_clamping : EdgeClamping) : Int
+    {
+        return switch _clamping
+        {
+            case Wrap   : GL_REPEAT;
+            case Mirror : GL_MIRRORED_REPEAT;
+            case Clamp  : GL_CLAMP_TO_EDGE;
+            case Border : GL_CLAMP_TO_BORDER;
         }
     }
 }

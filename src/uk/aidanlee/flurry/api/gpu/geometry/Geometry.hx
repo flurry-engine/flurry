@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Transformation;
@@ -18,9 +19,8 @@ typedef GeometryOptions = {
     var ?transform  : Transformation;
     var ?shader     : ShaderResource;
     var ?textures   : Array<ImageResource>;
+    var ?samplers   : Array<Null<SamplerState>>;
     var ?depth      : Float;
-    var ?immediate  : Bool;
-    var ?unchanging : Bool;
     var ?color      : Color;
     var ?clip       : Rectangle;
     var ?primitive  : PrimitiveType;
@@ -88,6 +88,11 @@ class Geometry
      * All of the images this image will provide to the shader.
      */
     public final textures : Array<ImageResource>;
+
+    /**
+     * All of the samplers which will be used to sample data from the corresponding texture.
+     */
+    public final samplers : Array<SamplerState>;
 
     /**
      * The specific shader for the geometry.
@@ -172,11 +177,12 @@ class Geometry
         id = Hash.uniqueHash();
 
         batchers       = [];
-        uploadType     = _options.uploadType.or(Static);
+        uploadType     = _options.uploadType.or(Stream);
         vertices       = _options.vertices  .or([]);
         indices        = _options.indices   .or([]);
         transformation = _options.transform .or(new Transformation());
         textures       = _options.textures  .or([]);
+        samplers       = _options.samplers  .or([]);
         depth          = _options.depth     .or(0);
         primitive      = _options.primitive .or(Triangles);
         color          = _options.color     .or(new Color());

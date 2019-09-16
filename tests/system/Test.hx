@@ -15,8 +15,6 @@ class Test extends SingleSuite
     public function new()
     {
         describe('System Tests', {
-            startup();
-
             final cases = [
                 'BatcherDepth',
                 'BatchingGeometry',
@@ -28,7 +26,8 @@ class Test extends SingleSuite
                 'ShaderUniforms',
                 'StencilTesting',
                 'Text',
-                'Transformations' ];
+                'Transformations',
+                'ImageSamplers' ];
 
             for (test in cases)
             {
@@ -44,8 +43,6 @@ class Test extends SingleSuite
                 FileSystem.deleteFile('screenshot.png');
                 FileSystem.deleteFile('Build.hxp');
             }
-
-            shutdown();
         });
     }
 
@@ -74,7 +71,7 @@ class Test extends SingleSuite
                 new Process('bin/linux-x64/SystemTests');
 
                 Sys.sleep(1);
-                Sys.command('import', [ '-window', 'root', 'screenshot.png' ]);
+                Sys.command('import', [ '-window', 'Flurry', '-channel', 'RGB', '-depth', '8', 'screenshot.png' ]);
 
                 Sys.command('pkill SystemTests');
         }
@@ -107,22 +104,5 @@ class Test extends SingleSuite
         }
 
         return 100 * (difference / 255) / (768 * 512 * 3);
-    }
-
-    function startup()
-    {
-        if (Sys.systemName() == 'Linux')
-        {
-            Sys.putEnv('DISPLAY', ':99');
-            new Process('Xvfb', [ ':99', '-screen', '0', '768x512x24' ]);
-        }
-    }
-
-    function shutdown()
-    {
-        if (Sys.systemName() == 'Linux')
-        {
-            Sys.command('pkill Xvfb');
-        }
     }
 }

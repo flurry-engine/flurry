@@ -1,7 +1,6 @@
 package uk.aidanlee.flurry.utils;
 
 import uk.aidanlee.flurry.api.resources.Resource.ShaderValue;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
 import haxe.io.Bytes;
 
 enum AlignmentType

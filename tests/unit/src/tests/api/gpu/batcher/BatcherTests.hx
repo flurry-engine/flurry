@@ -1,5 +1,9 @@
 package tests.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.gpu.ComparisonFunction;
+import uk.aidanlee.flurry.api.gpu.textures.Filtering;
+import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Rectangle;
@@ -113,11 +117,6 @@ class BatcherTests extends BuddySuite
                     var texture = mock(ImageResource);
                     texture.id.returns('1');
 
-                    var camera = mock(Camera);
-                    camera.projection.returns(new Matrix());
-                    camera.view.returns(new Matrix());
-                    camera.viewport.returns(new Rectangle());
-
                     var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
                     var geometry1 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData() });
                     var geometry2 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData() });
@@ -155,11 +154,6 @@ class BatcherTests extends BuddySuite
                     var texture2 = mock(ImageResource);
                     texture1.id.returns('1');
                     texture2.id.returns('2');
-
-                    var camera = mock(Camera);
-                    camera.projection.returns(new Matrix());
-                    camera.view.returns(new Matrix());
-                    camera.viewport.returns(new Rectangle());
 
                     var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
                     var geometry1 = new Geometry({ batchers : [ batcher ], textures : [ texture1 ], vertices : mockVertexData() });
@@ -204,11 +198,6 @@ class BatcherTests extends BuddySuite
                     var texture = mock(ImageResource);
                     texture.id.returns('1');
 
-                    var camera = mock(Camera);
-                    camera.projection.returns(new Matrix());
-                    camera.view.returns(new Matrix());
-                    camera.viewport.returns(new Rectangle());
-
                     var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
                     var geometry1 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData() });
                     var geometry2 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData(), indices : mockIndexData() });
@@ -250,11 +239,6 @@ class BatcherTests extends BuddySuite
                     var texture = mock(ImageResource);
                     texture.id.returns('1');
 
-                    var camera = mock(Camera);
-                    camera.projection.returns(new Matrix());
-                    camera.view.returns(new Matrix());
-                    camera.viewport.returns(new Rectangle());
-
                     var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
                     var geometry1 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData() });
                     var geometry2 = new Geometry({ batchers : [ batcher ], textures : [ texture ], vertices : mockVertexData(), uploadType : Immediate });
@@ -267,16 +251,44 @@ class BatcherTests extends BuddySuite
                     batcher.geometry.length.should.be(1);
                     batcher.geometry[0].id.should.be(geometry1.id);
                 });
+
+                it('Pads the sampler array with nulls so the number of samplers and textures in draw commands match', {
+                    var uniforms = mock(Uniforms);
+                    uniforms.id.returns(0);
+
+                    var shader = mock(ShaderResource);
+                    shader.id.returns('1');
+                    shader.uniforms.returns(uniforms);
+
+                    var s1 = new SamplerState(Wrap, Wrap, Nearest, Nearest);
+                    var s2 = new SamplerState(Wrap, Wrap, Nearest, Nearest);
+                    var t1 = mock(ImageResource);
+                    var t2 = mock(ImageResource);
+
+                    var batcher = new Batcher({ shader: shader, camera: mock(Camera) });
+                    new Geometry({ batchers : [ batcher ], vertices : mockVertexData(), textures : [ t1, t2 ] });
+                    new Geometry({ batchers : [ batcher ], vertices : mockVertexData(), textures : [ t1, t2 ], samplers : [   s1 ]});
+                    new Geometry({ batchers : [ batcher ], vertices : mockVertexData(), textures : [ t1, t2 ], samplers : [   s1, s2 ] });
+                    new Geometry({ batchers : [ batcher ], vertices : mockVertexData(), textures : [ t1, t2 ], samplers : [ null, s2 ] });
+                    new Geometry({ batchers : [ batcher ], vertices : mockVertexData(), textures : [ t1, t2 ], samplers : [ null, s2 ] });
+
+                    var commands = batcher.batch();
+                    commands.length.should.be(4);
+                    commands[0].samplers.should.containExactly([ null, null ]);
+                    commands[1].samplers.should.containExactly([   s1, null ]);
+                    commands[2].samplers.should.containExactly([   s1,   s2 ]);
+                    commands[3].samplers.should.containExactly([ null,   s2 ]);
+                });
             });
         });
     }
 
-    private function mockVertexData() : Array<Vertex>
+    function mockVertexData() : Array<Vertex>
     {
         return [ mock(Vertex), mock(Vertex), mock(Vertex) ];
     }
 
-    private function mockIndexData() : Array<Int>
+    function mockIndexData() : Array<Int>
     {
         return [ 0, 1, 2, 0, 1, 2 ];
     }

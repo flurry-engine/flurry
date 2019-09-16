@@ -9,7 +9,8 @@
             { "id" : "tank2"      , "path" : "assets/images/tank2.png" },
             { "id" : "tank3"      , "path" : "assets/images/tank3.png" },
             { "id" : "wood"       , "path" : "assets/images/wood.png"  },
-            { "id" : "ubuntu.png" , "path" : "assets/fonts/ubuntu.png" }
+            { "id" : "ubuntu.png" , "path" : "assets/fonts/ubuntu.png" },
+            { "id" : "van"        , "path" : "assets/images/van.png"   }
         ],
         "shaders" : [
             {
@@ -36,7 +37,7 @@
         ]
     },
     "parcels" : [
-        { "name" : "preload", "assets" : [ "tank1", "tank2", "tank3", "wood", "ubuntu.fnt", "ubuntu.png" ], "depends" : [ "shaders" ] },
+        { "name" : "preload", "assets" : [ "tank1", "tank2", "tank3", "wood", "ubuntu.fnt", "ubuntu.png", "van" ], "depends" : [ "shaders" ] },
         { "name" : "shaders", "assets" : [ "textured", "colourise", "purple" ], "depends" : [] }
     ]
 }

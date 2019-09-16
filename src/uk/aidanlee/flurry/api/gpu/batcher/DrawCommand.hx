@@ -7,6 +7,7 @@ import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.StencilOptions;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 
@@ -33,6 +34,9 @@ class DrawCommand
      */
     public final camera : Camera;
 
+    /**
+     * Screen space region this draw will be clipped to.
+     */
     public final clip : Null<Rectangle>;
 
     /**
@@ -70,6 +74,8 @@ class DrawCommand
      */
     public final textures : Array<ImageResource>;
 
+    public final samplers : Array<Null<SamplerState>>;
+
     public final depth : DepthOptions;
 
     public final stencil : StencilOptions;
@@ -99,6 +105,7 @@ class DrawCommand
         _shader     : ShaderResource,
         _uniforms   : Uniforms,
         _textures   : Array<ImageResource>,
+        _samplers   : Array<Null<SamplerState>>,
         _depth      : DepthOptions,
         _stencil    : StencilOptions,
         _blending   : Bool,
@@ -119,6 +126,7 @@ class DrawCommand
         shader     = _shader;
         uniforms   = _uniforms;
         textures   = _textures;
+        samplers   = _samplers;
         depth      = _depth;
         stencil    = _stencil;
         blending   = _blending;

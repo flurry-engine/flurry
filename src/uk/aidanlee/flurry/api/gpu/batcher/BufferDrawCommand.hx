@@ -11,6 +11,7 @@ import uk.aidanlee.flurry.api.gpu.StencilOptions;
 import uk.aidanlee.flurry.api.gpu.DepthOptions;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Matrix;
 
 class BufferDrawCommand extends DrawCommand
@@ -68,6 +69,7 @@ class BufferDrawCommand extends DrawCommand
         _shader     : ShaderResource,
         _uniforms   : Uniforms,
         _textures   : Array<ImageResource>,
+        _samplers   : Array<Null<SamplerState>>,
         _depth      : DepthOptions,
         _stencil    : StencilOptions,
         _blending   : Bool,
@@ -85,6 +87,6 @@ class BufferDrawCommand extends DrawCommand
         idxEndIndex   = _idxEndIndex;
         model         = _model;
 
-        super(_id, _uploadType, _camera, clip, vtxEndIndex - vtxStartIndex, idxEndIndex - idxStartIndex, _primitive, _target, _shader, _uniforms, _textures, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
+        super(_id, _uploadType, _camera, clip, vtxEndIndex - vtxStartIndex, idxEndIndex - idxStartIndex, _primitive, _target, _shader, _uniforms, _textures, _samplers, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
     }
 }

@@ -26,6 +26,7 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
@@ -128,6 +129,11 @@ class OGL3Backend implements IRendererBackend
     final textureObjects : Map<String, Int>;
 
     /**
+     * The sampler objects which have been created for each specific texture.
+     */
+    final samplerObjects : Map<String, Map<Int, Int>>;
+
+    /**
      * Framebuffer objects keyed by their associated image resource IDs.
      * Framebuffers will only be generated when an image resource is used as a target.
      * Will be destroyed when the associated image resource is destroyed.
@@ -156,6 +162,26 @@ class OGL3Backend implements IRendererBackend
     final textureSlots : Array<Int>;
 
     /**
+     * Map of command IDs and the vertex offset into the buffer.
+     */
+    final commandVtxOffsets : Map<Int, Int>;
+
+    /**
+     * Map of command IDs and the index offset into the buffer.
+     */
+    final commandIdxOffsets : Map<Int, Int>;
+
+    /**
+     * Map of all the model matices to transform buffer commands.
+     */
+    final bufferModelMatrix : Map<Int, Matrix>;
+
+    /**
+     * The default sampler object to use if no sampler is provided.
+     */
+    final defaultSampler : Int;
+
+    /**
      * Backbuffer display, default target if none is specified.
      */
     var backbuffer : BackBuffer;
@@ -174,21 +200,6 @@ class OGL3Backend implements IRendererBackend
      * The number of indices that have been written into the index buffer this frame.
      */
     var indexOffset : Int;
-
-    /**
-     * Map of command IDs and the vertex offset into the buffer.
-     */
-    var commandVtxOffsets : Map<Int, Int>;
-
-    /**
-     * Map of command IDs and the index offset into the buffer.
-     */
-    var commandIdxOffsets : Map<Int, Int>;
-
-    /**
-     * Map of all the model matices to transform buffer commands.
-     */
-    var bufferModelMatrix : Map<Int, Matrix>;
 
     // GL state variables
 
@@ -214,6 +225,7 @@ class OGL3Backend implements IRendererBackend
         shaderPrograms     = [];
         shaderUniforms     = [];
         textureObjects     = [];
+        samplerObjects     = [];
         framebufferObjects = [];
 
         perspectiveYFlipVector = new Vector(1, -1, 1);
@@ -222,6 +234,7 @@ class OGL3Backend implements IRendererBackend
         transformationVectors  = [ for (_ in 0...RENDERER_THREADS) new Vector() ];
         commandVtxOffsets      = [];
         commandIdxOffsets      = [];
+        bufferModelMatrix      = [];
 
         vertexOffset      = 0;
         vertexFloatOffset = 0;
@@ -257,6 +270,14 @@ class OGL3Backend implements IRendererBackend
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 0, 3, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_POS);
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 1, 4, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_COL);
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 2, 2, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
+
+        var samplers = [ 0 ];
+        glGenSamplers(1, samplers);
+        defaultSampler = samplers[0];
+        glSamplerParameteri(defaultSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glSamplerParameteri(defaultSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glSamplerParameteri(defaultSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glSamplerParameteri(defaultSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         // default state
         viewport     = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
@@ -298,9 +319,9 @@ class OGL3Backend implements IRendererBackend
         vertexOffset      = 0;
         vertexFloatOffset = 0;
         indexOffset       = 0;
-        commandVtxOffsets = [];
-        commandIdxOffsets = [];
-        bufferModelMatrix = [];
+        commandVtxOffsets.clear();
+        commandIdxOffsets.clear();
+        bufferModelMatrix.clear();
     }
 
     /**
@@ -665,7 +686,8 @@ class OGL3Backend implements IRendererBackend
 
         glBindTexture(GL_TEXTURE_2D, 0);
 
-        textureObjects.set(_resource.id, id[0]);
+        textureObjects[_resource.id] = id[0];
+        samplerObjects[_resource.id] = new Map();
     }
 
     /**
@@ -674,8 +696,16 @@ class OGL3Backend implements IRendererBackend
      */
     function removeTexture(_resource : ImageResource)
     {
+        var samplers = [];
+        for (sampler in samplerObjects[_resource.id])
+        {
+            samplers.push(sampler);
+        }
+        glDeleteSamplers(samplers.length, samplers);
         glDeleteTextures(1, [ textureObjects.get(_resource.id) ]);
+
         textureObjects.remove(_resource.id);
+        samplerObjects.remove(_resource.id);
     }
 
     /**
@@ -899,11 +929,30 @@ class OGL3Backend implements IRendererBackend
         var cache = shaderUniforms.get(_command.shader.id);
         var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
 
+        // Bind textures and samplers.
         if (cache.layout.textures.length <= _command.textures.length)
         {
             // then go through each texture and bind it if it isn't already.
             for (i in 0..._command.textures.length)
             {
+                // Get / create and bind the sampler for the current texture.
+                var currentSampler = defaultSampler;
+                if (_command.samplers[i] != null)
+                {
+                    var samplerHash     = _command.samplers[i].hash();
+                    var textureSamplers = samplerObjects[_command.textures[i].id];
+
+                    if (!textureSamplers.exists(samplerHash))
+                    {
+                        textureSamplers[samplerHash] = createSamplerObject(_command.samplers[i]);
+                    }
+
+                    currentSampler = textureSamplers[samplerHash];
+                }
+                
+                glBindSampler(cache.textureLocations[i], currentSampler);
+
+                // Bind the texture if its not already bound.
                 var glTextureID  = textureObjects.get(_command.textures[i].id);
                 if (glTextureID != textureSlots[i])
                 {
@@ -921,6 +970,7 @@ class OGL3Backend implements IRendererBackend
             throw new GL32NotEnoughTexturesException(_command.shader.id, _command.id, cache.layout.textures.length, _command.textures.length);
         }
 
+        // Upload and bind all buffer data.
         for (i in 0...cache.layout.blocks.length)
         {
             glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[i]);
@@ -997,6 +1047,18 @@ class OGL3Backend implements IRendererBackend
             case Custom:
                 // Do nothing, user is responsible for building their custom camera matrices.
         }
+    }
+
+    function createSamplerObject(_sampler : SamplerState) : Int
+    {
+        var samplers = [ 0 ];
+        glGenSamplers(1, samplers);
+        glSamplerParameteri(samplers[0], GL_TEXTURE_MAG_FILTER, _sampler.minification.getFilterType());
+        glSamplerParameteri(samplers[0], GL_TEXTURE_MIN_FILTER, _sampler.magnification.getFilterType());
+        glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_S, _sampler.uClamping.getEdgeClamping());
+        glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_T, _sampler.vClamping.getEdgeClamping());
+
+        return samplers[0];
     }
 
     function createBackbuffer(_width : Int, _height : Int, _remove : Bool = true) : BackBuffer

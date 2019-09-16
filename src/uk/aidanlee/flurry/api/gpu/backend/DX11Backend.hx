@@ -28,6 +28,8 @@ import d3d11.enumerations.D3d11Blend;
 import d3d11.enumerations.D3d11CpuAccessFlag;
 import d3d11.enumerations.D3d11BindFlag;
 import d3d11.enumerations.D3d11ColorWriteEnable;
+import d3d11.enumerations.D3d11TextureAddressMode;
+import d3d11.enumerations.D3d11Filter;
 import d3d11.structures.D3d11DepthStencilDescription;
 import d3d11.structures.D3d11SamplerDescription;
 import d3d11.structures.D3d11InputElementDescription;
@@ -66,6 +68,9 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
+import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
+import uk.aidanlee.flurry.api.gpu.textures.Filtering;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
@@ -245,6 +250,26 @@ class DX11Backend implements IRendererBackend
     final targetResources : Map<String, D3d11RenderTargetView>;
 
     /**
+     * Sampler to use when none is provided.
+     */
+    final defaultSampler : D3d11SamplerState;
+
+    /**
+     * Map of command IDs and the vertex offset into the buffer.
+     */
+    final commandVtxOffsets : Map<Int, Int>;
+
+    /**
+     * Map of command IDs and the index offset into the buffer.
+     */
+    final commandIdxOffsets : Map<Int, Int>;
+
+    /**
+     * Map of all the model matices to transform buffer commands.
+     */
+    final bufferModelMatrix : Map<Int, Matrix>;
+
+    /**
      * The number of vertices that have been written into the vertex buffer this frame.
      */
     var vertexOffset : Int;
@@ -258,21 +283,6 @@ class DX11Backend implements IRendererBackend
      * The number of indices that have been written into the index buffer this frame.
      */
     var indexOffset : Int;
-
-    /**
-     * Map of command IDs and the vertex offset into the buffer.
-     */
-    var commandVtxOffsets : Map<Int, Int>;
-
-    /**
-     * Map of command IDs and the index offset into the buffer.
-     */
-    var commandIdxOffsets : Map<Int, Int>;
-
-    /**
-     * Map of all the model matices to transform buffer commands.
-     */
-    var bufferModelMatrix : Map<Int, Matrix>;
 
     // State trackers
     var viewport : Rectangle;
@@ -488,6 +498,28 @@ class DX11Backend implements IRendererBackend
             throw 'DirectX 11 Backend Exception : Failed to create depth stencil view';
         }
 
+        // Create the default texture sampler
+        var samplerDescription = new D3d11SamplerDescription();
+        samplerDescription.filter         = MinMagMipPoint;
+        samplerDescription.addressU       = Clamp;
+        samplerDescription.addressV       = Clamp;
+        samplerDescription.addressW       = Clamp;
+        samplerDescription.mipLodBias     = 0;
+        samplerDescription.maxAnisotropy  = 1;
+        samplerDescription.comparisonFunc = Never;
+        samplerDescription.borderColor[0] = 1;
+        samplerDescription.borderColor[1] = 1;
+        samplerDescription.borderColor[2] = 1;
+        samplerDescription.borderColor[3] = 1;
+        samplerDescription.minLod         = -1;
+        samplerDescription.minLod         = 1;
+
+        defaultSampler = new D3d11SamplerState();
+        if (device.createSamplerState(samplerDescription, defaultSampler) != Ok)
+        {
+            throw 'DirectX 11 Backend Exception : Failed to create default sampler state';
+        }
+
         // Set the initial context state.
         var stride = (9 * 4);
         var offset = 0;
@@ -505,6 +537,7 @@ class DX11Backend implements IRendererBackend
 
         commandVtxOffsets     = [];
         commandIdxOffsets     = [];
+        bufferModelMatrix     = [];
         transformationVectors = [ for (i in 0...RENDERER_THREADS) new Vector() ];
         clearColour           = [ _rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a ];
         jobQueue              = new JobQueue(RENDERER_THREADS);
@@ -532,9 +565,9 @@ class DX11Backend implements IRendererBackend
         vertexOffset      = 0;
         vertexFloatOffset = 0;
         indexOffset       = 0;
-        commandVtxOffsets = [];
-        commandIdxOffsets = [];
-        bufferModelMatrix = [];
+        commandVtxOffsets.clear();
+        commandIdxOffsets.clear();
+        bufferModelMatrix.clear();
     }
 
     /**
@@ -961,25 +994,8 @@ class DX11Backend implements IRendererBackend
         imgDesc.cpuAccessFlags     = 0;
         imgDesc.miscFlags          = 0;
 
-        // Setup this images sampler. Will describe how HLSL samples texture data in shaders.
-        var samplerDescription = new D3d11SamplerDescription();
-        samplerDescription.filter         = MinMagMipPoint;
-        samplerDescription.addressU       = Clamp;
-        samplerDescription.addressV       = Clamp;
-        samplerDescription.addressW       = Clamp;
-        samplerDescription.mipLodBias     = 0;
-        samplerDescription.maxAnisotropy  = 1;
-        samplerDescription.comparisonFunc = Never;
-        samplerDescription.borderColor[0] = 1;
-        samplerDescription.borderColor[1] = 1;
-        samplerDescription.borderColor[2] = 1;
-        samplerDescription.borderColor[3] = 1;
-        samplerDescription.minLod         = -1;
-        samplerDescription.minLod         = 1;
-
         var texture = new D3d11Texture2D();
         var resView = new D3d11ShaderResourceView();
-        var sampler = new D3d11SamplerState();
 
         if (device.createTexture2D(imgDesc, imgData, texture) != Ok)
         {
@@ -989,12 +1005,8 @@ class DX11Backend implements IRendererBackend
         {
             throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to create shader resource view';
         }
-        if (device.createSamplerState(samplerDescription, sampler) != Ok)
-        {
-            throw 'DirectX 11 Backend Exception : ${_resource.id} : Failed to create sampler state';
-        }
 
-        textureResources.set(_resource.id, new DXTextureInformation(texture, resView, sampler));
+        textureResources.set(_resource.id, new DXTextureInformation(texture, resView));
     }
 
     /**
@@ -1184,9 +1196,24 @@ class DX11Backend implements IRendererBackend
             
             for (i in 0..._command.textures.length)
             {
-                var textureResource = textureResources.get(_command.textures[i].id);
-                shaderTextureResources[i] = textureResource.shaderResourceView;
-                shaderTextureSamplers[i] = textureResource.samplerState;
+                var texture = textureResources.get(_command.textures[i].id);
+                var sampler = defaultSampler;
+                if (_command.samplers[i] != null)
+                {
+                    var samplerHash = _command.samplers[i].hash();
+                    if (!texture.samplers.exists(samplerHash))
+                    {
+                        sampler = createSampler(_command.samplers[i]);
+                        texture.samplers[samplerHash] = sampler;
+                    }
+                    else
+                    {
+                        sampler = texture.samplers[samplerHash];
+                    }
+                }
+
+                shaderTextureResources[i] = texture.shaderResourceView;
+                shaderTextureSamplers [i] = sampler;
             }
 
             context.psSetShaderResources(0, shaderTextureResources);
@@ -1254,6 +1281,32 @@ class DX11Backend implements IRendererBackend
             context.vsSetConstantBuffers(i, [ shaderResource.constantBuffers[i] ]);
             context.psSetConstantBuffers(i, [ shaderResource.constantBuffers[i] ]);
         }
+    }
+
+    function createSampler(_sampler : SamplerState) : D3d11SamplerState
+    {
+        var samplerDescription = new D3d11SamplerDescription();
+        samplerDescription.filter         = getFilterType(_sampler.minification);
+        samplerDescription.addressU       = getEdgeClamping(_sampler.uClamping);
+        samplerDescription.addressV       = getEdgeClamping(_sampler.vClamping);
+        samplerDescription.addressW       = Clamp;
+        samplerDescription.mipLodBias     = 0;
+        samplerDescription.maxAnisotropy  = 1;
+        samplerDescription.comparisonFunc = Never;
+        samplerDescription.borderColor[0] = 1;
+        samplerDescription.borderColor[1] = 1;
+        samplerDescription.borderColor[2] = 1;
+        samplerDescription.borderColor[3] = 1;
+        samplerDescription.minLod         = -1;
+        samplerDescription.minLod         = 1;
+
+        var sampler = new D3d11SamplerState();
+        if (device.createSamplerState(samplerDescription, sampler) != Ok)
+        {
+            throw 'DirectX 11 Backend Exception : Failed to create default sampler state';
+        }
+
+        return sampler;
     }
 
     function buildCameraMatrices(_camera : Camera)
@@ -1340,6 +1393,26 @@ class DX11Backend implements IRendererBackend
         }
     }
 
+    inline function getFilterType(_filter : Filtering) : D3d11Filter
+    {
+        return switch _filter
+        {
+            case Nearest : MinMagMipPoint;
+            case Linear  : MinMagMipLinear;
+        }
+    }
+
+    inline function getEdgeClamping(_clamp : EdgeClamping) : D3d11TextureAddressMode
+    {
+        return switch _clamp
+        {
+            case Wrap   : Wrap;
+            case Mirror : Mirror;
+            case Clamp  : Clamp;
+            case Border : Border;
+        }
+    }
+
     function onSizeChanged(_data : DisplayEventData)
     {
         resize(_data.width, _data.height);
@@ -1405,13 +1478,13 @@ private class DXTextureInformation
     /**
      * D3D11 Sampler State to sample the textures data.
      */
-    public var samplerState : D3d11SamplerState;
+    public var samplers : Map<Int, D3d11SamplerState>;
 
-    public function new(_texture : D3d11Texture2D, _resView : D3d11ShaderResourceView, _sampler : D3d11SamplerState)
+    public function new(_texture : D3d11Texture2D, _resView : D3d11ShaderResourceView)
     {
         texture            = _texture;
         shaderResourceView = _resView;
-        samplerState       = _sampler;
+        samplers           = [];
     }
 }
 
