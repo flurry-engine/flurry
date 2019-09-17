@@ -13,8 +13,8 @@
         "signals"             : "gh:peteshand/signals",
         "safety"              : "gh:RealyUniqueName/Safety",
         "sys.io.abstractions" : "gh:aidan63/sys.io.abstractions",
-        "linc_imgui"          : "gh:aidan63/linc_imgui",
-        "linc_directx"        : "gh:aidan63/linc_directx",
-        "json2object"         : "gh:elnabo/json2object/"
+        "json2object"         : "gh:elnabo/json2object/",
+        "linc_imgui"          : "git:https://github.com/Aidan63/linc_imgui as linc_imgui#1.0.0",
+        "linc_directx"        : "git:https://github.com/Aidan63/linc_directx as linc_directx#1.0.0"
     }
 }
