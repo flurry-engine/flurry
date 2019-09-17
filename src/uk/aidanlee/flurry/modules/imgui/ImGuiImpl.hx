@@ -255,6 +255,7 @@ class ImGuiImpl
                     resources.get('std-shader-textured.json', ShaderResource),
                     null,
                     [ t.value ],
+                    [ null ],
                     depth,
                     stencil,
                     true,
