@@ -1,7 +1,7 @@
-package tests.utils;
+package tests.utils.bytes;
 
 import uk.aidanlee.flurry.api.resources.Resource.ShaderValue;
-import uk.aidanlee.flurry.utils.BytesPacker;
+import uk.aidanlee.flurry.utils.bytes.BytesPacker;
 
 import buddy.BuddySuite;
 

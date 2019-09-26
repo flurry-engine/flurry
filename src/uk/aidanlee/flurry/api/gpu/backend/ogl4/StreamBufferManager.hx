@@ -200,7 +200,7 @@ class StreamBufferManager
                         // Copy the vertex into another vertex.
                         // This allows us to apply the transformation without permanently modifying the original geometry.
                         transformationVectors[i].copyFrom(vertex.position);
-                        transformationVectors[i].transform(_command.geometry[j].transformation.transformation);
+                        transformationVectors[i].transform(_command.geometry[j].transformation.world.matrix);
 
                         vtxBuffer[vtxWriteOffset++] = transformationVectors[i].x;
                         vtxBuffer[vtxWriteOffset++] = transformationVectors[i].y;

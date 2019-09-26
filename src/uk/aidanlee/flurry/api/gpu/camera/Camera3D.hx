@@ -1,6 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.camera;
 
-import uk.aidanlee.flurry.api.gpu.geometry.Transformation;
+import uk.aidanlee.flurry.api.maths.Transformation;
 
 class Camera3D extends Camera
 {

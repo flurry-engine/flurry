@@ -1,4 +1,4 @@
-package uk.aidanlee.flurry.utils;
+package uk.aidanlee.flurry.utils.bytes;
 
 import uk.aidanlee.flurry.api.resources.Resource.ShaderValue;
 import haxe.io.Bytes;

@@ -27,6 +27,7 @@ class Test extends SingleSuite
                 'StencilTesting',
                 'Text',
                 'Transformations',
+                'TransformationTree',
                 'ImageSamplers' ];
 
             for (test in cases)

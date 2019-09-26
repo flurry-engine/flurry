@@ -8,6 +8,8 @@ class Main implements Buddy<[
     tests.api.maths.MatrixTests,
     tests.api.maths.RectangleTests,
     tests.api.maths.CircleTests,
+    tests.api.maths.SpatialTests,
+    tests.api.maths.TransformationTests,
 
     tests.api.display.DisplayTests,
 
@@ -17,7 +19,6 @@ class Main implements Buddy<[
     tests.api.input.InputTests,
 
     tests.api.gpu.geometry.VertexTests,
-    tests.api.gpu.geometry.TransformationTests,
     tests.api.gpu.geometry.BlendingTests,
     tests.api.gpu.geometry.ColorTests,
     tests.api.gpu.geometry.GeometryTests,
@@ -48,7 +49,8 @@ class Main implements Buddy<[
     tests.modules.differ.data.RayIntersectionTests,
     tests.modules.differ.data.ShapeCollisionTests,
 
-    tests.utils.BytesPackerTests
+    tests.utils.bytes.BytesPackerTests,
+    tests.utils.bytes.FastFloat32ArrayTests
 ]>
 {
     //

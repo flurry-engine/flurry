@@ -1,61 +1,47 @@
 package uk.aidanlee.flurry.api.maths;
 
+import uk.aidanlee.flurry.utils.bytes.FastFloat32Array;
+
 /**
  * 
  */
-class Quaternion
+abstract Quaternion(FastFloat32Array) from FastFloat32Array to FastFloat32Array
 {
     /**
      * The x component of this quaternion.
      */
-    public var x (default, set) : Float;
+    public var x (get, set) : Float;
 
-    inline function set_x(_x : Float) : Float {
-        x = _x;
-
-        updateEuler();
-
-        return x;
-    }
+    inline function get_x() : Float return this[0];
+ 
+    inline function set_x(_x : Float) : Float return this[0] = _x;
 
     /**
      * The y component of this quaternion.
      */
-    public var y (default, set) : Float;
+    public var y (get, set) : Float;
 
-    inline function set_y(_y : Float) : Float {
-        y = _y;
+    inline function get_y() : Float return this[1];
 
-        updateEuler();
-
-        return y;
-    }
+    inline function set_y(_y : Float) : Float return this[1] = _y;
 
     /**
      * The z component of this quaternion.
      */
-    public var z (default, set) : Float;
+    public var z (get, set) : Float;
 
-    inline function set_z(_z : Float) : Float {
-        z = _z;
+    inline function get_z() return this[2];
 
-        updateEuler();
-
-        return z;
-    }
+    inline function set_z(_z : Float) : Float return this[2] = _z;
 
     /**
      * The w component of this quaternion.
      */
-    public var w (default, set) : Float;
+    public var w (get, set) : Float;
 
-    inline function set_w(_w : Float) : Float {
-        w = _w;
+    inline function get_w() return this[3];
 
-        updateEuler();
-
-        return w;
-    }
+    inline function set_w(_w : Float) : Float return this[3] = _w;
 
     /**
      * The length of this quaternion.
@@ -95,21 +81,6 @@ class Quaternion
     }
 
     /**
-     * If the euler vector should be updated when properties and functions are called which modifies the quaternion.
-     */
-    var ignoreEuler : Bool;
-
-    /**
-     * Vector representing the euler angle of this quaternion.
-     */
-    var euler : Vector;
-
-    /**
-     * If the constructor has not finished.
-     */
-    var construct : Bool;
-
-    /**
      * Create a new quaternion instance.
      * @param _x The value of the x component. (default 0)
      * @param _y The value of the y component. (default 0)
@@ -118,17 +89,12 @@ class Quaternion
      */
     public inline function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 1)
     {
-        construct = true;
-
+        this = new FastFloat32Array(4);
+        
         x = _x;
         y = _y;
         z = _z;
         w = _w;
-
-        ignoreEuler = false;
-        euler       = new Vector();
-
-        construct = false;
     }
 
     /**
@@ -156,9 +122,7 @@ class Quaternion
      */
     public inline function copy(_q : Quaternion) : Quaternion
     {
-        set_xyzw(_q.x, _q.y, _q.z, _q.w);
-
-        return this;
+        return set_xyzw(_q.x, _q.y, _q.z, _q.w);
     }
 
     /**
@@ -186,9 +150,7 @@ class Quaternion
      */
     public inline function fromArray(_a : Array<Float>) : Quaternion
     {
-        set_xyzw(_a[0], _a[1], _a[2], _a[3]);
-
-        return this;
+        return set_xyzw(_a[0], _a[1], _a[2], _a[3]);
     }
 
     /**
@@ -200,17 +162,10 @@ class Quaternion
      */
     public inline function set_xyzw(_x : Float, _y : Float, _z : Float, _w : Float) : Quaternion
     {
-        ignoreEuler = true;
-
         x = _x;
         y = _y;
         z = _z;
         w = _w;
-
-        ignoreEuler = false;
-
-        // Defer updating the euler vector until all components have been set.
-        updateEuler();
 
         return this;
     }
@@ -223,16 +178,9 @@ class Quaternion
      */
     public inline function set_xyz(_x : Float, _y : Float, _z : Float) : Quaternion
     {
-        ignoreEuler = true;
-
         x = _x;
         y = _y;
         z = _z;
-
-        ignoreEuler = false;
-
-        // Defer updating the euler vector until all components have been set.
-        updateEuler();
 
         return this;
     }
@@ -265,9 +213,7 @@ class Quaternion
      */
     public inline function conjugate() : Quaternion
     {
-        set_xyz(x * -1, y * -1, z * -1);
-
-        return this;
+        return set_xyz(x * -1, y * -1, z * -1);
     }
 
     /**
@@ -300,9 +246,7 @@ class Quaternion
      */
     public inline function addScalar(_s : Float) : Quaternion
     {
-        set_xyzw(x + _s, y + _s, z + _s, w + _s);
-
-        return this;
+        return set_xyzw(x + _s, y + _s, z + _s, w + _s);
     }
 
     /**
@@ -312,9 +256,7 @@ class Quaternion
      */
     public inline function add(_q : Quaternion) : Quaternion
     {
-        set_xyzw(x + _q.x, y + _q.y, z + _q.z, w + _q.w);
-
-        return this;
+        return set_xyzw(x + _q.x, y + _q.y, z + _q.z, w + _q.w);
     }
 
     /**
@@ -324,9 +266,7 @@ class Quaternion
      */
     public inline function multiplyScalar(_s : Float) : Quaternion
     {
-        set_xyzw(x * _s, y * _s, z * _s, w * _s);
-
-        return this;
+        return set_xyzw(x * _s, y * _s, z * _s, w * _s);
     }
 
     /**
@@ -346,14 +286,12 @@ class Quaternion
         var qbz = _q.z;
         var qbw = _q.w;
 
-        set_xyzw(
+        return set_xyzw(
             qax * qbw + qaw * qbx + qay * qbz - qaz * qby,
             qay * qbw + qaw * qby + qaz * qbx - qax * qbz,
             qaz * qbw + qaw * qbz + qax * qby - qay * qbx,
             qaw * qbw - qax * qbx - qay * qby - qaz * qbz
         );
-
-        return this;
     }
 
     // #endregion
@@ -415,9 +353,7 @@ class Quaternion
                 _w = c1 * c2 * c3 + s1 * s2 * s3;
         }
 
-        set_xyzw(_x, _y, _z, _w);
-
-        return this;
+        return set_xyzw(_x, _y, _z, _w);
     }
 
     /**
@@ -431,9 +367,7 @@ class Quaternion
         var halfAngle = _angle / 2;
         var sin       = Maths.sin(halfAngle);
 
-        set_xyzw(_axis.x * sin, _axis.y * sin, _axis.z * sin, Maths.cos(halfAngle));
-
-        return this;
+        return set_xyzw(_axis.x * sin, _axis.y * sin, _axis.z * sin, Maths.cos(halfAngle));
     }
 
     /**
@@ -494,24 +428,7 @@ class Quaternion
 
         }
 
-        set_xyzw(_x, _y, _z, _w);
-
-        return this;
-    }
-
-    // #endregion
-
-    // #region private functions
-
-    /**
-     * Updates the vector containing the euler angles.
-     */
-    inline function updateEuler()
-    {
-        if (!construct && !ignoreEuler)
-        {
-            euler.setEulerFromQuaternion(this);
-        }
+        return set_xyzw(_x, _y, _z, _w);
     }
 
     // #endregion

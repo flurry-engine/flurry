@@ -1,13 +1,11 @@
 package uk.aidanlee.flurry.api.maths;
 
-import haxe.io.Float32Array;
-
-using haxe.io.Bytes;
+import uk.aidanlee.flurry.utils.bytes.FastFloat32Array;
 
 /**
  * 4x4 matrix class for transformations and perspective.
  */
-abstract Matrix(Float32Array) from Float32Array to Float32Array
+abstract Matrix(FastFloat32Array) from FastFloat32Array to FastFloat32Array
 {
     public var M11 (get, set) : Float;
     public var M21 (get, set) : Float;
@@ -98,7 +96,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
         _n31 : Float = 0, _n32 : Float = 0, _n33 : Float = 1, _n34 : Float = 0,
         _n41 : Float = 0, _n42 : Float = 0, _n43 : Float = 0, _n44 : Float = 1)
     {
-        this = new Float32Array(16);
+        this = new FastFloat32Array(16);
 
         set(
             _n11, _n12, _n13, _n14,
@@ -376,7 +374,7 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
      * @param _quaternion Optional quaternion to store the rotation in.
      * @param _scale      Optional vector to store the scale in.
      */
-    public inline function decompose(?_position : Vector, ?_quaternion : Quaternion, ?_scale : Vector) : MatrixTransform
+    public inline function decompose(_position : Vector, _quaternion : Quaternion, _scale : Vector) : Matrix
     {
         var ax_x = this[0]; var ax_y = this[1]; var ax_z = this[ 2];
         var ay_x = this[4]; var ay_y = this[5]; var ay_z = this[ 6];
@@ -386,48 +384,27 @@ abstract Matrix(Float32Array) from Float32Array to Float32Array
         var ay_length = Maths.sqrt(ay_x * ay_x + ay_y * ay_y + ay_z * ay_z);
         var az_length = Maths.sqrt(az_x * az_x + az_y * az_y + az_z * az_z);
 
-        if (_quaternion == null)
-        {
-            _quaternion = new Quaternion();
-        }
-
         // Get the position from the matrix.
-        if (_position == null)
-        {
-            _position = new Vector(this[12], this[13], this[14]);
-        }
-        else
-        {
-            _position.set_xyz(this[12], this[13], this[14]);
-        }
+        _position.set_xyz(this[12], this[13], this[14]);
 
         // Get the scale from the matrix
-        if (_scale == null)
-        {
-            _scale = new Vector(ax_length, ay_length, az_length);
-        }
-        else
-        {
-            _scale.set_xyz(ax_length, ay_length, az_length);
-        }
+        _scale.set_xyz(ax_length, ay_length, az_length);
 
-        var matrix : Matrix = cast Float32Array.fromData(this.getData());
+        this[0] /= ax_length;
+        this[1] /= ax_length;
+        this[2] /= ax_length;
 
-        matrix[0] /= ax_length;
-        matrix[1] /= ax_length;
-        matrix[2] /= ax_length;
+        this[4] /= ax_length;
+        this[5] /= ax_length;
+        this[6] /= ax_length;
 
-        matrix[4] /= ax_length;
-        matrix[5] /= ax_length;
-        matrix[6] /= ax_length;
+        this[ 8] /= ax_length;
+        this[ 9] /= ax_length;
+        this[10] /= ax_length;
 
-        matrix[ 8] /= ax_length;
-        matrix[ 9] /= ax_length;
-        matrix[10] /= ax_length;
+        _quaternion.setFromRotationMatrix(this);
 
-        _quaternion.setFromRotationMatrix(matrix);
-
-        return new MatrixTransform(_position, _quaternion, _scale);
+        return this;
     }
 
     // #endregion

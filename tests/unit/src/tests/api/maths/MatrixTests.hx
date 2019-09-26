@@ -269,22 +269,25 @@ class MatrixTests extends BuddySuite
                     m[15].should.beCloseTo(1);
                 });
                 it('Can decompose a matrix into a position, rotation, and scale', {
-                    var t = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 1, 0).decompose(null, null, null);
+                    var p = new Vector();
+                    var r = new Quaternion();
+                    var s = new Vector();
+                    new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 1, 0).decompose(p, r, s);
                     
-                    t.position.x.should.beCloseTo(-1);
-                    t.position.y.should.beCloseTo(1);
-                    t.position.z.should.beCloseTo(1);
-                    t.position.w.should.beCloseTo(0);
+                    p.x.should.beCloseTo(-1);
+                    p.y.should.beCloseTo(1);
+                    p.z.should.beCloseTo(1);
+                    p.w.should.beCloseTo(0);
 
-                    t.scale.x.should.beCloseTo(0.00156);
-                    t.scale.y.should.beCloseTo(0.00277);
-                    t.scale.z.should.beCloseTo(2);
-                    t.scale.w.should.beCloseTo(0);
+                    s.x.should.beCloseTo(0.00156);
+                    s.y.should.beCloseTo(0.00277);
+                    s.z.should.beCloseTo(2);
+                    s.w.should.beCloseTo(0);
 
-                    t.rotation.x.should.beCloseTo(0);
-                    t.rotation.y.should.beCloseTo(0);
-                    t.rotation.z.should.beCloseTo(0);
-                    t.rotation.w.should.beCloseTo(17.890);
+                    r.x.should.beCloseTo(0);
+                    r.y.should.beCloseTo(0);
+                    r.z.should.beCloseTo(0);
+                    r.w.should.beCloseTo(17.890);
                 });
             });
 

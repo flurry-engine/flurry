@@ -135,11 +135,8 @@ class Keycodes
             case Keycodes.space:     Scancodes.name(Scancodes.space);
             case Keycodes.delete:    Scancodes.name(Scancodes.delete);
 
-            default :
-                var decoder = new haxe.Utf8();
-                decoder.addChar(_keycode);
-                
-                return decoder.toString();
+            default:
+                return new UnicodeString(Std.string(_keycode));
         }
     }
 

@@ -23,5 +23,6 @@
 
 --macro nullSafety('uk.aidanlee.flurry.modules.differ', Strict)
 --macro nullSafety('uk.aidanlee.flurry.api.resources', Strict)
+--macro nullSafety('uk.aidanlee.flurry.api.maths', Strict)
 
 --cmd lix run parcel pack --input=assets/assets.json --output=bin/

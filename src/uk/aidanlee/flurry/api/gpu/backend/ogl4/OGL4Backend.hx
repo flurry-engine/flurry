@@ -1,7 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.ogl4;
 
 import haxe.io.Bytes;
-import haxe.io.Float32Array;
 import haxe.ds.Map;
 import cpp.Stdlib;
 import cpp.Float32;
@@ -33,6 +32,7 @@ import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.utils.opengl.GLSyncWrapper;
+import uk.aidanlee.flurry.utils.bytes.FastFloat32Array;
 
 using Safety;
 using cpp.NativeArray;
@@ -273,16 +273,16 @@ class OGL4Backend implements IRendererBackend
         // Create the vao and bind the vbo to it.
         var vao = [ 0 ];
         glCreateVertexArrays(1, vao);
-        glVertexArrayVertexBuffer(vao[0], 0, buffers[0], 0, Float32Array.BYTES_PER_ELEMENT * VERTEX_FLOAT_SIZE);
+        glVertexArrayVertexBuffer(vao[0], 0, buffers[0], 0, FastFloat32Array.BYTES_PER_ELEMENT * VERTEX_FLOAT_SIZE);
 
         // Enable and setup the vertex attributes for this batcher.
         glEnableVertexArrayAttrib(vao[0], 0);
         glEnableVertexArrayAttrib(vao[0], 1);
         glEnableVertexArrayAttrib(vao[0], 2);
 
-        glVertexArrayAttribFormat(buffers[0], 0, 3, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_POS);
-        glVertexArrayAttribFormat(buffers[0], 1, 4, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_COL);
-        glVertexArrayAttribFormat(buffers[0], 2, 2, GL_FLOAT, false, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
+        glVertexArrayAttribFormat(buffers[0], 0, 3, GL_FLOAT, false, FastFloat32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_POS);
+        glVertexArrayAttribFormat(buffers[0], 1, 4, GL_FLOAT, false, FastFloat32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_COL);
+        glVertexArrayAttribFormat(buffers[0], 2, 2, GL_FLOAT, false, FastFloat32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
 
         glVertexArrayAttribBinding(vao[0], 0, 0);
         glVertexArrayAttribBinding(vao[0], 1, 0);
@@ -987,10 +987,10 @@ class OGL4Backend implements IRendererBackend
                 {
                     case Static:
                         var rng = staticStorage.get(_command);
-                        var ptr = Pointer.arrayElem(rng.matrixBuffer.view.buffer.getData(), 0);
-                        Stdlib.memcpy(ptr          , (projection : Float32Array).view.buffer.getData().address(0), 64);
-                        Stdlib.memcpy(ptr.incBy(64), (view       : Float32Array).view.buffer.getData().address(0), 64);
-                        glNamedBufferSubData(rng.glMatrixBuffer, 0, rng.matrixBuffer.view.buffer.length, rng.matrixBuffer.view.buffer.getData());
+                        var ptr = Pointer.arrayElem(rng.matrixBuffer.getData(), 0);
+                        Stdlib.memcpy(ptr          , (projection : FastFloat32Array).getData().address(0), 64);
+                        Stdlib.memcpy(ptr.incBy(64), (view       : FastFloat32Array).getData().address(0), 64);
+                        glNamedBufferSubData(rng.glMatrixBuffer, 0, rng.matrixBuffer.length, rng.matrixBuffer.getData());
 
                         if (ssbo != rng.glMatrixBuffer)
                         {
@@ -1006,9 +1006,9 @@ class OGL4Backend implements IRendererBackend
                     case Stream, Immediate:
                         var ptr   = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
                         var model = streamStorage.getModelMatrix(_command.id);
-                        Stdlib.memcpy(ptr          , (projection : Float32Array).view.buffer.getData().address(0), 64);
-                        Stdlib.memcpy(ptr.incBy(64), (view       : Float32Array).view.buffer.getData().address(0), 64);
-                        Stdlib.memcpy(ptr.incBy(64), (model      : Float32Array).view.buffer.getData().address(0), 64);
+                        Stdlib.memcpy(ptr          , (projection : FastFloat32Array).getData().address(0), 64);
+                        Stdlib.memcpy(ptr.incBy(64), (view       : FastFloat32Array).getData().address(0), 64);
+                        Stdlib.memcpy(ptr.incBy(64), (model      : FastFloat32Array).getData().address(0), 64);
                         glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
 
                         if (ssbo != cache.blockBuffers[i])
@@ -1031,11 +1031,11 @@ class OGL4Backend implements IRendererBackend
                     {
                         case Matrix4:
                             var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            Stdlib.memcpy(ptr.incBy(pos), (mat : Float32Array).view.buffer.getData().address(0), 64);
+                            Stdlib.memcpy(ptr.incBy(pos), (mat : FastFloat32Array).getData().address(0), 64);
                             pos += 64;
                         case Vector4:
                             var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            Stdlib.memcpy(ptr.incBy(pos), (vec : Float32Array).view.buffer.getData().address(0), 16);
+                            Stdlib.memcpy(ptr.incBy(pos), (vec : FastFloat32Array).getData().address(0), 16);
                             pos += 16;
                         case Int:
                             var dst : Pointer<Int32> = ptr.reinterpret();
@@ -1075,7 +1075,7 @@ class OGL4Backend implements IRendererBackend
                 if (orth.dirty)
                 {
                     orth.projection.makeHeterogeneousOrthographic(0, orth.viewport.w, orth.viewport.h, 0, -100, 100);
-                    orth.view.copy(orth.transformation.transformation).invert();
+                    orth.view.copy(orth.transformation.world.matrix).invert();
                     orth.dirty = false;
                 }
             case Projection:
@@ -1084,7 +1084,7 @@ class OGL4Backend implements IRendererBackend
                 {
                     proj.projection.makeHeterogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
                     proj.projection.scale(perspectiveYFlipVector);
-                    proj.view.copy(proj.transformation.transformation).invert();
+                    proj.view.copy(proj.transformation.world.matrix).invert();
                     proj.dirty = false;
                 }
             case Custom:

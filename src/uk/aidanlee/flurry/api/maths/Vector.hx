@@ -1,11 +1,11 @@
 package uk.aidanlee.flurry.api.maths;
 
-import haxe.io.Float32Array;
+import uk.aidanlee.flurry.utils.bytes.FastFloat32Array;
 
 /**
  * Vector class which contains an x, y, z, and w component.
  */
-abstract Vector(Float32Array) from Float32Array to Float32Array
+abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
 {
     /**
      * x component of this vector.
@@ -122,7 +122,7 @@ abstract Vector(Float32Array) from Float32Array to Float32Array
      */
     public function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 0)
     {
-        this = new Float32Array(4);
+        this = new FastFloat32Array(4);
 
         x = _x;
         y = _y;

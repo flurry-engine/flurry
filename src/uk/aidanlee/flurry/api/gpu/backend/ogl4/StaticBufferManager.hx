@@ -2,7 +2,6 @@ package uk.aidanlee.flurry.api.gpu.backend.ogl4;
 
 import haxe.io.UInt32Array;
 import haxe.io.UInt16Array;
-import haxe.io.Float32Array;
 import cpp.Stdlib.memcpy;
 import sdl.SDL;
 import opengl.GL.*;
@@ -12,6 +11,7 @@ import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.utils.opengl.GLSyncWrapper;
+import uk.aidanlee.flurry.utils.bytes.FastFloat32Array;
 
 using Safety;
 using uk.aidanlee.flurry.utils.opengl.GLConverters;
@@ -130,7 +130,7 @@ class StaticBufferManager
 
             // Distribute
 
-            var vtxPtr    = new Float32Array(_command.vertices * 9);
+            var vtxPtr    = new FastFloat32Array(_command.vertices * 9);
             var idxPtr    = new UInt16Array(_command.indices);
             var split     = Maths.floor(_command.geometry.length / RENDERER_THREADS);
             var remainder = _command.geometry.length % RENDERER_THREADS;
@@ -216,7 +216,7 @@ class StaticBufferManager
 
             jobQueue.wait();
 
-            glNamedBufferSubData(glVbo, vtxPosition * 9 * 4, vtxPtr.view.buffer.length, vtxPtr.view.buffer.getData());
+            glNamedBufferSubData(glVbo, vtxPosition * 9 * 4, vtxPtr.length, vtxPtr.getData());
             glNamedBufferSubData(glIbo, idxPosition * 2, idxPtr.view.buffer.length, idxPtr.view.buffer.getData());
 
             if (_command.indices > 0)
@@ -229,8 +229,8 @@ class StaticBufferManager
             }
 
             // Create matrix buffer
-            var matrixBuffer = new Float32Array(32 + (_command.geometry.length * 16));
-            glNamedBufferStorage(buffers[1], matrixBuffer.view.buffer.length, matrixBuffer.view.buffer.getData(), GL_DYNAMIC_STORAGE_BIT);
+            var matrixBuffer = new FastFloat32Array(32 + (_command.geometry.length * 16));
+            glNamedBufferStorage(buffers[1], matrixBuffer.length, matrixBuffer.getData(), GL_DYNAMIC_STORAGE_BIT);
 
             // TODO : Add a new range entry to the map.
             ranges.set(_command.id, new StaticBufferRange(buffers[0], buffers[1], matrixBuffer, vtxPosition, idxPosition, _command.vertices, _command.indices, _command.geometry.length));
@@ -244,7 +244,7 @@ class StaticBufferManager
         var split     = Maths.floor(_command.geometry.length / RENDERER_THREADS);
         var remainder = _command.geometry.length % RENDERER_THREADS;
         var range     = _command.geometry.length < RENDERER_THREADS ? _command.geometry.length : RENDERER_THREADS;
-        var data      = get(_command).matrixBuffer.view.buffer.getData();
+        var data      = get(_command).matrixBuffer.getData();
         for (i in 0...range)
         {
             var geomStartIdx = split * i;
@@ -253,7 +253,7 @@ class StaticBufferManager
             for (j in geomStartIdx...geomEndIdx)
             {
                 jobQueue.queue(() -> {
-                    memcpy(data.address(128 + (j * 64)), (_command.geometry[j].transformation.transformation : Float32Array).view.buffer.getData().address(0), 64);
+                    memcpy(data.address(128 + (j * 64)), (_command.geometry[j].transformation.world.matrix : FastFloat32Array).getData().address(0), 64);
                 });
             }
         }
@@ -334,7 +334,7 @@ class StaticBufferManager
                 glNamedBufferStorage(buffers[0], 16, mdiCommands.view.buffer.getData(), 0);
             }
 
-            ranges.set(_command.id, new StaticBufferRange(buffers[0], buffers[1], new Float32Array(48), vtxPosition, idxPosition, _command.vertices, _command.indices, 1));
+            ranges.set(_command.id, new StaticBufferRange(buffers[0], buffers[1], new FastFloat32Array(48), vtxPosition, idxPosition, _command.vertices, _command.indices, 1));
 
             vtxPosition += _command.vertices;
             idxPosition += _command.indices;
@@ -342,8 +342,8 @@ class StaticBufferManager
 
         var range        = ranges.get(_command.id);
         var matrixBuffer = range.matrixBuffer;
-        memcpy(matrixBuffer.view.buffer.getData().address(128), (_command.model : Float32Array).view.buffer.getData().address(0), 64);
-        glNamedBufferStorage(range.glMatrixBuffer, matrixBuffer.view.buffer.length, matrixBuffer.view.buffer.getData(), GL_DYNAMIC_STORAGE_BIT);
+        memcpy(matrixBuffer.getData().address(128), (_command.model : FastFloat32Array).getData().address(0), 64);
+        glNamedBufferStorage(range.glMatrixBuffer, matrixBuffer.length, matrixBuffer.getData(), GL_DYNAMIC_STORAGE_BIT);
     }
 
     /**
@@ -393,7 +393,7 @@ private class StaticBufferRange
      * 
      * Enough space for a projection, view, and `drawCount` model matrices.
      */
-    public final matrixBuffer : Float32Array;
+    public final matrixBuffer : FastFloat32Array;
 
     /**
      * The vertex offset into the vertex buffer this draw command is found.
@@ -425,7 +425,7 @@ private class StaticBufferRange
     public function new(
         _glCommandBuffer : Int,
         _glMatrixBuffer : Int,
-        _matrixBuffer : Float32Array,
+        _matrixBuffer : FastFloat32Array,
         _vtxPosition : Int,
         _idxPosition : Int,
         _vtxLength : Int,

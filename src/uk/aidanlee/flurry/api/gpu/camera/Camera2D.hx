@@ -1,9 +1,9 @@
 package uk.aidanlee.flurry.api.gpu.camera;
 
-import uk.aidanlee.flurry.api.gpu.geometry.Transformation;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Transformation;
 
 /**
  * All of the different camera size modes.
@@ -52,7 +52,7 @@ class Camera2D extends Camera
      */
     public var position (get, never) : Vector;
 
-    inline function get_position() : Vector return transformation.origin;
+    inline function get_position() : Vector return transformation.position;
 
     /**
      * 

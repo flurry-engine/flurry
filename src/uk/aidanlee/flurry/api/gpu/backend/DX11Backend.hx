@@ -2,7 +2,6 @@ package uk.aidanlee.flurry.api.gpu.backend;
 
 import haxe.Exception;
 import haxe.io.Bytes;
-import haxe.io.Float32Array;
 import cpp.Float32;
 import cpp.Int32;
 import cpp.UInt8;
@@ -83,7 +82,8 @@ import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector;
 import uk.aidanlee.flurry.api.maths.Matrix;
-import uk.aidanlee.flurry.utils.BytesPacker;
+import uk.aidanlee.flurry.utils.bytes.BytesPacker;
+import uk.aidanlee.flurry.utils.bytes.FastFloat32Array;
 
 using Safety;
 using cpp.NativeArray;
@@ -641,7 +641,7 @@ class DX11Backend implements IRendererBackend
                             // Copy the vertex into another vertex.
                             // This allows us to apply the transformation without permanently modifying the original geometry.
                             transformationVectors[i].copyFrom(vertex.position);
-                            transformationVectors[i].transform(command.geometry[j].transformation.transformation);
+                            transformationVectors[i].transform(command.geometry[j].transformation.world.matrix);
 
                             vtxDst[vtxWriteOffset++] = transformationVectors[i].x;
                             vtxDst[vtxWriteOffset++] = transformationVectors[i].y;
@@ -1263,9 +1263,9 @@ class DX11Backend implements IRendererBackend
                 var view       = _command.camera.view;
                 var projection = _command.camera.projection;
 
-                memcpy(ptr          , (projection : Float32Array).view.buffer.getData().address(0), 64);
-                memcpy(ptr.incBy(64), (view       : Float32Array).view.buffer.getData().address(0), 64);
-                memcpy(ptr.incBy(64), (model      : Float32Array).view.buffer.getData().address(0), 64);
+                memcpy(ptr          , (projection : FastFloat32Array).getData().address(0), 64);
+                memcpy(ptr.incBy(64), (view       : FastFloat32Array).getData().address(0), 64);
+                memcpy(ptr.incBy(64), (model      : FastFloat32Array).getData().address(0), 64);
             }
             else
             {
@@ -1279,10 +1279,10 @@ class DX11Backend implements IRendererBackend
                     {
                         case Matrix4:
                             var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            memcpy(ptr.incBy(pos), (mat : Float32Array).view.buffer.getData().address(0), 64);
+                            memcpy(ptr.incBy(pos), (mat : FastFloat32Array).getData().address(0), 64);
                         case Vector4:
                             var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            memcpy(ptr.incBy(pos), (vec : Float32Array).view.buffer.getData().address(0), 16);
+                            memcpy(ptr.incBy(pos), (vec : FastFloat32Array).getData().address(0), 16);
                         case Int:
                             var dst : Pointer<Int32> = ptr.reinterpret();
                             dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
@@ -1335,7 +1335,7 @@ class DX11Backend implements IRendererBackend
                 if (orth.dirty)
                 {
                     orth.projection.makeHeterogeneousOrthographic(0, orth.viewport.w, 0, orth.viewport.h, -100, 100);
-                    orth.view.copy(orth.transformation.transformation).invert();
+                    orth.view.copy(orth.transformation.world.matrix).invert();
                     orth.dirty = false;
                 }
             case Projection:
@@ -1343,7 +1343,7 @@ class DX11Backend implements IRendererBackend
                 if (proj.dirty)
                 {
                     proj.projection.makeHeterogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
-                    proj.view.copy(proj.transformation.transformation).invert();
+                    proj.view.copy(proj.transformation.world.matrix).invert();
                     proj.dirty = false;
                 }
             case Custom:

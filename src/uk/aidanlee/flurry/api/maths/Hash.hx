@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.maths;
 
+using Safety;
+
 /**
  * Hash class provides several static functions to return unique IDs and hash values.
  */
@@ -62,7 +64,7 @@ class Hash
         var hash = 5381;
         for (i in 0..._in.length)
         {
-            hash = ((hash << 5) + hash) + _in.charCodeAt(i);
+            hash = ((hash << 5) + hash) + _in.charCodeAt(i).unsafe();
         }
 
         return hash;
