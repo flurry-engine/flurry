@@ -227,6 +227,14 @@ class Geometry
     public function drop()
     {
         dropped.dispatch(this);
+
+        indices.resize(0);
+        vertices.resize(0);
+        textures.resize(0);
+        samplers.resize(0);
+
+        uniforms = null;
+        shader   = null;
     }
 
     /**
