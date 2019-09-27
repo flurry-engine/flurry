@@ -182,4 +182,10 @@ class BatcherState
             }
         }
     }
+
+    public function drop()
+    {
+        textures.resize(0);
+        samplers.resize(0);
+    }
 }

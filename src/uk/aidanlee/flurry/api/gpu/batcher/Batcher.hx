@@ -32,8 +32,14 @@ typedef BatcherOptions = {
      */
     var ?depth : Float;
 
+    /**
+     * Depth testing options to be used by the batcher.
+     */
     var ?depthOptions : DepthOptions;
 
+    /**
+     * Stencil testing options to be used by the batcher.
+     */
     var ?stencilOptions : StencilOptions;
 }
 
@@ -61,8 +67,14 @@ class Batcher
      */
     public final geometry : Array<Geometry>;
 
+    /**
+     * This batchers depth testing settings.
+     */
     public final depthOptions : DepthOptions;
 
+    /**
+     * This batchers stencil testing settings.
+     */
     public final stencilOptions : StencilOptions;
 
     /**
@@ -310,6 +322,17 @@ class Batcher
         }
 
         return _output;
+    }
+
+    /**
+     * Remove this batcher from the renderer and clear any resources used.
+     */
+    public function drop()
+    {
+        state.drop();
+        
+        geometry.resize(0);
+        geometryToDrop.resize(0);
     }
 
     /**

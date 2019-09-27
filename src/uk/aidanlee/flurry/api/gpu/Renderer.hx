@@ -136,6 +136,7 @@ class Renderer
     {
         for (batcher in _batchers)
         {
+            batcher.drop();
             batchers.remove(batcher);
         }
     }
