@@ -27,11 +27,11 @@ class RectangleGeometry extends Geometry
         super(_options);
 
         var emptyCoords = new Vector();
-        addVertex(new Vertex( new Vector(           0,            0), color, emptyCoords ));
-        addVertex(new Vertex( new Vector(_options.r.w,            0), color, emptyCoords ));
-        addVertex(new Vertex( new Vector(_options.r.w, _options.r.h), color, emptyCoords ));
-        addVertex(new Vertex( new Vector(           0, _options.r.h), color, emptyCoords ));
-        addVertex(vertices[0]);
+        vertices.push(new Vertex( new Vector(           0,            0), color, emptyCoords ));
+        vertices.push(new Vertex( new Vector(_options.r.w,            0), color, emptyCoords ));
+        vertices.push(new Vertex( new Vector(_options.r.w, _options.r.h), color, emptyCoords ));
+        vertices.push(new Vertex( new Vector(           0, _options.r.h), color, emptyCoords ));
+        vertices.push(vertices[0]);
 
         transformation.position.set_xy(_options.r.x, _options.r.y);
     }

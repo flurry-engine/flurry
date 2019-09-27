@@ -1,5 +1,7 @@
 package tests.api.gpu.batcher;
 
+import signals.Signal1;
+import signals.Signal.Signal0;
 import uk.aidanlee.flurry.api.gpu.ComparisonFunction;
 import uk.aidanlee.flurry.api.gpu.textures.Filtering;
 import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
@@ -88,8 +90,11 @@ class BatcherTests extends BuddySuite
             });
 
             it('Has a function to add geometry and dirty the batcher', {
+                var s1 = new Signal0();
+                var s2 = new Signal1<Geometry>();
                 var g = mock(Geometry);
-                g.batchers.returns([]);
+                g.changed.returns(s1);
+                g.dropped.returns(s2);
 
                 var b = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
                 b.addGeometry(g);
@@ -97,8 +102,11 @@ class BatcherTests extends BuddySuite
             });
 
             it('Has a function to remove geometry and dirty the batcher', {
+                var s1 = new Signal0();
+                var s2 = new Signal1<Geometry>();
                 var g = mock(Geometry);
-                g.batchers.returns([]);
+                g.changed.returns(s1);
+                g.dropped.returns(s2);
 
                 var b = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
                 b.removeGeometry(g);

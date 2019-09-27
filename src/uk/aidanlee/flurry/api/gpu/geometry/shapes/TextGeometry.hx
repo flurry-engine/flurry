@@ -146,12 +146,12 @@ class TextGeometry extends Geometry
         var blUV = new Vector(_char.x / textures[0].width                , (_char.y + _char.height) / textures[0].height);
         var brUV = new Vector((_char.x + _char.width) / textures[0].width, (_char.y + _char.height) / textures[0].height);
 
-        addVertex(new Vertex( blPos, color, blUV ));
-        addVertex(new Vertex( brPos, color, brUV ));
-        addVertex(new Vertex( tlPos, color, tlUV ));
+        vertices.push(new Vertex( blPos, color, blUV ));
+        vertices.push(new Vertex( brPos, color, brUV ));
+        vertices.push(new Vertex( tlPos, color, tlUV ));
 
-        addVertex(new Vertex( tlPos, color, tlUV ));
-        addVertex(new Vertex( brPos, color, brUV ));
-        addVertex(new Vertex( trPos, color, trUV ));
+        vertices.push(new Vertex( tlPos, color, tlUV ));
+        vertices.push(new Vertex( brPos, color, brUV ));
+        vertices.push(new Vertex( trPos, color, trUV ));
     }
 }

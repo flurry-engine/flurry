@@ -71,7 +71,7 @@ class LineGeometry extends Geometry
         color0 = _options.color0.or(color);
         color1 = _options.color1.or(color);
 
-        addVertex(new Vertex( point0, color0, new Vector() ));
-        addVertex(new Vertex( point1, color1, new Vector() ));
+        vertices.push(new Vertex( point0, color0, new Vector() ));
+        vertices.push(new Vertex( point1, color1, new Vector() ));
     }
 }

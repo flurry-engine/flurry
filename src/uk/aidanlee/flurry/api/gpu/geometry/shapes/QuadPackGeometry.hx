@@ -51,12 +51,12 @@ class QuadPackGeometry extends Geometry
         ]);
 
         applyUV(quad, _frame.region, _flipX, _flipY);
-        addVertex(quad.vertices[0]);
-        addVertex(quad.vertices[1]);
-        addVertex(quad.vertices[2]);
-        addVertex(quad.vertices[3]);
-        addVertex(quad.vertices[4]);
-        addVertex(quad.vertices[5]);
+        vertices.push(quad.vertices[0]);
+        vertices.push(quad.vertices[1]);
+        vertices.push(quad.vertices[2]);
+        vertices.push(quad.vertices[3]);
+        vertices.push(quad.vertices[4]);
+        vertices.push(quad.vertices[5]);
 
         quads.set(id, quad);
 
@@ -89,12 +89,12 @@ class QuadPackGeometry extends Geometry
         ]);
 
         applyUV(quad, _frame.region, _flipX, _flipY);
-        addVertex(quad.vertices[0]);
-        addVertex(quad.vertices[1]);
-        addVertex(quad.vertices[2]);
-        addVertex(quad.vertices[3]);
-        addVertex(quad.vertices[4]);
-        addVertex(quad.vertices[5]);
+        vertices.push(quad.vertices[0]);
+        vertices.push(quad.vertices[1]);
+        vertices.push(quad.vertices[2]);
+        vertices.push(quad.vertices[3]);
+        vertices.push(quad.vertices[4]);
+        vertices.push(quad.vertices[5]);
 
         quads.set(id, quad);
 
@@ -128,12 +128,12 @@ class QuadPackGeometry extends Geometry
         ]);
 
         applyUV(quad, _frame.region, _flipX, _flipY);
-        addVertex(quad.vertices[0]);
-        addVertex(quad.vertices[1]);
-        addVertex(quad.vertices[2]);
-        addVertex(quad.vertices[3]);
-        addVertex(quad.vertices[4]);
-        addVertex(quad.vertices[5]);
+        vertices.push(quad.vertices[0]);
+        vertices.push(quad.vertices[1]);
+        vertices.push(quad.vertices[2]);
+        vertices.push(quad.vertices[3]);
+        vertices.push(quad.vertices[4]);
+        vertices.push(quad.vertices[5]);
 
         quads.set(id, quad);
 
@@ -161,12 +161,12 @@ class QuadPackGeometry extends Geometry
 
         if (quad != null)
         {
-            removeVertex(quad.vertices[0]);
-            removeVertex(quad.vertices[1]);
-            removeVertex(quad.vertices[2]);
-            removeVertex(quad.vertices[3]);
-            removeVertex(quad.vertices[4]);
-            removeVertex(quad.vertices[5]);
+            vertices.remove(quad.vertices[0]);
+            vertices.remove(quad.vertices[1]);
+            vertices.remove(quad.vertices[2]);
+            vertices.remove(quad.vertices[3]);
+            vertices.remove(quad.vertices[4]);
+            vertices.remove(quad.vertices[5]);
 
             quads.remove(_id);
         }

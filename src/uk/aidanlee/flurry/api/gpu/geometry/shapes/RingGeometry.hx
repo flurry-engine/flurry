@@ -94,13 +94,13 @@ class RingGeometry extends Geometry
             var segment = new Vector(x, y / radialRatio);
             segmentPosition.push(segment);
 
-            addVertex(new Vertex( segment, color, new Vector() ));
+            vertices.push(new Vertex( segment, color, new Vector() ));
 
             // If past 0 add one for the previous segment to close the triangle.
             if (index > 0)
             {
                 var prevVert = segmentPosition[index];
-                addVertex(new Vertex( prevVert.clone(), color, new Vector() ));
+                vertices.push(new Vertex( prevVert.clone(), color, new Vector() ));
             }
 
             var tx = -y;
@@ -117,7 +117,7 @@ class RingGeometry extends Geometry
 
         if (segmentPosition.length > 0)
         {
-            addVertex(new Vertex( segmentPosition[0].clone(), color, new Vector() ));
+            vertices.push(new Vertex( segmentPosition[0].clone(), color, new Vector() ));
         }
 
         transformation.position.set_xy(_x, _y);

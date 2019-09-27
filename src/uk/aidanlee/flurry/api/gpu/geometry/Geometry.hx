@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import signals.Signal1;
+import signals.Signal.Signal0;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
@@ -44,9 +46,14 @@ class Geometry
     public final id : Int;
 
     /**
-     * All of the batchers this geometry is in.
+     * Signal which is dispatched when some property of this geometry is changed.
      */
-    public final batchers : Array<Batcher>;
+    public final changed : Signal0;
+
+    /**
+     * Signal which is dispatched when the geometry is disposed of.
+     */
+    public final dropped : Signal1<Geometry>;
 
     /**
      * Transformation of this geometry.
@@ -92,7 +99,7 @@ class Geometry
     /**
      * All of the samplers which will be used to sample data from the corresponding texture.
      */
-    public final samplers : Array<SamplerState>;
+    public final samplers : Array<Null<SamplerState>>;
 
     /**
      * The specific shader for the geometry.
@@ -100,15 +107,25 @@ class Geometry
      */
     public var shader (default, set) : Null<ShaderResource>;
 
+    inline function set_shader(_shader : Null<ShaderResource>) : Null<ShaderResource> {
+        shader = _shader;
+
+        changed.dispatch();
+
+        return _shader;
+    }
+
     /**
      * Individual uniform values to override the shaders defaults.
      */
-    public var uniforms : Null<Uniforms>;
+    public var uniforms (default, set) : Null<Uniforms>;
 
-    inline function set_shader(_shader : Null<ShaderResource>) : Null<ShaderResource> {
-        dirtyBatchers();
+    inline function set_uniforms(_uniforms : Null<Uniforms>) : Null<Uniforms> {
+        uniforms = _uniforms;
 
-        return shader = _shader;
+        changed.dispatch();
+
+        return _uniforms;
     }
 
     /**
@@ -117,9 +134,14 @@ class Geometry
     public var depth (default, set) : Float;
 
     inline function set_depth(_depth : Float) : Float {
-        dirtyBatchers();
+        if (depth != _depth)
+        {
+            depth = _depth;
 
-        return depth = _depth;
+            changed.dispatch();
+        }
+
+        return _depth;
     }
 
     /**
@@ -128,9 +150,14 @@ class Geometry
     public var primitive (default, set) : PrimitiveType;
 
     inline function set_primitive(_primitive : PrimitiveType) : PrimitiveType {
-        dirtyBatchers();
+        if (primitive != _primitive)
+        {
+            primitive = _primitive;
 
-        return primitive = _primitive;
+            changed.dispatch();
+        }
+
+        return _primitive;
     }
 
     /**
@@ -138,36 +165,28 @@ class Geometry
      */
     public var position (get, never) : Vector;
 
-    inline function get_position() : Vector {
-        return transformation.position;
-    }
+    inline function get_position() : Vector return transformation.position;
 
     /**
      * The origin of the geometry.
      */
     public var origin (get, never) : Vector;
 
-    inline function get_origin() : Vector {
-        return transformation.origin;
-    }
+    inline function get_origin() : Vector return transformation.origin;
 
     /**
      * Rotation of the geometry.
      */
     public var rotation (get, never) : Quaternion;
 
-    inline function get_rotation() : Quaternion {
-        return transformation.rotation;
-    }
+    inline function get_rotation() : Quaternion return transformation.rotation;
 
     /**
      * Scale of the geometry.
      */
     public var scale (get, never) : Vector;
 
-    inline function get_scale() : Vector {
-        return transformation.scale;
-    }
+    inline function get_scale() : Vector return transformation.scale;
 
     /**
      * Create a new mesh, contains no vertices and no transformation.
@@ -176,7 +195,8 @@ class Geometry
     {
         id = Hash.uniqueHash();
 
-        batchers       = [];
+        changed        = new Signal0();
+        dropped        = new Signal1<Geometry>();
         uploadType     = _options.uploadType.or(Stream);
         vertices       = _options.vertices  .or([]);
         indices        = _options.indices   .or([]);
@@ -192,62 +212,13 @@ class Geometry
         uniforms       = _options.uniforms;
 
         // Add to batchers.
-        for (batcher in _options.batchers.or([]))
+        if (_options.batchers != null)
         {
-            batcher.addGeometry(this);
+            for (batcher in _options.batchers.unsafe())
+            {
+                batcher.addGeometry(this);
+            }
         }
-    }
-
-    /**
-     * Add a vertex to this mesh.
-     * @param _v Vertex to add.
-     */
-    public function addVertex(_v : Vertex)
-    {
-        vertices.push(_v);
-    }
-
-    /**
-     * Remove a vertex from this mesh.
-     * @param _v Vertex to remove.
-     */
-    public function removeVertex(_v : Vertex)
-    {
-        vertices.remove(_v);
-    }
-
-    /**
-     * Add a texture to this geometry.
-     * Batchers are automatically dirtied.
-     * @param _image Image to add.
-     */
-    public function addTexture(_image : ImageResource)
-    {
-        textures.push(_image);
-        dirtyBatchers();
-    }
-
-    /**
-     * Remove a texture from this geometry.
-     * Batchers are automatically dirtied.
-     * @param _image Image to remove.
-     */
-    public function removeTexture(_image : ImageResource)
-    {
-        textures.remove(_image);
-        dirtyBatchers();
-    }
-
-    /**
-     * Replace a texture in this geometry.
-     * Batchers are automatically dirtied.
-     * @param _idx   Texture ID to replace.
-     * @param _image Texture to replace with.
-     */
-    public function setTexture(_idx : Int, _image : ImageResource)
-    {
-        textures[_idx] = _image;
-        dirtyBatchers();
     }
 
     /**
@@ -255,23 +226,7 @@ class Geometry
      */
     public function drop()
     {
-        for (batcher in batchers)
-        {
-            batcher.removeGeometry(this);
-        }
-
-        batchers.resize(0);
-    }
-
-    /**
-     * Flags all the batchers this geometry is in for re-ordering.
-     */
-    public function dirtyBatchers()
-    {
-        for (batcher in batchers)
-        {
-            batcher.setDirty();
-        }
+        dropped.dispatch(this);
     }
 
     /**

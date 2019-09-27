@@ -105,11 +105,11 @@ class CircleGeometry extends Geometry
 
             if (index > 0)
             {
-                addVertex(new Vertex( segment, color, new Vector() ));
+                vertices.push(new Vertex( segment, color, new Vector() ));
             }
 
-            addVertex(new Vertex( new Vector(), color, new Vector() ));
-            addVertex(new Vertex( segment, color, new Vector() ));
+            vertices.push(new Vertex( new Vector(), color, new Vector() ));
+            vertices.push(new Vertex( segment, color, new Vector() ));
 
             var tx = -y;
             var ty = x;
@@ -123,7 +123,7 @@ class CircleGeometry extends Geometry
             index++;
         }
 
-        addVertex(new Vertex( segmentPos[_steps], color, new Vector() ));
+        vertices.push(new Vertex( segmentPos[_steps], color, new Vector() ));
 
         transformation.position.set_xy(_x, _y);
     }

@@ -164,7 +164,8 @@ class Batcher
      */
     public function addGeometry(_geom : Geometry)
     {
-        _geom.batchers.push(this);
+        _geom.changed.add(setDirty);
+        _geom.dropped.add(removeGeometry);
 
         geometry.push(_geom);
 
@@ -177,7 +178,8 @@ class Batcher
      */
     public function removeGeometry(_geom : Geometry)
     {
-        _geom.batchers.remove(this);
+        _geom.changed.remove(setDirty);
+        _geom.dropped.remove(removeGeometry);
 
         geometry.remove(_geom);
 
@@ -257,7 +259,7 @@ class Batcher
                 vertices    = 0;
                 indices     = 0;
 
-                commandGeom = new Array<Geometry>();
+                commandGeom = [];
                 commandName = id;
 
                 state.change(geom);
@@ -304,7 +306,7 @@ class Batcher
         // Filter out any immediate geometry.
         for (geom in geometryToDrop)
         {
-            geometry.remove(geom);
+            removeGeometry(geom);
         }
 
         return _output;

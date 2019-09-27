@@ -38,17 +38,7 @@ class GeometryTests extends BuddySuite
                 g3.id.should.not.be(g1.id);
                 g3.id.should.not.be(g2.id);
             });
-
-            it('Tracks which batchers it is stored in', {
-                var b = new Batcher({ shader : mock(ShaderResource), camera : mock(Camera) });
-
-                var g1 = new Geometry({});
-                g1.batchers.should.containExactly([]);
-
-                var g2 = new Geometry({ batchers : [ b ] });
-                g2.batchers.should.containExactly([ b ]);
-            });
-
+            
             it('Has a transformation instance to modify its vertices', {
                 var g = new Geometry({});
                 g.transformation.position.equals(new Vector()).should.be(true);
@@ -155,42 +145,42 @@ class GeometryTests extends BuddySuite
                 g.primitive.should.equal(Points);
             });
 
-            it('Will dirty any batchers its in when adding a texture', {
-                var u = mock(Uniforms);
-                var s = mock(ShaderResource);
+            // it('Will dirty any batchers its in when adding a texture', {
+            //     var u = mock(Uniforms);
+            //     var s = mock(ShaderResource);
                 
-                u.id.returns(0);
-                s.id.returns(0);
-                s.uniforms.returns(u);
+            //     u.id.returns(0);
+            //     s.id.returns(0);
+            //     s.uniforms.returns(u);
 
-                var b = new Batcher({ shader : s, camera : mock(Camera) });
-                var g = new Geometry({ batchers : [ b ] });
+            //     var b = new Batcher({ shader : s, camera : mock(Camera) });
+            //     var g = new Geometry({ batchers : [ b ] });
 
-                // Batching is required to clear the dirty state set when the geometry was added.
-                b.batch();
-                g.addTexture(mock(ImageResource));
+            //     // Batching is required to clear the dirty state set when the geometry was added.
+            //     b.batch();
+            //     g.addTexture(mock(ImageResource));
 
-                b.isDirty().should.be(true);
-            });
+            //     b.isDirty().should.be(true);
+            // });
 
-            it('Will dirty any batchers its in when removing a texture', {
-                var u = mock(Uniforms);
-                var s = mock(ShaderResource);
-                var t = mock(ImageResource);
+            // it('Will dirty any batchers its in when removing a texture', {
+            //     var u = mock(Uniforms);
+            //     var s = mock(ShaderResource);
+            //     var t = mock(ImageResource);
                 
-                u.id.returns(0);
-                s.id.returns(0);
-                s.uniforms.returns(u);
+            //     u.id.returns(0);
+            //     s.id.returns(0);
+            //     s.uniforms.returns(u);
                 
-                var b = new Batcher({ shader : s, camera : mock(Camera) });
-                var g = new Geometry({ batchers : [ b ], textures: [ t ] });
+            //     var b = new Batcher({ shader : s, camera : mock(Camera) });
+            //     var g = new Geometry({ batchers : [ b ], textures: [ t ] });
 
-                // Batching is required to clear the dirty state set when the geometry was added.
-                b.batch();
-                g.removeTexture(t);
+            //     // Batching is required to clear the dirty state set when the geometry was added.
+            //     b.batch();
+            //     g.removeTexture(t);
 
-                b.isDirty().should.be(true);
-            });
+            //     b.isDirty().should.be(true);
+            // });
 
             it('Will remove itself from any batchers when dropped', {
                 var b = new Batcher({ shader : mock(ShaderResource), camera : mock(Camera) });
@@ -219,7 +209,7 @@ class GeometryTests extends BuddySuite
                 // Batching is required to clear the dirty state set when the geometry was added.
                 b1.batch();
                 b2.batch();
-                g.dirtyBatchers();
+                g.changed.dispatch();
 
                 b1.isDirty().should.be(true);
                 b2.isDirty().should.be(true);
@@ -233,6 +223,42 @@ class GeometryTests extends BuddySuite
                 g.isIndexed().should.be(false);
             });
 
+            describe('firing the dirty signal when properties change', {
+                it('will fire the signal when the shader is changed', {
+                    var c = 0;
+                    var s = mock(ShaderResource);
+                    var g = new Geometry({});
+                    g.changed.add(() -> c++);
+
+                    g.shader = s;
+                    c.should.be(1);
+                });
+                it('will fire the signal when the unfiroms are changed', {
+                    var c = 0;
+                    var u = mock(Uniforms);
+                    var g = new Geometry({});
+                    g.changed.add(() -> c++);
+
+                    g.uniforms = u;
+                    c.should.be(1);
+                });
+                it('will fire the signal when the depth is changed', {
+                    var c = 0;
+                    var g = new Geometry({});
+                    g.changed.add(() -> c++);
+
+                    g.depth = 8;
+                    c.should.be(1);
+                });
+                it('will fire the signal when the primitive is changed', {
+                    var c = 0;
+                    var g = new Geometry({});
+                    g.changed.add(() -> c++);
+
+                    g.primitive = Points;
+                    c.should.be(1);
+                });
+            });
         });
     }
 }
