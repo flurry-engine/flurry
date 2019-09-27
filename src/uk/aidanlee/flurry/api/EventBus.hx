@@ -5,7 +5,7 @@ import uk.aidanlee.flurry.api.maths.Hash;
 /**
  * All callback functions must contain one argument return void.
  */
-typedef EventFunction = (_data : Dynamic)->Void;
+typedef EventFunction = (_data : Any)->Void;
 
 /**
  * Event bus which can fire and queue named events.
@@ -118,7 +118,7 @@ class EventBus
      * @param _properties Data to go with the event.
      * @return Listener ID
      */
-    public function queue(_event : String, _properties : Dynamic = null) : Int
+    public function queue(_event : String, _properties : Any = null) : Int
     {
         var id = Hash.uniqueHash();
 
@@ -150,7 +150,7 @@ class EventBus
      * @param _properties Data of the event.
      * @return If any listeners were called.
      */
-    public function fire(_event : String, _properties : Dynamic = null) : Bool
+    public function fire(_event : String, _properties : Any = null) : Bool
     {
         if (eventSlots.exists(_event))
         {
@@ -188,9 +188,9 @@ private class EventObject
 
     public final name : String;
 
-    public final properties : Dynamic;
+    public final properties : Any;
 
-    public function new(_id : Int, _name : String, _properties : Dynamic)
+    public function new(_id : Int, _name : String, _properties : Any)
     {
         id         = _id;
         name       = _name;
