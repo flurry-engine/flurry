@@ -101,8 +101,6 @@ class Flurry
         
         if (loaded)
         {
-            input.update();
-
             onPreUpdate();
 
             events.preUpdate.dispatch();
@@ -127,6 +125,8 @@ class Flurry
         if (loaded)
         {
             onPostUpdate();
+
+            input.update();
 
             events.postUpdate.dispatch();
         }
