@@ -57,7 +57,7 @@ class Camera3D extends Camera
         dirty  = true;
     }
 
-    public function update()
+    public function update(_dt : Float)
     {
         dirty = true;
     }

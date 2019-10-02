@@ -122,14 +122,12 @@ class Camera2D extends Camera
         shakeAmount    = 0;
         shakeMinimum   = 0.1;
         shakeVector    = new Vector();
-
-        update();
     }
 
     /**
      * Creates the projection matrix and combines it with the view matrix.
      */
-    public function update()
+    public function update(_dt : Float)
     {
         // Clamp the zoom
         if (zoom < minimumZoom)
