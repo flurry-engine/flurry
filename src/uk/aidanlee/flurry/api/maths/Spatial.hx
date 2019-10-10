@@ -46,8 +46,6 @@ class Spatial
      */
     public function compose()
     {
-        matrix.makeRotationFromQuaternion(rotation);
-        matrix.scale(scale);
-        matrix.setPosition(position);
+        matrix.compose(position, rotation, scale);
     }
 }

@@ -122,6 +122,7 @@ class Camera2D extends Camera
         shakeAmount    = 0;
         shakeMinimum   = 0.1;
         shakeVector    = new Vector();
+        dirty          = true;
     }
 
     /**

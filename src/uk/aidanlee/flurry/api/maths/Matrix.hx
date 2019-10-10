@@ -390,19 +390,20 @@ abstract Matrix(FastFloat32Array) from FastFloat32Array to FastFloat32Array
         // Get the scale from the matrix
         _scale.set_xyz(ax_length, ay_length, az_length);
 
-        this[0] /= ax_length;
-        this[1] /= ax_length;
-        this[2] /= ax_length;
+        var me = clone();
+        me[0] /= ax_length;
+        me[1] /= ax_length;
+        me[2] /= ax_length;
 
-        this[4] /= ax_length;
-        this[5] /= ax_length;
-        this[6] /= ax_length;
+        me[4] /= ax_length;
+        me[5] /= ax_length;
+        me[6] /= ax_length;
 
-        this[ 8] /= ax_length;
-        this[ 9] /= ax_length;
-        this[10] /= ax_length;
+        me[ 8] /= ax_length;
+        me[ 9] /= ax_length;
+        me[10] /= ax_length;
 
-        _quaternion.setFromRotationMatrix(this);
+        _quaternion.setFromRotationMatrix(me);
 
         return this;
     }
