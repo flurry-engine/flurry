@@ -1,21 +1,39 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import uk.aidanlee.flurry.api.maths.Vector;
+
 /**
  * Basic RGBA colour class
  */
-class Color
+abstract Color(Vector)
 {
-    public var r : Float;
-    public var g : Float;
-    public var b : Float;
-    public var a : Float;
+    public var r (get, set) : Float;
+
+    inline function get_r() : Float return this.x;
+
+    inline function set_r(_v) : Float return this.x = _v;
+
+    public var g (get, set) : Float;
+
+    inline function get_g() : Float return this.y;
+
+    inline function set_g(_v) : Float return this.y = _v;
+
+    public var b (get, set) : Float;
+
+    inline function get_b() : Float return this.z;
+
+    inline function set_b(_v) : Float return this.z = _v;
+
+    public var a (get, set) : Float;
+
+    inline function get_a() : Float return this.w;
+
+    inline function set_a(_v) : Float return this.w = _v;
 
     public function new(_r : Float = 1, _g : Float = 1, _b : Float = 1, _a : Float = 1)
     {
-        r = _r;
-        g = _g;
-        b = _b;
-        a = _a;
+        this = new Vector(_r, _g, _b, _a);
     }
 
     /**
@@ -30,7 +48,7 @@ class Color
         g = _other.g;
         a = _other.a;
 
-        return this;
+        return cast this;
     }
 
     /**
@@ -68,7 +86,7 @@ class Color
         b = _b;
         a = _a;
 
-        return this;
+        return cast this;
     }
 
     /**
@@ -106,6 +124,6 @@ class Color
             b = hue2rgb(p, q, _h + 1 / 3);
         }
 
-        return this;
+        return cast this;
     }
 }
