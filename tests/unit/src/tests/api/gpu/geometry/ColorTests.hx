@@ -12,10 +12,10 @@ class ColorTests extends BuddySuite
         describe('Color', {
             it('Can create a default white colour when no arguments are passed', {
                 var colour = new Color();
-                colour.r.should.be(1);
-                colour.g.should.be(1);
-                colour.b.should.be(1);
-                colour.a.should.be(1);
+                colour.r.should.beCloseTo(1);
+                colour.g.should.beCloseTo(1);
+                colour.b.should.beCloseTo(1);
+                colour.a.should.beCloseTo(1);
             });
 
             it('Can create a custom RGBA colour through the constructor', {
@@ -25,10 +25,10 @@ class ColorTests extends BuddySuite
                 var a = 0.8;
 
                 var colour = new Color(r, g, b, a);
-                colour.r.should.be(r);
-                colour.g.should.be(g);
-                colour.b.should.be(b);
-                colour.a.should.be(a);
+                colour.r.should.beCloseTo(r);
+                colour.g.should.beCloseTo(g);
+                colour.b.should.beCloseTo(b);
+                colour.a.should.beCloseTo(a);
             });
 
             it('Can copy its RGBA value from another colour object', {
@@ -41,10 +41,10 @@ class ColorTests extends BuddySuite
                 var colour2 = new Color(r, g, b, a);
 
                 colour1.copyFrom(colour2);
-                colour1.r.should.be(r);
-                colour1.g.should.be(g);
-                colour1.b.should.be(b);
-                colour1.a.should.be(a);
+                colour1.r.should.beCloseTo(r);
+                colour1.g.should.beCloseTo(g);
+                colour1.b.should.beCloseTo(b);
+                colour1.a.should.beCloseTo(a);
             });
 
             it('Can check if its RGBA value is equal to another colour objects', {
@@ -85,10 +85,10 @@ class ColorTests extends BuddySuite
                 var a = 0.8;
                 
                 var colour = new Color().fromRGBA(r, g, b, a);
-                colour.r.should.be(r);
-                colour.g.should.be(g);
-                colour.b.should.be(b);
-                colour.a.should.be(a);
+                colour.r.should.beCloseTo(r);
+                colour.g.should.beCloseTo(g);
+                colour.b.should.beCloseTo(b);
+                colour.a.should.beCloseTo(a);
             });
 
             it('Can set the RGBA value from a HSL value', {
