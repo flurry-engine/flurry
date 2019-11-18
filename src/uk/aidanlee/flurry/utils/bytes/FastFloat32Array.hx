@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.utils.bytes;
 
-import cpp.NativeArray;
 import haxe.io.BytesData;
 import signals.Signal.Signal0;
 import haxe.io.Bytes;
