@@ -12,14 +12,14 @@ class EventBusTests extends BuddySuite
         describe('EventBus', {
             it('Allows you to listen to a named event', {
                 var event = new EventBus();
-                var id    = event.listen('event', _data -> trace(_data));
+                var id    = event.listen('event', _data -> _data);
 
                 id.should.beType(Int);
             });
 
             it('Allows you to unlisten from a named event', {
                 var event = new EventBus();
-                var id    = event.listen('event', _data -> trace(_data));
+                var id    = event.listen('event', _data -> _data);
 
                 event.unlisten(id).should.be(true);
             });

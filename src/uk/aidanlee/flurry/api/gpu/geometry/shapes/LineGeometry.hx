@@ -1,7 +1,8 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
+import uk.aidanlee.flurry.api.maths.Vector3;
 
 using Safety;
 
@@ -12,12 +13,12 @@ typedef LineGeometryOptions = {
     /**
      * The position of the first point.
      */
-    @:optional var point0 : Vector;
+    @:optional var point0 : Vector3;
 
     /**
      * The position of the second point.
      */
-    @:optional var point1 : Vector;
+    @:optional var point1 : Vector3;
 
     /**
      * The position of the second point.
@@ -39,12 +40,12 @@ class LineGeometry extends Geometry
     /**
      * The position of the first point.
      */
-    public final point0 : Vector;
+    public final point0 : Vector3;
 
     /**
      * The position of the second point.
      */
-    public final point1 : Vector;
+    public final point1 : Vector3;
 
     /**
      * The colour of the first point.
@@ -66,12 +67,12 @@ class LineGeometry extends Geometry
 
         super(_options);
 
-        point0 = _options.point0.or(new Vector(0, 0, 0));
-        point1 = _options.point1.or(new Vector(1, 1, 1));
+        point0 = _options.point0.or(new Vector3(0, 0, 0));
+        point1 = _options.point1.or(new Vector3(1, 1, 1));
         color0 = _options.color0.or(color);
         color1 = _options.color1.or(color);
 
-        vertices.push(new Vertex( point0, color0, new Vector() ));
-        vertices.push(new Vertex( point1, color1, new Vector() ));
+        vertices.push(new Vertex( point0, color0, new Vector2() ));
+        vertices.push(new Vertex( point1, color1, new Vector2() ));
     }
 }

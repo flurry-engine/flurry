@@ -3,7 +3,7 @@ package tests.modules.differ.sat;
 import uk.aidanlee.flurry.modules.differ.data.RayIntersection;
 import uk.aidanlee.flurry.modules.differ.data.RayCollision;
 import uk.aidanlee.flurry.modules.differ.data.ShapeCollision;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.modules.differ.shapes.Ray;
 import uk.aidanlee.flurry.modules.differ.shapes.Polygon;
 import uk.aidanlee.flurry.modules.differ.sat.SAT2D;
@@ -96,7 +96,7 @@ class SAT2DTests extends BuddySuite
             });
 
             it('can test between a ray and a circle', {
-                var r = new Ray(new Vector(2, 2), new Vector(12, 12));
+                var r = new Ray(new Vector2(2, 2), new Vector2(12, 12));
                 var c = new Circle(7, 7, 3);
 
                 var result = new RayCollision();
@@ -109,7 +109,7 @@ class SAT2DTests extends BuddySuite
             });
 
             it('can test between a ray and a polygon', {
-                var r = new Ray(new Vector(2, 2), new Vector(12, 12));
+                var r = new Ray(new Vector2(2, 2), new Vector2(12, 12));
                 var p = Polygon.square(7, 7, 3);
 
                 var result = new RayCollision();
@@ -122,8 +122,8 @@ class SAT2DTests extends BuddySuite
             });
 
             it('can test between two rays', {
-                var r1 = new Ray(new Vector(2, 2), new Vector(12, 12));
-                var r2 = new Ray(new Vector(12, 2), new Vector(2, 12));
+                var r1 = new Ray(new Vector2(2, 2), new Vector2(12, 12));
+                var r2 = new Ray(new Vector2(12, 2), new Vector2(2, 12));
 
                 var result = new RayIntersection();
                 SAT2D.testRayVsRay(r1, r2, result).should.be(true);

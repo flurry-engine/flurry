@@ -4,7 +4,8 @@ import haxe.ds.Map;
 import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry.GeometryOptions;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Hash;
 
@@ -41,13 +42,13 @@ class QuadPackGeometry extends Geometry
     {
         var id   = Hash.uniqueHash();
         var quad = new PackedQuad(id, [
-            new Vertex( new Vector(_rectangle.x               , _rectangle.y               ), _color.clone(), new Vector(0, 0) ),
-            new Vertex( new Vector(_rectangle.x + _rectangle.w, _rectangle.y               ), _color.clone(), new Vector(0, 0) ),
-            new Vertex( new Vector(_rectangle.x + _rectangle.w, _rectangle.y + _rectangle.h), _color.clone(), new Vector(0, 0) ),
+            new Vertex( new Vector3(_rectangle.x               , _rectangle.y               ), _color.clone(), new Vector2(0, 0) ),
+            new Vertex( new Vector3(_rectangle.x + _rectangle.w, _rectangle.y               ), _color.clone(), new Vector2(0, 0) ),
+            new Vertex( new Vector3(_rectangle.x + _rectangle.w, _rectangle.y + _rectangle.h), _color.clone(), new Vector2(0, 0) ),
 
-            new Vertex( new Vector(_rectangle.x               , _rectangle.y + _rectangle.h), _color.clone(), new Vector(0, 0) ),
-            new Vertex( new Vector(_rectangle.x               , _rectangle.y               ), _color.clone(), new Vector(0, 0) ),
-            new Vertex( new Vector(_rectangle.x + _rectangle.w, _rectangle.y + _rectangle.h), _color.clone(), new Vector(0, 0) )
+            new Vertex( new Vector3(_rectangle.x               , _rectangle.y + _rectangle.h), _color.clone(), new Vector2(0, 0) ),
+            new Vertex( new Vector3(_rectangle.x               , _rectangle.y               ), _color.clone(), new Vector2(0, 0) ),
+            new Vertex( new Vector3(_rectangle.x + _rectangle.w, _rectangle.y + _rectangle.h), _color.clone(), new Vector2(0, 0) )
         ]);
 
         applyUV(quad, _frame.region, _flipX, _flipY);
@@ -79,13 +80,13 @@ class QuadPackGeometry extends Geometry
     {
         var id   = Hash.uniqueHash();
         var quad = new PackedQuad(id, [
-            new Vertex( new Vector(_x         , _y          ), _color.clone(), new Vector(0, 0) ),
-            new Vertex( new Vector(_x + _width, _y          ), _color.clone(), new Vector(0, 0) ),
-            new Vertex( new Vector(_x + _width, _y + _height), _color.clone(), new Vector(0, 0) ),
+            new Vertex( new Vector3(_x         , _y          ), _color.clone(), new Vector2(0, 0) ),
+            new Vertex( new Vector3(_x + _width, _y          ), _color.clone(), new Vector2(0, 0) ),
+            new Vertex( new Vector3(_x + _width, _y + _height), _color.clone(), new Vector2(0, 0) ),
 
-            new Vertex( new Vector(_x         , _y + _height), _color.clone(), new Vector(0, 0) ),
-            new Vertex( new Vector(_x         , _y          ), _color.clone(), new Vector(0, 0) ),
-            new Vertex( new Vector(_x + _width, _y + _height), _color.clone(), new Vector(0, 0) )
+            new Vertex( new Vector3(_x         , _y + _height), _color.clone(), new Vector2(0, 0) ),
+            new Vertex( new Vector3(_x         , _y          ), _color.clone(), new Vector2(0, 0) ),
+            new Vertex( new Vector3(_x + _width, _y + _height), _color.clone(), new Vector2(0, 0) )
         ]);
 
         applyUV(quad, _frame.region, _flipX, _flipY);
@@ -114,17 +115,17 @@ class QuadPackGeometry extends Geometry
      * @param _flipY If the quads image should be flipped on its y axis. (defaults false)
      * @return Unique quad int ID.
      */
-    public function add_quad(_frame : TextureAtlasFrame, _p1 : Vector, _p2 : Vector, _p3 : Vector, _p4 : Vector, _color : Color, _flipX : Bool = false, _flipY : Bool = false) : Int
+    public function add_quad(_frame : TextureAtlasFrame, _p1 : Vector3, _p2 : Vector3, _p3 : Vector3, _p4 : Vector3, _color : Color, _flipX : Bool = false, _flipY : Bool = false) : Int
     {
         var id   = Hash.uniqueHash();
         var quad = new PackedQuad(id, [
-            new Vertex( _p1, _color.clone(), new Vector(0, 0) ),
-            new Vertex( _p2, _color.clone(), new Vector(0, 0) ),
-            new Vertex( _p3, _color.clone(), new Vector(0, 0) ),
+            new Vertex( _p1, _color.clone(), new Vector2(0, 0) ),
+            new Vertex( _p2, _color.clone(), new Vector2(0, 0) ),
+            new Vertex( _p3, _color.clone(), new Vector2(0, 0) ),
 
-            new Vertex( _p4, _color.clone(), new Vector(0, 0) ),
-            new Vertex( _p1, _color.clone(), new Vector(0, 0) ),
-            new Vertex( _p3, _color.clone(), new Vector(0, 0) )
+            new Vertex( _p4, _color.clone(), new Vector2(0, 0) ),
+            new Vertex( _p1, _color.clone(), new Vector2(0, 0) ),
+            new Vertex( _p3, _color.clone(), new Vector2(0, 0) )
         ]);
 
         applyUV(quad, _frame.region, _flipX, _flipY);
@@ -216,7 +217,7 @@ class QuadPackGeometry extends Geometry
      * @param _id       ID of the quad.
      * @param _position Vector containing the quads new position.
      */
-    public function quadPosition(_id : Int, _position : Vector)
+    public function quadPosition(_id : Int, _position : Vector2)
     {
         var quad = quads.get(_id);
 
@@ -376,13 +377,13 @@ class QuadPackGeometry extends Geometry
             tr_y  = tmp_y;
         }
 
-        _quad.vertices[0].texCoord.set_xy(tl_x, tl_y);
-        _quad.vertices[1].texCoord.set_xy(tr_x, tr_y);
-        _quad.vertices[2].texCoord.set_xy(br_x, br_y);
+        _quad.vertices[0].texCoord.set(tl_x, tl_y);
+        _quad.vertices[1].texCoord.set(tr_x, tr_y);
+        _quad.vertices[2].texCoord.set(br_x, br_y);
 
-        _quad.vertices[3].texCoord.set_xy(bl_x, bl_y);
-        _quad.vertices[4].texCoord.set_xy(tl_x, tl_y);
-        _quad.vertices[5].texCoord.set_xy(br_x, br_y);
+        _quad.vertices[3].texCoord.set(bl_x, bl_y);
+        _quad.vertices[4].texCoord.set(tl_x, tl_y);
+        _quad.vertices[5].texCoord.set(br_x, br_y);
 
         _quad.uv.copyFrom(_uv);
         _quad.flipX = _flipX;

@@ -1,6 +1,6 @@
 package tests.api.importers.textureatlas;
 
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlasParser;
 import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas.TextureAtlasFormat;
@@ -31,8 +31,8 @@ class TextureAtlasParserTests extends BuddySuite
                 atlas.frames[0].name.should.be('cavesofgallet');
                 atlas.frames[0].rotated.should.be(false);
                 atlas.frames[0].region.equals(new Rectangle(2, 52, 8, 8)).should.be(true);
-                atlas.frames[0].original.equals(new Vector(8, 8)).should.be(true);
-                atlas.frames[0].offset.equals(new Vector(0, 0)).should.be(true);
+                atlas.frames[0].original.equals(new Vector2(8, 8)).should.be(true);
+                atlas.frames[0].offset.equals(new Vector2(0, 0)).should.be(true);
                 atlas.frames[0].index.should.be(29);
             });
 

@@ -1,7 +1,7 @@
 package tests.api.maths;
 
 import uk.aidanlee.flurry.api.maths.Quaternion;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import buddy.BuddySuite;
 
@@ -229,14 +229,14 @@ class QuaternionTests extends BuddySuite
 
             describe('Transformations', {
                 it('Can set its components from a vector containing an euler angle', {
-                    var q = new Quaternion().setFromEuler(new Vector(0.25, 1.5, 0.75));
+                    var q = new Quaternion().setFromEuler(new Vector3(0.25, 1.5, 0.75));
                     q.x.should.beCloseTo(0.332);
                     q.y.should.beCloseTo(0.595);
                     q.z.should.beCloseTo(0.344);
                     q.w.should.beCloseTo(0.644);
                 });
                 it('Can set its components from an axis array and an angle value', {
-                    var q = new Quaternion().setFromAxisAngle(new Vector(1, 0, 1), 0.75);
+                    var q = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 1), 0.75);
                     q.x.should.beCloseTo(0.366);
                     q.y.should.beCloseTo(0);
                     q.z.should.beCloseTo(0.366);

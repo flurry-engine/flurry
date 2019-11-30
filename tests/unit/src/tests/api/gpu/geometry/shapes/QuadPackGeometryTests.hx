@@ -1,7 +1,8 @@
 package tests.api.gpu.geometry.shapes;
 
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
+import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadPackGeometry;
@@ -240,10 +241,10 @@ class QuadPackGeometryTests extends BuddySuite
             it('Can add a arbitrarily sized quad using four vertices', {
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
-                var p1   = new Vector(32, 32);
-                var p2   = new Vector(62, 32);
-                var p3   = new Vector(62, 96);
-                var p4   = new Vector(32, 48);
+                var p1   = new Vector3(32, 32);
+                var p2   = new Vector3(62, 32);
+                var p3   = new Vector3(62, 96);
+                var p4   = new Vector3(32, 48);
 
                 geom.add_quad(tile, p1, p2, p3, p4, geom.color);
 
@@ -266,10 +267,10 @@ class QuadPackGeometryTests extends BuddySuite
             it('Can add a arbitrarily sized quad using four vertices and flip the UV on the x axis', {
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
-                var p1   = new Vector(32, 32);
-                var p2   = new Vector(62, 32);
-                var p3   = new Vector(62, 96);
-                var p4   = new Vector(32, 48);
+                var p1   = new Vector3(32, 32);
+                var p2   = new Vector3(62, 32);
+                var p3   = new Vector3(62, 96);
+                var p4   = new Vector3(32, 48);
 
                 geom.add_quad(tile, p1, p2, p3, p4, geom.color, true);
 
@@ -306,10 +307,10 @@ class QuadPackGeometryTests extends BuddySuite
             it('Can add a arbitrarily sized quad using four vertices and flip the UV on the y axis', {
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
-                var p1   = new Vector(32, 32);
-                var p2   = new Vector(62, 32);
-                var p3   = new Vector(62, 96);
-                var p4   = new Vector(32, 48);
+                var p1   = new Vector3(32, 32);
+                var p2   = new Vector3(62, 32);
+                var p3   = new Vector3(62, 96);
+                var p4   = new Vector3(32, 48);
 
                 geom.add_quad(tile, p1, p2, p3, p4, geom.color, false, true);
 
@@ -346,10 +347,10 @@ class QuadPackGeometryTests extends BuddySuite
             it('Can add a arbitrarily sized quad using four vertices and flip the UV on the x and y axis', {
                 var name = 'cavesofgallet';
                 var tile = atlas.findRegion(name);
-                var p1   = new Vector(32, 32);
-                var p2   = new Vector(62, 32);
-                var p3   = new Vector(62, 96);
-                var p4   = new Vector(32, 48);
+                var p1   = new Vector3(32, 32);
+                var p2   = new Vector3(62, 32);
+                var p3   = new Vector3(62, 96);
+                var p4   = new Vector3(32, 48);
 
                 geom.add_quad(tile, p1, p2, p3, p4, geom.color, true, true);
 
@@ -488,7 +489,7 @@ class QuadPackGeometryTests extends BuddySuite
                 var id1 = geom.add(atlas.findRegion(name), size1, geom.color);
                 var id2 = geom.add(atlas.findRegion(name), size1, geom.color);
 
-                geom.quadPosition(id2, new Vector(size2.x, size2.y));
+                geom.quadPosition(id2, new Vector2(size2.x, size2.y));
 
                 // id1
                 geom.vertices[0].position.x.should.be(size1.x);
@@ -586,25 +587,24 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.quadTile(id2, tile2);
 
                 // id1
-                geom.vertices[0].texCoord.equals(new Vector( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector((tile1.region.x + tile1.region.w) / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
+                geom.vertices[0].texCoord.equals(new Vector2( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
+                geom.vertices[1].texCoord.equals(new Vector2((tile1.region.x + tile1.region.w) / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
+                geom.vertices[2].texCoord.equals(new Vector2((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
 
-                geom.vertices[3].texCoord.equals(new Vector( tile1.region.x                   / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
+                geom.vertices[3].texCoord.equals(new Vector2( tile1.region.x                   / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
+                geom.vertices[4].texCoord.equals(new Vector2( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
+                geom.vertices[5].texCoord.equals(new Vector2((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
 
                 // id2
-                geom.vertices[ 6].texCoord.equals(new Vector( tile2.region.x                   / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
-                geom.vertices[ 7].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
-                geom.vertices[ 8].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
+                geom.vertices[ 6].texCoord.equals(new Vector2( tile2.region.x                   / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
+                geom.vertices[ 7].texCoord.equals(new Vector2((tile2.region.x + tile2.region.w) / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
+                geom.vertices[ 8].texCoord.equals(new Vector2((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
 
-                geom.vertices[ 9].texCoord.equals(new Vector( tile2.region.x                   / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
-                geom.vertices[10].texCoord.equals(new Vector( tile2.region.x                   / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
-                geom.vertices[11].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
+                geom.vertices[ 9].texCoord.equals(new Vector2( tile2.region.x                   / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
+                geom.vertices[10].texCoord.equals(new Vector2( tile2.region.x                   / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
+                geom.vertices[11].texCoord.equals(new Vector2((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
             });
 
-            /*
             it('Can flip the quads UV on the x axis', {
                 var name = 'cavesofgallet';
                 var tile1 = atlas.findRegionID(name, 0);
@@ -616,22 +616,22 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.quadFlipX(id2, true);
 
                 // id1
-                geom.vertices[0].texCoord.equals(new Vector( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector((tile1.region.x + tile1.region.w) / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
+                geom.vertices[0].texCoord.equals(new Vector2( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
+                geom.vertices[1].texCoord.equals(new Vector2((tile1.region.x + tile1.region.w) / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
+                geom.vertices[2].texCoord.equals(new Vector2((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
 
-                geom.vertices[3].texCoord.equals(new Vector( tile1.region.x                   / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
+                geom.vertices[3].texCoord.equals(new Vector2( tile1.region.x                   / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
+                geom.vertices[4].texCoord.equals(new Vector2( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
+                geom.vertices[5].texCoord.equals(new Vector2((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
 
                 // id2
-                geom.vertices[ 6].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
-                geom.vertices[ 7].texCoord.equals(new Vector( tile2.region.x                   / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
-                geom.vertices[ 8].texCoord.equals(new Vector( tile2.region.x                   / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
+                geom.vertices[ 6].texCoord.equals(new Vector2((tile2.region.x + tile2.region.w) / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
+                geom.vertices[ 7].texCoord.equals(new Vector2( tile2.region.x                   / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
+                geom.vertices[ 8].texCoord.equals(new Vector2( tile2.region.x                   / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
 
-                geom.vertices[ 9].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
-                geom.vertices[10].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
-                geom.vertices[11].texCoord.equals(new Vector( tile2.region.x                   / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
+                geom.vertices[ 9].texCoord.equals(new Vector2((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
+                geom.vertices[10].texCoord.equals(new Vector2((tile2.region.x + tile2.region.w) / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
+                geom.vertices[11].texCoord.equals(new Vector2( tile2.region.x                   / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
             });
 
             it('Can flip the quads UV on the y axis', {
@@ -645,22 +645,22 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.quadFlipY(id2, true);
 
                 // id1
-                geom.vertices[0].texCoord.equals(new Vector( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector((tile1.region.x + tile1.region.w) / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
+                geom.vertices[0].texCoord.equals(new Vector2( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
+                geom.vertices[1].texCoord.equals(new Vector2((tile1.region.x + tile1.region.w) / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
+                geom.vertices[2].texCoord.equals(new Vector2((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
 
-                geom.vertices[3].texCoord.equals(new Vector( tile1.region.x                   / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
+                geom.vertices[3].texCoord.equals(new Vector2( tile1.region.x                   / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
+                geom.vertices[4].texCoord.equals(new Vector2( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
+                geom.vertices[5].texCoord.equals(new Vector2((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
 
                 // id2
-                geom.vertices[ 6].texCoord.equals(new Vector( tile2.region.x                   / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
-                geom.vertices[ 7].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
-                geom.vertices[ 8].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
+                geom.vertices[ 6].texCoord.equals(new Vector2( tile2.region.x                   / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
+                geom.vertices[ 7].texCoord.equals(new Vector2((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
+                geom.vertices[ 8].texCoord.equals(new Vector2((tile2.region.x + tile2.region.w) / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
 
-                geom.vertices[ 9].texCoord.equals(new Vector( tile2.region.x                   / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
-                geom.vertices[10].texCoord.equals(new Vector( tile2.region.x                   / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
-                geom.vertices[11].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
+                geom.vertices[ 9].texCoord.equals(new Vector2( tile2.region.x                   / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
+                geom.vertices[10].texCoord.equals(new Vector2( tile2.region.x                   / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
+                geom.vertices[11].texCoord.equals(new Vector2((tile2.region.x + tile2.region.w) / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
             });
 
             it('Can flip the quads UV on both the x and y axis', {
@@ -675,24 +675,23 @@ class QuadPackGeometryTests extends BuddySuite
                 geom.quadFlipX(id2, true);
 
                 // id1
-                geom.vertices[0].texCoord.equals(new Vector( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
-                geom.vertices[1].texCoord.equals(new Vector((tile1.region.x + tile1.region.w) / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
-                geom.vertices[2].texCoord.equals(new Vector((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
+                geom.vertices[0].texCoord.equals(new Vector2( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
+                geom.vertices[1].texCoord.equals(new Vector2((tile1.region.x + tile1.region.w) / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
+                geom.vertices[2].texCoord.equals(new Vector2((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
 
-                geom.vertices[3].texCoord.equals(new Vector( tile1.region.x                   / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
-                geom.vertices[4].texCoord.equals(new Vector( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
-                geom.vertices[5].texCoord.equals(new Vector((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
+                geom.vertices[3].texCoord.equals(new Vector2( tile1.region.x                   / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
+                geom.vertices[4].texCoord.equals(new Vector2( tile1.region.x                   / texture.width,  tile1.region.y                   / texture.height)).should.be(true);
+                geom.vertices[5].texCoord.equals(new Vector2((tile1.region.x + tile1.region.w) / texture.width, (tile1.region.y + tile1.region.h) / texture.height)).should.be(true);
 
                 // id2
-                geom.vertices[ 6].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
-                geom.vertices[ 7].texCoord.equals(new Vector( tile2.region.x                   / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
-                geom.vertices[ 8].texCoord.equals(new Vector( tile2.region.x                   / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
+                geom.vertices[ 6].texCoord.equals(new Vector2((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
+                geom.vertices[ 7].texCoord.equals(new Vector2( tile2.region.x                   / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
+                geom.vertices[ 8].texCoord.equals(new Vector2( tile2.region.x                   / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
 
-                geom.vertices[ 9].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
-                geom.vertices[10].texCoord.equals(new Vector((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
-                geom.vertices[11].texCoord.equals(new Vector( tile2.region.x                   / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
+                geom.vertices[ 9].texCoord.equals(new Vector2((tile2.region.x + tile2.region.w) / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
+                geom.vertices[10].texCoord.equals(new Vector2((tile2.region.x + tile2.region.w) / texture.width, (tile2.region.y + tile2.region.h) / texture.height)).should.be(true);
+                geom.vertices[11].texCoord.equals(new Vector2( tile2.region.x                   / texture.width,  tile2.region.y                   / texture.height)).should.be(true);
             });
-            */
         });
     }
 }

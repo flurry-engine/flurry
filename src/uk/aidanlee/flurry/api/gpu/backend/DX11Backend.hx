@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import haxe.Exception;
 import haxe.io.Bytes;
 import cpp.Float32;
@@ -80,10 +81,9 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.thread.JobQueue;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.utils.bytes.BytesPacker;
-import uk.aidanlee.flurry.utils.bytes.FastFloat32Array;
 
 using Safety;
 using cpp.NativeArray;
@@ -117,7 +117,7 @@ class DX11Backend implements IRendererBackend
     /**
      * Constant vector instance which is used to transform vertices when copying into the vertex buffer.
      */
-    final transformationVectors : Array<Vector>;
+    final transformationVectors : Array<Vector3>;
 
     /**
      * Queue for running functions on another thread.
@@ -549,7 +549,7 @@ class DX11Backend implements IRendererBackend
         commandVtxOffsets     = [];
         commandIdxOffsets     = [];
         bufferModelMatrix     = [];
-        transformationVectors = [ for (i in 0...RENDERER_THREADS) new Vector() ];
+        transformationVectors = [ for (i in 0...RENDERER_THREADS) new Vector3() ];
         clearColour           = [ _rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a ];
         jobQueue              = new JobQueue(RENDERER_THREADS);
         dummyModelMatrix      = new Matrix();
@@ -1263,9 +1263,9 @@ class DX11Backend implements IRendererBackend
                 var view       = _command.camera.view;
                 var projection = _command.camera.projection;
 
-                memcpy(ptr          , (projection : FastFloat32Array).getData().address(0), 64);
-                memcpy(ptr.incBy(64), (view       : FastFloat32Array).getData().address(0), 64);
-                memcpy(ptr.incBy(64), (model      : FastFloat32Array).getData().address(0), 64);
+                memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
+                memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
+                memcpy(ptr.incBy(64), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
             }
             else
             {
@@ -1279,10 +1279,10 @@ class DX11Backend implements IRendererBackend
                     {
                         case Matrix4:
                             var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            memcpy(ptr.incBy(pos), (mat : FastFloat32Array).getData().address(0), 64);
+                            memcpy(ptr.incBy(pos), (mat : Float32BufferData).bytes.getData().address((mat : Float32BufferData).byteOffset), 64);
                         case Vector4:
                             var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            memcpy(ptr.incBy(pos), (vec : FastFloat32Array).getData().address(0), 16);
+                            memcpy(ptr.incBy(pos), (vec : Float32BufferData).bytes.getData().address((vec : Float32BufferData).byteOffset), 16);
                         case Int:
                             var dst : Pointer<Int32> = ptr.reinterpret();
                             dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));

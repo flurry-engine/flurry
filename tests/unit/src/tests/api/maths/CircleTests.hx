@@ -1,7 +1,7 @@
 package tests.api.maths;
 
 import buddy.BuddySuite;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.maths.Circle;
 
 using buddy.Should;
@@ -60,11 +60,11 @@ class CircleTests extends BuddySuite
 
                     var v1x = 2;
                     var v1y = 2;
-                    var v1 = new Vector(v1x, v1y);
+                    var v1 = new Vector2(v1x, v1y);
 
                     var v2x = x + (r / 2);
                     var v2y = y + (r / 2);
-                    var v2 = new Vector(v2x, v2y);
+                    var v2 = new Vector2(v2x, v2y);
 
                     c.containsPoint(v1).should.not.be(true);
                     c.containsPoint(v2).should.be(true);

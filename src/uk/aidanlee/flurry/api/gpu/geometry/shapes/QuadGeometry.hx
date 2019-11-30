@@ -1,7 +1,8 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
 
@@ -33,10 +34,10 @@ class QuadGeometry extends Geometry
         _options.uv = _options.uv.or( new Rectangle(0, 0, 1, 1));
 
         vertices.resize(4);
-        vertices[0] = new Vertex( new Vector(         0, _options.h), color, new Vector(_options.uv.x, _options.uv.h) );
-        vertices[1] = new Vertex( new Vector(_options.w, _options.h), color, new Vector(_options.uv.w, _options.uv.h) );
-        vertices[2] = new Vertex( new Vector(         0,          0), color, new Vector(_options.uv.x, _options.uv.y) );
-        vertices[3] = new Vertex( new Vector(_options.w,          0), color, new Vector(_options.uv.w, _options.uv.y) );
+        vertices[0] = new Vertex( new Vector3(         0, _options.h), color, new Vector2(_options.uv.x, _options.uv.h) );
+        vertices[1] = new Vertex( new Vector3(_options.w, _options.h), color, new Vector2(_options.uv.w, _options.uv.h) );
+        vertices[2] = new Vertex( new Vector3(         0,          0), color, new Vector2(_options.uv.x, _options.uv.y) );
+        vertices[3] = new Vertex( new Vector3(_options.w,          0), color, new Vector2(_options.uv.w, _options.uv.y) );
 
         indices.resize(6);
         indices[0] = 0;
@@ -53,7 +54,7 @@ class QuadGeometry extends Geometry
      * Resize the quad according to a vector.
      * @param _vector New width and height of the quad.
      */
-    public function resize(_vector : Vector)
+    public function resize(_vector : Vector2)
     {
         vertices[0].position.set_xy(        0, _vector.y);
         vertices[1].position.set_xy(_vector.x, _vector.y);
@@ -119,10 +120,10 @@ class QuadGeometry extends Geometry
         var uv_w = _normalized ? _uv.w : _uv.w / textures[0].width;
         var uv_h = _normalized ? _uv.h : _uv.h / textures[0].height;
 
-        vertices[0].texCoord.set_xy(uv_x, uv_h);
-        vertices[1].texCoord.set_xy(uv_w, uv_h);
-        vertices[2].texCoord.set_xy(uv_x, uv_y);
-        vertices[3].texCoord.set_xy(uv_w, uv_y);
+        vertices[0].texCoord.set(uv_x, uv_h);
+        vertices[1].texCoord.set(uv_w, uv_h);
+        vertices[2].texCoord.set(uv_x, uv_y);
+        vertices[3].texCoord.set(uv_w, uv_y);
     }
 
     /**
@@ -141,9 +142,9 @@ class QuadGeometry extends Geometry
         var uv_w = _normalized ? _z : _z / textures[0].width;
         var uv_h = _normalized ? _w : _w / textures[0].height;
 
-        vertices[0].texCoord.set_xy(uv_x, uv_h);
-        vertices[1].texCoord.set_xy(uv_w, uv_h);
-        vertices[2].texCoord.set_xy(uv_x, uv_y);
-        vertices[3].texCoord.set_xy(uv_w, uv_y);
+        vertices[0].texCoord.set(uv_x, uv_h);
+        vertices[1].texCoord.set(uv_w, uv_h);
+        vertices[2].texCoord.set(uv_x, uv_y);
+        vertices[3].texCoord.set(uv_w, uv_y);
     }
 }

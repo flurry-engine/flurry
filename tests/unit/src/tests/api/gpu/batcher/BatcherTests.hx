@@ -2,13 +2,7 @@ package tests.api.gpu.batcher;
 
 import signals.Signal1;
 import signals.Signal.Signal0;
-import uk.aidanlee.flurry.api.gpu.ComparisonFunction;
-import uk.aidanlee.flurry.api.gpu.textures.Filtering;
-import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.maths.Vector;
-import uk.aidanlee.flurry.api.maths.Matrix;
-import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;

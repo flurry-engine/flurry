@@ -1,7 +1,7 @@
 package tests.api.gpu.geometry.shapes;
 
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.TextGeometry;
 import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontParser;
 import buddy.BuddySuite;
@@ -23,7 +23,7 @@ class TextGeometryTests extends BuddySuite
                 texture.width.returns(512);
                 texture.height.returns(512);
 
-                var geometry = new TextGeometry({ font : fontData, text : string, position : new Vector(0, 0), textures : [ texture ] });
+                var geometry = new TextGeometry({ font : fontData, text : string, position : new Vector3(0, 0), textures : [ texture ] });
                 geometry.vertices.length.should.be(string.length * 6);
             });
 
@@ -35,7 +35,7 @@ class TextGeometryTests extends BuddySuite
                 texture.width.returns(512);
                 texture.height.returns(512);
 
-                var geometry = new TextGeometry({ font : fontData, text : string, position : new Vector(0, 0), textures : [ texture ] });
+                var geometry = new TextGeometry({ font : fontData, text : string, position : new Vector3(0, 0), textures : [ texture ] });
                 geometry.vertices.length.should.be(string.length * 6);
                 geometry.font = fontData;
                 geometry.vertices.length.should.be(string.length * 6);
@@ -50,7 +50,7 @@ class TextGeometryTests extends BuddySuite
                 texture.width.returns(512);
                 texture.height.returns(512);
 
-                var geometry = new TextGeometry({ font : fontData, text : oldString, position : new Vector(0, 0), textures : [ texture ] });
+                var geometry = new TextGeometry({ font : fontData, text : oldString, position : new Vector3(0, 0), textures : [ texture ] });
                 geometry.vertices.length.should.be(oldString.length * 6);
                 geometry.text = newString;
                 geometry.vertices.length.should.be(newString.length * 6);

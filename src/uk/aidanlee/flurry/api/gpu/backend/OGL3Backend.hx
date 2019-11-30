@@ -28,10 +28,11 @@ import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Maths;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
+import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.resources.Resource.Resource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
@@ -39,7 +40,6 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.thread.JobQueue;
-import uk.aidanlee.flurry.utils.bytes.FastFloat32Array;
 
 using Safety;
 using cpp.NativeArray;
@@ -112,7 +112,7 @@ class OGL3Backend implements IRendererBackend
     /**
      * Transformation vector used for transforming geometry vertices by a matrix.
      */
-    final transformationVectors : Array<Vector>;
+    final transformationVectors : Array<Vector3>;
 
     /**
      * Shader programs keyed by their associated shader resource IDs.
@@ -154,7 +154,7 @@ class OGL3Backend implements IRendererBackend
     /**
      * Constant vector which will be used to flip perspective cameras on their y axis.
      */
-    final perspectiveYFlipVector : Vector;
+    final perspectiveYFlipVector : Vector3;
 
     /**
      * Array of opengl textures objects which will be bound.
@@ -229,10 +229,10 @@ class OGL3Backend implements IRendererBackend
         samplerObjects     = [];
         framebufferObjects = [];
 
-        perspectiveYFlipVector = new Vector(1, -1, 1);
+        perspectiveYFlipVector = new Vector3(1, -1, 1);
         dummyModelMatrix       = new Matrix();
         jobQueue               = new JobQueue(RENDERER_THREADS);
-        transformationVectors  = [ for (_ in 0...RENDERER_THREADS) new Vector() ];
+        transformationVectors  = [ for (_ in 0...RENDERER_THREADS) new Vector3() ];
         commandVtxOffsets      = [];
         commandIdxOffsets      = [];
         bufferModelMatrix      = [];
@@ -986,9 +986,9 @@ class OGL3Backend implements IRendererBackend
                 var view       = _command.camera.view;
                 var projection = _command.camera.projection;
 
-                memcpy(ptr          , (projection : FastFloat32Array).getData().address(0), 64);
-                memcpy(ptr.incBy(64), (view       : FastFloat32Array).getData().address(0), 64);
-                memcpy(ptr.incBy(64), (model      : FastFloat32Array).getData().address(0), 64);
+                memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
+                memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
+                memcpy(ptr.incBy(64), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
             }
             else
             {
@@ -1001,11 +1001,11 @@ class OGL3Backend implements IRendererBackend
                     {
                         case Matrix4:
                             var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            memcpy(ptr.incBy(pos), (mat : FastFloat32Array).getData().address(0), 64);
+                            memcpy(ptr.incBy(pos), (mat : Float32BufferData).bytes.getData().address((mat : Float32BufferData).byteOffset), 64);
                             pos += 64;
                         case Vector4:
                             var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            memcpy(ptr.incBy(pos), (vec : FastFloat32Array).getData().address(0), 16);
+                            memcpy(ptr.incBy(pos), (vec : Float32BufferData).bytes.getData().address((vec : Float32BufferData).byteOffset), 16);
                             pos += 16;
                         case Int:
                             var dst : Pointer<Int32> = ptr.reinterpret();

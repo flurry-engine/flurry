@@ -1,7 +1,7 @@
 package tests.api.gpu.geometry.shapes;
 
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.RectangleGeometry;
@@ -27,10 +27,10 @@ class RectangleGeometryTests extends BuddySuite
                     batchers : [ batcher ]
                 });
 
-                rectangle.vertices[0].position.equals(new Vector(0, 0)).should.be(true);
-                rectangle.vertices[1].position.equals(new Vector(1, 0)).should.be(true);
-                rectangle.vertices[2].position.equals(new Vector(1, 1)).should.be(true);
-                rectangle.vertices[3].position.equals(new Vector(0, 1)).should.be(true);
+                rectangle.vertices[0].position.equals(new Vector3(0, 0)).should.be(true);
+                rectangle.vertices[1].position.equals(new Vector3(1, 0)).should.be(true);
+                rectangle.vertices[2].position.equals(new Vector3(1, 1)).should.be(true);
+                rectangle.vertices[3].position.equals(new Vector3(0, 1)).should.be(true);
                 rectangle.vertices[4].equals(rectangle.vertices[0]);
             });
 
@@ -45,13 +45,13 @@ class RectangleGeometryTests extends BuddySuite
                     batchers : [ batcher ]
                 });
 
-                rectangle.vertices[0].position.equals(new Vector(0, 0)).should.be(true);
-                rectangle.vertices[1].position.equals(new Vector(w, 0)).should.be(true);
-                rectangle.vertices[2].position.equals(new Vector(w, h)).should.be(true);
-                rectangle.vertices[3].position.equals(new Vector(0, h)).should.be(true);
+                rectangle.vertices[0].position.equals(new Vector3(0, 0)).should.be(true);
+                rectangle.vertices[1].position.equals(new Vector3(w, 0)).should.be(true);
+                rectangle.vertices[2].position.equals(new Vector3(w, h)).should.be(true);
+                rectangle.vertices[3].position.equals(new Vector3(0, h)).should.be(true);
                 rectangle.vertices[4].equals(rectangle.vertices[0]);
 
-                rectangle.transformation.position.equals(new Vector(x, y)).should.be(true);
+                rectangle.transformation.position.equals(new Vector3(x, y)).should.be(true);
             });
 
             it('Can create the geometry from a rectangle', {
@@ -65,13 +65,13 @@ class RectangleGeometryTests extends BuddySuite
                     batchers : [ batcher ]
                 });
 
-                rectangle.vertices[0].position.equals(new Vector(0, 0)).should.be(true);
-                rectangle.vertices[1].position.equals(new Vector(w, 0)).should.be(true);
-                rectangle.vertices[2].position.equals(new Vector(w, h)).should.be(true);
-                rectangle.vertices[3].position.equals(new Vector(0, h)).should.be(true);
+                rectangle.vertices[0].position.equals(new Vector3(0, 0)).should.be(true);
+                rectangle.vertices[1].position.equals(new Vector3(w, 0)).should.be(true);
+                rectangle.vertices[2].position.equals(new Vector3(w, h)).should.be(true);
+                rectangle.vertices[3].position.equals(new Vector3(0, h)).should.be(true);
                 rectangle.vertices[4].equals(rectangle.vertices[0]);
 
-                rectangle.transformation.position.equals(new Vector(x, y)).should.be(true);
+                rectangle.transformation.position.equals(new Vector3(x, y)).should.be(true);
             });
 
             it('Can resize the geometry from a vector', {
@@ -82,12 +82,12 @@ class RectangleGeometryTests extends BuddySuite
                     batchers : [ batcher ]
                 });
 
-                rectangle.resize(new Vector(w, h));
+                rectangle.resize_xy(w, h);
 
-                rectangle.vertices[0].position.equals(new Vector(0, 0)).should.be(true);
-                rectangle.vertices[1].position.equals(new Vector(w, 0)).should.be(true);
-                rectangle.vertices[2].position.equals(new Vector(w, h)).should.be(true);
-                rectangle.vertices[3].position.equals(new Vector(0, h)).should.be(true);
+                rectangle.vertices[0].position.equals(new Vector3(0, 0)).should.be(true);
+                rectangle.vertices[1].position.equals(new Vector3(w, 0)).should.be(true);
+                rectangle.vertices[2].position.equals(new Vector3(w, h)).should.be(true);
+                rectangle.vertices[3].position.equals(new Vector3(0, h)).should.be(true);
                 rectangle.vertices[4].equals(rectangle.vertices[0]);
             });
 
@@ -101,10 +101,10 @@ class RectangleGeometryTests extends BuddySuite
 
                 rectangle.resize_xy(w, h);
 
-                rectangle.vertices[0].position.equals(new Vector(0, 0)).should.be(true);
-                rectangle.vertices[1].position.equals(new Vector(w, 0)).should.be(true);
-                rectangle.vertices[2].position.equals(new Vector(w, h)).should.be(true);
-                rectangle.vertices[3].position.equals(new Vector(0, h)).should.be(true);
+                rectangle.vertices[0].position.equals(new Vector3(0, 0)).should.be(true);
+                rectangle.vertices[1].position.equals(new Vector3(w, 0)).should.be(true);
+                rectangle.vertices[2].position.equals(new Vector3(w, h)).should.be(true);
+                rectangle.vertices[3].position.equals(new Vector3(0, h)).should.be(true);
                 rectangle.vertices[4].equals(rectangle.vertices[0]);
             });
 
@@ -120,13 +120,13 @@ class RectangleGeometryTests extends BuddySuite
 
                 rectangle.set(new Rectangle(x, y, w, h));
 
-                rectangle.vertices[0].position.equals(new Vector(0, 0)).should.be(true);
-                rectangle.vertices[1].position.equals(new Vector(w, 0)).should.be(true);
-                rectangle.vertices[2].position.equals(new Vector(w, h)).should.be(true);
-                rectangle.vertices[3].position.equals(new Vector(0, h)).should.be(true);
+                rectangle.vertices[0].position.equals(new Vector3(0, 0)).should.be(true);
+                rectangle.vertices[1].position.equals(new Vector3(w, 0)).should.be(true);
+                rectangle.vertices[2].position.equals(new Vector3(w, h)).should.be(true);
+                rectangle.vertices[3].position.equals(new Vector3(0, h)).should.be(true);
                 rectangle.vertices[4].equals(rectangle.vertices[0]);
 
-                rectangle.transformation.position.equals(new Vector(x, y)).should.be(true);
+                rectangle.transformation.position.equals(new Vector3(x, y)).should.be(true);
             });
 
             it('Can resize and set the position of the geometry from four floats', {
@@ -141,13 +141,13 @@ class RectangleGeometryTests extends BuddySuite
 
                 rectangle.set_xywh(x, y, w, h);
 
-                rectangle.vertices[0].position.equals(new Vector(0, 0)).should.be(true);
-                rectangle.vertices[1].position.equals(new Vector(w, 0)).should.be(true);
-                rectangle.vertices[2].position.equals(new Vector(w, h)).should.be(true);
-                rectangle.vertices[3].position.equals(new Vector(0, h)).should.be(true);
+                rectangle.vertices[0].position.equals(new Vector3(0, 0)).should.be(true);
+                rectangle.vertices[1].position.equals(new Vector3(w, 0)).should.be(true);
+                rectangle.vertices[2].position.equals(new Vector3(w, h)).should.be(true);
+                rectangle.vertices[3].position.equals(new Vector3(0, h)).should.be(true);
                 rectangle.vertices[4].equals(rectangle.vertices[0]);
 
-                rectangle.transformation.position.equals(new Vector(x, y)).should.be(true);
+                rectangle.transformation.position.equals(new Vector3(x, y)).should.be(true);
             });
         });
     }

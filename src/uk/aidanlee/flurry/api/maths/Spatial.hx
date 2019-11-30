@@ -13,12 +13,12 @@ class Spatial
     /**
      * The position of this transform.
      */
-    public final position : Vector;
+    public final position : Vector3;
 
     /**
      * The scale of this transform.
      */
-    public final scale : Vector;
+    public final scale : Vector3;
 
     /**
      * The rotation of this transform.
@@ -28,8 +28,8 @@ class Spatial
     public function new()
     {
         matrix   = new Matrix();
-        position = new Vector();
-        scale    = new Vector(1, 1, 1);
+        position = new Vector3();
+        scale    = new Vector3(1, 1, 1);
         rotation = new Quaternion();
     }
 

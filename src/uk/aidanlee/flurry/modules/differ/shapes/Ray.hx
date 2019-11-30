@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry.modules.differ.shapes;
 
 import uk.aidanlee.flurry.api.maths.Maths;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
 
 /**
  * A ray with a start, end, direction, and infinite state for collision queries.
@@ -11,19 +11,19 @@ class Ray
     /**
      * The start point of the ray.
      */
-    public var start : Vector;
+    public var start : Vector2;
 
     /**
      * The end point of the ray.
      */
-    public var end : Vector;
+    public var end : Vector2;
 
     /**
      * The direction of the ray.
      * Returns a cached vector, so modifying it will affect this instance.
      * Updates only when the dir value is accessed.
      */
-    public var dir (get, never) : Vector;
+    public var dir (get, never) : Vector2;
 
     inline function get_dir() {
         dirCache.x = end.x - start.x;
@@ -46,17 +46,17 @@ class Ray
      */
     public var infinite : InfiniteState;
 
-    final dirCache : Vector;
+    final dirCache : Vector2;
 
     /**
      * Create a new ray with the start and end point, which determine the direction of the ray, and optionally specifying that this ray is infinite in some way.
      */
-    public function new(_start : Vector, _end : Vector, ?_infinite : InfiniteState)
+    public function new(_start : Vector2, _end : Vector2, ?_infinite : InfiniteState)
     {
         start    = _start;
         end      = _end;
         infinite = _infinite == null ? NotInfinite : _infinite;
-        dirCache = new Vector(end.x - start.x, end.y - start.y);
+        dirCache = new Vector2(end.x - start.x, end.y - start.y);
     }
 }
 

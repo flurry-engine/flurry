@@ -1,6 +1,6 @@
 package tests.modules.differ.data;
 
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.modules.differ.shapes.Ray;
 import uk.aidanlee.flurry.modules.differ.data.RayIntersection;
 import buddy.BuddySuite;
@@ -34,8 +34,8 @@ class RayIntersectionTests extends BuddySuite
 
             it('can update its values allowing re-use', {
                 var result1 = new RayIntersection(null, null, 2, 6);
-                var newR1 = new Ray(new Vector(), new Vector());
-                var newR2 = new Ray(new Vector(), new Vector());
+                var newR1 = new Ray(new Vector2(), new Vector2());
+                var newR2 = new Ray(new Vector2(), new Vector2());
                 
                 result1.set(newR1, newR2, 3, 5);
                 result1.ray1.should.be(newR1);

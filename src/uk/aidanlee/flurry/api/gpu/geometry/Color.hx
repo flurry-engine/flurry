@@ -1,11 +1,13 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.buffers.Float32BufferData;
+import uk.aidanlee.flurry.api.maths.Vector4;
 
 /**
  * Basic RGBA colour class
  */
-abstract Color(Vector)
+@:forward(offset, changed)
+abstract Color(Vector4) from Vector4 to Vector4 from Float32BufferData to Float32BufferData
 {
     public var r (get, set) : Float;
 
@@ -33,7 +35,7 @@ abstract Color(Vector)
 
     public function new(_r : Float = 1, _g : Float = 1, _b : Float = 1, _a : Float = 1)
     {
-        this = new Vector(_r, _g, _b, _a);
+        this = new Vector4(_r, _g, _b, _a);
     }
 
     /**

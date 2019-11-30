@@ -169,8 +169,8 @@ class ImGuiImpl
     public function render()
     {
         camera.viewport.set(0, 0, display.width, display.height);
-        camera.size.set_xy(camera.viewport.w, camera.viewport.h);
-        camera.update();
+        camera.size.set(camera.viewport.w, camera.viewport.h);
+        camera.update(1000 / 60);
 
         NativeImGui.render();
         onRender(NativeImGui.getDrawData());

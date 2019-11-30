@@ -1,71 +1,71 @@
 package uk.aidanlee.flurry.api.maths;
 
-import uk.aidanlee.flurry.utils.bytes.FastFloat32Array;
+import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 
 /**
  * 4x4 matrix class for transformations and perspective.
  */
-abstract Matrix(FastFloat32Array) from FastFloat32Array to FastFloat32Array
+abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
 {
-    public var M11 (get, set) : Float;
-    public var M21 (get, set) : Float;
-    public var M31 (get, set) : Float;
-    public var M41 (get, set) : Float;
+    public var m11 (get, set) : Float;
+    public var m21 (get, set) : Float;
+    public var m31 (get, set) : Float;
+    public var m41 (get, set) : Float;
 
-    public var M12 (get, set) : Float;
-    public var M22 (get, set) : Float;
-    public var M32 (get, set) : Float;
-    public var M42 (get, set) : Float;
+    public var m12 (get, set) : Float;
+    public var m22 (get, set) : Float;
+    public var m32 (get, set) : Float;
+    public var m42 (get, set) : Float;
 
-    public var M13 (get, set) : Float;
-    public var M23 (get, set) : Float;
-    public var M33 (get, set) : Float;
-    public var M43 (get, set) : Float;
+    public var m13 (get, set) : Float;
+    public var m23 (get, set) : Float;
+    public var m33 (get, set) : Float;
+    public var m43 (get, set) : Float;
 
-    public var M14 (get, set) : Float;
-    public var M24 (get, set) : Float;
-    public var M34 (get, set) : Float;
-    public var M44 (get, set) : Float;
+    public var m14 (get, set) : Float;
+    public var m24 (get, set) : Float;
+    public var m34 (get, set) : Float;
+    public var m44 (get, set) : Float;
 
-    inline function get_M11() : Float { return this[0]; }
-    inline function get_M21() : Float { return this[1]; }
-    inline function get_M31() : Float { return this[2]; }
-    inline function get_M41() : Float { return this[3]; }
+    inline function get_m11() : Float { return this[0]; }
+    inline function get_m21() : Float { return this[1]; }
+    inline function get_m31() : Float { return this[2]; }
+    inline function get_m41() : Float { return this[3]; }
 
-    inline function get_M12() : Float { return this[4]; }
-    inline function get_M22() : Float { return this[5]; }
-    inline function get_M32() : Float { return this[6]; }
-    inline function get_M42() : Float { return this[7]; }
+    inline function get_m12() : Float { return this[4]; }
+    inline function get_m22() : Float { return this[5]; }
+    inline function get_m32() : Float { return this[6]; }
+    inline function get_m42() : Float { return this[7]; }
 
-    inline function get_M13() : Float { return this[ 8]; }
-    inline function get_M23() : Float { return this[ 9]; }
-    inline function get_M33() : Float { return this[10]; }
-    inline function get_M43() : Float { return this[11]; }
+    inline function get_m13() : Float { return this[ 8]; }
+    inline function get_m23() : Float { return this[ 9]; }
+    inline function get_m33() : Float { return this[10]; }
+    inline function get_m43() : Float { return this[11]; }
 
-    inline function get_M14() : Float { return this[12]; }
-    inline function get_M24() : Float { return this[13]; }
-    inline function get_M34() : Float { return this[14]; }
-    inline function get_M44() : Float { return this[15]; }
+    inline function get_m14() : Float { return this[12]; }
+    inline function get_m24() : Float { return this[13]; }
+    inline function get_m34() : Float { return this[14]; }
+    inline function get_m44() : Float { return this[15]; }
 
-    inline function set_M11(_v : Float) : Float { this[0] = _v; return _v; }
-    inline function set_M21(_v : Float) : Float { this[1] = _v; return _v; }
-    inline function set_M31(_v : Float) : Float { this[2] = _v; return _v; }
-    inline function set_M41(_v : Float) : Float { this[3] = _v; return _v; }
+    inline function set_m11(_v : Float) : Float { this[0] = _v; return _v; }
+    inline function set_m21(_v : Float) : Float { this[1] = _v; return _v; }
+    inline function set_m31(_v : Float) : Float { this[2] = _v; return _v; }
+    inline function set_m41(_v : Float) : Float { this[3] = _v; return _v; }
 
-    inline function set_M12(_v : Float) : Float { this[4] = _v; return _v; }
-    inline function set_M22(_v : Float) : Float { this[5] = _v; return _v; }
-    inline function set_M32(_v : Float) : Float { this[6] = _v; return _v; }
-    inline function set_M42(_v : Float) : Float { this[7] = _v; return _v; }
+    inline function set_m12(_v : Float) : Float { this[4] = _v; return _v; }
+    inline function set_m22(_v : Float) : Float { this[5] = _v; return _v; }
+    inline function set_m32(_v : Float) : Float { this[6] = _v; return _v; }
+    inline function set_m42(_v : Float) : Float { this[7] = _v; return _v; }
 
-    inline function set_M13(_v : Float) : Float { this[ 8] = _v; return _v; }
-    inline function set_M23(_v : Float) : Float { this[ 9] = _v; return _v; }
-    inline function set_M33(_v : Float) : Float { this[10] = _v; return _v; }
-    inline function set_M43(_v : Float) : Float { this[11] = _v; return _v; }
+    inline function set_m13(_v : Float) : Float { this[ 8] = _v; return _v; }
+    inline function set_m23(_v : Float) : Float { this[ 9] = _v; return _v; }
+    inline function set_m33(_v : Float) : Float { this[10] = _v; return _v; }
+    inline function set_m43(_v : Float) : Float { this[11] = _v; return _v; }
 
-    inline function set_M14(_v : Float) : Float { this[12] = _v; return _v; }
-    inline function set_M24(_v : Float) : Float { this[13] = _v; return _v; }
-    inline function set_M34(_v : Float) : Float { this[14] = _v; return _v; }
-    inline function set_M44(_v : Float) : Float { this[15] = _v; return _v; }
+    inline function set_m14(_v : Float) : Float { this[12] = _v; return _v; }
+    inline function set_m24(_v : Float) : Float { this[13] = _v; return _v; }
+    inline function set_m34(_v : Float) : Float { this[14] = _v; return _v; }
+    inline function set_m44(_v : Float) : Float { this[15] = _v; return _v; }
 
     @:arrayAccess public inline function arrayGet(_key : Int) : Float { return this[_key]; }
     @:arrayAccess public inline function arraySet(_key : Int, _val : Float) { this[_key] = _val; }
@@ -96,7 +96,7 @@ abstract Matrix(FastFloat32Array) from FastFloat32Array to FastFloat32Array
         _n31 : Float = 0, _n32 : Float = 0, _n33 : Float = 1, _n34 : Float = 0,
         _n41 : Float = 0, _n42 : Float = 0, _n43 : Float = 0, _n44 : Float = 1)
     {
-        this = new FastFloat32Array(16);
+        this = new Float32BufferData(16);
 
         set(
             _n11, _n12, _n13, _n14,
@@ -339,7 +339,7 @@ abstract Matrix(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * Scale this matrix by a vector.
      * @param _v Scaling vector.
      */
-    public inline function scale(_v : Vector) : Matrix
+    public inline function scale(_v : Vector3) : Matrix
     {
         var _x = _v.x;
         var _y = _v.y;
@@ -359,7 +359,7 @@ abstract Matrix(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _quaternion Rotation for the matrix.
      * @param _scale      Scale for the matrix.
      */
-    public inline function compose(_position : Vector, _quaternion : Quaternion, _scale : Vector) : Matrix
+    public inline function compose(_position : Vector3, _quaternion : Quaternion, _scale : Vector3) : Matrix
     {
         makeRotationFromQuaternion(_quaternion);
         scale(_scale);
@@ -374,7 +374,7 @@ abstract Matrix(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _quaternion Optional quaternion to store the rotation in.
      * @param _scale      Optional vector to store the scale in.
      */
-    public inline function decompose(_position : Vector, _quaternion : Quaternion, _scale : Vector) : Matrix
+    public inline function decompose(_position : Vector3, _quaternion : Quaternion, _scale : Vector3) : Matrix
     {
         var ax_x = this[0]; var ax_y = this[1]; var ax_z = this[ 2];
         var ay_x = this[4]; var ay_y = this[5]; var ay_z = this[ 6];
@@ -385,10 +385,10 @@ abstract Matrix(FastFloat32Array) from FastFloat32Array to FastFloat32Array
         var az_length = Maths.sqrt(az_x * az_x + az_y * az_y + az_z * az_z);
 
         // Get the position from the matrix.
-        _position.set_xyz(this[12], this[13], this[14]);
+        _position.set(this[12], this[13], this[14]);
 
         // Get the scale from the matrix
-        _scale.set_xyz(ax_length, ay_length, az_length);
+        _scale.set(ax_length, ay_length, az_length);
 
         var me = clone();
         me[0] /= ax_length;
@@ -505,34 +505,34 @@ abstract Matrix(FastFloat32Array) from FastFloat32Array to FastFloat32Array
         return this;
     }
 
-    public inline function up() : Vector
+    public inline function up() : Vector3
     {
-        return new Vector(this[4], this[5], this[6]);
+        return new Vector3(this[4], this[5], this[6]);
     }
 
-    public inline function down() : Vector
+    public inline function down() : Vector3
     {
         return up().invert();
     }
 
-    public inline function left() : Vector
+    public inline function left() : Vector3
     {
         return right().invert();
     }
 
-    public inline function right() : Vector
+    public inline function right() : Vector3
     {
-        return new Vector(this[0], this[1], this[2]);
+        return new Vector3(this[0], this[1], this[2]);
     }
 
-    public inline function forward() : Vector
+    public inline function forward() : Vector3
     {
         return backwards().invert();
     }
 
-    public inline function backwards() : Vector
+    public inline function backwards() : Vector3
     {
-        return new Vector(this[8], this[9], this[10]);
+        return new Vector3(this[8], this[9], this[10]);
     }
 
     // #endregion
@@ -543,16 +543,16 @@ abstract Matrix(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * Return the position from this matrix into a vector.
      * @return Vector
      */
-    public inline function getPosition() : Vector
+    public inline function getPosition() : Vector3
     {
-        return new Vector(this[12], this[13], this[14]);
+        return new Vector3(this[12], this[13], this[14]);
     }
 
     /**
      * Set the position in the matrix based on a vector.
      * @param _v Position vector.
      */
-    public inline function setPosition(_v : Vector) : Matrix
+    public inline function setPosition(_v : Vector3) : Matrix
     {
         this[12] = _v.x;
         this[13] = _v.y;
@@ -567,22 +567,22 @@ abstract Matrix(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _target The target position.
      * @param _up     Up vector.
      */
-    public inline function lookAt(_eye : Vector, _target : Vector, _up : Vector) : Matrix
+    public inline function lookAt(_eye : Vector3, _target : Vector3, _up : Vector3) : Matrix
     {
-        var _z = Vector.Subtract(_target, _eye).normalize();
+        var _z = Vector3.Subtract(_target, _eye).normalize();
         if (_z.length == 0)
         {
             _z.z = 1;
         }
 
-        var _x = Vector.Cross(_up, _z).normalize();
+        var _x = Vector3.Cross(_up, _z).normalize();
         if (_x.length == 0)
         {
             _z.x += 0.0001;
-            _z = Vector.Cross(_up, _z).normalize();
+            _z = Vector3.Cross(_up, _z).normalize();
         }
 
-        var _y = Vector.Cross(_z, _x);
+        var _y = Vector3.Cross(_z, _x);
 
         this[0] = _x.x; this[4] = _y.x; this[ 8] = _z.x;
         this[1] = _x.y; this[5] = _y.y; this[ 9] = _z.y;
@@ -646,7 +646,7 @@ abstract Matrix(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _axis  Vector containing the x, y, and z axis.
      * @param _angle Angle value.
      */
-    public inline function makeRotationAxis(_axis : Vector, _angle : Float) : Matrix
+    public inline function makeRotationAxis(_axis : Vector3, _angle : Float) : Matrix
     {
         var c = Maths.cos(_angle);
         var s = Maths.sin(_angle);
@@ -740,7 +740,7 @@ abstract Matrix(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _order Component order.
      * @return Matrix
      */
-    public inline function makeRotationFromEuler(_v : Vector, _order : ComponentOrder = XYZ) : Matrix
+    public inline function makeRotationFromEuler(_v : Vector3, _order : ComponentOrder = XYZ) : Matrix
     {
         var x = _v.x;
         var y = _v.y;

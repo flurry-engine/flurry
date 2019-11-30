@@ -1,6 +1,7 @@
 package uk.aidanlee.flurry.modules.differ.shapes;
 
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.modules.differ.data.*;
@@ -101,15 +102,15 @@ class Shape
         return scale.y;
     }
 
-    final position : Vector;
+    final position : Vector3;
 
-    final scale : Vector;
+    final scale : Vector3;
 
     final transformMatrix : Matrix;
 
     final transformQuaternion : Quaternion;
     
-    final transformRotation : Vector;
+    final transformRotation : Vector3;
 
     var rotationRadians : Float;
 
@@ -123,11 +124,11 @@ class Shape
         name                = _name;
         active              = true;
         transformed         = false;
-        position            = new Vector(_x, _y);
-        scale               = new Vector(1, 1);
+        position            = new Vector3(_x, _y);
+        scale               = new Vector3(1, 1);
         transformMatrix     = new Matrix().makeTranslation(_x, _y, 0);
         transformQuaternion = new Quaternion();
-        transformRotation   = new Vector(0, 0, 1);
+        transformRotation   = new Vector3(0, 0, 1);
         rotationRadians     = 0;
     }
 

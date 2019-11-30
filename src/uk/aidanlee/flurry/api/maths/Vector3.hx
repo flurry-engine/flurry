@@ -1,173 +1,128 @@
 package uk.aidanlee.flurry.api.maths;
 
-import uk.aidanlee.flurry.utils.bytes.FastFloat32Array;
+import uk.aidanlee.flurry.api.maths.Vector4;
+import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 
 /**
- * Vector class which contains an x, y, z, and w component.
+ * Vector class which contains an x, y, and z component.
  */
-abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
+@:forward(offset, changed)
+abstract Vector3(Float32BufferData) from Float32BufferData to Float32BufferData from Vector4
 {
     /**
      * x component of this vector.
      */
     public var x (get, set) : Float;
 
-    inline function get_x() : Float {
-        return this[0];
-    }
-
-    inline function set_x(_x : Float) : Float {
-        this[0] = _x;
-
-        return this[0];
-    }
+    inline function get_x() : Float return this[0];
+    inline function set_x(_x : Float) : Float return this[0] = _x;
 
     /**
      * y component of this vector.
      */
     public var y (get, set) : Float;
 
-    inline function get_y() : Float {
-        return this[1];
-    }
+    inline function get_y() : Float return this[1];
 
-    inline function set_y(_y : Float) : Float {
-        this[1] = _y;
-
-        return this[1];
-    }
+    inline function set_y(_y : Float) : Float return this[1] = _y;
 
     /**
      * z component of this vector.
      */
     public var z (get, set) : Float;
 
-    inline function get_z() : Float {
-        return this[2];
-    }
+    inline function get_z() : Float return this[2];
 
-    inline function set_z(_z : Float) : Float {
-        this[2] = _z;
-
-        return this[2];
-    }
-
-    /**
-     * w component of this vector.
-     */
-    public var w (get, set) : Float;
-
-    inline function get_w() : Float {
-        return this[3];
-    }
-
-    inline function set_w(_w : Float) : Float {
-        this[3] = _w;
-
-        return this[3];
-    }
+    inline function set_z(_z : Float) : Float return this[2] = _z;
 
     /**
      * The length of this vector.
      */
     public var length (get, never) : Float;
 
-    inline function get_length() : Float {
-        return Maths.sqrt(x * x + y * y + z * z);
-    }
+    inline function get_length() : Float return Maths.sqrt(x * x + y * y + z * z);
 
     /**
      * The square of this vectors length.
      */
     public var lengthsq (get, never) : Float;
 
-    inline function get_lengthsq() : Float {
-        return x * x + y * y + z + z;
-    }
+    inline function get_lengthsq() : Float return x * x + y * y + z + z;
 
     /**
      * The 2D angle this vector represents.
      */
     public var angle2D (get, never) : Float;
 
-    inline function get_angle2D() : Float {
-        return Maths.atan2(y, x);
-    }
+    inline function get_angle2D() : Float return Maths.atan2(y, x);
 
     /**
      * Normalized version of this vector.
      */
-    public var normalized (get, never) : Vector;
+    public var normalized (get, never) : Vector3;
 
-    inline function get_normalized() : Vector {
-        var len = length;
-        return new Vector(x / len, y / len, z / len);
-    }
+    inline function get_normalized() : Vector3 return new Vector3(x / length, y / length, z / length);
 
     /**
      * Inverted version of this vector.
      */
-    public var inverted (get, never) : Vector;
+    public var inverted (get, never) : Vector3;
 
-    inline function get_inverted() : Vector {
-        return new Vector(-x, -y, -z);
-    }
+    inline function get_inverted() : Vector3 return new Vector3(-x, -y, -z);
 
     /**
      * Create a new vector instance.
      * @param _x x value of the vector.
      * @param _y y value of the vector.
      * @param _z z value of the vector.
-     * @param _w w value of the vector.
      */
-    public function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 0)
+    public function new(_x : Float = 0, _y : Float = 0, _z : Float = 0)
     {
-        this = new FastFloat32Array(4);
+        this = new Float32BufferData(3);
 
         x = _x;
         y = _y;
         z = _z;
-        w = _w;
     }
 
     // #region overloaded operators
 
-    @:op(A + B) inline public function opAdd(_rhs : Vector) : Vector
+    @:op(A + B) inline public function opAdd(_rhs : Vector3) : Vector3
     {
         return add(_rhs);
     }
 
-    @:op(A - B) inline public function opSubtract(_rhs : Vector) : Vector
+    @:op(A - B) inline public function opSubtract(_rhs : Vector3) : Vector3
     {
         return subtract(_rhs);
     }
 
-    @:op(A * B) inline public function opMultiply(_rhs : Vector) : Vector
+    @:op(A * B) inline public function opMultiply(_rhs : Vector3) : Vector3
     {
         return multiply(_rhs);
     }
 
-    @:op(A / B) inline public function opDivide(_rhs : Vector) : Vector
+    @:op(A / B) inline public function opDivide(_rhs : Vector3) : Vector3
     {
         return divide(_rhs);
     }
 
-    @:op(A + B) inline public function opAddScalar(_rhs : Float) : Vector
+    @:op(A + B) inline public function opAddScalar(_rhs : Float) : Vector3
     {
         return addScalar(_rhs);
     }
 
-    @:op(A - B) inline public function opSubtractScalar(_rhs : Float) : Vector
+    @:op(A - B) inline public function opSubtractScalar(_rhs : Float) : Vector3
     {
         return subtractScalar(_rhs);
     }
 
-    @:op(A * B) inline public function opMultiplyScalar(_rhs : Float) : Vector
+    @:op(A * B) inline public function opMultiplyScalar(_rhs : Float) : Vector3
     {
         return multiplyScalar(_rhs);
     }
 
-    @:op(A / B) inline public function opDivideScalar(_rhs : Float) : Vector
+    @:op(A / B) inline public function opDivideScalar(_rhs : Float) : Vector3
     {
         return divideScalar(_rhs);
     }
@@ -179,27 +134,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _x x value of the vector.
      * @param _y y value of the vector.
      * @param _z z value of the vector.
-     * @param _w w value of the vector.
      * @return Vector
      */
-    inline public function set(_x : Float, _y : Float, _z : Float, _w : Float) : Vector
-    {
-        x = _x;
-        y = _y;
-        z = _z;
-        w = _w;
-
-        return this;
-    }
-
-    /**
-     * Sets the x, y, and z components of the vector.
-     * @param _x x value of the vector.
-     * @param _y y value of the vector.
-     * @param _z z value of the vector.
-     * @return Vector
-     */
-    inline public function set_xyz(_x : Float, _y : Float, _z : Float) : Vector
+    inline public function set(_x : Float, _y : Float, _z : Float) : Vector3
     {
         x = _x;
         y = _y;
@@ -214,7 +151,7 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _y y value of the vector.
      * @return Vector
      */
-    inline public function set_xy(_x : Float, _y : Float) : Vector
+    inline public function set_xy(_x : Float, _y : Float) : Vector3
     {
         x = _x;
         y = _y;
@@ -227,9 +164,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _other The vector to copy.
      * @return Vector
      */
-    inline public function copyFrom(_other : Vector) : Vector
+    inline public function copyFrom(_other : Vector3) : Vector3
     {
-        set(_other.x, _other.y, _other.z, _other.w);
+        set(_other.x, _other.y, _other.z);
 
         return this;
     }
@@ -240,7 +177,7 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      */
     inline public function toString() : String
     {
-        return ' { x : $x, y : $y, z : $z, w : $w } ';
+        return ' { x : $x, y : $y, z : $z } ';
     }
 
     /**
@@ -248,18 +185,18 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _other The vector to check against.
      * @return Bool
      */
-    inline public function equals(_other : Vector) : Bool
+    inline public function equals(_other : Vector3) : Bool
     {
-        return (x == _other.x && y == _other.y && z == _other.z && w == _other.w);
+        return x == _other.x && y == _other.y && z == _other.z;
     }
 
     /**
      * Returns a copy of this vector.
      * @return Vector
      */
-    inline public function clone() : Vector
+    inline public function clone() : Vector3
     {
-        return new Vector(x, y, z, w);
+        return new Vector3(x, y, z);
     }
 
     // #region maths
@@ -268,7 +205,7 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * Normalizes this vectors components.
      * @return Vector
      */
-    inline public function normalize() : Vector
+    inline public function normalize() : Vector3
     {
         return divideScalar(length);
     }
@@ -278,7 +215,7 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _other The other vector.
      * @return Float
      */
-    inline public function dot(_other : Vector) : Float
+    inline public function dot(_other : Vector3) : Float
     {
         return x * _other.x + y * _other.y + z * _other.z;
     }
@@ -289,24 +226,21 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _v2 Second vector.
      * @return Vector
      */
-    inline public function cross(_v1 : Vector, _v2 : Vector) : Vector
+    inline public function cross(_v1 : Vector3, _v2 : Vector3) : Vector3
     {
-        set_xyz(_v1.y * _v2.z - _v1.z * _v2.y,
-                _v1.z * _v2.x - _v1.x * _v2.z,
-                _v1.x * _v2.y - _v1.y * _v2.x);
-
-        return this;
+        return set(
+            _v1.y * _v2.z - _v1.z * _v2.y,
+            _v1.z * _v2.x - _v1.x * _v2.z,
+            _v1.x * _v2.y - _v1.y * _v2.x);
     }
 
     /**
      * Inverts the x, y, and z components of this vector.
      * @return Vector
      */
-    inline public function invert() : Vector
+    inline public function invert() : Vector3
     {
-        set_xyz(-x, -y, -z);
-
-        return this;
+        return set(-x, -y, -z);
     }
 
     // #endregion
@@ -318,11 +252,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _other The vector to add.
      * @return Vector
      */
-    inline public function add(_other : Vector) : Vector
+    inline public function add(_other : Vector3) : Vector3
     {
-        set_xyz(x + _other.x, y + _other.y, z + _other.z);
-
-        return this;
+        return set(x + _other.x, y + _other.y, z + _other.z);
     }
 
     /**
@@ -332,11 +264,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _z The value to add to the z component.
      * @return Vector
      */
-    inline public function add_xyz(_x : Float, _y : Float, _z : Float) : Vector
+    inline public function add_xyz(_x : Float, _y : Float, _z : Float) : Vector3
     {
-        set_xyz(x + _x, y + _y, z + _z);
-
-        return this;
+        return set(x + _x, y + _y, z + _z);
     }
 
     /**
@@ -344,11 +274,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _other The vector to subtract.
      * @return Vector
      */
-    inline public function subtract(_other : Vector) : Vector
+    inline public function subtract(_other : Vector3) : Vector3
     {
-        set_xyz(x - _other.x, y - _other.y, z - _other.z);
-
-        return this;
+        return set(x - _other.x, y - _other.y, z - _other.z);
     }
 
     /**
@@ -358,11 +286,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _z The value to subtract from the z component.
      * @return Vector
      */
-    inline public function subtract_xyz(_x : Float, _y : Float, _z : Float) : Vector
+    inline public function subtract_xyz(_x : Float, _y : Float, _z : Float) : Vector3
     {
-        set_xyz(x - _x, y - _y, z - _z);
-
-        return this;
+        return set(x - _x, y - _y, z - _z);
     }
 
     /**
@@ -370,11 +296,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _other Vector to multiply by.
      * @return Vector
      */
-    inline public function multiply(_other : Vector) : Vector
+    inline public function multiply(_other : Vector3) : Vector3
     {
-        set_xyz(x * _other.x, y * _other.y, z * _other.z);
-
-        return this;
+        return set(x * _other.x, y * _other.y, z * _other.z);
     }
 
     /**
@@ -384,11 +308,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _z Value to multiply the z component by.
      * @return Vector
      */
-    inline public function multiply_xyz(_x : Float, _y : Float, _z : Float) : Vector
+    inline public function multiply_xyz(_x : Float, _y : Float, _z : Float) : Vector3
     {
-        set_xyz(x * _x, y * _y, z * _z);
-
-        return this;
+        return set(x * _x, y * _y, z * _z);
     }
 
     /**
@@ -396,11 +318,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _other Vector to divide by.
      * @return Vector
      */
-    inline public function divide(_other : Vector) : Vector
+    inline public function divide(_other : Vector3) : Vector3
     {
-        set_xyz(x / _other.x, y / _other.y, z / _other.z);
-
-        return this;
+        return set(x / _other.x, y / _other.y, z / _other.z);
     }
 
     /**
@@ -410,11 +330,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _z Value to divide the z component by.
      * @return Vector
      */
-    inline public function divide_xyz(_x : Float, _y : Float, _z : Float) : Vector
+    inline public function divide_xyz(_x : Float, _y : Float, _z : Float) : Vector3
     {
-        set_xyz(x / _x, y / _y, z / _z);
-
-        return this;
+        return set(x / _x, y / _y, z / _z);
     }
 
     /**
@@ -422,11 +340,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _v Constant scalar value.
      * @return Vector
      */
-    inline public function addScalar(_v : Float) : Vector
+    inline public function addScalar(_v : Float) : Vector3
     {
-        set_xyz(x + _v, y + _v, z + _v);
-
-        return this;
+        return set(x + _v, y + _v, z + _v);
     }
 
     /**
@@ -434,11 +350,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _v Constant scalar value.
      * @return Vector
      */
-    inline public function subtractScalar(_v : Float) : Vector
+    inline public function subtractScalar(_v : Float) : Vector3
     {
-        set_xyz(x - _v, y - _v, z - _v);
-
-        return this;
+        return set(x - _v, y - _v, z - _v);
     }
 
     /**
@@ -446,11 +360,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _v Scalar value to multiply by.
      * @return Vector
      */
-    inline public function multiplyScalar(_v : Float) : Vector
+    inline public function multiplyScalar(_v : Float) : Vector3
     {
-        set_xyz(x * _v, y * _v, z * _v);
-
-        return this;
+        return set(x * _v, y * _v, z * _v);
     }
 
     /**
@@ -459,15 +371,15 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _v Scalar value to divide by.
      * @return Vector
      */
-    inline public function divideScalar(_v : Float) : Vector
+    inline public function divideScalar(_v : Float) : Vector3
     {
         if (_v != 0)
         {
-            set_xyz(x / _v, y / _v, z / _v);
+            set(x / _v, y / _v, z / _v);
         }
         else
         {
-            set_xyz(0, 0, 0);
+            set(0, 0, 0);
         }
 
         return this;
@@ -482,13 +394,12 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _m Matrix to transform by.
      * @return Vector
      */
-    inline public function transform(_m : Matrix) : Vector
+    inline public function transform(_m : Matrix) : Vector3
     {
-        set_xyz(_m[0] * x + _m[4] * y + _m[ 8] * z + _m[12],
-                _m[1] * x + _m[5] * y + _m[ 9] * z + _m[13],
-                _m[2] * x + _m[6] * y + _m[10] * z + _m[14]);
-
-        return this;
+        return set(
+            _m[0] * x + _m[4] * y + _m[ 8] * z + _m[12],
+            _m[1] * x + _m[5] * y + _m[ 9] * z + _m[13],
+            _m[2] * x + _m[6] * y + _m[10] * z + _m[14]);
     }
 
     /**
@@ -497,7 +408,7 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _order Order of the quaternions components. (default XYZ)
      * @return Vector
      */
-    inline public function setEulerFromQuaternion(_q : Quaternion, _order : ComponentOrder = XYZ) : Vector
+    inline public function setEulerFromQuaternion(_q : Quaternion, _order : ComponentOrder = XYZ) : Vector3
     {
         var sqx = _q.x * _q.x;
         var sqy = _q.y * _q.y;
@@ -536,7 +447,7 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
                 _z = Maths.asin(Maths.clamp(2 * (_q.z * _q.w - _q.x * _q.y), -1, 1));
         }
 
-        return set_xyz(_x, _y, _z);
+        return set(_x, _y, _z);
     }
 
     // #endregion
@@ -549,9 +460,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _v2 Second vector.
      * @return Vector
      */
-    inline public static function Add(_v1 : Vector, _v2 : Vector) : Vector
+    inline public static function Add(_v1 : Vector3, _v2 : Vector3) : Vector3
     {
-        return new Vector(_v1.x + _v2.x, _v1.y + _v2.y, _v1.z + _v2.z);
+        return new Vector3(_v1.x + _v2.x, _v1.y + _v2.y, _v1.z + _v2.z);
     }
 
     /**
@@ -561,9 +472,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _v2 Second vector.
      * @return Vector
      */
-    inline public static function Subtract(_v1 : Vector, _v2 : Vector) : Vector
+    inline public static function Subtract(_v1 : Vector3, _v2 : Vector3) : Vector3
     {
-        return new Vector(_v1.x - _v2.x, _v1.y - _v2.y, _v1.z - _v2.z);
+        return new Vector3(_v1.x - _v2.x, _v1.y - _v2.y, _v1.z - _v2.z);
     }
 
     /**
@@ -573,9 +484,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _v2 Second vector.
      * @return Vector
      */
-    inline public static function Multiply(_v1 : Vector, _v2 : Vector) : Vector
+    inline public static function Multiply(_v1 : Vector3, _v2 : Vector3) : Vector3
     {
-        return new Vector(_v1.x * _v2.x, _v1.y * _v2.y, _v1.z * _v2.z);
+        return new Vector3(_v1.x * _v2.x, _v1.y * _v2.y, _v1.z * _v2.z);
     }
 
     /**
@@ -585,9 +496,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _v2 Second vector.
      * @return Vector
      */
-    inline public static function Divide(_v1 : Vector, _v2 : Vector) : Vector
+    inline public static function Divide(_v1 : Vector3, _v2 : Vector3) : Vector3
     {
-        return new Vector(_v1.x / _v2.x, _v1.y / _v2.y, _v1.z / _v2.z);
+        return new Vector3(_v1.x / _v2.x, _v1.y / _v2.y, _v1.z / _v2.z);
     }
 
     /**
@@ -597,9 +508,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _f Scalar value.
      * @return Vector
      */
-    inline public static function AddScalar(_v : Vector, _f : Float) : Vector
+    inline public static function AddScalar(_v : Vector3, _f : Float) : Vector3
     {
-        return new Vector(_v.x + _f, _v.y + _f, _v.z + _f);
+        return new Vector3(_v.x + _f, _v.y + _f, _v.z + _f);
     }
 
     /**
@@ -609,9 +520,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _f Scalar value.
      * @return Vector
      */
-    inline public static function SubtractScalar(_v : Vector, _f : Float) : Vector
+    inline public static function SubtractScalar(_v : Vector3, _f : Float) : Vector3
     {
-        return new Vector(_v.x - _f, _v.y - _f, _v.z - _f);
+        return new Vector3(_v.x - _f, _v.y - _f, _v.z - _f);
     }
 
     /**
@@ -621,9 +532,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _f Scalar value.
      * @return Vector
      */
-    inline public static function MultiplyScalar(_v : Vector, _f : Float) : Vector
+    inline public static function MultiplyScalar(_v : Vector3, _f : Float) : Vector3
     {
-        return new Vector(_v.x * _f, _v.y * _f, _v.z * _f);
+        return new Vector3(_v.x * _f, _v.y * _f, _v.z * _f);
     }
 
     /**
@@ -633,9 +544,9 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _f Scalar value.
      * @return Vector
      */
-    inline public static function DivideScalar(_v : Vector, _f : Float) : Vector
+    inline public static function DivideScalar(_v : Vector3, _f : Float) : Vector3
     {
-        return new Vector(_v.x / _f, _v.y / _f, _v.z / _f);
+        return new Vector3(_v.x / _f, _v.y / _f, _v.z / _f);
     }
 
     /**
@@ -645,11 +556,12 @@ abstract Vector(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _v2 Second vector.
      * @return Vector
      */
-    inline public static function Cross(_v1 : Vector, _v2 : Vector) : Vector
+    inline public static function Cross(_v1 : Vector3, _v2 : Vector3) : Vector3
     {
-        return new Vector(_v1.y * _v2.z - _v1.z * _v2.y,
-                          _v1.z * _v2.x - _v1.x * _v2.z,
-                          _v1.x * _v2.y - _v1.y * _v2.x);
+        return new Vector3(
+            _v1.y * _v2.z - _v1.z * _v2.y,
+            _v1.z * _v2.x - _v1.x * _v2.z,
+            _v1.x * _v2.y - _v1.y * _v2.x);
     }
 
     // #endregion

@@ -12,7 +12,7 @@ class TransformationTests extends BuddySuite
         describe('Transformation', {
             it('will update the local space position when setting the position', {
                 var t = new Transformation();
-                t.position.set_xyz(2, 4, 6);
+                t.position.set(2, 4, 6);
                 t.position.x.should.be(t.local.position.x);
                 t.position.y.should.be(t.local.position.y);
                 t.position.z.should.be(t.local.position.z);
@@ -20,7 +20,7 @@ class TransformationTests extends BuddySuite
 
             it('will update the local space scale when setting the position', {
                 var t = new Transformation();
-                t.scale.set_xyz(2, 4, 6);
+                t.scale.set(2, 4, 6);
                 t.scale.x.should.be(t.local.scale.x);
                 t.scale.y.should.be(t.local.scale.y);
                 t.scale.z.should.be(t.local.scale.z);

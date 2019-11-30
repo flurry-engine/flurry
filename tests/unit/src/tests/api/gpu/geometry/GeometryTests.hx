@@ -1,7 +1,8 @@
 package tests.api.gpu.geometry;
 
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
+import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
@@ -41,9 +42,9 @@ class GeometryTests extends BuddySuite
             
             it('Has a transformation instance to modify its vertices', {
                 var g = new Geometry({});
-                g.transformation.position.equals(new Vector()).should.be(true);
-                g.transformation.origin.equals(new Vector()).should.be(true);
-                g.transformation.scale.equals(new Vector(1, 1, 1)).should.be(true);
+                g.transformation.position.equals(new Vector3()).should.be(true);
+                g.transformation.origin.equals(new Vector3()).should.be(true);
+                g.transformation.scale.equals(new Vector3(1, 1, 1)).should.be(true);
                 g.transformation.rotation.equals(new Quaternion()).should.be(true);
             });
 
@@ -57,9 +58,9 @@ class GeometryTests extends BuddySuite
 
             it('Contains an array of vertices which makes up the geometry', {
                 var v = [
-                    new Vertex(new Vector(), new Color(), new Vector()),
-                    new Vertex(new Vector(), new Color(), new Vector()),
-                    new Vertex(new Vector(), new Color(), new Vector())
+                    new Vertex(new Vector3(), new Color(), new Vector2()),
+                    new Vertex(new Vector3(), new Color(), new Vector2()),
+                    new Vertex(new Vector3(), new Color(), new Vector2())
                 ];
 
                 var g = new Geometry({});

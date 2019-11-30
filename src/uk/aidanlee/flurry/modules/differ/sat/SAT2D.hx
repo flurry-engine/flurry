@@ -1,6 +1,6 @@
 package uk.aidanlee.flurry.modules.differ.sat;
 
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.modules.differ.data.RayCollision;
 import uk.aidanlee.flurry.modules.differ.data.RayIntersection;
 import uk.aidanlee.flurry.modules.differ.data.ShapeCollision;
@@ -542,14 +542,14 @@ class SAT2D
         return (_dX * (_aY - _bY) - _dY * (_aX - _bX)) / _uDelta;
     }
 
-    static inline function findNormalAxisX(_verts : Array<Vector>, _index : Int) : Float
+    static inline function findNormalAxisX(_verts : Array<Vector2>, _index : Int) : Float
     {
         var v2 = (_index >= _verts.length - 1) ? _verts[0] : _verts[_index + 1];
 
         return -(v2.y - _verts[_index].y);
     }
 
-    static inline function findNormalAxisY(_verts : Array<Vector>, _index : Int) : Float
+    static inline function findNormalAxisY(_verts : Array<Vector2>, _index : Int) : Float
     {
         var v2 = (_index >= _verts.length - 1) ? _verts[0] : _verts[_index + 1];
 

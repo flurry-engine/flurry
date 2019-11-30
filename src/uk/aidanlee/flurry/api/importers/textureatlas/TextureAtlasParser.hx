@@ -2,7 +2,7 @@ package uk.aidanlee.flurry.api.importers.textureatlas;
 
 import haxe.io.Eof;
 import haxe.io.StringInput;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas.TextureAtlasRepeat;
 import uk.aidanlee.flurry.api.importers.textureatlas.TextureAtlas.TextureAtlasFilter;
@@ -56,11 +56,11 @@ class TextureAtlasParser
         return new TextureAtlas(name, size, format, filter, repeat, frames);
     }
 
-    static function readSize(_line : String) : Vector
+    static function readSize(_line : String) : Vector2
     {
         var pos = _line.split(':')[1].split(',');
 
-        return new Vector(Std.parseFloat(pos[0]), Std.parseFloat(pos[1]));
+        return new Vector2(Std.parseFloat(pos[0]), Std.parseFloat(pos[1]));
     }
 
     static function readFormat(_line : String) : TextureAtlasFormat
@@ -124,18 +124,18 @@ class TextureAtlasParser
         return new Rectangle(Std.parseFloat(pos[0]), Std.parseFloat(pos[1]), Std.parseFloat(size[0]), Std.parseFloat(size[1]));
     }
 
-    static function readFrameOriginal(_line : String) : Vector
+    static function readFrameOriginal(_line : String) : Vector2
     {
         var original = _line.split(':')[1].split(',');
 
-        return new Vector(Std.parseFloat(original[0]), Std.parseFloat(original[1]));
+        return new Vector2(Std.parseFloat(original[0]), Std.parseFloat(original[1]));
     }
 
-    static function readFrameOffset(_line : String) : Vector
+    static function readFrameOffset(_line : String) : Vector2
     {
         var offset = _line.split(':')[1].split(',');
 
-        return new Vector(Std.parseFloat(offset[0]), Std.parseFloat(offset[1]));
+        return new Vector2(Std.parseFloat(offset[0]), Std.parseFloat(offset[1]));
     }
 
     static function readFrameIndex(_line : String) : Int

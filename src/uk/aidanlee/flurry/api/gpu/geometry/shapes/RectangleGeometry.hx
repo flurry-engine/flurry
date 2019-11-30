@@ -1,7 +1,8 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
 
@@ -26,11 +27,11 @@ class RectangleGeometry extends Geometry
 
         super(_options);
 
-        var emptyCoords = new Vector();
-        vertices.push(new Vertex( new Vector(           0,            0), color, emptyCoords ));
-        vertices.push(new Vertex( new Vector(_options.r.w,            0), color, emptyCoords ));
-        vertices.push(new Vertex( new Vector(_options.r.w, _options.r.h), color, emptyCoords ));
-        vertices.push(new Vertex( new Vector(           0, _options.r.h), color, emptyCoords ));
+        var emptyCoords = new Vector2();
+        vertices.push(new Vertex( new Vector3(           0,            0), color, emptyCoords ));
+        vertices.push(new Vertex( new Vector3(_options.r.w,            0), color, emptyCoords ));
+        vertices.push(new Vertex( new Vector3(_options.r.w, _options.r.h), color, emptyCoords ));
+        vertices.push(new Vertex( new Vector3(           0, _options.r.h), color, emptyCoords ));
         vertices.push(vertices[0]);
 
         transformation.position.set_xy(_options.r.x, _options.r.y);
@@ -40,7 +41,7 @@ class RectangleGeometry extends Geometry
      * Resize the rectangle to the width and height of a vector.
      * @param _size Vector containing the size.
      */
-    public function resize(_size : Vector)
+    public function resize(_size : Vector2)
     {
         vertices[1].position.set_xy(_size.x,       0);
         vertices[2].position.set_xy(_size.x, _size.y);

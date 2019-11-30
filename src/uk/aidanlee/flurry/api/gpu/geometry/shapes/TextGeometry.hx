@@ -2,7 +2,8 @@ package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
 import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontData;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
+import uk.aidanlee.flurry.api.maths.Vector3;
 
 typedef TextGeometryOptions = {
     > GeometryOptions,
@@ -20,7 +21,7 @@ typedef TextGeometryOptions = {
     /**
      * The starting (top left aligned) position.
      */
-    var position : Vector;
+    var position : Vector3;
 }
 
 /**
@@ -63,7 +64,7 @@ class TextGeometry extends Geometry
     /**
      * Cursors position for creating quads.
      */
-    var cursorPosition : Vector;
+    var cursorPosition : Vector3;
 
     /**
      * If the listeners should rebuild the geometry, is set to true for the constructor.
@@ -136,15 +137,15 @@ class TextGeometry extends Geometry
      */
     function addCharacter(_char : Character, _x : Float, _y : Float)
     {
-        var tlPos = new Vector((_x + _char.xOffset)              , _y + _char.yOffset);
-        var trPos = new Vector((_x + _char.xOffset) + _char.width, _y + _char.yOffset);
-        var blPos = new Vector((_x + _char.xOffset)              , _y + _char.yOffset + _char.height);
-        var brPos = new Vector((_x + _char.xOffset) + _char.width, _y + _char.yOffset + _char.height);
+        var tlPos = new Vector3((_x + _char.xOffset)              , _y + _char.yOffset);
+        var trPos = new Vector3((_x + _char.xOffset) + _char.width, _y + _char.yOffset);
+        var blPos = new Vector3((_x + _char.xOffset)              , _y + _char.yOffset + _char.height);
+        var brPos = new Vector3((_x + _char.xOffset) + _char.width, _y + _char.yOffset + _char.height);
 
-        var tlUV = new Vector(_char.x / textures[0].width                , _char.y / textures[0].height);
-        var trUV = new Vector((_char.x + _char.width) / textures[0].width, _char.y / textures[0].height);
-        var blUV = new Vector(_char.x / textures[0].width                , (_char.y + _char.height) / textures[0].height);
-        var brUV = new Vector((_char.x + _char.width) / textures[0].width, (_char.y + _char.height) / textures[0].height);
+        var tlUV = new Vector2(_char.x / textures[0].width                , _char.y / textures[0].height);
+        var trUV = new Vector2((_char.x + _char.width) / textures[0].width, _char.y / textures[0].height);
+        var blUV = new Vector2(_char.x / textures[0].width                , (_char.y + _char.height) / textures[0].height);
+        var brUV = new Vector2((_char.x + _char.width) / textures[0].width, (_char.y + _char.height) / textures[0].height);
 
         vertices.push(new Vertex( blPos, color, blUV ));
         vertices.push(new Vertex( brPos, color, brUV ));

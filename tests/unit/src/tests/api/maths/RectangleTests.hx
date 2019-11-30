@@ -2,7 +2,7 @@ package tests.api.maths;
 
 import buddy.BuddySuite;
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
 
 using buddy.Should;
 
@@ -90,9 +90,9 @@ class RectangleTests extends BuddySuite
                     var h = 8;
 
                     var r = new Rectangle(x, y, w, h);
-                    var v1 = new Vector(x + 2, y + 2);
-                    var v2 = new Vector(x - 2, y - 2);
-                    var v3 = new Vector(x + w + 2, y + h + 2);
+                    var v1 = new Vector2(x + 2, y + 2);
+                    var v2 = new Vector2(x - 2, y - 2);
+                    var v3 = new Vector2(x + w + 2, y + h + 2);
 
                     r.containsPoint(v1).should.be(true);
                     r.containsPoint(v2).should.not.be(true);

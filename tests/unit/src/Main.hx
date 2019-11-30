@@ -3,13 +3,18 @@ import buddy.Buddy;
 
 class Main implements Buddy<[
     tests.api.maths.MathsTests,
-    tests.api.maths.VectorTests,
+    tests.api.maths.Vector4Tests,
+    tests.api.maths.Vector3Tests,
+    tests.api.maths.Vector2Tests,
     tests.api.maths.QuaternionTests,
     tests.api.maths.MatrixTests,
     tests.api.maths.RectangleTests,
     tests.api.maths.CircleTests,
     tests.api.maths.SpatialTests,
     tests.api.maths.TransformationTests,
+
+    tests.api.buffers.Float32BufferDataTests,
+    tests.api.buffers.UInt16BufferDataTests,
 
     tests.api.display.DisplayTests,
 
@@ -19,6 +24,7 @@ class Main implements Buddy<[
     tests.api.input.InputTests,
 
     tests.api.gpu.geometry.VertexTests,
+    tests.api.gpu.geometry.VertexBlobTests,
     tests.api.gpu.geometry.BlendingTests,
     tests.api.gpu.geometry.ColorTests,
     tests.api.gpu.geometry.GeometryTests,
@@ -49,8 +55,7 @@ class Main implements Buddy<[
     tests.modules.differ.data.RayIntersectionTests,
     tests.modules.differ.data.ShapeCollisionTests,
 
-    tests.utils.bytes.BytesPackerTests,
-    tests.utils.bytes.FastFloat32ArrayTests
+    tests.utils.bytes.BytesPackerTests
 ]>
 {
     //

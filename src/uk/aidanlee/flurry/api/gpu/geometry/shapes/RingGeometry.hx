@@ -3,7 +3,8 @@ package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.CircleGeometry.CircleGeometryOptions;
 import uk.aidanlee.flurry.api.maths.Maths;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
+import uk.aidanlee.flurry.api.maths.Vector3;
 
 using Safety;
 
@@ -91,16 +92,16 @@ class RingGeometry extends Geometry
         var segmentPosition = [];
         for (i in 0..._steps)
         {
-            var segment = new Vector(x, y / radialRatio);
+            var segment = new Vector3(x, y / radialRatio);
             segmentPosition.push(segment);
 
-            vertices.push(new Vertex( segment, color, new Vector() ));
+            vertices.push(new Vertex( segment, color, new Vector2() ));
 
             // If past 0 add one for the previous segment to close the triangle.
             if (index > 0)
             {
                 var prevVert = segmentPosition[index];
-                vertices.push(new Vertex( prevVert.clone(), color, new Vector() ));
+                vertices.push(new Vertex( prevVert.clone(), color, new Vector2() ));
             }
 
             var tx = -y;
@@ -117,7 +118,7 @@ class RingGeometry extends Geometry
 
         if (segmentPosition.length > 0)
         {
-            vertices.push(new Vertex( segmentPosition[0].clone(), color, new Vector() ));
+            vertices.push(new Vertex( segmentPosition[0].clone(), color, new Vector2() ));
         }
 
         transformation.position.set_xy(_x, _y);

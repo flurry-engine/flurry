@@ -1,11 +1,12 @@
 package uk.aidanlee.flurry.api.maths;
 
-import uk.aidanlee.flurry.utils.bytes.FastFloat32Array;
+import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 
 /**
  * 
  */
-abstract Quaternion(FastFloat32Array) from FastFloat32Array to FastFloat32Array
+@:forward(offset, changed)
+abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferData
 {
     /**
      * The x component of this quaternion.
@@ -89,7 +90,7 @@ abstract Quaternion(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      */
     public inline function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 1)
     {
-        this = new FastFloat32Array(4);
+        this = new Float32BufferData(4);
         
         x = _x;
         y = _y;
@@ -304,7 +305,7 @@ abstract Quaternion(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _order Order of components.
      * @return Quaternion
      */
-    public inline function setFromEuler(_euler : Vector, _order : ComponentOrder = XYZ) : Quaternion
+    public inline function setFromEuler(_euler : Vector3, _order : ComponentOrder = XYZ) : Quaternion
     {
         var _x = x;
         var _y = y;
@@ -362,7 +363,7 @@ abstract Quaternion(FastFloat32Array) from FastFloat32Array to FastFloat32Array
      * @param _angle The angle value.
      * @return Quaternion
      */
-    public inline function setFromAxisAngle(_axis : Vector, _angle : Float) : Quaternion
+    public inline function setFromAxisAngle(_axis : Vector3, _angle : Float) : Quaternion
     {
         var halfAngle = _angle / 2;
         var sin       = Maths.sin(halfAngle);

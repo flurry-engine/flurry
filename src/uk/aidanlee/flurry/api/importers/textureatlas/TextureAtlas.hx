@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry.api.importers.textureatlas;
 
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
 
 enum TextureAtlasFormat
 {
@@ -43,7 +43,7 @@ class TextureAtlas
     /**
      * The size of the image texture.
      */
-    public final size : Vector;
+    public final size : Vector2;
 
     /**
      * The texture pixel format.
@@ -67,7 +67,7 @@ class TextureAtlas
      */
     public final frames : Array<TextureAtlasFrame>;
 
-    public function new(_name : String, _size : Vector, _format : TextureAtlasFormat, _filter : Array<TextureAtlasFilter>, _repeat : TextureAtlasRepeat, _frames : Array<TextureAtlasFrame>)
+    public function new(_name : String, _size : Vector2, _format : TextureAtlasFormat, _filter : Array<TextureAtlasFilter>, _repeat : TextureAtlasRepeat, _frames : Array<TextureAtlasFrame>)
     {
         name   = _name;
         size   = _size;
@@ -155,19 +155,19 @@ class TextureAtlasFrame
     /**
      * The original width and height of the frame, Before any scaling.
      */
-    public final original : Vector;
+    public final original : Vector2;
 
     /**
      * Offset of this frame.
      */
-    public final offset : Vector;
+    public final offset : Vector2;
 
     /**
      * Frame index. Unique ID so frame names can be the same.
      */
     public final index : Int;
 
-    public function new(_name : String, _rotated : Bool, _region : Rectangle, _original : Vector, _offset : Vector, _index : Int)
+    public function new(_name : String, _rotated : Bool, _region : Rectangle, _original : Vector2, _offset : Vector2, _index : Int)
     {
         name     = _name;
         rotated  = _rotated;

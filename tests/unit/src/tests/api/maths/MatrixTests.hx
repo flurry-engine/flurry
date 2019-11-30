@@ -1,7 +1,7 @@
 package tests.api.maths;
 
 import buddy.BuddySuite;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Maths;
@@ -223,7 +223,7 @@ class MatrixTests extends BuddySuite
                     m[15].should.beCloseTo(1);
                 });
                 it('Can scale the matrix', {
-                    var m = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 1, 0).scale(new Vector(2.3, 0.75, -0.4));
+                    var m = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 1, 0).scale(new Vector3(2.3, 0.75, -0.4));
                     
                     m[ 0].should.beCloseTo(0.003);
                     m[ 4].should.beCloseTo(0);
@@ -269,25 +269,22 @@ class MatrixTests extends BuddySuite
                     m[15].should.beCloseTo(1);
                 });
                 it('Can decompose a matrix into a position, rotation, and scale', {
-                    var p = new Vector();
+                    var p = new Vector3();
                     var r = new Quaternion();
-                    var s = new Vector();
+                    var s = new Vector3();
                     new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 1, 0).decompose(p, r, s);
                     
                     p.x.should.beCloseTo(-1);
                     p.y.should.beCloseTo(1);
                     p.z.should.beCloseTo(1);
-                    p.w.should.beCloseTo(0);
 
                     s.x.should.beCloseTo(0.00156);
                     s.y.should.beCloseTo(0.00277);
                     s.z.should.beCloseTo(2);
-                    s.w.should.beCloseTo(0);
 
                     r.x.should.beCloseTo(0);
                     r.y.should.beCloseTo(0);
                     r.z.should.beCloseTo(0);
-                    r.w.should.beCloseTo(17.890);
                 });
             });
 
@@ -370,48 +367,42 @@ class MatrixTests extends BuddySuite
                     v.x.should.beCloseTo(0);
                     v.y.should.beCloseTo(-0.002);
                     v.z.should.beCloseTo(0);
-                    v.w.should.beCloseTo(0);
                 });
                 it('Can get the down vector of this matrix', {
                     var v = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1).down();
                     v.x.should.beCloseTo(0);
                     v.y.should.beCloseTo(-0.002);
                     v.z.should.beCloseTo(0);
-                    v.w.should.beCloseTo(0);
                 });
                 it('Can get the left vector of this matrix', {
                     var v = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1).left();
                     v.x.should.beCloseTo(0);
                     v.y.should.beCloseTo(-0.001);
                     v.z.should.beCloseTo(0);
-                    v.w.should.beCloseTo(0);
                 });
                 it('Can get the right vector of this matrix', {
                     var v = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1).right();
                     v.x.should.beCloseTo(0);
                     v.y.should.beCloseTo(-0.001);
                     v.z.should.beCloseTo(0);
-                    v.w.should.beCloseTo(0);
                 });
                 it('Can get the forward vector of this matrix', {
                     var v = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1).forward();
                     v.x.should.beCloseTo(0);
                     v.y.should.beCloseTo(0);
                     v.z.should.beCloseTo(2);
-                    v.w.should.beCloseTo(0);
                 });
                 it('Can get the backwards vector of this matrix', {
                     var v = new Matrix().makeHomogeneousOrthographic(0, 1280, 0, 720, 0, 1).backwards();
                     v.x.should.beCloseTo(0);
                     v.y.should.beCloseTo(0);
                     v.z.should.beCloseTo(-2);
-                    v.w.should.beCloseTo(0);
                 });
             });
 
             describe('Transformations', {
                 it('Can set its position from a vector', {
-                    var v = new Vector(3, -5, 7.5);
+                    var v = new Vector3(3, -5, 7.5);
                     var m = new Matrix().setPosition(v);
 
                     m[ 0].should.beCloseTo(1);
@@ -435,14 +426,14 @@ class MatrixTests extends BuddySuite
                     m[15].should.beCloseTo(1);
                 });
                 it('Can return the position as a vector', {
-                    var m = new Matrix().setPosition(new Vector(3, -5, 7.5));
+                    var m = new Matrix().setPosition(new Vector3(3, -5, 7.5));
                     var v = m.getPosition();
                     v.x.should.beCloseTo(3);
                     v.y.should.beCloseTo(-5);
                     v.z.should.beCloseTo(7.5);
                 });
                 it('Can create a look at matrix', {
-                    var m = new Matrix().lookAt(new Vector(0.0, 3.0, -5.0), new Vector(0.0, 0.0, 0.0), new Vector(0.0, 1.0, 0.0));
+                    var m = new Matrix().lookAt(new Vector3(0.0, 3.0, -5.0), new Vector3(0.0, 0.0, 0.0), new Vector3(0.0, 1.0, 0.0));
                     
                     m[ 0].should.beCloseTo(1);
                     m[ 1].should.beCloseTo(0);
@@ -627,7 +618,7 @@ class MatrixTests extends BuddySuite
                     m[15].should.beCloseTo(1);
                 });
                 it('Can create a rotation matrix from a euler vector', {
-                    var m = new Matrix().makeRotationFromEuler(new Vector(0.5, 1.2, -0.42));
+                    var m = new Matrix().makeRotationFromEuler(new Vector3(0.5, 1.2, -0.42));
 
                     m[ 0].should.beCloseTo(0.33);
                     m[ 1].should.beCloseTo(0.050);
@@ -650,7 +641,7 @@ class MatrixTests extends BuddySuite
                     m[15].should.beCloseTo(1);
                 });
                 it('Can create a rotation matrix from a axis vector and a rotation value', {
-                    var m = new Matrix().makeRotationAxis(new Vector(1, 0, 1), 0.25);
+                    var m = new Matrix().makeRotationAxis(new Vector3(1, 0, 1), 0.25);
 
                     m[ 0].should.beCloseTo(1);
                     m[ 1].should.beCloseTo(0.247);
@@ -673,7 +664,7 @@ class MatrixTests extends BuddySuite
                     m[15].should.beCloseTo(1);
                 });
                 it('Can create a rotation matrix from a quaternion', {
-                    var m = new Matrix().makeRotationFromQuaternion(new Quaternion().setFromAxisAngle(new Vector(1, 0, 1), 0.25));
+                    var m = new Matrix().makeRotationFromQuaternion(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 1), 0.25));
 
                     m[ 0].should.beCloseTo(0.968);
                     m[ 1].should.beCloseTo(0.247);

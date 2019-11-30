@@ -3,7 +3,7 @@ package tests.modules.differ.data;
 import uk.aidanlee.flurry.modules.differ.shapes.Ray;
 import uk.aidanlee.flurry.modules.differ.shapes.Shape;
 import uk.aidanlee.flurry.modules.differ.data.RayCollision;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
 import buddy.BuddySuite;
 import mockatoo.Mockatoo.mock;
 
@@ -45,7 +45,7 @@ class RayCollisionTests extends BuddySuite
             it('can update its values allowing re-use', {
                 var result = new RayCollision(null, null, 2, 6);
                 var newS = new Shape(0, 0);
-                var newR = new Ray(new Vector(), new Vector());
+                var newR = new Ray(new Vector2(), new Vector2());
                 
                 result.set(newS, newR, 3, 5);
                 result.shape.should.be(newS);
@@ -55,7 +55,7 @@ class RayCollisionTests extends BuddySuite
             });
 
             it('can get the start position along the line', {
-                var ray = new Ray(new Vector(2, 2), new Vector(12, 12));
+                var ray = new Ray(new Vector2(2, 2), new Vector2(12, 12));
                 var col = new RayCollision(mock(Shape), ray, 2, 6);
 
                 RayCollisionHelper.hitStartX(col).should.be(22);
@@ -63,7 +63,7 @@ class RayCollisionTests extends BuddySuite
             });
 
             it('can get the end position along the line', {
-                var ray = new Ray(new Vector(2, 2), new Vector(12, 12));
+                var ray = new Ray(new Vector2(2, 2), new Vector2(12, 12));
                 var col = new RayCollision(mock(Shape), ray, 2, 6);
 
                 RayCollisionHelper.hitEndX(col).should.be(62);

@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry.api.maths;
 
 import signals.Signal.Signal0;
-import uk.aidanlee.flurry.utils.bytes.FastFloat32Array;
+import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 
 using Safety;
 
@@ -15,7 +15,7 @@ class Transformation
     /**
      * Origin for all transformations.
      */
-    public final origin : Vector;
+    public final origin : Vector3;
 
     /**
      * The local transformation.
@@ -62,9 +62,9 @@ class Transformation
     /**
      * Local position of this transformation.
      */
-    public var position (get, never) : Vector;
+    public var position (get, never) : Vector3;
 
-    inline function get_position() : Vector return local.position;
+    inline function get_position() : Vector3 return local.position;
 
     /**
      * Local rotation of this transformation.
@@ -76,9 +76,9 @@ class Transformation
     /**
      * Local scale of this transformation.
      */
-    public var scale (get, never) : Vector;
+    public var scale (get, never) : Vector3;
 
-    inline function get_scale() : Vector return local.scale;
+    inline function get_scale() : Vector3 return local.scale;
 
     /**
      * Holds the local rotation matrix for multiplying against the local transformation matrix.
@@ -108,7 +108,7 @@ class Transformation
         dirtied = new Signal0();
         local   = new Spatial();
         world   = new Spatial();
-        origin  = new Vector();
+        origin  = new Vector3();
 
         matrixRotation   = new Matrix();
         matrixOriginUndo = new Matrix();
@@ -116,9 +116,9 @@ class Transformation
         ignore = false;
         dirty  = true;
 
-        (local.position : FastFloat32Array).changed.add(setDirty);
-        (local.scale    : FastFloat32Array).changed.add(setDirty);
-        (local.rotation : FastFloat32Array).changed.add(setDirty);
+        local.position.changed.add(setDirty);
+        local.scale.changed.add(setDirty);
+        local.rotation.changed.add(setDirty);
     }
 
     /**

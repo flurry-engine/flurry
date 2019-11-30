@@ -2,7 +2,8 @@ package uk.aidanlee.flurry.api.gpu.camera;
 
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Maths;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Transformation;
 
 /**
@@ -35,7 +36,7 @@ class Camera2D extends Camera
      * The virtual size of this camera.
      * Size relative within the world space, not the view space.
      */
-    public final size : Vector;
+    public final size : Vector2;
 
     /**
      * //
@@ -50,23 +51,23 @@ class Camera2D extends Camera
     /**
      * 
      */
-    public var position (get, never) : Vector;
+    public var position (get, never) : Vector3;
 
-    inline function get_position() : Vector return transformation.position;
-
-    /**
-     * 
-     */
-    public var scale (get, never) : Vector;
-
-    inline function get_scale() : Vector return transformation.scale;
+    inline function get_position() : Vector3 return transformation.position;
 
     /**
      * 
      */
-    public var origin (get, never) : Vector;
+    public var scale (get, never) : Vector3;
 
-    inline function get_origin() : Vector return transformation.origin;
+    inline function get_scale() : Vector3 return transformation.scale;
+
+    /**
+     * 
+     */
+    public var origin (get, never) : Vector3;
+
+    inline function get_origin() : Vector3 return transformation.origin;
     
     /**
      * Size mode determines how the camera will scale the view.
@@ -101,7 +102,7 @@ class Camera2D extends Camera
     /**
      * Vector used to store the shake directions to add to the cameras position.
      */
-    final shakeVector : Vector;
+    final shakeVector : Vector3;
 
     /**
      * Creates a new orthographic camera with the specific width and height.
@@ -113,7 +114,7 @@ class Camera2D extends Camera
         super(Orthographic);
 
         viewport       = new Rectangle(0, 0, _width, _height);
-        size           = new Vector(_width, _height);
+        size           = new Vector2(_width, _height);
         transformation = new Transformation();
         zoom           = 1;
         minimumZoom    = 0.01;
@@ -121,7 +122,7 @@ class Camera2D extends Camera
         shaking        = false;
         shakeAmount    = 0;
         shakeMinimum   = 0.1;
-        shakeVector    = new Vector();
+        shakeVector    = new Vector3();
         dirty          = true;
     }
 
@@ -171,7 +172,7 @@ class Camera2D extends Camera
             }
 
             // Update the shake position
-            transformation.position.set_xyz(
+            transformation.position.set(
                 transformation.position.x + shakeVector.x,
                 transformation.position.y + shakeVector.y,
                 transformation.position.z + shakeVector.z
@@ -185,11 +186,11 @@ class Camera2D extends Camera
      * Returns a random unit vector.
      * @return Vector
      */
-    function randomPointInUnitCircle(_v : Vector) : Vector
+    function randomPointInUnitCircle(_v : Vector3) : Vector3
     {
         var r = Maths.sqrt(Maths.random());
         var t = (-1 + (2 * Maths.random())) * (Maths.PI * 2);
 
-        return _v.set_xy(r * Maths.cos(t), r * Maths.sin(t));
+        return _v.set(r * Maths.cos(t), r * Maths.sin(t), 0);
     }
 }

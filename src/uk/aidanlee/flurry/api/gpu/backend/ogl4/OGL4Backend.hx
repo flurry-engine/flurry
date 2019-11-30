@@ -14,10 +14,11 @@ import opengl.GL.*;
 import opengl.WebGL;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
+import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.resources.Resource.Resource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
@@ -32,7 +33,6 @@ import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.utils.opengl.GLSyncWrapper;
-import uk.aidanlee.flurry.utils.bytes.FastFloat32Array;
 
 using Safety;
 using cpp.NativeArray;
@@ -103,7 +103,7 @@ class OGL4Backend implements IRendererBackend
     /**
      * Constant vector instance which is used to transform vertices when copying into the vertex buffer.
      */
-    final transformationVector : Vector;
+    final transformationVector : Vector3;
 
     /**
      * Constant identity matrix, used as the model matrix for non multi draw shaders.
@@ -150,7 +150,7 @@ class OGL4Backend implements IRendererBackend
     /**
      * Constant vector which will be used to flip perspective cameras on their y axis.
      */
-    final perspectiveYFlipVector : Vector;
+    final perspectiveYFlipVector : Vector3;
 
     /**
      * Colour RGBA normalised float array used to clear the display
@@ -273,16 +273,16 @@ class OGL4Backend implements IRendererBackend
         // Create the vao and bind the vbo to it.
         var vao = [ 0 ];
         glCreateVertexArrays(1, vao);
-        glVertexArrayVertexBuffer(vao[0], 0, buffers[0], 0, FastFloat32Array.BYTES_PER_ELEMENT * VERTEX_FLOAT_SIZE);
+        glVertexArrayVertexBuffer(vao[0], 0, buffers[0], 0, Float32BufferData.BYTES_PER_FLOAT * VERTEX_FLOAT_SIZE);
 
         // Enable and setup the vertex attributes for this batcher.
         glEnableVertexArrayAttrib(vao[0], 0);
         glEnableVertexArrayAttrib(vao[0], 1);
         glEnableVertexArrayAttrib(vao[0], 2);
 
-        glVertexArrayAttribFormat(buffers[0], 0, 3, GL_FLOAT, false, FastFloat32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_POS);
-        glVertexArrayAttribFormat(buffers[0], 1, 4, GL_FLOAT, false, FastFloat32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_COL);
-        glVertexArrayAttribFormat(buffers[0], 2, 2, GL_FLOAT, false, FastFloat32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
+        glVertexArrayAttribFormat(buffers[0], 0, 3, GL_FLOAT, false, Float32BufferData.BYTES_PER_FLOAT * VERTEX_OFFSET_POS);
+        glVertexArrayAttribFormat(buffers[0], 1, 4, GL_FLOAT, false, Float32BufferData.BYTES_PER_FLOAT * VERTEX_OFFSET_COL);
+        glVertexArrayAttribFormat(buffers[0], 2, 2, GL_FLOAT, false, Float32BufferData.BYTES_PER_FLOAT * VERTEX_OFFSET_TEX);
 
         glVertexArrayAttribBinding(vao[0], 0, 0);
         glVertexArrayAttribBinding(vao[0], 1, 0);
@@ -308,8 +308,8 @@ class OGL4Backend implements IRendererBackend
         var vtxBuffer : Pointer<UInt8> = Pointer.fromRaw(glMapNamedBufferRange(glVbo, staticVertexBuffer * 9 * 4, (streamVertexBuffer * 9 * 4) * 3, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
         var idxBuffer : Pointer<UInt8> = Pointer.fromRaw(glMapNamedBufferRange(glIbo, staticIndexBuffer * 2     , (streamIndexBuffer * 2) * 3     , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
 
-        perspectiveYFlipVector = new Vector(1, -1, 1);
-        transformationVector   = new Vector();
+        perspectiveYFlipVector = new Vector3(31, -1, 1);
+        transformationVector   = new Vector3();
         identityMatrix         = new Matrix();
         streamStorage          = new StreamBufferManager(staticVertexBuffer, staticIndexBuffer, streamVertexBuffer, streamIndexBuffer, vtxBuffer, idxBuffer);
         staticStorage          = new StaticBufferManager(staticVertexBuffer, staticIndexBuffer, glVbo, glIbo);
@@ -987,10 +987,10 @@ class OGL4Backend implements IRendererBackend
                 {
                     case Static:
                         var rng = staticStorage.get(_command);
-                        var ptr = Pointer.arrayElem(rng.matrixBuffer.getData(), 0);
-                        Stdlib.memcpy(ptr          , (projection : FastFloat32Array).getData().address(0), 64);
-                        Stdlib.memcpy(ptr.incBy(64), (view       : FastFloat32Array).getData().address(0), 64);
-                        glNamedBufferSubData(rng.glMatrixBuffer, 0, rng.matrixBuffer.length, rng.matrixBuffer.getData());
+                        var ptr = Pointer.arrayElem(rng.matrixBuffer.bytes.getData(), 0);
+                        Stdlib.memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
+                        Stdlib.memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
+                        glNamedBufferSubData(rng.glMatrixBuffer, 0, rng.matrixBuffer.length, rng.matrixBuffer.bytes.getData());
 
                         if (ssbo != rng.glMatrixBuffer)
                         {
@@ -1006,9 +1006,9 @@ class OGL4Backend implements IRendererBackend
                     case Stream, Immediate:
                         var ptr   = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
                         var model = streamStorage.getModelMatrix(_command.id);
-                        Stdlib.memcpy(ptr          , (projection : FastFloat32Array).getData().address(0), 64);
-                        Stdlib.memcpy(ptr.incBy(64), (view       : FastFloat32Array).getData().address(0), 64);
-                        Stdlib.memcpy(ptr.incBy(64), (model      : FastFloat32Array).getData().address(0), 64);
+                        Stdlib.memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
+                        Stdlib.memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
+                        Stdlib.memcpy(ptr.incBy(64), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
                         glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
 
                         if (ssbo != cache.blockBuffers[i])
@@ -1031,11 +1031,11 @@ class OGL4Backend implements IRendererBackend
                     {
                         case Matrix4:
                             var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            Stdlib.memcpy(ptr.incBy(pos), (mat : FastFloat32Array).getData().address(0), 64);
+                            Stdlib.memcpy(ptr.incBy(pos), (mat : Float32BufferData).bytes.getData().address((mat : Float32BufferData).byteOffset), 64);
                             pos += 64;
                         case Vector4:
                             var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            Stdlib.memcpy(ptr.incBy(pos), (vec : FastFloat32Array).getData().address(0), 16);
+                            Stdlib.memcpy(ptr.incBy(pos), (vec : Float32BufferData).bytes.getData().address((vec : Float32BufferData).byteOffset), 16);
                             pos += 16;
                         case Int:
                             var dst : Pointer<Int32> = ptr.reinterpret();

@@ -1,6 +1,6 @@
 package tests.api.gpu.geometry.shapes;
 
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.LineGeometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Color;
 import buddy.BuddySuite;
@@ -22,8 +22,8 @@ class LineGeometryTests extends BuddySuite
             });
 
             it('Can create a line geometry with custom settings', {
-                var p0 = new Vector( 32, 48);
-                var p1 = new Vector(256, 90);
+                var p0 = new Vector3( 32, 48);
+                var p1 = new Vector3(256, 90);
                 var c0 = new Color(0.2, 0.3, 0.4, 1.0);
                 var c1 = new Color(0.5, 0.6, 0.2, 8.0);
 

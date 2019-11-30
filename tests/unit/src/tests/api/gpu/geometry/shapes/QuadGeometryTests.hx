@@ -1,7 +1,7 @@
 package tests.api.gpu.geometry.shapes;
 
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
@@ -141,7 +141,7 @@ class QuadGeometryTests extends BuddySuite
             });
 
             it('Allows resizing the quad using a vector', {
-                var size = new Vector(128, 512);
+                var size = new Vector2(128, 512);
                 var quad = new QuadGeometry({
                     textures : [ texture ],
                     batchers : [ batcher ]
@@ -160,7 +160,7 @@ class QuadGeometryTests extends BuddySuite
             });
 
             it('Allows resizing the quad using two floats', {
-                var size = new Vector(128, 512);
+                var size = new Vector2(128, 512);
                 var quad = new QuadGeometry({
                     textures : [ texture ],
                     batchers : [ batcher ]
@@ -300,10 +300,10 @@ class QuadGeometryTests extends BuddySuite
 
                 quad.uv_xyzw(rect.x, rect.y, rect.w, rect.h, false);
                 quad.vertices.length.should.be(4);
-                quad.vertices[0].texCoord.equals(new Vector(rect.x / texture.width, rect.h / texture.height)).should.be(true);
-                quad.vertices[1].texCoord.equals(new Vector(rect.w / texture.width, rect.h / texture.height)).should.be(true);
-                quad.vertices[2].texCoord.equals(new Vector(rect.x / texture.width, rect.y / texture.height)).should.be(true);
-                quad.vertices[3].texCoord.equals(new Vector(rect.w / texture.width, rect.y / texture.height)).should.be(true);
+                quad.vertices[0].texCoord.equals(new Vector2(rect.x / texture.width, rect.h / texture.height)).should.be(true);
+                quad.vertices[1].texCoord.equals(new Vector2(rect.w / texture.width, rect.h / texture.height)).should.be(true);
+                quad.vertices[2].texCoord.equals(new Vector2(rect.x / texture.width, rect.y / texture.height)).should.be(true);
+                quad.vertices[3].texCoord.equals(new Vector2(rect.w / texture.width, rect.y / texture.height)).should.be(true);
             });
         });
     }

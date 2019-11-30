@@ -6,7 +6,7 @@ import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.maths.Hash;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Transformation;
@@ -163,16 +163,16 @@ class Geometry
     /**
      * The position of the geometry.
      */
-    public var position (get, never) : Vector;
+    public var position (get, never) : Vector3;
 
-    inline function get_position() : Vector return transformation.position;
+    inline function get_position() : Vector3 return transformation.position;
 
     /**
      * The origin of the geometry.
      */
-    public var origin (get, never) : Vector;
+    public var origin (get, never) : Vector3;
 
-    inline function get_origin() : Vector return transformation.origin;
+    inline function get_origin() : Vector3 return transformation.origin;
 
     /**
      * Rotation of the geometry.
@@ -184,9 +184,9 @@ class Geometry
     /**
      * Scale of the geometry.
      */
-    public var scale (get, never) : Vector;
+    public var scale (get, never) : Vector3;
 
-    inline function get_scale() : Vector return transformation.scale;
+    inline function get_scale() : Vector3 return transformation.scale;
 
     /**
      * Create a new mesh, contains no vertices and no transformation.

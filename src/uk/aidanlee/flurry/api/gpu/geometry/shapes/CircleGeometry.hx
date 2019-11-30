@@ -1,6 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry.GeometryOptions;
 
@@ -94,22 +95,22 @@ class CircleGeometry extends Geometry
         }
 
         var index      = 0;
-        var segmentPos = new Array<Vector>();
+        var segmentPos = new Array<Vector3>();
         for (i in 0..._steps + 1)
         {
             var tx = x;
             var ty = y / radialRatio;
 
-            var segment = new Vector(tx, ty);
+            var segment = new Vector3(tx, ty);
             segmentPos.push(segment);
 
             if (index > 0)
             {
-                vertices.push(new Vertex( segment, color, new Vector() ));
+                vertices.push(new Vertex( segment, color, new Vector2() ));
             }
 
-            vertices.push(new Vertex( new Vector(), color, new Vector() ));
-            vertices.push(new Vertex( segment, color, new Vector() ));
+            vertices.push(new Vertex( new Vector3(), color, new Vector2() ));
+            vertices.push(new Vertex( segment, color, new Vector2() ));
 
             var tx = -y;
             var ty = x;
@@ -123,7 +124,7 @@ class CircleGeometry extends Geometry
             index++;
         }
 
-        vertices.push(new Vertex( segmentPos[_steps], color, new Vector() ));
+        vertices.push(new Vertex( segmentPos[_steps], color, new Vector2() ));
 
         transformation.position.set_xy(_x, _y);
     }

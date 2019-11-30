@@ -1,3 +1,4 @@
 bin/
 .vscode
 test-*.xml
+node_modules

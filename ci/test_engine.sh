@@ -2,7 +2,7 @@
 
 cd tests/unit
 
-haxe build.hxml -D reporter=XUnit2Reporter -D report-name=Engine-Tests-$AGENT_OS --debug
+npx haxe build.hxml -D reporter=XUnit2Reporter -D report-name=Engine-Tests-$AGENT_OS --debug --no-trace
 
 if [ $AGENT_OS == 'Windows_NT' ]; then
     ./bin/Main-debug.exe

@@ -80,7 +80,7 @@ class Circle
      * @param _p Vector to check.
      * @return Bool
      */
-    public inline function containsPoint(_p : Vector) : Bool
+    public inline function containsPoint(_p : Vector2) : Bool
     {
         var dx = _p.x - x;
         var dy = _p.y - y;

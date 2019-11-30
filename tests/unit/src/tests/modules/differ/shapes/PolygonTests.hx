@@ -1,6 +1,7 @@
 package tests.modules.differ.shapes;
 
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.modules.differ.shapes.Polygon;
@@ -339,8 +340,8 @@ class PolygonTests extends BuddySuite
                 square.vertices[3].x.should.be(0 - (s / 2));
                 square.vertices[3].y.should.be(0 + (s / 2));
 
-                var m = new Matrix().makeRotationZ(Maths.toRadians(45)).setPosition(new Vector(x, y));
-                var v = new Vector();
+                var m = new Matrix().makeRotationZ(Maths.toRadians(45)).setPosition(new Vector3(x, y));
+                var v = new Vector2();
                 for (i in 0...square.transformedVertices.length)
                 {
                     v.copyFrom(square.vertices[i]);

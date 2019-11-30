@@ -1,6 +1,7 @@
 package tests.api.gpu.geometry;
 
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
+import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
 import uk.aidanlee.flurry.api.gpu.geometry.Color;
 import buddy.BuddySuite;
@@ -14,9 +15,9 @@ class VertexTests extends BuddySuite
         describe('Vertex', {
 
             it('Can create a vertex from three vectors', {
-                var pos = new Vector(32, 32);
+                var pos = new Vector3(32, 32);
                 var col = new Color(0.2, 0.2, 0.2, 1.0);
-                var tex = new Vector(1.0, 0.5);
+                var tex = new Vector2(1.0, 0.5);
 
                 var vert = new Vertex(pos, col, tex);
                 vert.position.equals(pos).should.be(true);
@@ -25,12 +26,12 @@ class VertexTests extends BuddySuite
             });
 
             it('Can copy its three components from another vector', {
-                var pos = new Vector(32, 32);
+                var pos = new Vector3(32, 32);
                 var col = new Color(0.2, 0.2, 0.2, 1.0);
-                var tex = new Vector(1.0, 0.5);
+                var tex = new Vector2(1.0, 0.5);
 
                 var v1 = new Vertex(pos, col, tex);
-                var v2 = new Vertex(new Vector(), new Color(), new Vector());
+                var v2 = new Vertex(new Vector3(), new Color(), new Vector2());
 
                 v1.position.equals(v2.position).should.not.be(true);
                 v1.color   .equals(v2.color   ).should.not.be(true);
@@ -44,9 +45,9 @@ class VertexTests extends BuddySuite
             });
 
             it('Can clone itself and return a new independent vertex', {
-                var pos = new Vector(32, 32);
+                var pos = new Vector3(32, 32);
                 var col = new Color(0.2, 0.2, 0.2, 1.0);
-                var tex = new Vector(1.0, 0.5);
+                var tex = new Vector2(1.0, 0.5);
 
                 var v1 = new Vertex(pos, col, tex);
                 var v2 = v1.clone();
@@ -63,9 +64,9 @@ class VertexTests extends BuddySuite
             });
 
             it('Can check if another vertex is equal to it', {
-                var pos = new Vector(32, 32);
+                var pos = new Vector3(32, 32);
                 var col = new Color(0.2, 0.2, 0.2, 1.0);
-                var tex = new Vector(1.0, 0.5);
+                var tex = new Vector2(1.0, 0.5);
 
                 var v1 = new Vertex(pos, col, tex);
                 var v2 = v1.clone();

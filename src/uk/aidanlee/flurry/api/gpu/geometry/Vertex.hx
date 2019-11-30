@@ -1,6 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector2;
+import uk.aidanlee.flurry.api.maths.Vector3;
 
 /**
  * Vertex class, contains the position, colour, and texture coordinates for this vertex.
@@ -10,7 +11,7 @@ class Vertex
     /**
      * The position of this vertex.
      */
-    public final position : Vector;
+    public final position : Vector3;
 
     /**
      * The colour of this vertex.
@@ -20,7 +21,7 @@ class Vertex
     /**
      * The UV texture coordinates of this vertex.
      */
-    public final texCoord : Vector;
+    public final texCoord : Vector2;
 
     /**
      * Creates a new vertex point.
@@ -28,7 +29,7 @@ class Vertex
      * @param _color    This vertex's colour.
      * @param _texCoord This vertex's UV texture coordinates.
      */
-    inline public function new(_position : Vector, _color : Color, _texCoord : Vector)
+    public function new(_position : Vector3, _color : Color, _texCoord : Vector2)
     {
         position = _position;
         color    = _color;
@@ -40,7 +41,7 @@ class Vertex
      * @param _other Vertex to copy from.
      * @return Vertex
      */
-    inline public function copyFrom(_other : Vertex) : Vertex
+    public function copyFrom(_other : Vertex) : Vertex
     {
         position.copyFrom(_other.position);
         color   .copyFrom(_other.color);
@@ -53,7 +54,7 @@ class Vertex
      * Return a clone of this vertex.
      * @return Vertex
      */
-    inline public function clone() : Vertex
+    public function clone() : Vertex
     {
         return new Vertex(position.clone(), color.clone(), texCoord.clone());
     }
@@ -63,7 +64,7 @@ class Vertex
      * @param _other Vertex to check with.
      * @return Bool
      */
-    inline public function equals(_other : Vertex) : Bool
+    public function equals(_other : Vertex) : Bool
     {
         return position.equals(_other.position) && color.equals(_other.color) && texCoord.equals(_other.texCoord);
     }

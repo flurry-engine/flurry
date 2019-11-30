@@ -7,7 +7,7 @@ import cpp.Pointer;
 import cpp.Stdlib.memcpy;
 import sdl.SDL;
 import opengl.GL.glDrawArrays;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.thread.JobQueue;
@@ -39,7 +39,7 @@ class StreamBufferManager
     /**
      * Constant vector for transforming vertices before being uploaded.
      */
-    final transformationVectors : Array<Vector>;
+    final transformationVectors : Array<Vector3>;
 
     /**
      * Queue to distribute writing tasks to multiple threads
@@ -110,7 +110,7 @@ class StreamBufferManager
     public function new(_vtxBaseOffset : Int, _idxBaseOffset : Int, _vtxRange : Int, _idxRange : Int, _vtxPtr : Pointer<UInt8>, _idxPtr : Pointer<UInt8>)
     {
         forceIncludeGL         = new GLSyncWrapper();
-        transformationVectors  = [ for (i in 0...RENDERER_THREADS) new Vector() ];
+        transformationVectors  = [ for (i in 0...RENDERER_THREADS) new Vector3() ];
         jobQueue               = new JobQueue(RENDERER_THREADS);
         identityMatrix         = new Matrix();
         vtxBaseOffset          = _vtxBaseOffset;
