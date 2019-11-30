@@ -6,9 +6,7 @@ if [ $AGENT_OS == 'Linux' ]; then
 fi
 
 # Install lix and download flurry dependencies
-npm install
-
-npx lix download
+npm ci
 
 # Build the hxcpp tools
 cd $(npx haxelib path hxcpp | tail -1 | tr -d '\n')

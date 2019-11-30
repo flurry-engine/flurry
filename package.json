@@ -1,0 +1,22 @@
+{
+  "name": "flurry",
+  "version": "0.0.1",
+  "description": "[![Build Status](https://dev.azure.com/flurry-engine/flurry/_apis/build/status/flurry-engine.flurry?branchName=dev)](https://dev.azure.com/flurry-engine/flurry/_build/latest?definitionId=3&branchName=dev)",
+  "dependencies": {
+    "lix": "git+https://git@github.com/aidan63/lix.client.git"
+  },
+  "scripts": {
+    "postinstall": "npx lix download"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/flurry-engine/flurry.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/flurry-engine/flurry/issues"
+  },
+  "homepage": "https://github.com/flurry-engine/flurry#readme"
+}
