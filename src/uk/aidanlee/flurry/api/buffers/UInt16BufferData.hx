@@ -58,7 +58,7 @@ abstract UInt16BufferData(BufferData) from BufferData to BufferData
 #if cpp
         return untyped __global__.__hxcpp_memory_get_ui16(this.bytes.getData(), (_idx << 1) + this.byteOffset);
 #else
-        return bytes.getUInt16((_idx << 1) + this.byteOffset);
+        return this.bytes.getUInt16((_idx << 1) + this.byteOffset);
 #end
     }
 
@@ -67,7 +67,7 @@ abstract UInt16BufferData(BufferData) from BufferData to BufferData
 #if cpp
         untyped __global__.__hxcpp_memory_set_ui16(this.bytes.getData(), (_idx << 1) + this.byteOffset, _val);
 #else
-        bytes.setUInt16((_idx << 1) + this.byteOffset, _val);
+        this.bytes.setUInt16((_idx << 1) + this.byteOffset, _val);
 #end
 
         this.changed.dispatch();

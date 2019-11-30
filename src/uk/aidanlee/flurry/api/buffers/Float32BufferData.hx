@@ -58,7 +58,7 @@ abstract Float32BufferData(BufferData) from BufferData to BufferData
 #if cpp
         return untyped __global__.__hxcpp_memory_get_float(this.bytes.getData(), (_idx << 2) + this.byteOffset);
 #else
-        return bytes.getFloat((_idx << 2) + this.byteOffset);
+        return this.bytes.getFloat((_idx << 2) + this.byteOffset);
 #end
     }
 
@@ -67,7 +67,7 @@ abstract Float32BufferData(BufferData) from BufferData to BufferData
 #if cpp
         untyped __global__.__hxcpp_memory_set_float(this.bytes.getData(), (_idx << 2) + this.byteOffset, _val);
 #else
-        bytes.setFloat((_idx << 2) + this.byteOffset, _val);
+        this.bytes.setFloat((_idx << 2) + this.byteOffset, _val);
 #end
 
         this.changed.dispatch();
