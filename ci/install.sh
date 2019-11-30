@@ -11,5 +11,7 @@ npm install
 npx lix download
 
 # Build the hxcpp tools
-cd $(npx haxelib path hxcpp | tail -1 | tr -d '\n')/tools/hxcpp
+cd $(npx haxelib path hxcpp | tail -1 | tr -d '\n')
+npm install lix
+cd tools/hxcpp
 npx haxe compile.hxml
