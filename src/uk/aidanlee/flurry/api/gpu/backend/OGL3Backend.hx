@@ -957,7 +957,7 @@ class OGL3Backend implements IRendererBackend
                 var glTextureID  = textureObjects.get(_command.textures[i].id);
                 if (glTextureID != textureSlots[i])
                 {
-                    glActiveTexture(GL_TEXTURE0 + cache.textureLocations[i]);
+                    glActiveTexture(GL_TEXTURE0 + i);
                     glBindTexture(GL_TEXTURE_2D, glTextureID);
 
                     textureSlots[i] = glTextureID;
