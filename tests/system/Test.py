@@ -36,11 +36,11 @@ class SystemTests(unittest.TestCase):
                 buildFileHandle.write(template)
                 buildFileHandle.close()
 
-                subprocess.run([ "npx", "lix", "run", "build", "build" ], stdout=subprocess.DEVNULL)
+                subprocess.run([ "npx", "lix", "run", "build", "build" ])
 
                 myEnv = os.environ.copy()
                 myEnv["DISPLAY"]=":99"
-                test_proc=subprocess.Popen([ "bin/linux-x64/SystemTests" ], stdout=subprocess.DEVNULL, env=myEnv)
+                test_proc=subprocess.Popen([ "bin/linux-x64/SystemTests" ], env=myEnv)
 
                 time.sleep(1)
 

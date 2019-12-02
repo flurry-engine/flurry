@@ -1,1 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite errors="0" failures="0" hostname="aidan" name="pytest" skipped="0" tests="1" time="112.220" timestamp="2019-12-02T16:14:32.188152"><testcase classname="Test.SystemTests" name="test_system_programs" time="112.203"></testcase></testsuite></testsuites>
