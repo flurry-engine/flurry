@@ -3,7 +3,7 @@ package;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.maths.Maths;
-import uk.aidanlee.flurry.api.maths.Vector;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
 import uk.aidanlee.flurry.FlurryConfig;
@@ -40,8 +40,8 @@ class Transformations extends Flurry
         g3.position.set_xy(640, 256);
 
         g1.scale.set_xy(1.25, 1.25);
-        g2.rotation.setFromAxisAngle(new Vector(0, 0, 1), Maths.toRadians( 45));
-        g3.rotation.setFromAxisAngle(new Vector(0, 0, 1), Maths.toRadians(-66));
+        g2.rotation.setFromAxisAngle(new Vector3(0, 0, 1), Maths.toRadians( 45));
+        g3.rotation.setFromAxisAngle(new Vector3(0, 0, 1), Maths.toRadians(-66));
         g3.scale.set_xy(0.75, 0.75);
     }
 }

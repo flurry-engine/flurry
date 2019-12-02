@@ -15,6 +15,8 @@ class Colourised extends Flurry
         _config.window.width  = 768;
         _config.window.height = 512;
 
+        _config.resources.preload = PrePackaged('preload');
+
         return _config;
     }
 

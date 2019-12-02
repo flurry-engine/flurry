@@ -2,3 +2,5 @@ bin/
 .vscode
 test-*.xml
 node_modules
+.pytest_cache
+__pycache__

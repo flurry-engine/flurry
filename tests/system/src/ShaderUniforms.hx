@@ -1,5 +1,6 @@
 package;
 
+import uk.aidanlee.flurry.api.gpu.geometry.Color;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -24,19 +25,13 @@ class ShaderUniforms extends Flurry
     override function onReady()
     {
         var u1 = new Uniforms();
-        u1.float.set('red'  , 1.0);
-        u1.float.set('green', 1.0);
-        u1.float.set('blue' , 1.0);
+        u1.vector4.set('colour', new Color(1, 1, 1));
 
         var u2 = new Uniforms();
-        u2.float.set('red'  , 1.0);
-        u2.float.set('green', 0.5);
-        u2.float.set('blue' , 0.5);
+        u2.vector4.set('colour', new Color(1, 0.5, 0.5));
 
         var u3 = new Uniforms();
-        u3.float.set('red'  , 0.5);
-        u3.float.set('green', 0.5);
-        u3.float.set('blue' , 1.0);
+        u3.vector4.set('colour', new Color(0.5, 0.5, 1));
 
         var camera  = new Camera2D(display.width, display.height);
         var batcher = renderer.createBatcher({ shader : resources.get('colourise', ShaderResource), camera : camera });

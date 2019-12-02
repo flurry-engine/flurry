@@ -14,9 +14,7 @@
             "name"    : "colours",
             "binding" : 1,
             "values"  : [
-                { "type" : "Float", "name" : "red" },
-                { "type" : "Float", "name" : "green" },
-                { "type" : "Float", "name" : "blue" }
+                { "type" : "Vector4", "name" : "colour" }
             ]
         }
     ]

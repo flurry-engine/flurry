@@ -647,10 +647,10 @@ class OGL3Backend implements IRendererBackend
 
         var blockBuffers = [ for (i in 0..._resource.layout.blocks.length) 0 ];
         glGenBuffers(blockBuffers.length, blockBuffers);
-        var blockBytes = [ for (i in 0..._resource.layout.blocks.length) generateUniformBlock(_resource.layout.blocks[i], blockBuffers[i], blockBindings[i]) ];
+        var blockSizes = [ for (i in 0..._resource.layout.blocks.length) generateUniformBlock(_resource.layout.blocks[i], blockBuffers[i], blockBindings[i]) ];
 
         shaderPrograms.set(_resource.id, program);
-        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings, blockBuffers, blockBytes));
+        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings, blockBuffers, blockSizes));
     }
 
     /**
@@ -716,7 +716,7 @@ class OGL3Backend implements IRendererBackend
      * @param _binding OpenGL UBO binding position.
      * @return Bytes
      */
-    function generateUniformBlock(_block : ShaderBlock, _buffer : Int, _binding : Int) : Bytes
+    function generateUniformBlock(_block : ShaderBlock, _buffer : Int, _binding : Int) : Int
     {
         var blockSize = 0;
         for (val in _block.values)
@@ -729,12 +729,10 @@ class OGL3Backend implements IRendererBackend
             }
         }
 
-        var bytes = Bytes.alloc(blockSize);
-
         glBindBuffer(GL_UNIFORM_BUFFER, _buffer);
-        glBufferData(GL_UNIFORM_BUFFER, blockSize, bytes.getData(), GL_DYNAMIC_DRAW);
+        untyped __cpp__('glBufferData(GL_UNIFORM_BUFFER, {0}, nullptr, GL_DYNAMIC_DRAW)', blockSize);
 
-        return bytes;
+        return blockSize;
     }
 
     //  #endregion
@@ -975,9 +973,8 @@ class OGL3Backend implements IRendererBackend
         for (i in 0...cache.layout.blocks.length)
         {
             glBindBufferBase(GL_UNIFORM_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
-            glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[i]);
 
-            var ptr = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
+            final src : Pointer<cpp.UInt8> = Pointer.fromRaw(glMapBufferRange(GL_UNIFORM_BUFFER, 0, cache.blockSizes[i], GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT)).reinterpret();
 
             if (cache.layout.blocks[i].name == 'defaultMatrices')
             {
@@ -987,9 +984,9 @@ class OGL3Backend implements IRendererBackend
                 var view       = _command.camera.view;
                 var projection = _command.camera.projection;
 
-                memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
-                memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
-                memcpy(ptr.incBy(64), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
+                memcpy(src          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
+                memcpy(src.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
+                memcpy(src.incBy(64), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
             }
             else
             {
@@ -1001,26 +998,26 @@ class OGL3Backend implements IRendererBackend
                     switch val.type
                     {
                         case Matrix4:
-                            var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            memcpy(ptr.incBy(pos), (mat : Float32BufferData).bytes.getData().address((mat : Float32BufferData).byteOffset), 64);
+                            var mat : Float32BufferData = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
+                            memcpy(src.incBy(pos), mat.bytes.getData().address(mat.byteOffset), 64);
                             pos += 64;
                         case Vector4:
-                            var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            memcpy(ptr.incBy(pos), (vec : Float32BufferData).bytes.getData().address((vec : Float32BufferData).byteOffset), 16);
+                            var vec : Float32BufferData = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
+                            memcpy(src.incBy(pos), vec.bytes.getData().address(vec.byteOffset), 16);
                             pos += 16;
                         case Int:
-                            var dst : Pointer<Int32> = ptr.reinterpret();
+                            var dst : Pointer<Int32> = src.reinterpret();
                             dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
                             pos += 4;
                         case Float:
-                            var dst : Pointer<Float32> = ptr.reinterpret();
+                            var dst : Pointer<Float32> = src.reinterpret();
                             dst.setAt(Std.int(pos / 4), preferedUniforms.float.exists(val.name) ? preferedUniforms.float.get(val.name) : _command.shader.uniforms.float.get(val.name));
                             pos += 4;
                     }
                 }
             }
             
-            glBufferSubData(GL_UNIFORM_BUFFER, 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
+            glUnmapBuffer(GL_UNIFORM_BUFFER);
         }
     }
 
@@ -1168,17 +1165,17 @@ private class ShaderLocations
     public final blockBuffers : Array<Int>;
 
     /**
-     * Bytes for each SSBO buffer.
+     * Size in bytes of all blocks.
      */
-    public final blockBytes : Array<Bytes>;
+    public final blockSizes : Array<Int>;
 
-    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockBindings : Array<Int>, _blockBuffers : Array<Int>, _blockBytes : Array<Bytes>)
+    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockBindings : Array<Int>, _blockBuffers : Array<Int>, _blockSizes : Array<Int>)
     {
         layout           = _layout;
         textureLocations = _textureLocations;
         blockBindings    = _blockBindings;
         blockBuffers     = _blockBuffers;
-        blockBytes       = _blockBytes;
+        blockSizes       = _blockSizes;
     }
 }
 

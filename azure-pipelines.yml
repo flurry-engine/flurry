@@ -15,6 +15,10 @@ steps:
   inputs:
     versionSpec: '10.15.x'
 
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.7'
+
 - bash: |
     chmod a+x ci/install.sh
     ci/install.sh
@@ -31,12 +35,12 @@ steps:
   env:
     AGENT_OS: $(Agent.OS)
 
-# - bash: haxe -L buddy -L format -D reporter=XUnit2Reporter -D report-name=System-Tests-$AGENT_OS --debug --run Test
-#   displayName: System Tests
-#   condition: eq( variables['Agent.OS'], 'Windows_NT' )
-#   workingDirectory: $(Build.SourcesDirectory)/tests/system
-#   env:
-#     AGENT_OS: $(Agent.OS)
+- bash: pytest -o junit_family=xunit2 --junit-xml test-system.xml Test.py
+  displayName: System Tests
+  condition: eq( variables['Agent.OS'], 'Linux' )
+  workingDirectory: $(Build.SourcesDirectory)/tests/system
+  env:
+    AGENT_OS: $(Agent.OS)
 
 - task: PublishTestResults@2
   condition: succeededOrFailed()
@@ -48,12 +52,12 @@ steps:
     buildPlatform: $(Agent.OS)
     failTaskOnFailedTests: true
 
-# - task: PublishTestResults@2
-#   condition: and(succeededOrFailed(), eq( variables['Agent.OS'], 'Windows_NT' ))
-#   inputs:
-#     testResultsFormat: xUnit
-#     searchFolder: $(Build.SourcesDirectory)/tests/system
-#     testResultsFiles: test-engine.xml
-#     testRunTitle: System Tests $(Agent.OS)
-#     buildPlatform: $(Agent.OS)
-#     failTaskOnFailedTests: true
+- task: PublishTestResults@2
+  condition: and(succeededOrFailed(), eq( variables['Agent.OS'], 'Linux' ))
+  inputs:
+    testResultsFormat: xUnit
+    searchFolder: $(Build.SourcesDirectory)/tests/system
+    testResultsFiles: test-system.xml
+    testRunTitle: System Tests $(Agent.OS)
+    buildPlatform: $(Agent.OS)
+    failTaskOnFailedTests: true
