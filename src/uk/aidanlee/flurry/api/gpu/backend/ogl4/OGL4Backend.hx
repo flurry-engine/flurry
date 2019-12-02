@@ -943,7 +943,7 @@ class OGL4Backend implements IRendererBackend
                     currentSampler = textureSamplers[samplerHash];
                 }
                 
-                glBindSampler(cache.textureLocations[i], currentSampler);
+                glBindSampler(i, currentSampler);
 
                 // see if textures need updating.
                 var tex = textureObjects.get(_command.textures[i].id);

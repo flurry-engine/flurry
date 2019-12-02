@@ -936,6 +936,18 @@ class OGL3Backend implements IRendererBackend
             // then go through each texture and bind it if it isn't already.
             for (i in 0..._command.textures.length)
             {
+                // Bind the texture if its not already bound.
+                var glTextureID  = textureObjects.get(_command.textures[i].id);
+                if (glTextureID != textureSlots[i])
+                {
+                    glActiveTexture(GL_TEXTURE0 + i);
+                    glBindTexture(GL_TEXTURE_2D, glTextureID);
+
+                    textureSlots[i] = glTextureID;
+
+                    rendererStats.textureSwaps++;
+                }
+
                 // Get / create and bind the sampler for the current texture.
                 var currentSampler = defaultSampler;
                 if (_command.samplers[i] != null)
@@ -951,19 +963,7 @@ class OGL3Backend implements IRendererBackend
                     currentSampler = textureSamplers[samplerHash];
                 }
                 
-                glBindSampler(cache.textureLocations[i], currentSampler);
-
-                // Bind the texture if its not already bound.
-                var glTextureID  = textureObjects.get(_command.textures[i].id);
-                if (glTextureID != textureSlots[i])
-                {
-                    glActiveTexture(GL_TEXTURE0 + i);
-                    glBindTexture(GL_TEXTURE_2D, glTextureID);
-
-                    textureSlots[i] = glTextureID;
-
-                    rendererStats.textureSwaps++;
-                }
+                glBindSampler(i, currentSampler);
             }
         }
         else
@@ -974,6 +974,7 @@ class OGL3Backend implements IRendererBackend
         // Upload and bind all buffer data.
         for (i in 0...cache.layout.blocks.length)
         {
+            glBindBufferBase(GL_UNIFORM_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
             glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[i]);
 
             var ptr = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
@@ -1020,7 +1021,6 @@ class OGL3Backend implements IRendererBackend
             }
             
             glBufferSubData(GL_UNIFORM_BUFFER, 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
-            glBindBufferBase(GL_UNIFORM_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
         }
     }
 
