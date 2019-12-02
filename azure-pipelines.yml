@@ -35,7 +35,9 @@ steps:
   env:
     AGENT_OS: $(Agent.OS)
 
-- bash: pytest -o junit_family=xunit2 --junit-xml test-system.xml Test.py
+- bash: |
+    pip install -U pytest
+    pytest -o junit_family=xunit2 --junit-xml test-system.xml Test.py
   displayName: System Tests
   condition: eq( variables['Agent.OS'], 'Linux' )
   workingDirectory: $(Build.SourcesDirectory)/tests/system
