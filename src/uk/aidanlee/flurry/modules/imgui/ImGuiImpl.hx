@@ -110,7 +110,7 @@ class ImGuiImpl
         vtxData = new Float32Array(1000000);
         idxData = new UInt16Array(1000000);
 
-        var bytes = @:privateAccess new Bytes(width * height * bpp, Pointer.fromRaw(cast data).toUnmanagedArray(width * height * bpp));
+        var bytes = @:privateAccess new Bytes(width * height * bpp, Pointer.fromStar(data).toUnmanagedArray(width * height * bpp));
 
         texture = new ImageResource('imgui_texture', width, height, bytes);
         io.fonts.texID = cast cpp.Native.addressOf(texture);
@@ -240,7 +240,7 @@ class ImGuiImpl
                     draw.clipRect.y - _drawData.displayPos.y,
                     draw.clipRect.z - draw.clipRect.x,
                     draw.clipRect.w - draw.clipRect.y);
-                var t : Pointer<ImageResource> = Pointer.fromRaw(cast draw.textureId).reinterpret();
+                var t : Pointer<ImageResource> = Pointer.fromStar(draw.textureId).reinterpret();
 
                 commands.push(new BufferDrawCommand(
                     vtxData, globalVtxOffset + draw.vtxOffset, vtxOffset,
