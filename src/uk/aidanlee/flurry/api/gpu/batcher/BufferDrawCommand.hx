@@ -87,6 +87,6 @@ class BufferDrawCommand extends DrawCommand
         idxEndIndex   = _idxEndIndex;
         model         = _model;
 
-        super(_id, _uploadType, _camera, clip, vtxEndIndex - vtxStartIndex, idxEndIndex - idxStartIndex, _primitive, _target, _shader, _uniforms, _textures, _samplers, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
+        super(_id, _uploadType, _camera, _clip, vtxEndIndex - vtxStartIndex, idxEndIndex - idxStartIndex, _primitive, _target, _shader, _uniforms, _textures, _samplers, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
     }
 }
