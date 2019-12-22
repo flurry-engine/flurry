@@ -1,5 +1,9 @@
 package uk.aidanlee.flurry.api.resources;
 
+import rx.subjects.Replay;
+import rx.observers.IObserver;
+import rx.Subscription;
+import rx.observables.IObservable;
 import haxe.Exception;
 import haxe.Unserializer;
 import haxe.io.Path;
@@ -7,8 +11,6 @@ import haxe.zip.Uncompress;
 import format.png.Tools;
 import format.png.Reader;
 import json2object.JsonParser;
-import hx.concurrent.collection.Queue;
-import hx.concurrent.executor.Executor;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelList;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelType;
 import uk.aidanlee.flurry.api.resources.Parcel.ShaderInfoLayout;
@@ -24,6 +26,7 @@ import uk.aidanlee.flurry.api.resources.Resource.BytesResource;
 import sys.io.abstractions.IFileSystem;
 
 using Safety;
+using rx.Observable;
 
 enum ParcelEventType
 {
@@ -43,11 +46,6 @@ class ResourceSystem
      * Access to the engines filesystem.
      */
     final fileSystem : IFileSystem;
-
-    /**
-     * All parcels loaded in this resource system.
-     */
-    final parcels : Map<String, Parcel>;
 
     /**
      * Map of a parcels ID to all the resources IDs contained within it.
@@ -72,17 +70,6 @@ class ResourceSystem
     final resourceReferences : Map<String, Int>;
 
     /**
-     * Thread pool to load parcels without blocking the main thread.
-     */
-    final executor : Executor;
-
-    /**
-     * Async event queue so the main thread can be notified when a parcel has been loaded.
-     * Main thread then adds the loaded resources to the cache. Removes the need for any manual locking on the cache map.
-     */
-    final queue : Queue<ParcelEvent>;
-
-    /**
      * Creates a new resources system.
      * Allows the creation and loading of parcels and caching their resources.
      * 
@@ -92,34 +79,10 @@ class ResourceSystem
     {
         events             = _events;
         fileSystem         = _fileSystem;
-        parcels            = [];
         parcelResources    = [];
         parcelDependencies = [];
         resourceCache      = [];
         resourceReferences = [];
-        queue              = new Queue();
-        executor           = Executor.create(_threads);
-    }
-
-    /**
-     * Create a new parcel in this system.
-     * @param _name Unique name of the parcel.
-     * @param _list List of all of this parcels resources.
-     */
-    public function create(_type : ParcelType, ?_onLoaded : Array<Resource>->Void, ?_onProgress : Float->Void, ?_onFailed : String->Void) : Parcel
-    {
-        var name = switch _type
-        {
-            case Definition(_name, _): _name;
-            case PrePackaged(_name): _name;
-        }
-
-        if (parcels.exists(name))
-        {
-            throw new ParcelAlreadyExistsException(name);
-        }
-
-        return parcels[name] = new Parcel(this, name, _type, _onLoaded, _onProgress, _onFailed);
     }
 
     /**
@@ -128,51 +91,35 @@ class ResourceSystem
      * @throws ParcelAlreadyLoadedException When this parcel has already been loaded.
      * @throws ParcelNotAddedException When the provided parcel is not tracked by the system.
      */
-    public function load(_parcel : Parcel)
+    public function load(_parcel : ParcelType) : IObservable<Array<Resource>>
     {
-        if (parcelResources.exists(_parcel.name))
-        {
-            throw new ParcelAlreadyLoadedException(_parcel.name);
-        }
-
-        if (parcels.exists(_parcel.name))
-        {
-            switch parcels[_parcel.name].unsafe().type
+        final replay = Replay.create();
+        Observable.create((_observer : IObserver<Resource>) -> {
+            
+            switch _parcel
             {
-                case Definition(_, _definition): loadDefinition(_parcel.name, _definition);
-                case PrePackaged(_name): loadPrePackaged(_name);
+                case Definition(_name, _definition):
+                    loadDefinition(_name, _definition, _observer);
+                case PrePackaged(_name):
+                    loadPrePackaged(_name, _observer);
             }
-        }
-        else
-        {
-            throw new ParcelNotAddedException(_parcel.name);
-        }
-    }
 
-    /**
-     * Removes / decrements references to all the resources in the provided parcel.
-     * @param _parcel The parcel to free.
-     * @throws ParcelNotAddedException When the provided parcel is not loaded in the system.
-     */
-    public function free(_parcel : Parcel)
-    {
-        if (!parcelResources.exists(_parcel.name))
-        {
-            throw new ParcelNotAddedException(_parcel.name);
-        }
+            return Subscription.empty();
+        })
+        .collect()
+        .subscribeFunction(
+            _v -> replay.onNext(_v),
+            _e -> replay.onError(_e),
+            () -> replay.onCompleted());
 
-        freeDependencies(parcelDependencies[_parcel.name].or([]));
+        replay.subscribeFunction(_resources -> {
+            onParcelSucceeded(new ParcelSucceededEvent(switch _parcel {
+                case Definition(_name, _):_name;
+                case PrePackaged(_name):_name;
+            }, ParcelEventType.Succeeded, _resources, []));
+        });
 
-        for (resource in parcelResources[_parcel.name].or([]))
-        {
-            if (resourceCache.exists(resource))
-            {
-                removeResource(resourceCache[resource].unsafe());
-            }
-        }
-
-        parcelResources.remove(_parcel.name);
-        parcelDependencies.remove(_parcel.name);
+        return replay;
     }
 
     /**
@@ -246,175 +193,152 @@ class ResourceSystem
     }
 
     /**
-     * Processes the resource system.
-     * This should be called at regular intervals to retrieve parcel loading status from the separate threads.
-     * If this is not frequently called then resource won't appear in the system and parcel loading information won't be available.
-     */
-    public function update()
-    {
-        var event = queue.pop();
-        while (event != null)
-        {
-            switch event.type
-            {
-                case Succeeded: onParcelSucceeded(cast event);
-                case Progress : onParcelProgress(cast event);
-                case Failed   : onParcelFailed(cast event);
-            }
-
-            event = queue.pop();
-        }
-    }
-
-    /**
      * Loads all the the resources in the list of a different thread.
      * @param _name Parcel unique ID
      * @param _list List of resources to load.
      */
-    function loadDefinition(_name : String, _list : ParcelList)
+    function loadDefinition(_name : String, _list : ParcelList, _observer : IObserver<Resource>)
     {
-        /**
-         * This function is ran in a seperate thread to load all the assets without blocking the main thread.
-         * An event is fired with the loaded resources and parcel ID so the main thread can add them.
-         */
-        executor.submit(() -> {           
-            try {
-                var resources = new Array<Resource>();
-                
-                var totalResources = calculateTotalResources(_list);
-                var loadedIndices  = 0;
+        try
+        {
+            // var resources = new Array<Resource>();
+            
+            // var totalResources = calculateTotalResources(_list);
+            // var loadedIndices  = 0;
 
-                for (asset in _list.bytes)
-                {
-                    if (!fileSystem.file.exists(asset.path))
-                    {
-                        throw new ResourceNotFoundException(asset.id, asset.path);
-                    }
-
-                    resources.push(new BytesResource(asset.id, fileSystem.file.getBytes(asset.path)));
-
-                    queue.push(new ParcelProgressEvent(_name, Progress, ++loadedIndices / totalResources ));
-                }
-
-                for (asset in _list.texts)
-                {
-                    if (!fileSystem.file.exists(asset.path))
-                    {
-                        throw new ResourceNotFoundException(asset.id, asset.path);
-                    }
-
-                    resources.push(new TextResource(asset.id, fileSystem.file.getText(asset.path)));
-
-                    queue.push(new ParcelProgressEvent(_name, Progress, ++loadedIndices / totalResources ));
-                }
-
-                for (asset in _list.images)
-                {
-                    if (!fileSystem.file.exists(asset.path))
-                    {
-                        throw new ResourceNotFoundException(asset.id, asset.path);
-                    }
-
-                    var info = new Reader(fileSystem.file.read(asset.path)).read();
-                    var head = Tools.getHeader(info);
-
-                    resources.push(new ImageResource(asset.id, head.width, head.height, Tools.extract32(info)));
-
-                    queue.push(new ParcelProgressEvent(_name, Progress, ++loadedIndices / totalResources ));
-                }
-
-                for (asset in _list.shaders)
-                {
-                    if (!fileSystem.file.exists(asset.path))
-                    {
-                        throw new ResourceNotFoundException(asset.id, asset.path);
-                    }
-
-                    var parser = new JsonParser<ShaderInfoLayout>();
-                    parser.fromJson(fileSystem.file.getText(asset.path));
-
-                    for (error in parser.errors)
-                    {
-                        throw error;
-                    }
-
-                    var layout = new ShaderLayout(
-                        parser.value.textures,
-                        [
-                            for (b in parser.value.blocks) new ShaderBlock(b.name, b.binding, [
-                                for (v in b.values) new ShaderValue(v.name, v.type)
-                            ])
-                        ]);
-                    var sourceOGL3 = asset.ogl3 == null ? null : new ShaderSource(
-                        asset.ogl3.compiled.or(false),
-                        fileSystem.file.getBytes(asset.ogl3.vertex),
-                        fileSystem.file.getBytes(asset.ogl3.fragment));
-                    var sourceOGL4 = asset.ogl4 == null ? null : new ShaderSource(
-                        asset.ogl4.compiled.or(false),
-                        fileSystem.file.getBytes(asset.ogl4.vertex),
-                        fileSystem.file.getBytes(asset.ogl4.fragment)
-                    );
-                    var sourceHLSL = asset.hlsl == null ? null : new ShaderSource(
-                        asset.hlsl.compiled.or(false),
-                        fileSystem.file.getBytes(asset.hlsl.vertex),
-                        fileSystem.file.getBytes(asset.hlsl.fragment)
-                    );
-
-                    resources.push(new ShaderResource(asset.id, layout, sourceOGL3, sourceOGL4, sourceHLSL));
-
-                    queue.push(new ParcelProgressEvent(_name, Progress, ++loadedIndices / totalResources ));
-                }
-
-                queue.push(new ParcelSucceededEvent(_name, Succeeded, resources, []));
-            }
-            catch (_exception : Exception)
+            for (asset in _list.bytes)
             {
-                queue.push(new ParcelFailedEvent(_name, Failed, _exception.message));
+                if (!fileSystem.file.exists(asset.path))
+                {
+                    throw new ResourceNotFoundException(asset.id, asset.path);
+                }
+
+                _observer.onNext(new BytesResource(asset.id, fileSystem.file.getBytes(asset.path)));
+
+                // queue.push(new ParcelProgressEvent(_name, Progress, ++loadedIndices / totalResources ));
             }
-        });
+
+            for (asset in _list.texts)
+            {
+                if (!fileSystem.file.exists(asset.path))
+                {
+                    throw new ResourceNotFoundException(asset.id, asset.path);
+                }
+
+                _observer.onNext(new TextResource(asset.id, fileSystem.file.getText(asset.path)));
+
+                // queue.push(new ParcelProgressEvent(_name, Progress, ++loadedIndices / totalResources ));
+            }
+
+            for (asset in _list.images)
+            {
+                if (!fileSystem.file.exists(asset.path))
+                {
+                    throw new ResourceNotFoundException(asset.id, asset.path);
+                }
+
+                var info = new Reader(fileSystem.file.read(asset.path)).read();
+                var head = Tools.getHeader(info);
+
+                _observer.onNext(new ImageResource(asset.id, head.width, head.height, Tools.extract32(info)));
+
+                // queue.push(new ParcelProgressEvent(_name, Progress, ++loadedIndices / totalResources ));
+            }
+
+            for (asset in _list.shaders)
+            {
+                if (!fileSystem.file.exists(asset.path))
+                {
+                    throw new ResourceNotFoundException(asset.id, asset.path);
+                }
+
+                var parser = new JsonParser<ShaderInfoLayout>();
+                parser.fromJson(fileSystem.file.getText(asset.path));
+
+                for (error in parser.errors)
+                {
+                    throw error;
+                }
+
+                var layout = new ShaderLayout(
+                    parser.value.textures,
+                    [
+                        for (b in parser.value.blocks) new ShaderBlock(b.name, b.binding, [
+                            for (v in b.values) new ShaderValue(v.name, v.type)
+                        ])
+                    ]);
+                var sourceOGL3 = asset.ogl3 == null ? null : new ShaderSource(
+                    asset.ogl3.compiled.or(false),
+                    fileSystem.file.getBytes(asset.ogl3.vertex),
+                    fileSystem.file.getBytes(asset.ogl3.fragment));
+                var sourceOGL4 = asset.ogl4 == null ? null : new ShaderSource(
+                    asset.ogl4.compiled.or(false),
+                    fileSystem.file.getBytes(asset.ogl4.vertex),
+                    fileSystem.file.getBytes(asset.ogl4.fragment)
+                );
+                var sourceHLSL = asset.hlsl == null ? null : new ShaderSource(
+                    asset.hlsl.compiled.or(false),
+                    fileSystem.file.getBytes(asset.hlsl.vertex),
+                    fileSystem.file.getBytes(asset.hlsl.fragment)
+                );
+
+                _observer.onNext(new ShaderResource(asset.id, layout, sourceOGL3, sourceOGL4, sourceHLSL));
+
+                // queue.push(new ParcelProgressEvent(_name, Progress, ++loadedIndices / totalResources ));
+            }
+
+            _observer.onCompleted();
+        }
+        catch (_exception : Exception)
+        {
+            _observer.onError(_exception.message);
+        }
     }
 
     /**
      * Load a pre-packaged parcel from the disk.
      * @param _file Parcel file name.
      */
-    function loadPrePackaged(_file : String)
+    function loadPrePackaged(_file : String, _observer : IObserver<Resource>)
     {
-        executor.submit(() -> {
-            try
-            {
-                loadParcelFromFile(_file);
-            }
-            catch (_exception : Exception)
-            {
-                queue.push(new ParcelFailedEvent(_file, Failed, _exception.message));
-            }
-        });
+        try
+        {
+            loadParcelFromFile(_file, _observer);
+
+            _observer.onCompleted();
+        }
+        catch (_exception : Exception)
+        {
+            _observer.onError(_exception.message);
+        }
     }
 
     /**
      * Load a parcel from a file on disk.
      * @param _file Parcel file name.
      */
-    function loadParcelFromFile(_file : String)
+    function loadParcelFromFile(_file : String, _observer : IObserver<Resource>)
     {
-        var path = Path.join([ 'assets', 'parcels', _file ]);
+        final path = Path.join([ 'assets', 'parcels', _file ]);
 
         if (!fileSystem.file.exists(path))
         {
             throw new ParcelNotFoundException(path);
         }
 
-        var bytes  = Uncompress.run(fileSystem.file.getBytes(path));
-        var loader = new Unserializer(bytes.toString());
-        var parcel = (cast loader.unserialize() : ParcelResource);
+        final bytes  = Uncompress.run(fileSystem.file.getBytes(path));
+        final loader = new Unserializer(bytes.toString());
+        final parcel = (cast loader.unserialize() : ParcelResource);
 
         for (dependency in parcel.depends)
         {
-            loadParcelFromFile(dependency);
+            loadParcelFromFile(dependency, _observer);
         }
 
-        queue.push(new ParcelSucceededEvent(parcel.name, Succeeded, parcel.assets, parcel.depends));
+        for (asset in parcel.assets)
+        {
+            _observer.onNext(asset);
+        }
     }
 
     /**
@@ -478,48 +402,8 @@ class ResourceSystem
 
         parcelResources[_event.parcel] = newResources;
         parcelDependencies[_event.parcel] = _event.dependencies;
-
-        if (parcels.exists(_event.parcel))
-        {
-            var parcel = parcels[_event.parcel].unsafe();
-            if (parcel.onLoaded != null)
-            {
-                parcel.onLoaded(_event.resources);
-            }
-        }
     }
 
-    /**
-     * Once a parcel loader thread has loaded an asset the user defined progress event is called (if defined).
-     * @param _event Parcel event.
-     */
-    function onParcelProgress(_event : ParcelProgressEvent)
-    {
-        if (parcels.exists(_event.parcel))
-        {
-            var parcel = parcels[_event.parcel].unsafe();
-            if (parcel.onProgress != null)
-            {
-                parcel.onProgress(_event.progress);
-            }
-        }
-    }
-
-    /**
-     * If a parcel fails to load the user defined failure event is called (if defined).
-     * @param _event 
-     */
-    function onParcelFailed(_event : ParcelFailedEvent)
-    {
-        if (parcels.exists(_event.parcel))
-        {
-            var parcel = parcels[_event.parcel].unsafe();
-            if (parcel.onFailed != null)
-            {
-                parcel.onFailed(_event.message);
-            }
-        }
-    }
 }
 
 // #region exceptions
