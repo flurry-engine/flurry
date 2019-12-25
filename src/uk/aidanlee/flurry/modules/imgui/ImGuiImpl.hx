@@ -22,6 +22,8 @@ import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import imgui.NativeImGui;
 
+using rx.Observable;
+
 class ImGuiImpl
 {
     final events    : FlurryEvents;
@@ -118,16 +120,16 @@ class ImGuiImpl
         resources.addResource(texture);
 
         // Hook into flurry events
-        events.preUpdate.add(newFrame);
-        events.postUpdate.add(render);
-        events.shutdown.add(dispose);
+        events.preUpdate.subscribeFunction(newFrame);
+        events.postUpdate.subscribeFunction(render);
+        events.shutdown.subscribeFunction(dispose);
         events.input.textInput.add(onTextInput);
     }
 
     /**
      * Populates the imgui fields with the latest screen, mouse, keyboard, and gamepad info.
      */
-    public function newFrame()
+    public function newFrame(_unit : Unit)
     {
         var io = NativeImGui.getIO();
         io.displaySize  = ImVec2.create(display.width, display.height);
@@ -166,7 +168,7 @@ class ImGuiImpl
     /**
      * Builds the imgui draw data and renders it into its batcher.
      */
-    public function render()
+    public function render(_unit : Unit)
     {
         camera.viewport.set(0, 0, display.width, display.height);
         camera.size.set(camera.viewport.w, camera.viewport.h);
@@ -179,7 +181,7 @@ class ImGuiImpl
     /**
      * Cleans up resources used by the batcher and texture.
      */
-    public function dispose()
+    public function dispose(_unit : Unit)
     {
         resources.removeResource(texture);
     }
