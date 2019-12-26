@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry;
 
+import rx.Unit;
 import rx.Subject;
 import rx.Observable;
 import rx.subjects.Replay;

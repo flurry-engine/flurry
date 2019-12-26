@@ -1,6 +1,6 @@
 package uk.aidanlee.flurry;
 
-import rx.Observable.Unit;
+import rx.Unit;
 import rx.Subject;
 import rx.subjects.Replay;
 import uk.aidanlee.flurry.api.gpu.Renderer;
