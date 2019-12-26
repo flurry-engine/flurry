@@ -5,6 +5,7 @@ import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
+import uk.aidanlee.flurry.api.gpu.textures.ImageRegion;
 
 using Safety;
 
@@ -15,7 +16,7 @@ typedef QuadGeometryOptions = {
     var ?y : Float;
     var ?w : Float;
     var ?h : Float;
-    var ?uv : Rectangle;
+    var ?region : ImageRegion;
 }
 
 /**
@@ -29,15 +30,19 @@ class QuadGeometry extends Geometry
 
         _options.x  = _options.x.or(0);
         _options.y  = _options.y.or(0);
-        _options.w  = _options.w.or(textures[0].width );
+        _options.w  = _options.w.or(textures[0].width);
         _options.h  = _options.h.or(textures[0].height);
-        _options.uv = _options.uv.or( new Rectangle(0, 0, 1, 1));
+
+        final u1 = _options.region!.u1.or(0);
+        final v1 = _options.region!.v1.or(0);
+        final u2 = _options.region!.u2.or(1);
+        final v2 = _options.region!.v2.or(1);
 
         vertices.resize(4);
-        vertices[0] = new Vertex( new Vector3(         0, _options.h), color, new Vector2(_options.uv.x, _options.uv.h) );
-        vertices[1] = new Vertex( new Vector3(_options.w, _options.h), color, new Vector2(_options.uv.w, _options.uv.h) );
-        vertices[2] = new Vertex( new Vector3(         0,          0), color, new Vector2(_options.uv.x, _options.uv.y) );
-        vertices[3] = new Vertex( new Vector3(_options.w,          0), color, new Vector2(_options.uv.w, _options.uv.y) );
+        vertices[0] = new Vertex( new Vector3(         0, _options.h), color, new Vector2(u1, v2) );
+        vertices[1] = new Vertex( new Vector3(_options.w, _options.h), color, new Vector2(u2, v2) );
+        vertices[2] = new Vertex( new Vector3(         0,          0), color, new Vector2(u1, v1) );
+        vertices[3] = new Vertex( new Vector3(_options.w,          0), color, new Vector2(u2, v1) );
 
         indices.resize(6);
         indices[0] = 0;
