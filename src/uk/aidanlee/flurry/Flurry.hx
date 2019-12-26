@@ -1,5 +1,8 @@
 package uk.aidanlee.flurry;
 
+import rx.Unit;
+import rx.Subject;
+import rx.subjects.Replay;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.input.Input;
 import uk.aidanlee.flurry.api.display.Display;
@@ -70,9 +73,6 @@ class Flurry
         input      = new Input(events.input);
         display    = new Display(events.display, events.input, flurryConfig);
 
-        // Fire the init event once the engine has loaded all its components.
-        events.init.dispatch();
-
         if (flurryConfig.resources.preload != null)
         {
             resources.create(
@@ -86,6 +86,9 @@ class Flurry
         {
             onPreloadParcelComplete(null);
         }
+
+        // Fire the init event once the engine has loaded all its components.
+        (cast events.init : Replay<Unit>).onCompleted();
     }
 
     public final function tick(_dt : Float)
@@ -103,7 +106,7 @@ class Flurry
         {
             onPreUpdate();
 
-            events.preUpdate.dispatch();
+            (cast events.preUpdate : Subject<Unit>).onNext(unit);
         }
 
         // Pre-draw
@@ -114,7 +117,7 @@ class Flurry
         {
             onUpdate(_dt);
 
-            events.update.dispatch();
+            (cast events.update : Subject<Float>).onNext(_dt);
         }
 
         // Render and present
@@ -128,7 +131,7 @@ class Flurry
 
             input.update();
 
-            events.postUpdate.dispatch();
+            (cast events.postUpdate : Subject<Unit>).onNext(unit);
         }
 
         renderer.postRender();
@@ -136,7 +139,7 @@ class Flurry
 
     public final function shutdown()
     {
-        events.shutdown.dispatch();
+        (cast events.preUpdate : Subject<Unit>).onNext(unit);
 
         onShutdown();
     }
@@ -186,7 +189,7 @@ class Flurry
 
         onReady();
 
-        events.ready.dispatch();
+        (cast events.ready : Replay<Unit>).onCompleted();
     }
 
     final function onPreloadParcelError(_error : String)

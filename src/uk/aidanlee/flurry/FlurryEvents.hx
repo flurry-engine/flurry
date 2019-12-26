@@ -1,23 +1,26 @@
 package uk.aidanlee.flurry;
 
+import rx.Unit;
+import rx.Subject;
+import rx.Observable;
+import rx.subjects.Replay;
 import uk.aidanlee.flurry.api.input.InputEvents;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
-import signals.Signal;
 
 class FlurryEvents
 {
-    public final init : Signal0;
+    public final init : Observable<Unit>;
 
-    public final ready : Signal0;
+    public final ready : Observable<Unit>;
 
-    public final preUpdate : Signal0;
+    public final preUpdate : Observable<Unit>;
 
-    public final update : Signal0;
+    public final update : Observable<Float>;
 
-    public final postUpdate : Signal0;
+    public final postUpdate : Observable<Unit>;
 
-    public final shutdown : Signal0;
+    public final shutdown : Observable<Unit>;
 
     public final input : InputEvents;
 
@@ -27,12 +30,12 @@ class FlurryEvents
 
     public function new()
     {
-        init       = new Signal0();
-        ready      = new Signal0();
-        preUpdate  = new Signal0();
-        update     = new Signal0();
-        postUpdate = new Signal0();
-        shutdown   = new Signal0();
+        init       = Replay.create();
+        ready      = Replay.create();
+        preUpdate  = Subject.create();
+        update     = Subject.create();
+        postUpdate = Subject.create();
+        shutdown   = Replay.create();
         input      = new InputEvents();
         resource   = new ResourceEvents();
         display    = new DisplayEvents();

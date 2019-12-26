@@ -27,6 +27,7 @@
 -lib signals
 -lib format
 -lib json2object
+-lib RxHaxe
 
 --macro nullSafety('uk.aidanlee.flurry.modules.differ', Strict)
 --macro nullSafety('uk.aidanlee.flurry.api.resources', Strict)
