@@ -17,22 +17,22 @@
                 "id" : "textured",
                 "path" : "assets/shaders/textured.json",
                 "ogl3" : { "vertex" : "assets/shaders/ogl3/textured.vert.glsl", "fragment" : "assets/shaders/ogl3/textured.frag.glsl", "compiled" : false },
-                "ogl4" : { "vertex" : "assets/shaders/ogl4/textured.vert.glsl", "fragment" : "assets/shaders/ogl4/textured.frag.glsl", "compiled" : true },
-                "hlsl" : { "vertex" : "assets/shaders/hlsl/textured.hlsl", "fragment" : "assets/shaders/hlsl/textured.hlsl", "compiled" : true }
+                "ogl4" : { "vertex" : "assets/shaders/ogl4/textured.vert.glsl", "fragment" : "assets/shaders/ogl4/textured.frag.glsl", "compiled" : false },
+                "hlsl" : { "vertex" : "assets/shaders/hlsl/textured.hlsl", "fragment" : "assets/shaders/hlsl/textured.hlsl", "compiled" : false }
             },
             {
                 "id" : "colourise",
                 "path" : "assets/shaders/colourise.json",
                 "ogl3" : { "vertex" : "assets/shaders/ogl3/colourise.vert.glsl", "fragment" : "assets/shaders/ogl3/colourise.frag.glsl", "compiled" : false },
-                "ogl4" : { "vertex" : "assets/shaders/ogl4/colourise.vert.glsl", "fragment" : "assets/shaders/ogl4/colourise.frag.glsl", "compiled" : true },
-                "hlsl" : { "vertex" : "assets/shaders/hlsl/colourise.hlsl", "fragment" : "assets/shaders/hlsl/colourise.hlsl", "compiled" : true }
+                "ogl4" : { "vertex" : "assets/shaders/ogl4/colourise.vert.glsl", "fragment" : "assets/shaders/ogl4/colourise.frag.glsl", "compiled" : false },
+                "hlsl" : { "vertex" : "assets/shaders/hlsl/colourise.hlsl", "fragment" : "assets/shaders/hlsl/colourise.hlsl", "compiled" : false }
             },
             {
                 "id" : "purple",
                 "path" : "assets/shaders/purple.json",
                 "ogl3" : { "vertex" : "assets/shaders/ogl3/purple.vert.glsl", "fragment" : "assets/shaders/ogl3/purple.frag.glsl", "compiled" : false },
-                "ogl4" : { "vertex" : "assets/shaders/ogl4/purple.vert.glsl", "fragment" : "assets/shaders/ogl4/purple.frag.glsl", "compiled" : true },
-                "hlsl" : { "vertex" : "assets/shaders/hlsl/purple.hlsl", "fragment" : "assets/shaders/hlsl/purple.hlsl", "compiled" : true }
+                "ogl4" : { "vertex" : "assets/shaders/ogl4/purple.vert.glsl", "fragment" : "assets/shaders/ogl4/purple.frag.glsl", "compiled" : false },
+                "hlsl" : { "vertex" : "assets/shaders/hlsl/purple.hlsl", "fragment" : "assets/shaders/hlsl/purple.hlsl", "compiled" : false }
             }
         ]
     },
