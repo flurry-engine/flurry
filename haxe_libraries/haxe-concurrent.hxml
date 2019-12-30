@@ -1,4 +1,4 @@
--D haxe-concurrent=2.1.3
 # @install: lix --silent download "haxelib:/haxe-concurrent#2.1.3" into haxe-concurrent/2.1.3/haxelib
 -cp ${HAXE_LIBCACHE}/haxe-concurrent/2.1.3/haxelib/src/
+-D haxe-concurrent=2.1.3
 --macro hx.concurrent.internal.Macros.addDefines()
