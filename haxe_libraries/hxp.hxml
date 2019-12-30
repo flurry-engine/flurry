@@ -1,4 +1,0 @@
--D hxp=1.1.2
-# @install: lix --silent download "gh://github.com/openfl/hxp#ac2dcb5ebd1f36e4252850f8a6150ffd1f308bf1" into hxp/1.1.2/github/ac2dcb5ebd1f36e4252850f8a6150ffd1f308bf1
-# @run: haxelib run-dir hxp ${HAXE_LIBCACHE}/hxp/1.1.2/github/ac2dcb5ebd1f36e4252850f8a6150ffd1f308bf1
--cp ${HAXE_LIBCACHE}/hxp/1.1.2/github/ac2dcb5ebd1f36e4252850f8a6150ffd1f308bf1/src

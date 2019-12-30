@@ -28,11 +28,11 @@ class SystemTests(unittest.TestCase):
 
         for x in test_cases:
             with self.subTest(x=x):
-                templateHandle=open("Template.hxp", "r")
+                templateHandle=open("template.json", "r")
                 template=templateHandle.read().replace("{TEST_CASE}", x)
                 templateHandle.close()
 
-                buildFileHandle=open("Build.hxp", "w")
+                buildFileHandle=open("build.json", "w")
                 buildFileHandle.write(template)
                 buildFileHandle.close()
 
