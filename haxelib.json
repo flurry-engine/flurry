@@ -12,8 +12,9 @@
         "format"              : "gh:HaxeFoundation/format",
         "signals"             : "gh:peteshand/signals",
         "safety"              : "gh:RealyUniqueName/Safety",
-        "sys.io.abstractions" : "gh:aidan63/sys.io.abstractions",
         "json2object"         : "gh:elnabo/json2object/",
+        "sys.io.abstractions" : "gh:aidan63/sys.io.abstractions",
+        "RxHaxe"              : "gh:aidan63/RxHaxe",
         "linc_imgui"          : "git:https://github.com/Aidan63/linc_imgui as linc_imgui#1.0.0",
         "linc_directx"        : "git:https://github.com/Aidan63/linc_directx as linc_directx#1.0.0"
     }
