@@ -1,5 +1,6 @@
 package tests.api.gpu.geometry.shapes;
 
+import uk.aidanlee.flurry.api.gpu.textures.ImageRegion;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
@@ -121,12 +122,16 @@ class QuadGeometryTests extends BuddySuite
             });
 
             it('Allows a custom UV region to be specified', {
-                var uv = new Rectangle(0.25, 0.3, 0.8, 0.63);
+                var uv = new Rectangle(
+                    16 / texture.width,
+                    48 / texture.height,
+                    (16 + 32) / texture.width,
+                    (48 + 64) / texture.height);
 
                 var quad = new QuadGeometry({
-                    uv : uv,
                     textures : [ texture ],
-                    batchers : [ batcher ]
+                    batchers : [ batcher ],
+                    region   : new ImageRegion(texture, 16, 48, 32, 64)
                 });
 
                 quad.vertices.length.should.be(4);
