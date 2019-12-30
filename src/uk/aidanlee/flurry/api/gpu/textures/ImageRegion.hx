@@ -2,14 +2,6 @@ package uk.aidanlee.flurry.api.gpu.textures;
 
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 
-enum ImageFlip
-{
-    None;
-    Horizontal;
-    Vertical;
-    Diagonal;
-}
-
 /**
  * Immutable region of an image resource.
  */
@@ -33,7 +25,7 @@ enum ImageFlip
 
     public final v2 : Float;
 
-    public function new(_image : ImageResource, _x : Int = 0, _y : Int = 0, _width : Int, _height : Int, _flip : ImageFlip = None)
+    public function new(_image : ImageResource, _x : Int = 0, _y : Int = 0, _width : Int, _height : Int, _flip : Flip = None)
     {
         image  = _image;
         x      = _x;
