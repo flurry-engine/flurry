@@ -19,26 +19,23 @@ steps:
   inputs:
     versionSpec: '3.7'
 
-- bash: |
-    chmod a+x ci/install.sh
-    ci/install.sh
+- bash: ci/install.sh
   displayName: Install Dependencies
   workingDirectory: $(Build.SourcesDirectory)
   env:
     AGENT_OS: $(Agent.OS)
 
-- bash: |
-    chmod a+x ci/test_engine.sh
-    ci/test_engine.sh
+- bash: ../../ci/test_engine.sh
   displayName: Engine Tests
-  workingDirectory: $(Build.SourcesDirectory)
+  workingDirectory: $(Build.SourcesDirectory)/tests/unit
   env:
     AGENT_OS: $(Agent.OS)
 
 - bash: |
     pip install -U pytest
-    pip install -U pillow
-    pytest -o junit_family=xunit2 --junit-xml test-system.xml Test.py
+    pip install -U pytest-subtests
+    pip install -U pytest-custom_exit_code
+    pytest -o junit_family=xunit2 --junit-xml test-system.xml --suppress-tests-failed-exit-code -s Test.py
   displayName: System Tests
   condition: eq( variables['Agent.OS'], 'Linux' )
   workingDirectory: $(Build.SourcesDirectory)/tests/system
@@ -58,9 +55,9 @@ steps:
 - task: PublishTestResults@2
   condition: and(succeededOrFailed(), eq( variables['Agent.OS'], 'Linux' ))
   inputs:
-    testResultsFormat: xUnit
-    searchFolder: $(Build.SourcesDirectory)/tests/system
+    testResultsFormat: JUnit
     testResultsFiles: test-system.xml
+    searchFolder: $(Build.SourcesDirectory)/tests/system
     testRunTitle: System Tests $(Agent.OS)
     buildPlatform: $(Agent.OS)
     failTaskOnFailedTests: true

@@ -5,20 +5,21 @@ import time
 import subprocess
 import unittest
 
-from PIL import Image
-
+# We need the dummy test as for some reason the initial test will cause Xvfb / mesa / whatever to render nothing on azures VMs
+# But after the first program has tried to render, all other will work fine...
 class SystemTests(unittest.TestCase):
     def test_system_programs(self):
-        xvfb_proc  = subprocess.Popen([ "Xvfb", ":99", "-screen", "0", "768x512x24" ])
+        xvfb_proc  = subprocess.Popen([ "Xvfb", ":99", "-screen", "0", "768x512x24", "-nolisten", "tcp", "-nolisten", "unix" ])
         test_cases = [
-            "BatcherDepth",
-            "BatchingGeometry",
-            "ClearColour",
+            "Dummy",
             "Colourised",
             "DepthTesting",
+            "BatcherDepth",
             "GeometryDepth",
             "RenderTarget",
             "ShaderUniforms",
+            "ClearColour",
+            "BatchingGeometry",
             "StencilTesting",
             "Text",
             "Transformations",
@@ -26,8 +27,15 @@ class SystemTests(unittest.TestCase):
             "ImageSamplers"
         ]
 
+        myEnv = os.environ.copy()
+        myEnv["DISPLAY"]=":99"
+
+        time.sleep(3)
+
+        subprocess.run("glxinfo", env=myEnv)
+
         for x in test_cases:
-            with self.subTest(x=x):
+            with self.subTest(x, x=x):
                 templateHandle=open("template.json", "r")
                 template=templateHandle.read().replace("{TEST_CASE}", x)
                 templateHandle.close()
@@ -38,24 +46,25 @@ class SystemTests(unittest.TestCase):
 
                 subprocess.run([ "npx", "lix", "run", "build", "build" ])
 
-                myEnv = os.environ.copy()
-                myEnv["DISPLAY"]=":99"
                 test_proc=subprocess.Popen([ "bin/linux-x64/SystemTests" ], env=myEnv)
 
                 time.sleep(1)
 
-                subprocess.run([ "import", "-window", "Flurry", "-channel", "RGB", "-depth", "8", f"screenshot.png" ], env=myEnv)
+                subprocess.run([ "import", "-window", "System Tests", "-channel", "RGB", "-depth", "8", f"screenshot.png" ], env=myEnv)
 
-                test_proc.kill()
+                test_proc.terminate()
                 test_proc.wait()
 
-                difference = subprocess.run([ "compare", "-metric", "AE", "-fuzz", "5%", f"expected/{x}.png", f"screenshot.png", "NULL:" ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                self.assertEqual(int(difference.stderr), 0)
+                imagemagick = subprocess.run([ "compare", "-metric", "AE", "-fuzz", "5%", f"expected/{x}.png", f"screenshot.png", "NULL:" ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                if (x == "Dummy"):
+                    pass
+                else:
+                    self.assertLessEqual(int(imagemagick.stderr), 10)
 
-        os.remove("Build.hxp")
+        os.remove("build.json")
         os.remove("screenshot.png")
 
-        xvfb_proc.kill()
+        xvfb_proc.terminate()
         xvfb_proc.wait()
 
 if __name__ == '__main__':
