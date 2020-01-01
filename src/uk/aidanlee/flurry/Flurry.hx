@@ -10,6 +10,8 @@ import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
 
+using rx.Observable;
+
 class Flurry
 {
     /**
@@ -75,16 +77,13 @@ class Flurry
 
         if (flurryConfig.resources.preload != null)
         {
-            resources.create(
-                flurryConfig.resources.preload,
-                onPreloadParcelComplete,
-                null,
-                onPreloadParcelError
-            ).load();
+            resources
+                .load(flurryConfig.resources.preload)
+                .subscribeFunction(v -> trace('$v% loaded'), onPreloadParcelError, onPreloadParcelComplete);
         }
         else
         {
-            onPreloadParcelComplete(null);
+            onPreloadParcelComplete();
         }
 
         // Fire the init event once the engine has loaded all its components.
@@ -98,10 +97,6 @@ class Flurry
     
     public final function update(_dt : Float)
     {
-        // The resource system needs to be called periodically to process thread events.
-        // If this is not called the resources loaded on separate threads won't be registered and parcel callbacks won't be invoked.
-        resources.update();
-        
         if (loaded)
         {
             onPreUpdate();
@@ -183,7 +178,7 @@ class Flurry
 
     // Functions internal to flurry's setup
 
-    final function onPreloadParcelComplete(_)
+    final function onPreloadParcelComplete()
     {
         loaded = true;
 
