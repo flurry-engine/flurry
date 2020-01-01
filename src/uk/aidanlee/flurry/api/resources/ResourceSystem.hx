@@ -12,6 +12,8 @@ import haxe.zip.Uncompress;
 import format.png.Tools;
 import format.png.Reader;
 import json2object.JsonParser;
+import uk.aidanlee.flurry.api.schedulers.ThreadPoolScheduler;
+import uk.aidanlee.flurry.api.schedulers.MainThreadScheduler;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelList;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelType;
 import uk.aidanlee.flurry.api.resources.Parcel.ShaderInfoLayout;
@@ -97,24 +99,27 @@ class ResourceSystem
         final replay   = Replay.create();
         final progress = Behavior.create(0.0);
 
-        Observable.create((_observer : IObserver<ParcelProgressEvent>) -> {
-            
-            switch _parcel
-            {
-                case Definition(_name, _definition):
-                    loadDefinition(_name, _definition, _observer);
-                case PrePackaged(_name):
-                    loadPrePackaged(_name, _observer);
-            }
+        Observable
+            .create((_observer : IObserver<ParcelProgressEvent>) -> {
+                switch _parcel
+                {
+                    case Definition(_name, _definition):
+                        loadDefinition(_name, _definition, _observer);
+                    case PrePackaged(_name):
+                        loadPrePackaged(_name, _observer);
+                }
 
-            _observer.onCompleted();
+                _observer.onCompleted();
 
-            return Subscription.empty();
-        })
-        .subscribeFunction(
-            _v -> replay.onNext(_v),
-            _e -> replay.onError(_e),
-            () -> replay.onCompleted());
+                return Subscription.empty();
+            })
+            .subscribeOn(new ThreadPoolScheduler())
+            .observeOn(new MainThreadScheduler())
+            .subscribeFunction(
+                _v -> replay.onNext(_v),
+                _e -> replay.onError(_e),
+                () -> replay.onCompleted()
+            );
 
         // Internal observer which collects all the progress events and once loading has finished adds them all to the system.
         replay.collect().subscribeFunction(
@@ -340,22 +345,6 @@ class ResourceSystem
      */
     function loadPrePackaged(_file : String, _observer : IObserver<ParcelProgressEvent>)
     {
-        try
-        {
-            loadParcelFromFile(_file, _observer);
-        }
-        catch (_exception : Exception)
-        {
-            _observer.onError(_exception.message);
-        }
-    }
-
-    /**
-     * Load a parcel from a file on disk.
-     * @param _file Parcel file name.
-     */
-    function loadParcelFromFile(_file : String, _observer : IObserver<ParcelProgressEvent>)
-    {
         final path = Path.join([ 'assets', 'parcels', _file ]);
 
         if (!fileSystem.file.exists(path))
@@ -371,7 +360,7 @@ class ResourceSystem
 
         for (dependency in parcel.depends)
         {
-            loadParcelFromFile(dependency, _observer);
+            loadPrePackaged(dependency, _observer);
         }
 
         for (i in 0...parcel.assets.length)

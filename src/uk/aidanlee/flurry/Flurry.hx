@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry;
 
+import hx.concurrent.collection.SynchronizedArray;
 import rx.Unit;
 import rx.Subject;
 import rx.subjects.Replay;
@@ -11,9 +12,16 @@ import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
 
 using rx.Observable;
+using Safety;
 
 class Flurry
 {
+    /**
+     * Thread safe array to place functions into.
+     * All functions in this array are ran at the beginning of every tick.
+     */
+    public static final dispatch = new SynchronizedArray<()->Void>();
+
     /**
      * Main events bus, engine components can fire events into this to communicate with each other.
      */
@@ -79,7 +87,7 @@ class Flurry
         {
             resources
                 .load(flurryConfig.resources.preload)
-                .subscribeFunction(v -> trace('$v% loaded'), onPreloadParcelError, onPreloadParcelComplete);
+                .subscribeFunction(onPreloadParcelError, onPreloadParcelComplete);
         }
         else
         {
@@ -92,6 +100,14 @@ class Flurry
 
     public final function tick(_dt : Float)
     {
+        // Call any main loop functions.
+        // We should be able to safely skip the null function check as we already check the size;
+        // please don't pass in null functions...
+        while (!dispatch.isEmpty())
+        {
+            dispatch.removeFirst().unsafe()();
+        }
+
         onTick(_dt);
     }
     
