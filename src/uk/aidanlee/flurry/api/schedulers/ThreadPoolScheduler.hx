@@ -11,7 +11,9 @@ using Safety;
 
 class ThreadPoolScheduler extends MakeScheduler
 {
-    public function new()
+    public static final current = new ThreadPoolScheduler();
+
+    function new()
     {
         super(new ThreadPoolBase());
     }
@@ -19,11 +21,11 @@ class ThreadPoolScheduler extends MakeScheduler
 
 private class ThreadPoolBase implements Base
 {
-    static final pool = Executor.create(8);
+    final pool : Executor;
 
     public function new()
     {
-        //
+        pool = Executor.create(8);
     }
 
     public function now()

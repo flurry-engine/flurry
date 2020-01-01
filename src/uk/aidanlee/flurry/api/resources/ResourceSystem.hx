@@ -113,8 +113,8 @@ class ResourceSystem
 
                 return Subscription.empty();
             })
-            .subscribeOn(new ThreadPoolScheduler())
-            .observeOn(new MainThreadScheduler())
+            .subscribeOn(ThreadPoolScheduler.current)
+            .observeOn(MainThreadScheduler.current)
             .subscribeFunction(
                 _v -> replay.onNext(_v),
                 _e -> replay.onError(_e),
@@ -137,7 +137,7 @@ class ResourceSystem
                     addResource(event.resource);
                 }
 
-                parcelResources[name]    = newResources;
+                parcelResources[name] = newResources;
                 parcelDependencies[name] = [];
             }
         );
@@ -332,8 +332,6 @@ class ResourceSystem
                     new ShaderResource(asset.id, layout, sourceOGL3, sourceOGL4, sourceHLSL)
                 )
             );
-
-            // queue.push(new ParcelProgressEvent(_name, Progress, ++loadedIndices / totalResources ));
         }
 
         _observer.onCompleted();

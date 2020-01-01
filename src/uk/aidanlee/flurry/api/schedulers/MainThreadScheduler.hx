@@ -8,7 +8,9 @@ import rx.disposables.ISubscription;
 
 class MainThreadScheduler extends MakeScheduler
 {
-    public function new()
+    public static final current = new MainThreadScheduler();
+    
+    function new()
     {
         super(new MainThreadBase());
     }
