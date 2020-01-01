@@ -1,10 +1,10 @@
 package uk.aidanlee.flurry.api.resources;
 
+import rx.schedulers.MakeScheduler;
 import rx.subjects.Behavior;
 import rx.subjects.Replay;
 import rx.observers.IObserver;
 import rx.Subscription;
-import rx.observables.IObservable;
 import haxe.Exception;
 import haxe.Unserializer;
 import haxe.io.Path;
@@ -51,6 +51,17 @@ class ResourceSystem
     final fileSystem : IFileSystem;
 
     /**
+     * The scheduler that will load the parcels.
+     */
+    final workScheduler : MakeScheduler;
+
+    /**
+     * The scheduler that will run all observers.
+     * This should be set to a main thread scheduler if `workScheduler` will perform the subscribe function on a separate thread.
+     */
+    final syncScheduler : MakeScheduler;
+
+    /**
      * Map of a parcels ID to all the resources IDs contained within it.
      * Stored since the parcel could be modified by the user and theres no way to know whats inside a pre-packed parcel until its unpacked.
      */
@@ -78,10 +89,12 @@ class ResourceSystem
      * 
      * @param _threads Number of active threads for loading parcels (defaults 1).
      */
-    public function new(_events : ResourceEvents, _fileSystem : IFileSystem, _threads : Int = 1)
+    public function new(_events : ResourceEvents, _fileSystem : IFileSystem, _threads : Int = 1, ?_workScheduler : MakeScheduler, ?_syncScheduler : MakeScheduler)
     {
         events             = _events;
         fileSystem         = _fileSystem;
+        workScheduler      = _workScheduler.or(ThreadPoolScheduler.current);
+        syncScheduler      = _syncScheduler.or(MainThreadScheduler.current);
         parcelResources    = [];
         parcelDependencies = [];
         resourceCache      = [];
@@ -113,8 +126,8 @@ class ResourceSystem
 
                 return Subscription.empty();
             })
-            .subscribeOn(ThreadPoolScheduler.current)
-            .observeOn(MainThreadScheduler.current)
+            .subscribeOn(workScheduler)
+            .observeOn(syncScheduler)
             .subscribeFunction(
                 _v -> replay.onNext(_v),
                 _e -> replay.onError(_e),
