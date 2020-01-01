@@ -5,6 +5,7 @@ import buddy.SingleSuite;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.resources.Resource;
+import uk.aidanlee.flurry.api.resources.Parcel.ParcelType;
 import uk.aidanlee.flurry.api.schedulers.CurrentThreadScheduler;
 import sys.io.abstractions.mock.MockFileSystem;
 import sys.io.abstractions.mock.MockFileData;
@@ -234,7 +235,7 @@ class ResourceSystemTests extends SingleSuite
                     '/home/user/text2.txt' => MockFileData.fromBytes(),
                     '/home/user/text3.txt' => MockFileData.fromBytes()
                 ];
-                final system  = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
+                final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 system.load(Definition('myParcel1', {
                     texts: [ { id : 'text1', path : '/home/user/text1.txt' } ],
                     bytes: [ { id : 'text2', path : '/home/user/text2.txt' } ]
@@ -249,14 +250,14 @@ class ResourceSystemTests extends SingleSuite
                 system.get('text3', Resource).id.should.be('text3');
 
                 system.free('myParcel1');
-                system.get.bind('text3', Resource).should.throwType(ResourceNotFoundException);
-                system.get('text1', Resource).id.should.be('text1');
+                system.get.bind('text1', Resource).should.throwType(ResourceNotFoundException);
                 system.get('text2', Resource).id.should.be('text2');
+                system.get('text3', Resource).id.should.be('text3');
 
                 system.free('myParcel2');
-                system.get.bind('text3', Resource).should.throwType(ResourceNotFoundException);
-                system.get.bind('text2', Resource).should.throwType(ResourceNotFoundException);
                 system.get.bind('text1', Resource).should.throwType(ResourceNotFoundException);
+                system.get.bind('text2', Resource).should.throwType(ResourceNotFoundException);
+                system.get.bind('text3', Resource).should.throwType(ResourceNotFoundException);
             });
 
             it('will decremement the references for pre-packaged parcels', {
@@ -281,15 +282,15 @@ class ResourceSystemTests extends SingleSuite
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 system.load(PrePackaged('preload.parcel'));
 
-                system.get('dots'         , ImageResource).should.beType(ImageResource);
                 system.get('ubuntu'       , TextResource).should.beType(TextResource);
                 system.get('cavesofgallet', TextResource).should.beType(TextResource);
+                system.get('dots'         , ImageResource).should.beType(ImageResource);
 
                 system.free('preload.parcel');
 
-                system.get.bind('dots'         , ImageResource).should.throwType(ResourceNotFoundException);
                 system.get.bind('ubuntu'       , TextResource).should.throwType(ResourceNotFoundException);
                 system.get.bind('cavesofgallet', TextResource).should.throwType(ResourceNotFoundException);
+                system.get.bind('dots'         , ImageResource).should.throwType(ResourceNotFoundException);
             });
 
             it('will throw an exception trying to fetch a resource which does not exist', {
@@ -297,17 +298,23 @@ class ResourceSystemTests extends SingleSuite
                 sys.get.bind('hello', Resource).should.throwType(ResourceNotFoundException);
             });
 
-            it('will throw an exception when trying to load an already loaded parcel', {
+            it('will return an empty observable when trying to load an already loaded parcel', {
+                var calls = 0;
+
                 final files = [
                     '/home/user/text.txt' => MockFileData.fromText('hello world!'),
                     '/home/user/byte.bin' => MockFileData.fromText('hello world!')
                 ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-
-                system.load.bind(Definition('myParcel', {
+                final parcel = Definition('myParcel', {
                     texts: [ { id : 'text', path : '/home/user/text.txt' } ],
                     bytes: [ { id : 'byte', path : '/home/user/byte.bin' } ]
-                })).should.throwType(ParcelAlreadyLoadedException);
+                });
+
+                system.load(parcel);
+                system.load(parcel).subscribeFunction(() -> calls++);
+
+                calls.should.be(1);
             });
 
             it('will thrown an exception when trying to get a resource as the wrong type', {
@@ -327,23 +334,6 @@ class ResourceSystemTests extends SingleSuite
                     .subscribeFunction(() -> result = 'finished');
 
                 result.should.be('finished');
-            });
-
-            it('contains a callback for when the parcel has loaded an individual resource', {
-                final results = [];
-                final files   = [
-                    '/home/user/text.txt' => MockFileData.fromText('hello world!'),
-                    '/home/user/byte.bin' => MockFileData.fromText('hello world!')
-                ];
-
-                new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current)
-                    .load(Definition('myParcel', {
-                        texts: [ { id : 'text', path : '/home/user/text.txt' } ],
-                        bytes: [ { id : 'byte', path : '/home/user/byte.bin' } ]
-                    }))
-                    .subscribeFunction((_v : Float) -> results.push(_v));
-
-                results.should.containExactly([ 0.5, 1.0 ]);
             });
 
             it('contains a callback for when the parcel has failed to load', {

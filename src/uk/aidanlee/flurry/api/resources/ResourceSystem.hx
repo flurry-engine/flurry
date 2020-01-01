@@ -1,8 +1,9 @@
 package uk.aidanlee.flurry.api.resources;
 
+import rx.subjects.Replay;
+import uk.aidanlee.flurry.api.resources.Resource;
 import rx.schedulers.MakeScheduler;
 import rx.subjects.Behavior;
-import rx.subjects.Replay;
 import rx.observers.IObserver;
 import rx.Subscription;
 import haxe.Exception;
@@ -64,12 +65,12 @@ class ResourceSystem
     final parcelDependencies : Map<String, Array<String>>;
 
     /**
-     * Map of all loaded resources by their ID.
+     * All resources stored in this system, keyed by their name.
      */
     final resourceCache : Map<String, Resource>;
 
     /**
-     * Map of how many times a specific resource has been referenced.
+     * How many parcels reference each resource.
      * Prevents storing multiple of the same resource and ensures they aren't removed when still in use.
      */
     final resourceReferences : Map<String, Int>;
@@ -90,73 +91,85 @@ class ResourceSystem
         resourceReferences = [];
     }
 
-    /**
-     * Load the provided parcel.
-     * @param _parcel The parcel to load.
-     * @throws ParcelAlreadyLoadedException When this parcel has already been loaded.
-     * @throws ParcelNotAddedException When the provided parcel is not tracked by the system.
-     */
     public function load(_parcel : ParcelType) : Observable<Float>
     {
-        final replay   = Replay.create();
-        final progress = Behavior.create(0.0);
-        Observable
-            .create((_observer : IObserver<ParcelProgressEvent>) -> {
-                switch _parcel
-                {
-                    case Definition(_name, _definition):
-                        loadDefinition(_name, _definition, _observer);
-                    case PrePackaged(_name):
-                        if (loadPrePackaged(_name, _observer))
+        final name = switch _parcel {
+            case Definition(_name, _) : _name;
+            case PrePackaged(_name) : _name;
+        }
+
+        if (parcelResources.exists(name))
+        {
+            return Observable.empty();
+        }
+        else
+        {
+            final replay   = Replay.create();
+            final progress = Behavior.create(0.0);
+
+            Observable
+                .create((_observer : IObserver<ParcelEvent>) -> {
+                    switch _parcel
+                    {
+                        case Definition(_name, _definition):
+                            loadDefinition(_name, _definition, _observer);
+                        case PrePackaged(_name):
+                            loadPrePackaged(_name, _observer);
+                    }
+
+                    _observer.onCompleted();
+    
+                    return Subscription.empty();
+                })
+                .subscribeOn(workScheduler)
+                .observeOn(syncScheduler)
+                .subscribe(replay);
+
+            replay.subscribeFunction(
+                    _event -> {
+                        switch _event
                         {
-                            _observer.onCompleted();
+                            case Progress(_progress, _resource):
+                                addResource(_resource);
+                                progress.onNext(_progress);
+                            case List(_name, _list):
+                                parcelResources[_name] = _list;
+                            case Dependency(_name, _depends):
+                                parcelDependencies[_name] = _depends;
                         }
-                }
-
-                return Subscription.empty();
-            })
-            .subscribeOn(workScheduler)
-            .observeOn(syncScheduler)
-            .subscribeFunction(
-                _v -> replay.onNext(_v),
-                _e -> replay.onError(_e),
-                () -> replay.onCompleted()
-            );
-
-        // Internal observer which collects all the progress events and once loading has finished adds them all to the system.
-        replay.collect().subscribeFunction(
-            _events -> {
-                final newResources = [];
-                final name = switch _parcel {
-                    case Definition(_name, _) : _name;
-                    case PrePackaged(_name) : _name;
-                }
-
-                for (event in _events)
-                {
-                    newResources.push(event.resource.id);
-
-                    addResource(event.resource);
-                }
-
-                parcelResources[name] = newResources;
-                parcelDependencies[name] = [];
-            }
-        );
-
-        // Behaviour subject which will collect just the progress values from the main observer events
-        replay.subscribeFunction(
-            _v -> progress.onNext(_v.progress),
-            _e -> progress.onError(_e),
-            () -> progress.onCompleted()
-        );
-
-        return progress;
+                    },
+                    progress.onError,
+                    progress.onCompleted
+                );
+    
+            return progress;
+        }
     }
 
     public function free(_name : String)
     {
-        //
+        if (parcelDependencies.exists(_name))
+        {
+            for (dep in parcelDependencies[_name].unsafe())
+            {
+                free(dep);
+            }
+
+            parcelDependencies.remove(_name);
+        }
+
+        if (parcelResources.exists(_name))
+        {
+            for (res in parcelResources[_name].unsafe())
+            {
+                if (resourceCache.exists(res))
+                {
+                    removeResource(resourceCache[res].unsafe());
+                }
+            }
+
+            parcelResources.remove(_name);
+        }
     }
 
     /**
@@ -171,7 +184,7 @@ class ResourceSystem
         }
         else
         {
-            resourceReferences.set(_resource.id, 1);
+            resourceReferences[_resource.id] = 1;
 
             resourceCache[_resource.id] = _resource;
 
@@ -226,7 +239,7 @@ class ResourceSystem
             throw new InvalidResourceTypeException(_id, Type.getClassName(_type));
         }
         
-        throw new ResourceNotFoundException(_id, _id);
+        throw new ResourceNotFoundException(_id);
     }
 
     /**
@@ -234,7 +247,7 @@ class ResourceSystem
      * @param _name Parcel unique ID
      * @param _list List of resources to load.
      */
-    function loadDefinition(_name : String, _list : ParcelList, _observer : IObserver<ParcelProgressEvent>)
+    function loadDefinition(_name : String, _list : ParcelList, _observer : IObserver<ParcelEvent>)
     {
         final totalResources = calculateTotalResources(_list);
 
@@ -250,7 +263,7 @@ class ResourceSystem
             }
 
             _observer.onNext(
-                new ParcelProgressEvent(
+                Progress(
                     ++loadedIndices / totalResources,
                     new BytesResource(asset.id, fileSystem.file.getBytes(asset.path))
                 )
@@ -267,7 +280,7 @@ class ResourceSystem
             }
 
             _observer.onNext(
-                new ParcelProgressEvent(
+                Progress(
                     ++loadedIndices / totalResources,
                     new TextResource(asset.id, fileSystem.file.getText(asset.path))
                 )
@@ -287,7 +300,7 @@ class ResourceSystem
             var head = Tools.getHeader(info);
 
             _observer.onNext(
-                new ParcelProgressEvent(
+                Progress(
                     ++loadedIndices / totalResources,
                     new ImageResource(asset.id, head.width, head.height, Tools.extract32(info))
                 )
@@ -303,7 +316,7 @@ class ResourceSystem
                 return;
             }
 
-            var parser = new JsonParser<ShaderInfoLayout>();
+            final parser = new JsonParser<ShaderInfoLayout>();
             parser.fromJson(fileSystem.file.getText(asset.path));
 
             for (error in parser.errors)
@@ -311,44 +324,44 @@ class ResourceSystem
                 throw error;
             }
 
-            var layout = new ShaderLayout(
+            final layout = new ShaderLayout(
                 parser.value.textures,
                 [
                     for (b in parser.value.blocks) new ShaderBlock(b.name, b.binding, [
                         for (v in b.values) new ShaderValue(v.name, v.type)
                     ])
                 ]);
-            var sourceOGL3 = asset.ogl3 == null ? null : new ShaderSource(
+            final sourceOGL3 = asset.ogl3 == null ? null : new ShaderSource(
                 asset.ogl3.compiled.or(false),
                 fileSystem.file.getBytes(asset.ogl3.vertex),
                 fileSystem.file.getBytes(asset.ogl3.fragment));
-            var sourceOGL4 = asset.ogl4 == null ? null : new ShaderSource(
+            final sourceOGL4 = asset.ogl4 == null ? null : new ShaderSource(
                 asset.ogl4.compiled.or(false),
                 fileSystem.file.getBytes(asset.ogl4.vertex),
                 fileSystem.file.getBytes(asset.ogl4.fragment)
             );
-            var sourceHLSL = asset.hlsl == null ? null : new ShaderSource(
+            final sourceHLSL = asset.hlsl == null ? null : new ShaderSource(
                 asset.hlsl.compiled.or(false),
                 fileSystem.file.getBytes(asset.hlsl.vertex),
                 fileSystem.file.getBytes(asset.hlsl.fragment)
             );
 
             _observer.onNext(
-                new ParcelProgressEvent(
+                Progress(
                     ++loadedIndices / totalResources,
                     new ShaderResource(asset.id, layout, sourceOGL3, sourceOGL4, sourceHLSL)
                 )
             );
         }
 
-        _observer.onCompleted();
+        _observer.onNext(List(_name, flattenParcelList(_list)));
     }
 
     /**
      * Load a pre-packaged parcel from the disk.
      * @param _file Parcel file name.
      */
-    function loadPrePackaged(_file : String, _observer : IObserver<ParcelProgressEvent>) : Bool
+    function loadPrePackaged(_file : String, _observer : IObserver<ParcelEvent>)
     {
         final path = Path.join([ 'assets', 'parcels', _file ]);
 
@@ -356,7 +369,7 @@ class ResourceSystem
         {
             _observer.onError('failed to load "${_file}", "${path}" does not exist');
 
-            return false;
+            return;
         }
 
         final bytes  = Uncompress.run(fileSystem.file.getBytes(path));
@@ -367,54 +380,30 @@ class ResourceSystem
         {
             _observer.onError('unable to cast deserialised bytes to a ParcelResource');
 
-            return false;
+            return;
         }
 
-        for (dependency in parcel.depends)
+        if (parcel.depends.length > 0)
         {
-            if (!loadPrePackaged(dependency, _observer))
+            _observer.onNext(Dependency(_file, parcel.depends));
+
+            for (dependency in parcel.depends)
             {
-                return false;
-            }
+                loadPrePackaged(dependency, _observer);
+            }   
         }
 
         for (i in 0...parcel.assets.length)
         {
             _observer.onNext(
-                new ParcelProgressEvent(
+                Progress(
                     i / parcel.assets.length,
                     parcel.assets[i]
                 )
             );
         }
 
-        return true;
-    }
-
-    /**
-     * Recursivly free the resources found in the provided parcels.
-     * @param _parcels Parcels to free.
-     */
-    function freeDependencies(_parcels : Array<String>)
-    {
-        for (dep in _parcels)
-        {
-            for (rec in parcelDependencies[dep].or([]))
-            {
-                if (parcelDependencies.exists(rec))
-                {
-                    freeDependencies(parcelDependencies[rec].unsafe());
-                }
-            }
-
-            for (res in parcelResources[dep].or([]))
-            {
-                if (resourceCache.exists(res))
-                {
-                    removeResource(resourceCache[res].unsafe());
-                }
-            }
-        }
+        _observer.onNext(List(_file, [ for (res in parcel.assets) res.id ]));
     }
 
     /**
@@ -433,41 +422,25 @@ class ResourceSystem
 
         return total;
     }
+
+    function flattenParcelList(_list : ParcelList) : Array<String>
+    {
+        final list = [];
+
+        for (res in _list.bytes)
+            list.push(res.id);
+        for (res in _list.images)
+            list.push(res.id);
+        for (res in _list.shaders)
+            list.push(res.id);
+        for (res in _list.texts)
+            list.push(res.id);
+
+        return list;
+    }
 }
 
 // #region exceptions
-
-class ParcelNotFoundException extends Exception
-{
-    public function new(_parcel : String)
-    {
-        super('parcel "$_parcel" was not found');
-    }
-}
-
-class ParcelAlreadyExistsException extends Exception
-{
-    public function new(_parcel : String)
-    {
-        super('a parcel with the name "$_parcel" already exists in this system');
-    }
-}
-
-class ParcelAlreadyLoadedException extends Exception
-{
-    public function new(_parcel : String)
-    {
-        super('parcel "$_parcel" alread loaded');
-    }
-}
-
-class ParcelNotAddedException extends Exception
-{
-    public function new(_parcel : String)
-    {
-        super('parcel "$_parcel" has not been added to this resource system');
-    }
-}
 
 class InvalidResourceTypeException extends Exception
 {
@@ -479,9 +452,9 @@ class InvalidResourceTypeException extends Exception
 
 class ResourceNotFoundException extends Exception
 {
-    public function new(_resource : String, _path : String)
+    public function new(_resource : String)
     {
-        super('failed to load "$_resource", "$_path" does not exist');
+        super('failed to load "$_resource", it does not exist in the system');
     }
 }
 
@@ -489,21 +462,12 @@ class ResourceNotFoundException extends Exception
 
 // #region event classes
 
-private class ParcelProgressEvent
+private enum ParcelEvent
 {
-    /**
-     * Normalized value for how many items have been loaded from the parcel.
-     * Pre-packed parcels count as a single item since there is no way to tell their contents before deserializing them.
-     */
-    public final progress : Float;
-
-    public final resource : Resource;
-
-    public function new(_progress : Float, _resource : Resource)
-    {
-        progress = _progress;
-        resource = _resource;
-    }
+    Progress(_progress : Float, _resource : Resource);
+    List(_name : String, _list : Array<String>);
+    Dependency(_name : String, _dependencies : Array<String>);
 }
+
 
 // #endregion

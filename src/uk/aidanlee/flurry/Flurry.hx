@@ -1,6 +1,7 @@
 package uk.aidanlee.flurry;
 
-import rx.schedulers.CurrentThread;
+import uk.aidanlee.flurry.api.schedulers.CurrentThreadScheduler;
+import rx.disposables.ISubscription;
 import hx.concurrent.collection.SynchronizedArray;
 import rx.Unit;
 import rx.Subject;
@@ -63,6 +64,8 @@ class Flurry
      */
     public var loaded (default, null) : Bool;
 
+    var preloadSubscription : Null<ISubscription>;
+
     public function new()
     {
         dispatch = new SynchronizedArray();
@@ -81,13 +84,13 @@ class Flurry
         // Setup core api components
         fileSystem = new FileSystem();
         renderer   = new Renderer(events.resource, events.display, flurryConfig.window, flurryConfig.renderer);
-        resources  = new ResourceSystem(events.resource, fileSystem, new CurrentThread(), new CurrentThread());
+        resources  = new ResourceSystem(events.resource, fileSystem, CurrentThreadScheduler.current, CurrentThreadScheduler.current);
         input      = new Input(events.input);
         display    = new Display(events.display, events.input, flurryConfig);
 
         if (flurryConfig.resources.preload != null)
         {
-            resources
+            preloadSubscription = resources
                 .load(flurryConfig.resources.preload)
                 .subscribeFunction(onPreloadParcelError, onPreloadParcelComplete);
         }
