@@ -12,10 +12,13 @@
 -L sys.io.abstractions
 -L signals
 -L json2object
+-L RxHaxe
 
 -r assets/atlas/cavesofgallet.atlas@atlas-data
 -r assets/fonts/ubuntu.fnt@font-data
 -r assets/images/dots.png@dots-data
+
+--dce full
 
 --cpp bin
 

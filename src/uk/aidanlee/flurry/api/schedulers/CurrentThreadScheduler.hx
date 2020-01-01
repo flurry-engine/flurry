@@ -6,17 +6,17 @@ import rx.schedulers.Base;
 import rx.schedulers.MakeScheduler;
 import rx.disposables.ISubscription;
 
-class MainThreadScheduler extends MakeScheduler
+class CurrentThreadScheduler extends MakeScheduler
 {
-    public static final current = new MainThreadScheduler();
-    
-    function new()
+    public static final current = new CurrentThreadScheduler();
+
+    public function new()
     {
-        super(new MainThreadBase());
+        super(new CurrentThreadBase());
     }
 }
 
-private class MainThreadBase implements Base
+private class CurrentThreadBase implements Base
 {
     public function new()
     {
@@ -30,8 +30,6 @@ private class MainThreadBase implements Base
 
     public function schedule_absolute(_dueTime : Null<Float>, _action : () -> Void) : ISubscription
     {
-        // Flurry.dispatch.add(_action);
-
         _action();
 
         return Subscription.empty();

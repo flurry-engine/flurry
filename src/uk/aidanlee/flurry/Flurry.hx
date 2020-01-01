@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry;
 
+import rx.schedulers.CurrentThread;
 import hx.concurrent.collection.SynchronizedArray;
 import rx.Unit;
 import rx.Subject;
@@ -20,7 +21,7 @@ class Flurry
      * Thread safe array to place functions into.
      * All functions in this array are ran at the beginning of every tick.
      */
-    public static final dispatch = new SynchronizedArray<()->Void>();
+    public final dispatch : SynchronizedArray<()->Void>;
 
     /**
      * Main events bus, engine components can fire events into this to communicate with each other.
@@ -64,7 +65,8 @@ class Flurry
 
     public function new()
     {
-        events = new FlurryEvents();
+        dispatch = new SynchronizedArray();
+        events   = new FlurryEvents();
     }
 
     public final function config()
@@ -79,7 +81,7 @@ class Flurry
         // Setup core api components
         fileSystem = new FileSystem();
         renderer   = new Renderer(events.resource, events.display, flurryConfig.window, flurryConfig.renderer);
-        resources  = new ResourceSystem(events.resource, fileSystem);
+        resources  = new ResourceSystem(events.resource, fileSystem, new CurrentThread(), new CurrentThread());
         input      = new Input(events.input);
         display    = new Display(events.display, events.input, flurryConfig);
 

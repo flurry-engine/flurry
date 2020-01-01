@@ -12,8 +12,6 @@ import haxe.zip.Uncompress;
 import format.png.Tools;
 import format.png.Reader;
 import json2object.JsonParser;
-import uk.aidanlee.flurry.api.schedulers.ThreadPoolScheduler;
-import uk.aidanlee.flurry.api.schedulers.MainThreadScheduler;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelList;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelType;
 import uk.aidanlee.flurry.api.resources.Parcel.ShaderInfoLayout;
@@ -30,13 +28,6 @@ import sys.io.abstractions.IFileSystem;
 
 using Safety;
 using rx.Observable;
-
-enum ParcelEventType
-{
-    Succeeded;
-    Progress;
-    Failed;
-}
 
 class ResourceSystem
 {
@@ -86,15 +77,13 @@ class ResourceSystem
     /**
      * Creates a new resources system.
      * Allows the creation and loading of parcels and caching their resources.
-     * 
-     * @param _threads Number of active threads for loading parcels (defaults 1).
      */
-    public function new(_events : ResourceEvents, _fileSystem : IFileSystem, _threads : Int = 1, ?_workScheduler : MakeScheduler, ?_syncScheduler : MakeScheduler)
+    public function new(_events : ResourceEvents, _fileSystem : IFileSystem, _workScheduler : MakeScheduler, _syncScheduler : MakeScheduler)
     {
         events             = _events;
         fileSystem         = _fileSystem;
-        workScheduler      = _workScheduler.or(ThreadPoolScheduler.current);
-        syncScheduler      = _syncScheduler.or(MainThreadScheduler.current);
+        workScheduler      = _workScheduler;
+        syncScheduler      = _syncScheduler;
         parcelResources    = [];
         parcelDependencies = [];
         resourceCache      = [];
@@ -111,7 +100,6 @@ class ResourceSystem
     {
         final replay   = Replay.create();
         final progress = Behavior.create(0.0);
-
         Observable
             .create((_observer : IObserver<ParcelProgressEvent>) -> {
                 switch _parcel
@@ -119,10 +107,11 @@ class ResourceSystem
                     case Definition(_name, _definition):
                         loadDefinition(_name, _definition, _observer);
                     case PrePackaged(_name):
-                        loadPrePackaged(_name, _observer);
+                        if (loadPrePackaged(_name, _observer))
+                        {
+                            _observer.onCompleted();
+                        }
                 }
-
-                _observer.onCompleted();
 
                 return Subscription.empty();
             })
@@ -163,6 +152,11 @@ class ResourceSystem
         );
 
         return progress;
+    }
+
+    public function free(_name : String)
+    {
+        //
     }
 
     /**
@@ -354,7 +348,7 @@ class ResourceSystem
      * Load a pre-packaged parcel from the disk.
      * @param _file Parcel file name.
      */
-    function loadPrePackaged(_file : String, _observer : IObserver<ParcelProgressEvent>)
+    function loadPrePackaged(_file : String, _observer : IObserver<ParcelProgressEvent>) : Bool
     {
         final path = Path.join([ 'assets', 'parcels', _file ]);
 
@@ -362,16 +356,26 @@ class ResourceSystem
         {
             _observer.onError('failed to load "${_file}", "${path}" does not exist');
 
-            return;
+            return false;
         }
 
         final bytes  = Uncompress.run(fileSystem.file.getBytes(path));
         final loader = new Unserializer(bytes.toString());
         final parcel = (cast loader.unserialize() : ParcelResource);
 
+        if (parcel == null)
+        {
+            _observer.onError('unable to cast deserialised bytes to a ParcelResource');
+
+            return false;
+        }
+
         for (dependency in parcel.depends)
         {
-            loadPrePackaged(dependency, _observer);
+            if (!loadPrePackaged(dependency, _observer))
+            {
+                return false;
+            }
         }
 
         for (i in 0...parcel.assets.length)
@@ -383,6 +387,8 @@ class ResourceSystem
                 )
             );
         }
+
+        return true;
     }
 
     /**
