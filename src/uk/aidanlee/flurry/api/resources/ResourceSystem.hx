@@ -91,6 +91,12 @@ class ResourceSystem
         resourceReferences = [];
     }
 
+    /**
+     * Loads the provided parcels resources into the system.
+     * If the parcel has already been loaded an empty observable is returned.
+     * @param _parcel Parcel definition.
+     * @return Observable<Float> Observable of loading progress (normalised 0 - 1)
+     */
     public function load(_parcel : ParcelType) : Observable<Float>
     {
         final name = switch _parcel {
@@ -146,6 +152,10 @@ class ResourceSystem
         }
     }
 
+    /**
+     * Free a parcel and its resources from the system.
+     * @param _name Parcel name.
+     */
     public function free(_name : String)
     {
         if (parcelDependencies.exists(_name))
@@ -423,6 +433,11 @@ class ResourceSystem
         return total;
     }
 
+    /**
+     * Returns a list of all resource names from a parcel list.
+     * @param _list List to flatten
+     * @return Array<String> Array of resource names.
+     */
     function flattenParcelList(_list : ParcelList) : Array<String>
     {
         final list = [];
