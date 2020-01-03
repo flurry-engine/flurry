@@ -29,8 +29,6 @@ class SystemTests(unittest.TestCase):
 
         myEnv = os.environ.copy()
         myEnv["DISPLAY"]=":99"
-        myEnv["LIBGL_ALWAYS_SOFTWARE"]="1"
-        myEnv["GALLIUM_DRIVER"]="softpipe"
 
         time.sleep(3)
 
