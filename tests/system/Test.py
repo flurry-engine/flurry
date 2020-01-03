@@ -50,7 +50,7 @@ class SystemTests(unittest.TestCase):
 
                 time.sleep(1)
 
-                subprocess.run([ "import", "-window", "System Tests", "-channel", "RGB", "-depth", "8", f"screenshot.png" ], env=myEnv)
+                subprocess.run([ "import", "-window", "System Tests", f"screenshot.png" ], env=myEnv)
 
                 test_proc.terminate()
                 test_proc.wait()

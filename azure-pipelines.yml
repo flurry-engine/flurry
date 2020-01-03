@@ -1,63 +1,64 @@
-strategy:
-  matrix:
-    linux:
-      imageName: 'ubuntu-latest'
-    mac:
-      imageName: 'macos-latest'
-    windows:
-      imageName: 'windows-latest'
-
-pool:
-  vmImage: $(imageName)
-
-steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '10.15.x'
-
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '3.7'
-
-- bash: ci/install.sh
-  displayName: Install Dependencies
-  workingDirectory: $(Build.SourcesDirectory)
-  env:
-    AGENT_OS: $(Agent.OS)
-
-- bash: ../../ci/test_engine.sh
-  displayName: Engine Tests
-  workingDirectory: $(Build.SourcesDirectory)/tests/unit
-  env:
-    AGENT_OS: $(Agent.OS)
-
-- bash: |
-    pip install -U pytest
-    pip install -U pytest-subtests
-    pip install -U pytest-custom_exit_code
-    pytest -o junit_family=xunit2 --junit-xml test-system.xml --suppress-tests-failed-exit-code -s Test.py
-  displayName: System Tests
-  condition: eq( variables['Agent.OS'], 'Linux' )
-  workingDirectory: $(Build.SourcesDirectory)/tests/system
-  env:
-    AGENT_OS: $(Agent.OS)
-
-- task: PublishTestResults@2
-  condition: succeededOrFailed()
-  inputs:
-    testResultsFormat: xUnit
-    testResultsFiles: test-engine.xml
-    searchFolder: $(Build.SourcesDirectory)/tests/unit
-    testRunTitle: Engine Tests $(Agent.OS)
-    buildPlatform: $(Agent.OS)
-    failTaskOnFailedTests: true
-
-- task: PublishTestResults@2
-  condition: and(succeededOrFailed(), eq( variables['Agent.OS'], 'Linux' ))
-  inputs:
-    testResultsFormat: JUnit
-    testResultsFiles: test-system.xml
-    searchFolder: $(Build.SourcesDirectory)/tests/system
-    testRunTitle: System Tests $(Agent.OS)
-    buildPlatform: $(Agent.OS)
-    failTaskOnFailedTests: true
+jobs:
+  - job: UnitTests
+    displayName: Unit Tests
+    strategy:
+      matrix:
+        linux:
+          imageName: 'ubuntu-latest'
+        mac:
+          imageName: 'macos-latest'
+        windows:
+          imageName: 'windows-latest'
+    pool:
+      vmImage: $(imageName)
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '10.15.x'
+    - bash: ci/install.sh
+      displayName: Install Dependencies
+      workingDirectory: $(Build.SourcesDirectory)
+      env:
+        AGENT_OS: $(Agent.OS)
+    - bash: |
+        npx haxe build.hxml -D reporter=XUnit2Reporter -D report-name=Engine-Tests-$(Agent.OS) --debug --no-traces
+        ./bin/Main-debug
+      displayName: Engine Tests
+      workingDirectory: $(Build.SourcesDirectory)/tests/unit
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: xUnit
+        testResultsFiles: test-engine.xml
+        searchFolder: $(Build.SourcesDirectory)/tests/unit
+        testRunTitle: Engine Tests $(Agent.OS)
+        buildPlatform: $(Agent.OS)
+        failTaskOnFailedTests: true
+  - job: SystemTestsOgl3
+    displayName: System Tests (OpenGL 3 Backend)
+    dependsOn: UnitTests
+    pool: default
+    steps:
+    - bash: ci/install.sh
+      displayName: Install Dependencies
+      workingDirectory: $(Build.SourcesDirectory)
+      env:
+        AGENT_OS: $(Agent.OS)
+    - bash: |
+        pip install -U pytest
+        pip install -U pytest-subtests
+        pip install -U pytest-custom_exit_code
+        python -m pytest -o junit_family=xunit2 --junit-xml test-system.xml --suppress-tests-failed-exit-code -s Test.py
+      displayName: System Tests
+      workingDirectory: $(Build.SourcesDirectory)/tests/system
+      env:
+        AGENT_OS: $(Agent.OS)
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: JUnit
+        testResultsFiles: test-system.xml
+        searchFolder: $(Build.SourcesDirectory)/tests/system
+        testRunTitle: System Tests $(Agent.OS)
+        buildPlatform: $(Agent.OS)
+        failTaskOnFailedTests: true
