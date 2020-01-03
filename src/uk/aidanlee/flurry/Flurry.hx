@@ -1,5 +1,8 @@
 package uk.aidanlee.flurry;
 
+import uk.aidanlee.flurry.api.schedulers.CurrentThreadScheduler;
+import rx.disposables.ISubscription;
+import hx.concurrent.collection.SynchronizedArray;
 import rx.Unit;
 import rx.Subject;
 import rx.subjects.Replay;
@@ -10,8 +13,17 @@ import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
 
+using rx.Observable;
+using Safety;
+
 class Flurry
 {
+    /**
+     * Thread safe array to place functions into.
+     * All functions in this array are ran at the beginning of every tick.
+     */
+    public final dispatch : SynchronizedArray<()->Void>;
+
     /**
      * Main events bus, engine components can fire events into this to communicate with each other.
      */
@@ -52,9 +64,12 @@ class Flurry
      */
     public var loaded (default, null) : Bool;
 
+    var preloadSubscription : Null<ISubscription>;
+
     public function new()
     {
-        events = new FlurryEvents();
+        dispatch = new SynchronizedArray();
+        events   = new FlurryEvents();
     }
 
     public final function config()
@@ -69,22 +84,19 @@ class Flurry
         // Setup core api components
         fileSystem = new FileSystem();
         renderer   = new Renderer(events.resource, events.display, flurryConfig.window, flurryConfig.renderer);
-        resources  = new ResourceSystem(events.resource, fileSystem);
+        resources  = new ResourceSystem(events.resource, fileSystem, CurrentThreadScheduler.current, CurrentThreadScheduler.current);
         input      = new Input(events.input);
         display    = new Display(events.display, events.input, flurryConfig);
 
         if (flurryConfig.resources.preload != null)
         {
-            resources.create(
-                flurryConfig.resources.preload,
-                onPreloadParcelComplete,
-                null,
-                onPreloadParcelError
-            ).load();
+            preloadSubscription = resources
+                .load(flurryConfig.resources.preload)
+                .subscribeFunction(onPreloadParcelError, onPreloadParcelComplete);
         }
         else
         {
-            onPreloadParcelComplete(null);
+            onPreloadParcelComplete();
         }
 
         // Fire the init event once the engine has loaded all its components.
@@ -93,15 +105,19 @@ class Flurry
 
     public final function tick(_dt : Float)
     {
+        // Call any main loop functions.
+        // We should be able to safely skip the null function check as we already check the size;
+        // please don't pass in null functions...
+        while (!dispatch.isEmpty())
+        {
+            dispatch.removeFirst().unsafe()();
+        }
+
         onTick(_dt);
     }
     
     public final function update(_dt : Float)
     {
-        // The resource system needs to be called periodically to process thread events.
-        // If this is not called the resources loaded on separate threads won't be registered and parcel callbacks won't be invoked.
-        resources.update();
-        
         if (loaded)
         {
             onPreUpdate();
@@ -183,7 +199,7 @@ class Flurry
 
     // Functions internal to flurry's setup
 
-    final function onPreloadParcelComplete(_)
+    final function onPreloadParcelComplete()
     {
         loaded = true;
 

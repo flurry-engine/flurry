@@ -13,7 +13,6 @@
 -D format
 -D threads
 
--lib hxp
 -lib hxcpp
 -lib linc_imgui
 -lib linc_sdl

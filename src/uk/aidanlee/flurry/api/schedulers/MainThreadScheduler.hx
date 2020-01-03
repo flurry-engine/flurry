@@ -1,0 +1,39 @@
+package uk.aidanlee.flurry.api.schedulers;
+
+import haxe.Timer;
+import rx.Subscription;
+import rx.schedulers.Base;
+import rx.schedulers.MakeScheduler;
+import rx.disposables.ISubscription;
+
+class MainThreadScheduler extends MakeScheduler
+{
+    public static final current = new MainThreadScheduler();
+    
+    function new()
+    {
+        super(new MainThreadBase());
+    }
+}
+
+private class MainThreadBase implements Base
+{
+    public function new()
+    {
+        //
+    }
+
+    public function now()
+    {
+        return Timer.stamp();
+    }
+
+    public function schedule_absolute(_dueTime : Null<Float>, _action : () -> Void) : ISubscription
+    {
+        // Flurry.dispatch.add(_action);
+
+        _action();
+
+        return Subscription.empty();
+    }
+}
