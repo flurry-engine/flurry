@@ -175,6 +175,8 @@ class OGL3Backend implements IRendererBackend
 
     final batchByteAlignment : Int;
 
+    final commandQueue : Array<GeometryDrawCommand>;
+
     /**
      * Backbuffer display, default target if none is specified.
      */
@@ -249,8 +251,8 @@ class OGL3Backend implements IRendererBackend
         glMatrixIndexVbo = vbos[1];
 
         // Matrix index data will be contiguous, sourced from the second vertex buffer.
-        // glBindBuffer(GL_ARRAY_BUFFER, glMatrixIndexVbo);
-        // glBufferData(GL_ARRAY_BUFFER, vertexBuffer.view.byteLength, vertexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, glMatrixIndexVbo);
+        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.view.byteLength, vertexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
 
         // Vertex data will be interleaved, sourced from the first vertex buffer.
         glBindBuffer(GL_ARRAY_BUFFER, glVertexVbo);
@@ -319,6 +321,7 @@ class OGL3Backend implements IRendererBackend
 
         matricesPerBatch   = Std.int(Maths.min(maxUboSize[0] / 64, 65535));
         batchByteAlignment = uboAlignment[0];
+        commandQueue       = [];
     }
 
     public function preDraw()
@@ -335,6 +338,7 @@ class OGL3Backend implements IRendererBackend
         commandVtxOffsets.clear();
         commandIdxOffsets.clear();
         bufferModelMatrix.clear();
+        commandQueue.resize(0);
     }
 
     /**
@@ -343,15 +347,37 @@ class OGL3Backend implements IRendererBackend
      */
     public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void
     {
+        for (command in _commands)
+        {
+            commandQueue.push(command);
+        }
+    }
+
+    /**
+     * Upload buffer data to the gpu VRAM.
+     * @param _commands Array of commands to upload.
+     */
+    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void
+    {
+        //
+    }
+
+    /**
+     * Draw an array of commands. Command data must be uploaded to the GPU before being used.
+     * @param _commands    Commands to draw.
+     * @param _recordStats Record stats for this submit.
+     */
+    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void
+    {
         var vtxDst : Pointer<Float32> = Pointer
-            .fromRaw(glMapBufferRange(GL_ARRAY_BUFFER, 0, vertexBuffer.view.byteLength, GL_MAP_WRITE_BIT))
+            .fromRaw(glMapBufferRange(GL_ARRAY_BUFFER, 0, vertexBuffer.view.byteLength, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT))
             .reinterpret();
 
         var idxDst : Pointer<UInt16> = Pointer
-            .fromRaw(glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, indexBuffer.view.byteLength, GL_MAP_WRITE_BIT))
+            .fromRaw(glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, indexBuffer.view.byteLength, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT))
             .reinterpret();
 
-        for (command in _commands)
+        for (command in commandQueue)
         {
             var idxValueOffset = 0;
 
@@ -385,55 +411,8 @@ class OGL3Backend implements IRendererBackend
 
         glUnmapBuffer(GL_ARRAY_BUFFER);
         glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-    }
 
-    /**
-     * Upload buffer data to the gpu VRAM.
-     * @param _commands Array of commands to upload.
-     */
-    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void
-    {
-        var idxDst : Pointer<UInt16>  = Pointer.fromRaw(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
-        var vtxDst : Pointer<Float32> = Pointer.fromRaw(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
-
-        idxDst.incBy(indexOffset);
-        vtxDst.incBy(vertexOffset * 9);
-
-        for (command in _commands)
-        {
-            commandIdxOffsets.set(command.id, indexOffset);
-            commandVtxOffsets.set(command.id, vertexOffset);
-            bufferModelMatrix.set(command.id, command.model);
-
-            memcpy(
-                idxDst,
-                Pointer.arrayElem(command.idxData.view.buffer.getData(), command.idxStartIndex * 2),
-                command.indices * 2);
-            memcpy(
-                vtxDst,
-                Pointer.arrayElem(command.vtxData.view.buffer.getData(), command.vtxStartIndex * 9 * 4),
-                command.vertices * 9 * 4);
-
-            indexOffset       += command.indices;
-            vertexOffset      += command.vertices;
-            vertexFloatOffset += command.vertices * 9;
-
-            idxDst.incBy(command.indices);
-            vtxDst.incBy(command.vertices * 9);
-        }
-
-        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-    }
-
-    /**
-     * Draw an array of commands. Command data must be uploaded to the GPU before being used.
-     * @param _commands    Commands to draw.
-     * @param _recordStats Record stats for this submit.
-     */
-    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void
-    {
-        for (command in _commands)
+        for (command in commandQueue)
         {
             // Change the state so the vertices are drawn correctly.
             setState(command, !_recordStats);
