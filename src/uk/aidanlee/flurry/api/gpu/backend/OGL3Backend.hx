@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import cpp.UInt32;
 import haxe.io.Bytes;
 import haxe.Exception;
 import haxe.io.Float32Array;
@@ -250,22 +251,23 @@ class OGL3Backend implements IRendererBackend
         glVertexVbo      = vbos[0];
         glMatrixIndexVbo = vbos[1];
 
-        // Matrix index data will be contiguous, sourced from the second vertex buffer.
-        glBindBuffer(GL_ARRAY_BUFFER, glMatrixIndexVbo);
-        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.view.byteLength, vertexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
+        glEnableVertexAttribArray(3);
 
         // Vertex data will be interleaved, sourced from the first vertex buffer.
         glBindBuffer(GL_ARRAY_BUFFER, glVertexVbo);
         glBufferData(GL_ARRAY_BUFFER, vertexBuffer.view.byteLength, vertexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
 
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glEnableVertexAttribArray(2);
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 0, 3, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_POS);
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 1, 4, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_COL);
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 2, 2, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_TEX);
 
-        glEnableVertexAttribArray(3);
+        // Matrix index data will be contiguous, sourced from the second vertex buffer.
+        glBindBuffer(GL_ARRAY_BUFFER, glMatrixIndexVbo);
+        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.view.byteLength, vertexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
+
         untyped __cpp__('glVertexAttribIPointer({0}, {1}, {2}, {3}, (void*)(intptr_t){4})', 3, 1, GL_UNSIGNED_INT, 0, 0);
 
         // Setup index buffer.
@@ -369,11 +371,14 @@ class OGL3Backend implements IRendererBackend
      */
     public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void
     {
-        var vtxDst : Pointer<Float32> = Pointer
+        // Upload vertex and index data
+        glBindBuffer(GL_ARRAY_BUFFER, glVertexVbo);
+
+        final vtxDst : Pointer<Float32> = Pointer
             .fromRaw(glMapBufferRange(GL_ARRAY_BUFFER, 0, vertexBuffer.view.byteLength, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT))
             .reinterpret();
 
-        var idxDst : Pointer<UInt16> = Pointer
+        final idxDst : Pointer<UInt16> = Pointer
             .fromRaw(glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, indexBuffer.view.byteLength, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT))
             .reinterpret();
 
@@ -412,6 +417,32 @@ class OGL3Backend implements IRendererBackend
         glUnmapBuffer(GL_ARRAY_BUFFER);
         glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 
+        // Upload matrix index data
+        glBindBuffer(GL_ARRAY_BUFFER, glMatrixIndexVbo);
+
+        final matDst : Pointer<UInt32> = Pointer
+            .fromRaw(glMapBufferRange(GL_ARRAY_BUFFER, 0, vertexBuffer.view.byteLength, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT))
+            .reinterpret();
+
+        var matIdx = 0;
+        var index  = 0;
+
+        for (command in commandQueue)
+        {
+            for (geometry in command.geometry)
+            {
+                for (_ in geometry.vertices)
+                {
+                    matDst[index++] = matIdx;
+                }
+
+                matIdx++;
+            }
+        }
+
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+
+        // Draw the queued commands
         for (command in commandQueue)
         {
             // Change the state so the vertices are drawn correctly.
