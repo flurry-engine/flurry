@@ -39,7 +39,6 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
-import uk.aidanlee.flurry.api.thread.JobQueue;
 
 using Safety;
 using cpp.NativeArray;
@@ -52,12 +51,10 @@ using uk.aidanlee.flurry.utils.opengl.GLConverters;
  */
 class OGL3Backend implements IRendererBackend
 {
-    static final RENDERER_THREADS = #if flurry_ogl3_no_multithreading 1 #else Std.int(Maths.max(SDL.getCPUCount() - 2, 1)) #end;
-
     /**
      * The number of floats in each vertex.
      */
-    static final VERTEX_FLOAT_SIZE = 9;
+    static final VERTEX_BYTE_SIZE = 36;
 
     /**
      * The byte offset for the position in each vertex.
@@ -67,12 +64,12 @@ class OGL3Backend implements IRendererBackend
     /**
      * The byte offset for the colour in each vertex.
      */
-    static final VERTEX_OFFSET_COL = 3;
+    static final VERTEX_OFFSET_COL = 12;
 
     /**
      * The byte offset for the texture coordinates in each vertex.
      */
-    static final VERTEX_OFFSET_TEX = 7;
+    static final VERTEX_OFFSET_TEX = 28;
 
     /**
      * Signals for when shaders and images are created and removed.
@@ -92,7 +89,9 @@ class OGL3Backend implements IRendererBackend
     /**
      * The single VBO used by the backend.
      */
-    final glVbo : Int;
+    final glVertexVbo : Int;
+
+    final glMatrixIndexVbo : Int;
 
     /**
      * The single index buffer used by the backend.
@@ -108,11 +107,6 @@ class OGL3Backend implements IRendererBackend
      * Index buffer used by this backend.
      */
     final indexBuffer : UInt16Array;
-
-    /**
-     * Transformation vector used for transforming geometry vertices by a matrix.
-     */
-    final transformationVectors : Array<Vector3>;
 
     /**
      * Shader programs keyed by their associated shader resource IDs.
@@ -140,11 +134,6 @@ class OGL3Backend implements IRendererBackend
      * Will be destroyed when the associated image resource is destroyed.
      */
     final framebufferObjects : Map<String, Int>;
-
-    /**
-     * Job queue for multi-threaded geometry uploading.
-     */
-    final jobQueue : JobQueue;
 
     /**
      * dummy identity matrix for passing into shaders so they have parity with OGL4 shaders.
@@ -181,6 +170,10 @@ class OGL3Backend implements IRendererBackend
      * The default sampler object to use if no sampler is provided.
      */
     final defaultSampler : Int;
+
+    final matricesPerBatch : Int;
+
+    final batchByteAlignment : Int;
 
     /**
      * Backbuffer display, default target if none is specified.
@@ -231,8 +224,6 @@ class OGL3Backend implements IRendererBackend
 
         perspectiveYFlipVector = new Vector3(1, -1, 1);
         dummyModelMatrix       = new Matrix();
-        jobQueue               = new JobQueue(RENDERER_THREADS);
-        transformationVectors  = [ for (_ in 0...RENDERER_THREADS) new Vector3() ];
         commandVtxOffsets      = [];
         commandIdxOffsets      = [];
         bufferModelMatrix      = [];
@@ -243,7 +234,7 @@ class OGL3Backend implements IRendererBackend
 
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
-        vertexBuffer = new Float32Array((_rendererConfig.dynamicVertices + _rendererConfig.unchangingVertices) * VERTEX_FLOAT_SIZE);
+        vertexBuffer = new Float32Array((_rendererConfig.dynamicVertices + _rendererConfig.unchangingVertices) * 10);
         indexBuffer  = new UInt16Array(_rendererConfig.dynamicIndices + _rendererConfig.unchangingIndices);
 
         // Core OpenGL profiles require atleast one VAO is bound.
@@ -251,26 +242,37 @@ class OGL3Backend implements IRendererBackend
         glGenVertexArrays(1, vao);
         glBindVertexArray(vao[0]);
 
-        var vbos = [ 0 ];
-        glGenBuffers(1, vbos);
-        glVbo = vbos[0];
+        // Create two vertex buffers
+        var vbos = [ 0, 0 ];
+        glGenBuffers(vbos.length, vbos);
+        glVertexVbo      = vbos[0];
+        glMatrixIndexVbo = vbos[1];
 
-        glBindBuffer(GL_ARRAY_BUFFER, glVbo);
+        // Matrix index data will be contiguous, sourced from the second vertex buffer.
+        // glBindBuffer(GL_ARRAY_BUFFER, glMatrixIndexVbo);
+        // glBufferData(GL_ARRAY_BUFFER, vertexBuffer.view.byteLength, vertexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
+
+        // Vertex data will be interleaved, sourced from the first vertex buffer.
+        glBindBuffer(GL_ARRAY_BUFFER, glVertexVbo);
         glBufferData(GL_ARRAY_BUFFER, vertexBuffer.view.byteLength, vertexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
 
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
+        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 0, 3, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_POS);
+        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 1, 4, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_COL);
+        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 2, 2, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_TEX);
+
+        glEnableVertexAttribArray(3);
+        untyped __cpp__('glVertexAttribIPointer({0}, {1}, {2}, {3}, (void*)(intptr_t){4})', 3, 1, GL_UNSIGNED_INT, 0, 0);
+
+        // Setup index buffer.
         var ibos = [ 0 ];
         glGenBuffers(1, ibos);
         glIbo = ibos[0];
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIbo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer.view.byteLength, indexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
-
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glEnableVertexAttribArray(2);
-        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 0, 3, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_POS);
-        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 1, 4, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_COL);
-        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 2, 2, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
 
         var samplers = [ 0 ];
         glGenSamplers(1, samplers);
@@ -307,6 +309,16 @@ class OGL3Backend implements IRendererBackend
         resourceEvents.removed.add(onResourceRemoved);
         displayEvents.sizeChanged.add(onSizeChanged);
         displayEvents.changeRequested.add(onChangeRequest);
+
+        // Get UBO size and alignment
+        var maxUboSize = [ 0 ];
+        glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, maxUboSize);
+
+        var uboAlignment = [ 0 ];
+        glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, uboAlignment);
+
+        matricesPerBatch   = Std.int(Maths.min(maxUboSize[0] / 64, 65535));
+        batchByteAlignment = uboAlignment[0];
     }
 
     public function preDraw()
@@ -331,71 +343,44 @@ class OGL3Backend implements IRendererBackend
      */
     public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void
     {
-        var vtxDst : Pointer<Float32> = Pointer.fromRaw(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
-        var idxDst : Pointer<UInt16>  = Pointer.fromRaw(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
+        var vtxDst : Pointer<Float32> = Pointer
+            .fromRaw(glMapBufferRange(GL_ARRAY_BUFFER, 0, vertexBuffer.view.byteLength, GL_MAP_WRITE_BIT))
+            .reinterpret();
+
+        var idxDst : Pointer<UInt16> = Pointer
+            .fromRaw(glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, indexBuffer.view.byteLength, GL_MAP_WRITE_BIT))
+            .reinterpret();
 
         for (command in _commands)
         {
+            var idxValueOffset = 0;
+
             commandVtxOffsets.set(command.id, vertexOffset);
             commandIdxOffsets.set(command.id, indexOffset);
 
-            var split     = Maths.floor(command.geometry.length / RENDERER_THREADS);
-            var remainder = command.geometry.length % RENDERER_THREADS;
-            var range     = command.geometry.length < RENDERER_THREADS ? command.geometry.length : RENDERER_THREADS;
-            for (i in 0...range)
+            for (i in 0...command.geometry.length)
             {
-                var geomStartIdx   = split * i;
-                var geomEndIdx     = geomStartIdx + (i != range - 1 ? split : split + remainder);
-                var idxValueOffset = 0;
-                var idxWriteOffset = indexOffset;
-                var vtxWriteOffset = vertexFloatOffset;
-
-                for (j in 0...geomStartIdx)
+                for (index in command.geometry[i].indices)
                 {
-                    idxValueOffset += command.geometry[j].vertices.length;
-                    idxWriteOffset += command.geometry[j].indices.length;
-                    vtxWriteOffset += command.geometry[j].vertices.length * VERTEX_FLOAT_SIZE;
+                    idxDst[indexOffset++] = idxValueOffset + index;
                 }
 
-                jobQueue.queue(() -> {
-                    for (j in geomStartIdx...geomEndIdx)
-                    {
-                        for (index in command.geometry[j].indices)
-                        {
-                            idxDst[idxWriteOffset++] = idxValueOffset + index;
-                        }
+                for (vertex in command.geometry[i].vertices)
+                {
+                    vtxDst[vertexFloatOffset++] = vertex.position.x;
+                    vtxDst[vertexFloatOffset++] = vertex.position.y;
+                    vtxDst[vertexFloatOffset++] = vertex.position.z;
+                    vtxDst[vertexFloatOffset++] = vertex.color.r;
+                    vtxDst[vertexFloatOffset++] = vertex.color.g;
+                    vtxDst[vertexFloatOffset++] = vertex.color.b;
+                    vtxDst[vertexFloatOffset++] = vertex.color.a;
+                    vtxDst[vertexFloatOffset++] = vertex.texCoord.x;
+                    vtxDst[vertexFloatOffset++] = vertex.texCoord.y;
+                }
 
-                        for (vertex in command.geometry[j].vertices)
-                        {
-                            // Copy the vertex into another vertex.
-                            // This allows us to apply the transformation without permanently modifying the original geometry.
-                            transformationVectors[i].copyFrom(vertex.position);
-                            transformationVectors[i].transform(command.geometry[j].transformation.world.matrix);
-
-                            vtxDst[vtxWriteOffset++] = transformationVectors[i].x;
-                            vtxDst[vtxWriteOffset++] = transformationVectors[i].y;
-                            vtxDst[vtxWriteOffset++] = transformationVectors[i].z;
-                            vtxDst[vtxWriteOffset++] = vertex.color.r;
-                            vtxDst[vtxWriteOffset++] = vertex.color.g;
-                            vtxDst[vtxWriteOffset++] = vertex.color.b;
-                            vtxDst[vtxWriteOffset++] = vertex.color.a;
-                            vtxDst[vtxWriteOffset++] = vertex.texCoord.x;
-                            vtxDst[vtxWriteOffset++] = vertex.texCoord.y;
-                        }
-
-                        idxValueOffset += command.geometry[j].vertices.length;
-                    }
-                });
+                idxValueOffset += command.geometry[i].vertices.length;
+                vertexOffset += command.geometry[i].vertices.length;
             }
-
-            for (geom in command.geometry)
-            {
-                vertexOffset      += geom.vertices.length;
-                vertexFloatOffset += geom.vertices.length * VERTEX_FLOAT_SIZE;
-                indexOffset       += geom.indices.length;
-            }
-
-            jobQueue.wait();
         }
 
         glUnmapBuffer(GL_ARRAY_BUFFER);
@@ -464,7 +449,7 @@ class OGL3Backend implements IRendererBackend
             {
                 var vtxOffset = commandVtxOffsets.get(command.id);
                 glDrawArrays(command.primitive.getPrimitiveType(), vtxOffset, command.vertices);
-            }      
+            }
 
             // Record stats about this draw call.
             if (_recordStats)
