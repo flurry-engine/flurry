@@ -84,11 +84,6 @@ class OGL3Backend implements IRendererBackend
     final displayEvents : DisplayEvents;
 
     /**
-     * Access to the renderer who owns this backend.
-     */
-    final rendererStats : RendererStats;
-
-    /**
      * The single VBO used by the backend.
      */
     final glVertexVbo : Int;
@@ -199,7 +194,6 @@ class OGL3Backend implements IRendererBackend
     {
         resourceEvents = _resourceEvents;
         displayEvents  = _displayEvents;
-        rendererStats  = _rendererStats;
 
         createWindow(_windowConfig);
 
@@ -962,8 +956,6 @@ class OGL3Backend implements IRendererBackend
                     glBindTexture(GL_TEXTURE_2D, glTextureID);
 
                     textureSlots[i] = glTextureID;
-
-                    rendererStats.textureSwaps++;
                 }
 
                 // Get / create and bind the sampler for the current texture.
