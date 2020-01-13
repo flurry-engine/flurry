@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import cpp.UInt8;
 import cpp.UInt32;
 import haxe.io.Bytes;
 import haxe.Exception;
@@ -92,7 +93,10 @@ class OGL3Backend implements IRendererBackend
      */
     final glVertexVbo : Int;
 
-    final glMatrixIndexVbo : Int;
+    /**
+     * The ubo used to store all matrix data.
+     */
+    final glMatrixUbo : Int;
 
     /**
      * The single index buffer used by the backend.
@@ -137,11 +141,6 @@ class OGL3Backend implements IRendererBackend
     final framebufferObjects : Map<String, Int>;
 
     /**
-     * dummy identity matrix for passing into shaders so they have parity with OGL4 shaders.
-     */
-    final dummyModelMatrix : Matrix;
-
-    /**
      * Constant vector which will be used to flip perspective cameras on their y axis.
      */
     final perspectiveYFlipVector : Vector3;
@@ -151,21 +150,6 @@ class OGL3Backend implements IRendererBackend
      * Size of this array is equal to the max number of texture bindings allowed .
      */
     final textureSlots : Array<Int>;
-
-    /**
-     * Map of command IDs and the vertex offset into the buffer.
-     */
-    final commandVtxOffsets : Map<Int, Int>;
-
-    /**
-     * Map of command IDs and the index offset into the buffer.
-     */
-    final commandIdxOffsets : Map<Int, Int>;
-
-    /**
-     * Map of all the model matices to transform buffer commands.
-     */
-    final bufferModelMatrix : Map<Int, Matrix>;
 
     /**
      * The default sampler object to use if no sampler is provided.
@@ -226,10 +210,6 @@ class OGL3Backend implements IRendererBackend
         framebufferObjects = [];
 
         perspectiveYFlipVector = new Vector3(1, -1, 1);
-        dummyModelMatrix       = new Matrix();
-        commandVtxOffsets      = [];
-        commandIdxOffsets      = [];
-        bufferModelMatrix      = [];
 
         vertexOffset      = 0;
         vertexFloatOffset = 0;
@@ -248,13 +228,16 @@ class OGL3Backend implements IRendererBackend
         // Create two vertex buffers
         var vbos = [ 0, 0 ];
         glGenBuffers(vbos.length, vbos);
-        glVertexVbo      = vbos[0];
-        glMatrixIndexVbo = vbos[1];
+        glVertexVbo = vbos[0];
+        glMatrixUbo = vbos[1];
 
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glEnableVertexAttribArray(2);
         glEnableVertexAttribArray(3);
+
+        glBindBuffer(GL_ARRAY_BUFFER, glMatrixUbo);
+        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.view.byteLength, vertexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
 
         // Vertex data will be interleaved, sourced from the first vertex buffer.
         glBindBuffer(GL_ARRAY_BUFFER, glVertexVbo);
@@ -263,12 +246,6 @@ class OGL3Backend implements IRendererBackend
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 0, 3, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_POS);
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 1, 4, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_COL);
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 2, 2, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_TEX);
-
-        // Matrix index data will be contiguous, sourced from the second vertex buffer.
-        glBindBuffer(GL_ARRAY_BUFFER, glMatrixIndexVbo);
-        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.view.byteLength, vertexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
-
-        untyped __cpp__('glVertexAttribIPointer({0}, {1}, {2}, {3}, (void*)(intptr_t){4})', 3, 1, GL_UNSIGNED_INT, 0, 0);
 
         // Setup index buffer.
         var ibos = [ 0 ];
@@ -337,9 +314,6 @@ class OGL3Backend implements IRendererBackend
         vertexOffset      = 0;
         vertexFloatOffset = 0;
         indexOffset       = 0;
-        commandVtxOffsets.clear();
-        commandIdxOffsets.clear();
-        bufferModelMatrix.clear();
         commandQueue.resize(0);
     }
 
@@ -371,9 +345,14 @@ class OGL3Backend implements IRendererBackend
      */
     public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void
     {
-        // Upload vertex and index data
-        glBindBuffer(GL_ARRAY_BUFFER, glVertexVbo);
+        uploadGeometryData();
+        uploadMatrixData();
+        uploadUniformData();
+        drawCommands();
+    }
 
+    function uploadGeometryData()
+    {
         final vtxDst : Pointer<Float32> = Pointer
             .fromRaw(glMapBufferRange(GL_ARRAY_BUFFER, 0, vertexBuffer.view.byteLength, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT))
             .reinterpret();
@@ -386,14 +365,11 @@ class OGL3Backend implements IRendererBackend
         {
             var idxValueOffset = 0;
 
-            commandVtxOffsets.set(command.id, vertexOffset);
-            commandIdxOffsets.set(command.id, indexOffset);
-
             for (i in 0...command.geometry.length)
             {
                 for (index in command.geometry[i].indices)
                 {
-                    idxDst[indexOffset++] = idxValueOffset + index;
+                    idxDst[indexOffset++] = index;
                 }
 
                 for (vertex in command.geometry[i].vertices)
@@ -410,62 +386,133 @@ class OGL3Backend implements IRendererBackend
                 }
 
                 idxValueOffset += command.geometry[i].vertices.length;
-                vertexOffset += command.geometry[i].vertices.length;
+                vertexOffset   += command.geometry[i].vertices.length;
             }
         }
 
         glUnmapBuffer(GL_ARRAY_BUFFER);
         glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+    }
 
-        // Upload matrix index data
-        glBindBuffer(GL_ARRAY_BUFFER, glMatrixIndexVbo);
+    function uploadMatrixData()
+    {
+        glBindBuffer(GL_UNIFORM_BUFFER, glMatrixUbo);
 
-        final matDst : Pointer<UInt32> = Pointer
-            .fromRaw(glMapBufferRange(GL_ARRAY_BUFFER, 0, vertexBuffer.view.byteLength, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT))
+        final matDst : Pointer<UInt8> = Pointer
+            .fromRaw(glMapBufferRange(GL_UNIFORM_BUFFER, 0, vertexBuffer.view.byteLength, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT))
             .reinterpret();
 
-        var matIdx = 0;
-        var index  = 0;
+        final bytesPerUbo = 3 * 4 * 4 * 4;
+        final postIncBy   = Std.int(Maths.max(batchByteAlignment - bytesPerUbo, 0));
 
         for (command in commandQueue)
         {
+            buildCameraMatrices(command.camera);
+
+            final view       = command.camera.view;
+            final projection = command.camera.projection;
+
             for (geometry in command.geometry)
             {
-                for (_ in geometry.vertices)
-                {
-                    matDst[index++] = matIdx;
-                }
+                final model = geometry.transformation.world.matrix;
 
-                matIdx++;
+                memcpy(matDst         , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
+                memcpy(matDst.add( 64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
+                memcpy(matDst.add(128), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
+
+                matDst.incBy(bytesPerUbo);
+                matDst.incBy(postIncBy);
             }
         }
 
-        glUnmapBuffer(GL_ARRAY_BUFFER);
+        glUnmapBuffer(GL_UNIFORM_BUFFER);
+    }
+
+    function uploadUniformData()
+    {
+        // Upload uniform data
+        for (command in commandQueue)
+        {
+            final cache            = shaderUniforms.get(command.shader.id);
+            final preferedUniforms = command.uniforms.or(command.shader.uniforms);
+
+            // Upload and bind all buffer data.
+            for (i in 0...cache.layout.blocks.length)
+            {
+                if (cache.layout.blocks[i].name != 'defaultMatrices')
+                {
+                    glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[i]);
+
+                    final src : Pointer<UInt8> = Pointer
+                        .fromRaw(glMapBufferRange(GL_UNIFORM_BUFFER, 0, cache.blockSizes[i], GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT))
+                        .reinterpret();
+
+                    // Otherwise upload all user specified uniform values.
+                    // TODO : We should have some sort of error checking if the expected uniforms are not found.
+                    var pos = 0;
+                    for (val in cache.layout.blocks[i].values)
+                    {
+                        switch val.type
+                        {
+                            case Matrix4:
+                                var mat : Float32BufferData = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : command.shader.uniforms.matrix4.get(val.name);
+                                memcpy(src.incBy(pos), mat.bytes.getData().address(mat.byteOffset), 64);
+                                pos += 64;
+                            case Vector4:
+                                var vec : Float32BufferData = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : command.shader.uniforms.vector4.get(val.name);
+                                memcpy(src.incBy(pos), vec.bytes.getData().address(vec.byteOffset), 16);
+                                pos += 16;
+                            case Int:
+                                var dst : Pointer<Int32> = src.reinterpret();
+                                dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : command.shader.uniforms.int.get(val.name));
+                                pos += 4;
+                            case Float:
+                                var dst : Pointer<Float32> = src.reinterpret();
+                                dst.setAt(Std.int(pos / 4), preferedUniforms.float.exists(val.name) ? preferedUniforms.float.get(val.name) : command.shader.uniforms.float.get(val.name));
+                                pos += 4;
+                        }
+                    }
+
+                    glUnmapBuffer(GL_UNIFORM_BUFFER);
+                }
+            }
+        }
+    }
+
+    function drawCommands()
+    {
+        var matOffset = 0;
+        var idxOffset = 0;
+        var vtxOffset = 0;
 
         // Draw the queued commands
         for (command in commandQueue)
         {
             // Change the state so the vertices are drawn correctly.
-            setState(command, !_recordStats);
+            setState(command);
 
-            // Draw the actual vertices
-            if (command.indices > 0)
+            for (geometry in command.geometry)
             {
-                var idxOffset = commandIdxOffsets.get(command.id) * 2;
-                var vtxOffset = commandVtxOffsets.get(command.id);
-                untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', command.primitive.getPrimitiveType(), command.indices, GL_UNSIGNED_SHORT, idxOffset, vtxOffset);
-            }
-            else
-            {
-                var vtxOffset = commandVtxOffsets.get(command.id);
-                glDrawArrays(command.primitive.getPrimitiveType(), vtxOffset, command.vertices);
-            }
+                glBindBufferRange(GL_UNIFORM_BUFFER, 0, glMatrixUbo, matOffset, 192);
 
-            // Record stats about this draw call.
-            if (_recordStats)
-            {
-                rendererStats.dynamicDraws++;
-                rendererStats.totalVertices += command.vertices;
+                // Draw the actual vertices
+                if (geometry.indices.length > 0)
+                {
+                    untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})',
+                        command.primitive.getPrimitiveType(),
+                        geometry.indices.length,
+                        GL_UNSIGNED_SHORT,
+                        idxOffset * 2,
+                        vtxOffset);
+                }
+                else
+                {
+                    glDrawArrays(command.primitive.getPrimitiveType(), vtxOffset, command.vertices);
+                }
+
+                idxOffset += geometry.indices.length;
+                vtxOffset += geometry.vertices.length;
+                matOffset += batchByteAlignment;
             }
         }
     }
@@ -735,9 +782,8 @@ class OGL3Backend implements IRendererBackend
     /**
      * Update the openGL state so it can draw the provided command.
      * @param _command      Command to set the state for.
-     * @param _disableStats If stats are to be recorded.
      */
-    function setState(_command : DrawCommand, _disableStats : Bool)
+    function setState(_command : DrawCommand)
     {
         // Set the render target.
         // If the target is null then the backbuffer is used.
@@ -765,11 +811,6 @@ class OGL3Backend implements IRendererBackend
             }
 
             glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebuffer);
-
-            if (!_disableStats)
-            {
-                rendererStats.targetSwaps++;
-            }
         }
 
         // Apply shader changes.
@@ -777,11 +818,6 @@ class OGL3Backend implements IRendererBackend
         {
             shader = _command.shader;
             glUseProgram(shaderPrograms.get(shader.id));
-
-            if (!_disableStats)
-            {
-                rendererStats.shaderSwaps++;
-            }
         }
 
         // Apply depth and stencil settings.
@@ -845,11 +881,6 @@ class OGL3Backend implements IRendererBackend
             var h = viewport.h *= target == null ? backbuffer.scale : 1;
 
             glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
-
-            if (!_disableStats)
-            {
-                rendererStats.viewportSwaps++;
-            }
         }
 
         // Set the scissor region.
@@ -876,11 +907,6 @@ class OGL3Backend implements IRendererBackend
             var h = cmdClip.h * (target == null ? backbuffer.scale : 1);
 
             glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
-
-            if (!_disableStats)
-            {
-                rendererStats.scissorSwaps++;
-            }
         }
 
         // Set the blending
@@ -892,36 +918,35 @@ class OGL3Backend implements IRendererBackend
                 _command.dstRGB.getBlendMode(),
                 _command.srcAlpha.getBlendMode(),
                 _command.dstAlpha.getBlendMode());
-
-            if (!_disableStats)
-            {
-                rendererStats.blendSwaps++;
-            }
         }
         else
         {
             glDisable(GL_BLEND);
-
-            if (!_disableStats)
-            {
-                rendererStats.blendSwaps++;
-            }
         }
 
         // Apply the shaders uniforms
         // TODO : Only set uniforms if the value has changed.
-        setUniforms(_command);
+        setTextures(_command);
+
+        // TODO : Bind uniform buffers
+        final cache = shaderUniforms.get(_command.shader.id);
+        for (i in 0...cache.layout.blocks.length)
+        {
+            if (cache.layout.blocks[i].name != 'defaultMatrices')
+            {
+                glBindBufferBase(GL_UNIFORM_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
+            }
+        }
     }
 
     /**
      * Apply all of a shaders uniforms.
      * @param _combined Only required uniform. VP combined matrix.
      */
-    function setUniforms(_command : DrawCommand)
+    function setTextures(_command : DrawCommand)
     {
         // Find this shaders location cache.
-        var cache = shaderUniforms.get(_command.shader.id);
-        var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
+        final cache = shaderUniforms.get(_command.shader.id);
 
         // Bind textures and samplers.
         if (cache.layout.textures.length <= _command.textures.length)
@@ -962,57 +987,6 @@ class OGL3Backend implements IRendererBackend
         else
         {
             throw new GL32NotEnoughTexturesException(_command.shader.id, _command.id, cache.layout.textures.length, _command.textures.length);
-        }
-
-        // Upload and bind all buffer data.
-        for (i in 0...cache.layout.blocks.length)
-        {
-            glBindBufferBase(GL_UNIFORM_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
-
-            final src : Pointer<cpp.UInt8> = Pointer.fromRaw(glMapBufferRange(GL_UNIFORM_BUFFER, 0, cache.blockSizes[i], GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT)).reinterpret();
-
-            if (cache.layout.blocks[i].name == 'defaultMatrices')
-            {
-                buildCameraMatrices(_command.camera);
-
-                var model      = bufferModelMatrix.exists(_command.id) ? bufferModelMatrix.get(_command.id) : dummyModelMatrix;
-                var view       = _command.camera.view;
-                var projection = _command.camera.projection;
-
-                memcpy(src          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
-                memcpy(src.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
-                memcpy(src.incBy(64), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
-            }
-            else
-            {
-                // Otherwise upload all user specified uniform values.
-                // TODO : We should have some sort of error checking if the expected uniforms are not found.
-                var pos = 0;
-                for (val in cache.layout.blocks[i].values)
-                {
-                    switch val.type
-                    {
-                        case Matrix4:
-                            var mat : Float32BufferData = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            memcpy(src.incBy(pos), mat.bytes.getData().address(mat.byteOffset), 64);
-                            pos += 64;
-                        case Vector4:
-                            var vec : Float32BufferData = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            memcpy(src.incBy(pos), vec.bytes.getData().address(vec.byteOffset), 16);
-                            pos += 16;
-                        case Int:
-                            var dst : Pointer<Int32> = src.reinterpret();
-                            dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
-                            pos += 4;
-                        case Float:
-                            var dst : Pointer<Float32> = src.reinterpret();
-                            dst.setAt(Std.int(pos / 4), preferedUniforms.float.exists(val.name) ? preferedUniforms.float.get(val.name) : _command.shader.uniforms.float.get(val.name));
-                            pos += 4;
-                    }
-                }
-            }
-            
-            glUnmapBuffer(GL_UNIFORM_BUFFER);
         }
     }
 

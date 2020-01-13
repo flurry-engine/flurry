@@ -7,7 +7,7 @@
             "values"  : [
                 { "type" : "Matrix4", "name" : "projection" },
                 { "type" : "Matrix4", "name" : "view" },
-                { "type" : "Matrix4", "name" : "models" }
+                { "type" : "Matrix4", "name" : "model" }
             ]
         },
         {
