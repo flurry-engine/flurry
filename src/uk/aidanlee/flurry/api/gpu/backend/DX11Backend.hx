@@ -623,47 +623,47 @@ class DX11Backend implements IRendererBackend
 
                 for (j in 0...geomStartIdx)
                 {
-                    idxValueOffset += command.geometry[j].vertices.length;
-                    idxWriteOffset += command.geometry[j].indices.length;
-                    vtxWriteOffset += command.geometry[j].vertices.length * 9;
+                    // idxValueOffset += command.geometry[j].vertices.length;
+                    // idxWriteOffset += command.geometry[j].indices.length;
+                    // vtxWriteOffset += command.geometry[j].vertices.length * 9;
                 }
 
                 jobQueue.queue(() -> {
                     for (j in geomStartIdx...geomEndIdx)
                     {
-                        for (index in command.geometry[j].indices)
-                        {
-                            idxDst[idxWriteOffset++] = idxValueOffset + index;
-                        }
+                        // for (index in command.geometry[j].indices)
+                        // {
+                        //     idxDst[idxWriteOffset++] = idxValueOffset + index;
+                        // }
 
-                        for (vertex in command.geometry[j].vertices)
-                        {
-                            // Copy the vertex into another vertex.
-                            // This allows us to apply the transformation without permanently modifying the original geometry.
-                            transformationVectors[i].copyFrom(vertex.position);
-                            transformationVectors[i].transform(command.geometry[j].transformation.world.matrix);
+                        // for (vertex in command.geometry[j].vertices)
+                        // {
+                        //     // Copy the vertex into another vertex.
+                        //     // This allows us to apply the transformation without permanently modifying the original geometry.
+                        //     transformationVectors[i].copyFrom(vertex.position);
+                        //     transformationVectors[i].transform(command.geometry[j].transformation.world.matrix);
 
-                            vtxDst[vtxWriteOffset++] = transformationVectors[i].x;
-                            vtxDst[vtxWriteOffset++] = transformationVectors[i].y;
-                            vtxDst[vtxWriteOffset++] = transformationVectors[i].z;
-                            vtxDst[vtxWriteOffset++] = vertex.color.r;
-                            vtxDst[vtxWriteOffset++] = vertex.color.g;
-                            vtxDst[vtxWriteOffset++] = vertex.color.b;
-                            vtxDst[vtxWriteOffset++] = vertex.color.a;
-                            vtxDst[vtxWriteOffset++] = vertex.texCoord.x;
-                            vtxDst[vtxWriteOffset++] = vertex.texCoord.y;
-                        }
+                        //     vtxDst[vtxWriteOffset++] = transformationVectors[i].x;
+                        //     vtxDst[vtxWriteOffset++] = transformationVectors[i].y;
+                        //     vtxDst[vtxWriteOffset++] = transformationVectors[i].z;
+                        //     vtxDst[vtxWriteOffset++] = vertex.color.r;
+                        //     vtxDst[vtxWriteOffset++] = vertex.color.g;
+                        //     vtxDst[vtxWriteOffset++] = vertex.color.b;
+                        //     vtxDst[vtxWriteOffset++] = vertex.color.a;
+                        //     vtxDst[vtxWriteOffset++] = vertex.texCoord.x;
+                        //     vtxDst[vtxWriteOffset++] = vertex.texCoord.y;
+                        // }
 
-                        idxValueOffset += command.geometry[j].vertices.length;
+                        // idxValueOffset += command.geometry[j].vertices.length;
                     }
                 });
             }
 
             for (geom in command.geometry)
             {
-                vertexFloatOffset += geom.vertices.length * 9;
-                indexOffset       += geom.indices.length;
-                vertexOffset      += geom.vertices.length;
+                // vertexFloatOffset += geom.vertices.length * 9;
+                // indexOffset       += geom.indices.length;
+                // vertexOffset      += geom.vertices.length;
             }
 
             jobQueue.wait();

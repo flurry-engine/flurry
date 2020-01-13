@@ -1,78 +1,82 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import uk.aidanlee.flurry.api.maths.Vector4;
+import uk.aidanlee.flurry.api.maths.Vector3;
+import uk.aidanlee.flurry.api.maths.Vector2;
+import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
+import uk.aidanlee.flurry.api.buffers.BufferData;
 
 class VertexBlob
 {
-    final FLOATS_PER_VERTEX = 9;
+    public final buffer : BufferData;
 
-    final buffer : Float32BufferData;
+    public final floatAccess : Float32BufferData;
 
-    final vertices : Int;
-
-    final cachedIterator : VertexBlobIterator;
-
-    public function new(_vertices : Int)
+    public function new(_size : Int)
     {
-        vertices       = _vertices;
-        buffer         = new Float32BufferData(vertices * FLOATS_PER_VERTEX);
-        cachedIterator = new VertexBlobIterator(vertices, buffer);
-    }
+        final bytes = Bytes.alloc(_size * Float32BufferData.BYTES_PER_FLOAT);
 
-    public function iterator(_reuse : Bool = true) : VertexBlobIterator
-    {
-        return _reuse ? cachedIterator.reset() : new VertexBlobIterator(vertices, buffer);
+        buffer      = new BufferData(bytes, 0, bytes.length);
+        floatAccess = buffer;
     }
 }
 
-private class VertexBlobIterator
+class VertexBlobBuilder
 {
-    final buffer : Float32BufferData;
+    public final vertices : VertexBlob;
 
-    final vertices : Int;
+    var idx : Int;
 
-    final position : Float32BufferData;
-
-    final colour : Float32BufferData;
-
-    final texcoord : Float32BufferData;
-
-    final vertex : Vertex;
-
-    var current : Int;
-
-    public function new(_vertices : Int, _buffer : Float32BufferData)
+    public function new(_size : Int)
     {
-        vertices = _vertices;
-        buffer   = _buffer;
-        current  = 0;
-
-        position = buffer.sub(0, 3);
-        colour   = buffer.sub(3, 4);
-        texcoord = buffer.sub(7, 2);
-        vertex   = new Vertex(position, colour, texcoord);
+        vertices = new VertexBlob(_size);
+        idx      = 0;
     }
 
-    public function reset() : VertexBlobIterator
+    public function addVector2(_vec : Vector2) : VertexBlobBuilder
     {
-        current = 0;
+        vertices.floatAccess[idx++] = _vec.x;
+        vertices.floatAccess[idx++] = _vec.y;
 
         return this;
     }
 
-    public function hasNext() : Bool
+    public function addVector3(_vec : Vector3) : VertexBlobBuilder
     {
-        return current < vertices;
+        vertices.floatAccess[idx++] = _vec.x;
+        vertices.floatAccess[idx++] = _vec.y;
+        vertices.floatAccess[idx++] = _vec.z;
+
+        return this;
     }
 
-    public function next() : Vertex
+    public function addVector4(_vec : Vector4) : VertexBlobBuilder
     {
-        final baseOffset = current++ * 9;
+        vertices.floatAccess[idx++] = _vec.x;
+        vertices.floatAccess[idx++] = _vec.y;
+        vertices.floatAccess[idx++] = _vec.z;
+        vertices.floatAccess[idx++] = _vec.w;
 
-        position.offset = baseOffset + 0;
-        colour.offset   = baseOffset + 3;
-        texcoord.offset = baseOffset + 7;
+        return this;
+    }
 
-        return vertex;
+    public function addVertex(_pos : Vector3, _col : Vector4, _tex : Vector2) : VertexBlobBuilder
+    {
+        addVector3(_pos);
+        addVector4(_col);
+        addVector2(_tex);
+
+        return this;
+    }
+
+    public function addArray(_array : Array<Float>) : VertexBlobBuilder
+    {
+        for (v in _array)
+        {
+            vertices.floatAccess[idx++] = v;
+        }
+
+        return this;
     }
 }

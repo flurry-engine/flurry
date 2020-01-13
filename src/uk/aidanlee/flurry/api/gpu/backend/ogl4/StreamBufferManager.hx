@@ -182,47 +182,47 @@ class StreamBufferManager
 
             for (j in 0...geomStartIdx)
             {
-                idxValueOffset += _command.geometry[j].vertices.length;
-                idxWriteOffset += _command.geometry[j].indices.length;
-                vtxWriteOffset += _command.geometry[j].vertices.length * 9;
+                // idxValueOffset += _command.geometry[j].vertices.length;
+                // idxWriteOffset += _command.geometry[j].indices.length;
+                // vtxWriteOffset += _command.geometry[j].vertices.length * 9;
             }
 
             jobQueue.queue(() -> {
                 for (j in geomStartIdx...geomEndIdx)
                 {
-                    for (index in _command.geometry[j].indices)
-                    {
-                        idxBuffer[idxWriteOffset++] = idxValueOffset + index;
-                    }
+                    // for (index in _command.geometry[j].indices)
+                    // {
+                    //     idxBuffer[idxWriteOffset++] = idxValueOffset + index;
+                    // }
 
-                    for (vertex in _command.geometry[j].vertices)
-                    {
-                        // Copy the vertex into another vertex.
-                        // This allows us to apply the transformation without permanently modifying the original geometry.
-                        transformationVectors[i].copyFrom(vertex.position);
-                        transformationVectors[i].transform(_command.geometry[j].transformation.world.matrix);
+                    // for (vertex in _command.geometry[j].vertices)
+                    // {
+                    //     // Copy the vertex into another vertex.
+                    //     // This allows us to apply the transformation without permanently modifying the original geometry.
+                    //     transformationVectors[i].copyFrom(vertex.position);
+                    //     transformationVectors[i].transform(_command.geometry[j].transformation.world.matrix);
 
-                        vtxBuffer[vtxWriteOffset++] = transformationVectors[i].x;
-                        vtxBuffer[vtxWriteOffset++] = transformationVectors[i].y;
-                        vtxBuffer[vtxWriteOffset++] = transformationVectors[i].z;
-                        vtxBuffer[vtxWriteOffset++] = vertex.color.r;
-                        vtxBuffer[vtxWriteOffset++] = vertex.color.g;
-                        vtxBuffer[vtxWriteOffset++] = vertex.color.b;
-                        vtxBuffer[vtxWriteOffset++] = vertex.color.a;
-                        vtxBuffer[vtxWriteOffset++] = vertex.texCoord.x;
-                        vtxBuffer[vtxWriteOffset++] = vertex.texCoord.y;
-                    }
+                    //     vtxBuffer[vtxWriteOffset++] = transformationVectors[i].x;
+                    //     vtxBuffer[vtxWriteOffset++] = transformationVectors[i].y;
+                    //     vtxBuffer[vtxWriteOffset++] = transformationVectors[i].z;
+                    //     vtxBuffer[vtxWriteOffset++] = vertex.color.r;
+                    //     vtxBuffer[vtxWriteOffset++] = vertex.color.g;
+                    //     vtxBuffer[vtxWriteOffset++] = vertex.color.b;
+                    //     vtxBuffer[vtxWriteOffset++] = vertex.color.a;
+                    //     vtxBuffer[vtxWriteOffset++] = vertex.texCoord.x;
+                    //     vtxBuffer[vtxWriteOffset++] = vertex.texCoord.y;
+                    // }
 
-                    idxValueOffset += _command.geometry[j].vertices.length;
+                    // idxValueOffset += _command.geometry[j].vertices.length;
                 }
             });
         }
 
         for (geom in _command.geometry)
         {
-            currentIdxTypePosition += geom.indices.length;
-            currentVtxTypePosition += geom.vertices.length * 9;
-            currentVertexPosition  += geom.vertices.length;
+            // currentIdxTypePosition += geom.indices.length;
+            // currentVtxTypePosition += geom.vertices.length * 9;
+            // currentVertexPosition  += geom.vertices.length;
         }
 
         jobQueue.wait();

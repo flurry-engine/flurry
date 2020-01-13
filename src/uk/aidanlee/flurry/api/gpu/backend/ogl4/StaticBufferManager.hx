@@ -145,30 +145,30 @@ class StaticBufferManager
 
                 for (j in 0...geomStartIdx)
                 {
-                    vtxIdx += _command.geometry[j].vertices.length * 9;
-                    idxIdx += _command.geometry[j].indices.length;
+                    // vtxIdx += _command.geometry[j].vertices.length * 9;
+                    // idxIdx += _command.geometry[j].indices.length;
                 }
 
                 jobQueue.queue(() -> {
                     for (j in geomStartIdx...geomEndIdx)
                     {
-                        for (index in _command.geometry[j].indices)
-                        {
-                            idxPtr[idxIdx++] = index;
-                        }
+                        // for (index in _command.geometry[j].indices)
+                        // {
+                        //     idxPtr[idxIdx++] = index;
+                        // }
 
-                        for (vertex in _command.geometry[j].vertices)
-                        {
-                            vtxPtr[vtxIdx++] = vertex.position.x;
-                            vtxPtr[vtxIdx++] = vertex.position.y;
-                            vtxPtr[vtxIdx++] = vertex.position.z;
-                            vtxPtr[vtxIdx++] = vertex.color.r;
-                            vtxPtr[vtxIdx++] = vertex.color.g;
-                            vtxPtr[vtxIdx++] = vertex.color.b;
-                            vtxPtr[vtxIdx++] = vertex.color.a;
-                            vtxPtr[vtxIdx++] = vertex.texCoord.x;
-                            vtxPtr[vtxIdx++] = vertex.texCoord.y;
-                        }
+                        // for (vertex in _command.geometry[j].vertices)
+                        // {
+                        //     vtxPtr[vtxIdx++] = vertex.position.x;
+                        //     vtxPtr[vtxIdx++] = vertex.position.y;
+                        //     vtxPtr[vtxIdx++] = vertex.position.z;
+                        //     vtxPtr[vtxIdx++] = vertex.color.r;
+                        //     vtxPtr[vtxIdx++] = vertex.color.g;
+                        //     vtxPtr[vtxIdx++] = vertex.color.b;
+                        //     vtxPtr[vtxIdx++] = vertex.color.a;
+                        //     vtxPtr[vtxIdx++] = vertex.texCoord.x;
+                        //     vtxPtr[vtxIdx++] = vertex.texCoord.y;
+                        // }
                     }
                 });
             }
@@ -187,13 +187,13 @@ class StaticBufferManager
 
                     for (geom in _command.geometry)
                     {
-                        mdiCommands[writePos++] = geom.indices.length;
-                        mdiCommands[writePos++] = 1;
-                        mdiCommands[writePos++] = cmdIdxOffset;
-                        mdiCommands[writePos++] = cmdVtxOffset;
-                        mdiCommands[writePos++] = 0;
+                        // mdiCommands[writePos++] = geom.indices.length;
+                        // mdiCommands[writePos++] = 1;
+                        // mdiCommands[writePos++] = cmdIdxOffset;
+                        // mdiCommands[writePos++] = cmdVtxOffset;
+                        // mdiCommands[writePos++] = 0;
 
-                        cmdVtxOffset += geom.vertices.length;
+                        // cmdVtxOffset += geom.vertices.length;
                     }
                 }
                 else
@@ -204,12 +204,12 @@ class StaticBufferManager
 
                     for (geom in _command.geometry)
                     {
-                        mdiCommands[writePos++] = geom.vertices.length;
-                        mdiCommands[writePos++] = 1;
-                        mdiCommands[writePos++] = cmdVtxOffset;
-                        mdiCommands[writePos++] = 0;
+                        // mdiCommands[writePos++] = geom.vertices.length;
+                        // mdiCommands[writePos++] = 1;
+                        // mdiCommands[writePos++] = cmdVtxOffset;
+                        // mdiCommands[writePos++] = 0;
 
-                        cmdVtxOffset += geom.vertices.length;
+                        // cmdVtxOffset += geom.vertices.length;
                     }
                 }
             });

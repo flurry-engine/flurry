@@ -277,8 +277,8 @@ class Batcher
                 state.change(geom);
             }
 
-            vertices    += geom.vertices.length;
-            indices     += geom.indices.length;
+            vertices    += geom.vertices.floatAccess.length;
+            indices     += geom.indices.shortAccess.length;
             commandName += geom.id;
             commandGeom.push(geom);
 

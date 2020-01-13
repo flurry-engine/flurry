@@ -2,6 +2,8 @@ package uk.aidanlee.flurry.api.gpu.geometry;
 
 import signals.Signal1;
 import signals.Signal.Signal0;
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
+import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
@@ -16,8 +18,8 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 using Safety;
 
 typedef GeometryOptions = {
-    var ?vertices   : Array<Vertex>;
-    var ?indices    : Array<Int>;
+    var ?vertices   : VertexBlob;
+    var ?indices    : IndexBlob;
     var ?transform  : Transformation;
     var ?shader     : ShaderResource;
     var ?textures   : Array<ImageResource>;
@@ -63,13 +65,13 @@ class Geometry
     /**
      * Vertex data of this geometry.
      */
-    public final vertices : Array<Vertex>;
+    public final vertices : VertexBlob;
 
     /**
      * Index data of this geometry.
      * If it is empty then the geometry is drawn unindexed.
      */
-    public final indices : Array<Int>;
+    public final indices : IndexBlob;
 
     /**
      * Default colour of this geometry.
@@ -197,9 +199,9 @@ class Geometry
 
         changed        = new Signal0();
         dropped        = new Signal1<Geometry>();
-        uploadType     = _options.uploadType.or(Stream);
-        vertices       = _options.vertices  .or([]);
-        indices        = _options.indices   .or([]);
+        uploadType     = Stream;
+        vertices       = _options.vertices;
+        indices        = _options.indices;
         transformation = _options.transform .or(new Transformation());
         textures       = _options.textures  .or([]);
         samplers       = _options.samplers  .or([]);
@@ -228,8 +230,6 @@ class Geometry
     {
         dropped.dispatch(this);
 
-        indices.resize(0);
-        vertices.resize(0);
         textures.resize(0);
         samplers.resize(0);
 
@@ -242,6 +242,6 @@ class Geometry
      */
     public function isIndexed()
     {
-        return indices.length != 0;
+        return indices.shortAccess.length != 0;
     }
 }
