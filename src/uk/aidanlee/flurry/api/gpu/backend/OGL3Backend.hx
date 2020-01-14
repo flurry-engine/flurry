@@ -191,7 +191,7 @@ class OGL3Backend implements IRendererBackend
 
     var glContext : GLContext;
 
-    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _rendererStats : RendererStats, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
+    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
     {
         resourceEvents = _resourceEvents;
         displayEvents  = _displayEvents;
@@ -296,6 +296,9 @@ class OGL3Backend implements IRendererBackend
         commandQueue    = [];
     }
 
+    /**
+     * Clear the backbuffer and empty the command queue.
+     */
     public function preDraw()
     {
         target = null;
@@ -311,21 +314,9 @@ class OGL3Backend implements IRendererBackend
      * Upload geometries to the gpu VRAM.
      * @param _commands Array of commands to upload.
      */
-    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void
+    public function queue(_command : GeometryDrawCommand)
     {
-        for (command in _commands)
-        {
-            commandQueue.push(command);
-        }
-    }
-
-    /**
-     * Upload buffer data to the gpu VRAM.
-     * @param _commands Array of commands to upload.
-     */
-    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void
-    {
-        //
+        commandQueue.push(_command);
     }
 
     /**
@@ -333,7 +324,7 @@ class OGL3Backend implements IRendererBackend
      * @param _commands    Commands to draw.
      * @param _recordStats Record stats for this submit.
      */
-    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void
+    public function submit()
     {
         uploadGeometryData();
         uploadMatrixData();

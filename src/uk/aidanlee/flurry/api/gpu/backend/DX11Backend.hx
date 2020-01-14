@@ -110,11 +110,6 @@ class DX11Backend implements IRendererBackend
     final displayEvents : DisplayEvents;
 
     /**
-     * Access to the renderer which owns this backend.
-     */
-    final rendererStats : RendererStats;
-
-    /**
      * Constant vector instance which is used to transform vertices when copying into the vertex buffer.
      */
     final transformationVectors : Array<Vector3>;
@@ -307,11 +302,10 @@ class DX11Backend implements IRendererBackend
 
     var window : Window;
 
-    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _rendererStats : RendererStats, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
+    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
     {
         resourceEvents = _resourceEvents;
         displayEvents  = _displayEvents;
-        rendererStats  = _rendererStats;
 
         createWindow(_windowConfig);
 
@@ -588,139 +582,89 @@ class DX11Backend implements IRendererBackend
      * Upload geometries to the gpu VRAM.
      * @param _commands Array of commands to upload.
      */
-    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void
+    public function queue(_command : GeometryDrawCommand)
     {
-        // Map the buffer.
-        if (context.map(vertexBuffer, 0, WriteDiscard, 0, mappedVertexBuffer) != 0)
-        {
-            throw new DX11MappingBufferException('Vertex Buffer');
-        }
+        // // Map the buffer.
+        // if (context.map(vertexBuffer, 0, WriteDiscard, 0, mappedVertexBuffer) != 0)
+        // {
+        //     throw new DX11MappingBufferException('Vertex Buffer');
+        // }
 
-        if (context.map(indexBuffer, 0, WriteDiscard, 0, mappedIndexBuffer) != 0)
-        {
-            throw new DX11MappingBufferException('Index Buffer');
-        }
+        // if (context.map(indexBuffer, 0, WriteDiscard, 0, mappedIndexBuffer) != 0)
+        // {
+        //     throw new DX11MappingBufferException('Index Buffer');
+        // }
 
-        // Get a buffer to float32s so we can copy our float32array over.
-        var vtxDst : Pointer<Float32> = mappedVertexBuffer.data.reinterpret();
-        var idxDst : Pointer<UInt16>  = mappedIndexBuffer.data.reinterpret();
+        // // Get a buffer to float32s so we can copy our float32array over.
+        // var vtxDst : Pointer<Float32> = mappedVertexBuffer.data.reinterpret();
+        // var idxDst : Pointer<UInt16>  = mappedIndexBuffer.data.reinterpret();
 
-        for (command in _commands)
-        {
-            commandVtxOffsets.set(command.id, vertexOffset);
-            commandIdxOffsets.set(command.id, indexOffset);
+        // for (command in _commands)
+        // {
+        //     commandVtxOffsets.set(command.id, vertexOffset);
+        //     commandIdxOffsets.set(command.id, indexOffset);
 
-            var split     = Maths.floor(command.geometry.length / RENDERER_THREADS);
-            var remainder = command.geometry.length % RENDERER_THREADS;
-            var range     = command.geometry.length < RENDERER_THREADS ? command.geometry.length : RENDERER_THREADS;
-            for (i in 0...range)
-            {
-                var geomStartIdx   = split * i;
-                var geomEndIdx     = geomStartIdx + (i != range - 1 ? split : split + remainder);
-                var idxValueOffset = 0;
-                var idxWriteOffset = indexOffset;
-                var vtxWriteOffset = vertexFloatOffset;
+        //     var split     = Maths.floor(command.geometry.length / RENDERER_THREADS);
+        //     var remainder = command.geometry.length % RENDERER_THREADS;
+        //     var range     = command.geometry.length < RENDERER_THREADS ? command.geometry.length : RENDERER_THREADS;
+        //     for (i in 0...range)
+        //     {
+        //         var geomStartIdx   = split * i;
+        //         var geomEndIdx     = geomStartIdx + (i != range - 1 ? split : split + remainder);
+        //         var idxValueOffset = 0;
+        //         var idxWriteOffset = indexOffset;
+        //         var vtxWriteOffset = vertexFloatOffset;
 
-                for (j in 0...geomStartIdx)
-                {
-                    // idxValueOffset += command.geometry[j].vertices.length;
-                    // idxWriteOffset += command.geometry[j].indices.length;
-                    // vtxWriteOffset += command.geometry[j].vertices.length * 9;
-                }
+        //         for (j in 0...geomStartIdx)
+        //         {
+        //             // idxValueOffset += command.geometry[j].vertices.length;
+        //             // idxWriteOffset += command.geometry[j].indices.length;
+        //             // vtxWriteOffset += command.geometry[j].vertices.length * 9;
+        //         }
 
-                jobQueue.queue(() -> {
-                    for (j in geomStartIdx...geomEndIdx)
-                    {
-                        // for (index in command.geometry[j].indices)
-                        // {
-                        //     idxDst[idxWriteOffset++] = idxValueOffset + index;
-                        // }
+        //         jobQueue.queue(() -> {
+        //             for (j in geomStartIdx...geomEndIdx)
+        //             {
+        //                 // for (index in command.geometry[j].indices)
+        //                 // {
+        //                 //     idxDst[idxWriteOffset++] = idxValueOffset + index;
+        //                 // }
 
-                        // for (vertex in command.geometry[j].vertices)
-                        // {
-                        //     // Copy the vertex into another vertex.
-                        //     // This allows us to apply the transformation without permanently modifying the original geometry.
-                        //     transformationVectors[i].copyFrom(vertex.position);
-                        //     transformationVectors[i].transform(command.geometry[j].transformation.world.matrix);
+        //                 // for (vertex in command.geometry[j].vertices)
+        //                 // {
+        //                 //     // Copy the vertex into another vertex.
+        //                 //     // This allows us to apply the transformation without permanently modifying the original geometry.
+        //                 //     transformationVectors[i].copyFrom(vertex.position);
+        //                 //     transformationVectors[i].transform(command.geometry[j].transformation.world.matrix);
 
-                        //     vtxDst[vtxWriteOffset++] = transformationVectors[i].x;
-                        //     vtxDst[vtxWriteOffset++] = transformationVectors[i].y;
-                        //     vtxDst[vtxWriteOffset++] = transformationVectors[i].z;
-                        //     vtxDst[vtxWriteOffset++] = vertex.color.r;
-                        //     vtxDst[vtxWriteOffset++] = vertex.color.g;
-                        //     vtxDst[vtxWriteOffset++] = vertex.color.b;
-                        //     vtxDst[vtxWriteOffset++] = vertex.color.a;
-                        //     vtxDst[vtxWriteOffset++] = vertex.texCoord.x;
-                        //     vtxDst[vtxWriteOffset++] = vertex.texCoord.y;
-                        // }
+        //                 //     vtxDst[vtxWriteOffset++] = transformationVectors[i].x;
+        //                 //     vtxDst[vtxWriteOffset++] = transformationVectors[i].y;
+        //                 //     vtxDst[vtxWriteOffset++] = transformationVectors[i].z;
+        //                 //     vtxDst[vtxWriteOffset++] = vertex.color.r;
+        //                 //     vtxDst[vtxWriteOffset++] = vertex.color.g;
+        //                 //     vtxDst[vtxWriteOffset++] = vertex.color.b;
+        //                 //     vtxDst[vtxWriteOffset++] = vertex.color.a;
+        //                 //     vtxDst[vtxWriteOffset++] = vertex.texCoord.x;
+        //                 //     vtxDst[vtxWriteOffset++] = vertex.texCoord.y;
+        //                 // }
 
-                        // idxValueOffset += command.geometry[j].vertices.length;
-                    }
-                });
-            }
+        //                 // idxValueOffset += command.geometry[j].vertices.length;
+        //             }
+        //         });
+        //     }
 
-            for (geom in command.geometry)
-            {
-                // vertexFloatOffset += geom.vertices.length * 9;
-                // indexOffset       += geom.indices.length;
-                // vertexOffset      += geom.vertices.length;
-            }
+        //     for (geom in command.geometry)
+        //     {
+        //         // vertexFloatOffset += geom.vertices.length * 9;
+        //         // indexOffset       += geom.indices.length;
+        //         // vertexOffset      += geom.vertices.length;
+        //     }
 
-            jobQueue.wait();
-        }
+        //     jobQueue.wait();
+        // }
 
-        context.unmap(vertexBuffer, 0);
-        context.unmap(indexBuffer, 0);
-    }
-
-    /**
-     * Upload buffer data to the gpu VRAM.
-     * @param _commands Array of commands to upload.
-     */
-    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void
-    {
-        if (context.map(vertexBuffer, 0, WriteDiscard, 0, mappedVertexBuffer) != 0)
-        {
-            throw new DX11MappingBufferException('Vertex Buffer');
-        }
-
-        if (context.map(indexBuffer, 0, WriteDiscard, 0, mappedIndexBuffer) != 0)
-        {
-            throw new DX11MappingBufferException('Index Buffer');
-        }
-
-        // Get a buffer to float32s so we can copy our float32array over.
-        var idxDst : Pointer<UInt16>  = mappedIndexBuffer.data.reinterpret();
-        var vtxDst : Pointer<Float32> = mappedVertexBuffer.data.reinterpret();
-
-        idxDst.incBy(indexOffset);
-        vtxDst.incBy(vertexOffset * 9);
-
-        for (command in _commands)
-        {
-            commandIdxOffsets.set(command.id, indexOffset);
-            commandVtxOffsets.set(command.id, vertexOffset);
-            bufferModelMatrix.set(command.id, command.model);
-
-            memcpy(
-                idxDst,
-                Pointer.arrayElem(command.idxData.view.buffer.getData(), command.idxStartIndex * 2),
-                command.indices * 2);
-            memcpy(
-                vtxDst,
-                Pointer.arrayElem(command.vtxData.view.buffer.getData(), command.vtxStartIndex * 9 * 4),
-                command.vertices * 9 * 4);
-
-            indexOffset       += command.indices;
-            vertexOffset      += command.vertices;
-            vertexFloatOffset += command.vertices * 9;
-
-            idxDst.incBy(command.indices);
-            vtxDst.incBy(command.vertices * 9);
-        }
-
-        context.unmap(indexBuffer, 0);
-        context.unmap(vertexBuffer, 0);
+        // context.unmap(vertexBuffer, 0);
+        // context.unmap(indexBuffer, 0);
     }
 
     /**
@@ -728,33 +672,26 @@ class DX11Backend implements IRendererBackend
      * @param _commands    Commands to draw.
      * @param _recordStats Record stats for this submit.
      */
-    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void
+    public function submit()
     {
-        for (command in _commands)
-        {
-            var idxOffset = commandIdxOffsets.get(command.id);
-            var vtxOffset = commandVtxOffsets.get(command.id);
+        // for (command in _commands)
+        // {
+        //     var idxOffset = commandIdxOffsets.get(command.id);
+        //     var vtxOffset = commandVtxOffsets.get(command.id);
 
-            // Set context state
-            setState(command);
+        //     // Set context state
+        //     setState(command);
 
-            // Draw
-            if (command.indices > 0)
-            {               
-                context.drawIndexed(command.indices, idxOffset, vtxOffset);
-            }
-            else
-            {
-                context.draw(command.vertices, vtxOffset);
-            }
-
-            // Record stats
-            if (_recordStats)
-            {
-                rendererStats.dynamicDraws++;
-                rendererStats.totalVertices += command.vertices;
-            }
-        }
+        //     // Draw
+        //     if (command.indices > 0)
+        //     {               
+        //         context.drawIndexed(command.indices, idxOffset, vtxOffset);
+        //     }
+        //     else
+        //     {
+        //         context.draw(command.vertices, vtxOffset);
+        //     }
+        // }
     }
 
     /**
@@ -801,8 +738,6 @@ class DX11Backend implements IRendererBackend
         // Set the scissor to the new width and height.
         // This is needed to force a clip change so it doesn't stay with the old backbuffer size.
         scissor.set(0, 0, _width, _height);
-
-        rendererStats.targetSwaps++;
     }
 
     /**
@@ -1057,8 +992,6 @@ class DX11Backend implements IRendererBackend
             context.omSetRenderTargets([
                 target == null ? backbuffer.renderTargetView : textureResources[target.id].renderTargetView
             ], depthStencilView);
-
-            rendererStats.targetSwaps++;
         }
 
         // Write shader cbuffers and set it
@@ -1072,8 +1005,6 @@ class DX11Backend implements IRendererBackend
             context.iaSetInputLayout(shaderResource.inputLayout);
             context.vsSetShader(shaderResource.vertexShader, null);
             context.psSetShader(shaderResource.pixelShader, null);
-
-            rendererStats.shaderSwaps++;
         }
 
         depthStencilDescription.depthEnable    = _command.depth.depthTesting;
@@ -1128,8 +1059,6 @@ class DX11Backend implements IRendererBackend
             nativeView.height   = viewport.h;
 
             context.rsSetViewports([ nativeView ]);
-
-            rendererStats.viewportSwaps++;
         }
 
         // Update scissor
@@ -1159,8 +1088,6 @@ class DX11Backend implements IRendererBackend
             nativeClip.bottom = Std.int(cmdClip.y + cmdClip.h);
 
             context.rsSetScissorRects([ nativeClip ]);
-
-            rendererStats.scissorSwaps++;
         }
 
         // SET BLENDING OPTIONS AND APPLY TO CONTEXT
@@ -1182,8 +1109,6 @@ class DX11Backend implements IRendererBackend
             throw new Dx11ResourceCreationException('ID3D11BlendState');
         }
         context.omSetBlendState(blendState, [ 1, 1, 1, 1 ], 0xffffffff);
-
-        rendererStats.blendSwaps++;
 
         // Set primitive topology
         if (topology != _command.primitive)
@@ -1235,8 +1160,6 @@ class DX11Backend implements IRendererBackend
 
             context.psSetShaderResources(0, shaderTextureResources);
             context.psSetSamplers(0, shaderTextureSamplers);
-
-            rendererStats.textureSwaps += _command.textures.length;
         }
         else
         {

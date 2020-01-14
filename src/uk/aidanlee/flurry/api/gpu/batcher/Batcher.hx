@@ -198,26 +198,15 @@ class Batcher
         dirty = true;
     }
 
-    /**
-     * Generates a series of geometry draw commands from the geometry in this batcher.
-     * @param _output Optional existing array to put all the draw commands in.
-     * @return Array<GeometryDrawCommand>
-     */
-    public function batch(_output : Array<GeometryDrawCommand> = null) : Array<GeometryDrawCommand>
+    public function batch(_queue : (_geometry : GeometryDrawCommand) -> Void)
     {
         // Clear the array of geometry to drop.
         geometryToDrop.resize(0);
 
-        // If we are not provided an array, create a new one which we will return.
-        if (_output == null)
-        {
-            _output = [];
-        }
-
         // Exit early if there is no geometry to batch.
         if (geometry.length == 0)
         {
-            return _output;
+            return;
         }
 
         var startIndex  = 0;
@@ -245,7 +234,7 @@ class Batcher
             // Line lists and triangle lists cannot (yet).
             if (!batchablePrimitive(geom) || state.requiresChange(geom))
             {
-                _output.push(new GeometryDrawCommand(
+                _queue(new GeometryDrawCommand(
                     commandGeom,
                     commandName,
                     state.uploadType,
@@ -291,7 +280,7 @@ class Batcher
         // Push any remaining verticies.
         if (vertices > 0)
         {
-            _output.push(new GeometryDrawCommand(
+            _queue(new GeometryDrawCommand(
                 commandGeom,
                 commandName,
                 state.uploadType,
@@ -320,8 +309,6 @@ class Batcher
         {
             removeGeometry(geom);
         }
-
-        return _output;
     }
 
     /**

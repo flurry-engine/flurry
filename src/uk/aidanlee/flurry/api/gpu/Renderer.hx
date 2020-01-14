@@ -23,11 +23,6 @@ class Renderer
     public final api : RendererBackend;
 
     /**
-     * Class which will store information about the previous frame.
-     */
-    public final stats : RendererStats;
-
-    /**
      * Batcher manager, responsible for creating, deleteing, and sorting batchers.
      */
     final batchers : Array<Batcher>;
@@ -42,12 +37,11 @@ class Renderer
         queuedCommands = [];
         batchers       = [];
         api            = _rendererConfig.backend;
-        stats          = new RendererStats();
-        backend         = switch api
+        backend        = switch api
         {
             #if cpp
-                case Ogl4: new uk.aidanlee.flurry.api.gpu.backend.ogl4.OGL4Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
-                case Ogl3: new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+                case Ogl4: new uk.aidanlee.flurry.api.gpu.backend.ogl4.OGL4Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
+                case Ogl3: new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
 
                 case Dx11:
                     #if windows
@@ -59,14 +53,14 @@ class Renderer
 
             case Auto:
                 // #if (cpp && windows)
-                //     new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+                //     new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
                 // #elseif cpp
-                //     new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+                //     new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
                 // #else
                 //     new MockBackend(_resourceEvents);
                 // #end
 
-                new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+                new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
             case _: new MockBackend(_resourceEvents);
         }
     }
@@ -74,8 +68,6 @@ class Renderer
     public function preRender()
     {
         backend.preDraw();
-
-        stats.reset();
     }
 
     /**
@@ -87,16 +79,12 @@ class Renderer
 
         ArraySort.sort(batchers, sortBatchers);
 
-        stats.totalBatchers += batchers.length;
-
-        queuedCommands.resize(0);
         for (batcher in batchers)
         {
-            batcher.batch(cast queuedCommands);
+            batcher.batch(backend.queue);
         }
 
-        backend.uploadGeometryCommands(cast queuedCommands);
-        backend.submitCommands(queuedCommands);
+        backend.submit();
     }
 
     public function postRender()

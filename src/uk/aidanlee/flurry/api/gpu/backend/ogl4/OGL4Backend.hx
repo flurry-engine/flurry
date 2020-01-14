@@ -71,11 +71,6 @@ class OGL4Backend implements IRendererBackend
     final displayEvents : DisplayEvents;
 
     /**
-     * Access to the renderer who owns this backend.
-     */
-    final rendererStats : RendererStats;
-
-    /**
      * The single VBO used by the backend.
      */
     final glVbo : Int;
@@ -250,13 +245,12 @@ class OGL4Backend implements IRendererBackend
      * @param _dynamicVertices    The maximum number of dynamic vertices in the buffer.
      * @param _unchangingVertices The maximum number of static vertices in the buffer.
      */
-    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _rendererStats : RendererStats, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
+    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
     {
         createWindow(_windowConfig);
 
         resourceEvents = _resourceEvents;
         displayEvents  = _displayEvents;
-        rendererStats  = _rendererStats;
 
         var staticVertexBuffer = _rendererConfig.unchangingVertices;
         var streamVertexBuffer = _rendererConfig.dynamicVertices;
@@ -383,32 +377,16 @@ class OGL4Backend implements IRendererBackend
      * Upload a series of geometry commands into the current buffer range.
      * @param _commands Commands to upload.
      */
-    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>)
+    public function queue(_command : GeometryDrawCommand)
     {
-        for (command in _commands)
-        {
-            switch (command.uploadType)
-            {
-                case Static : staticStorage.uploadGeometry(command);
-                case Stream, Immediate : streamStorage.uploadGeometry(command);
-            }
-        }
-    }
-
-    /**
-     * Upload a series of buffer commands into the current buffer range.
-     * @param _commands Buffer commands.
-     */
-    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>)
-    {
-        for (command in _commands)
-        {
-            switch (command.uploadType)
-            {
-                case Static : staticStorage.uploadBuffer(command);
-                case Stream, Immediate : streamStorage.uploadBuffer(command);
-            }
-        }
+        // for (command in _commands)
+        // {
+        //     switch (command.uploadType)
+        //     {
+        //         case Static : staticStorage.uploadGeometry(command);
+        //         case Stream, Immediate : streamStorage.uploadGeometry(command);
+        //     }
+        // }
     }
 
     /**
@@ -416,18 +394,18 @@ class OGL4Backend implements IRendererBackend
      * @param _commands    Commands to draw.
      * @param _recordStats If stats are to be recorded.
      */
-    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true)
+    public function submit()
     {
-        for (command in _commands)
-        {
-            setState(command, _recordStats);
+        // for (command in _commands)
+        // {
+        //     setState(command, _recordStats);
 
-            switch (command.uploadType)
-            {
-                case Static : staticStorage.draw(command);
-                case Stream, Immediate : streamStorage.draw(command);
-            }
-        }
+        //     switch (command.uploadType)
+        //     {
+        //         case Static : staticStorage.draw(command);
+        //         case Stream, Immediate : streamStorage.draw(command);
+        //     }
+        // }
     }
 
     /**
@@ -732,7 +710,7 @@ class OGL4Backend implements IRendererBackend
      * @param _command      Command to set the state for.
      * @param _enableStats If stats are to be recorded.
      */
-    function setState(_command : DrawCommand, _enableStats : Bool)
+    function setState(_command : DrawCommand)
     {
         // Set the render target.
         // If the target is null then the backbuffer is used.
@@ -757,11 +735,6 @@ class OGL4Backend implements IRendererBackend
             }
 
             glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebuffer);
-
-            if (_enableStats)
-            {
-                rendererStats.targetSwaps++;
-            }
         }
 
         // Apply shader changes.
@@ -769,11 +742,6 @@ class OGL4Backend implements IRendererBackend
         {
             shader = _command.shader;
             glUseProgram(shaderPrograms.get(shader.id));
-            
-            if (_enableStats)
-            {
-                rendererStats.shaderSwaps++;
-            }
         }
 
         // Apply depth and stencil settings.
@@ -839,11 +807,6 @@ class OGL4Backend implements IRendererBackend
 
             // OpenGL works 0x0 is bottom left so we need to flip the y.
             glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
-
-            if (_enableStats)
-            {
-                rendererStats.viewportSwaps++;
-            }
         }
 
         // Apply the scissor clip.
@@ -871,11 +834,6 @@ class OGL4Backend implements IRendererBackend
 
             // OpenGL works 0x0 is bottom left so we need to flip the y.
             glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
-
-            if (_enableStats)
-            {
-                rendererStats.scissorSwaps++;
-            }
         }
 
         // Set the blending
@@ -887,24 +845,14 @@ class OGL4Backend implements IRendererBackend
                 _command.dstRGB.getBlendMode(),
                 _command.srcAlpha.getBlendMode(),
                 _command.dstAlpha.getBlendMode());
-
-            if (_enableStats)
-            {
-                rendererStats.blendSwaps++;
-            }
         }
         else
         {
             glDisable(GL_BLEND);
-
-            if (_enableStats)
-            {
-                rendererStats.blendSwaps++;
-            }
         }
 
         // Update shader blocks and bind any textures required.
-        setUniforms(_command, _enableStats);
+        setUniforms(_command);
     }
 
     /**
@@ -912,7 +860,7 @@ class OGL4Backend implements IRendererBackend
      * @param _command     Command to set the state for.
      * @param _enableStats If stats are to be recorded.
      */
-    function setUniforms(_command : DrawCommand, _enableStats : Bool)
+    function setUniforms(_command : DrawCommand)
     {
         var cache = shaderUniforms.get(_command.shader.id);
         var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
@@ -959,8 +907,6 @@ class OGL4Backend implements IRendererBackend
             if (toChange > 0)
             {
                 glBindTextures(0, _command.textures.length, textureSlots);
-
-                rendererStats.textureSwaps += _command.textures.length;
             }
         }
         else

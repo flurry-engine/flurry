@@ -13,7 +13,7 @@ class MockBackend implements IRendererBackend
 {
     final resourceEvents : ResourceEvents;
 
-    final commands : Array<Int>;
+    final commands : Array<GeometryDrawCommand>;
 
     final textures : Map<String, ImageResource>;
 
@@ -35,51 +35,17 @@ class MockBackend implements IRendererBackend
         commands.resize(0);
     }
 
-    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>)
+    public function queue(_command : GeometryDrawCommand)
     {
-        for (command in _commands)
-        {
-            checkCommand(command);
-
-            if (!commands.has(command.id))
-            {
-                commands.push(command.id);
-            }
-            else
-            {
-                throw new CommandAlreadyUploadedException();
-            }
-        }
+        commands.push(_command);
     }
 
-    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>)
+    public function submit()
     {
-        for (command in _commands)
+        for (command in commands)
         {
             checkCommand(command);
-
-            if (!commands.has(command.id))
-            {
-                commands.push(command.id);
-            }
-            else
-            {
-                throw new CommandAlreadyUploadedException();
-            }
         }
-    }
-
-    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true)
-    {
-        for (command in _commands)
-        {
-            if (!commands.has(command.id))
-            {
-                throw new CommandNotUploadedException();
-            }
-
-            checkCommand(command);
-        }        
     }
 
     public function postDraw()

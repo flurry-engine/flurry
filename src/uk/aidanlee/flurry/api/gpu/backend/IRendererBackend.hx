@@ -1,8 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 
 /**
  * Backend renderers should implements this interface.
@@ -19,20 +17,14 @@ interface IRendererBackend
      * Upload geometries to the gpu VRAM.
      * @param _commands Array of commands to upload.
      */
-    function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void;
-
-    /**
-     * Upload buffer data to the gpu VRAM.
-     * @param _commands Array of commands to upload.
-     */
-    function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void;
+    function queue(_command : GeometryDrawCommand) : Void;
 
     /**
      * Draw an array of commands. Command data must be uploaded to the GPU before being used.
      * @param _commands    Commands to draw.
      * @param _recordStats Record stats for this submit.
      */
-    function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void;
+    function submit() : Void;
 
     /**
      * Called after all draw() functions.
