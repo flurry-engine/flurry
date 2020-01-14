@@ -58,13 +58,15 @@ class Renderer
             #end
 
             case Auto:
-                #if (cpp && windows)
-                    new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
-                #elseif cpp
-                    new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
-                #else
-                    new MockBackend(_resourceEvents);
-                #end
+                // #if (cpp && windows)
+                //     new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+                // #elseif cpp
+                //     new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+                // #else
+                //     new MockBackend(_resourceEvents);
+                // #end
+
+                new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
             case _: new MockBackend(_resourceEvents);
         }
     }
