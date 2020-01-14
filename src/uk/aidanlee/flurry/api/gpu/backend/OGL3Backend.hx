@@ -1,12 +1,9 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
 import cpp.UInt8;
-import cpp.UInt32;
-import haxe.io.Bytes;
 import haxe.Exception;
 import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
-import cpp.UInt16;
 import cpp.Float32;
 import cpp.Int32;
 import cpp.Pointer;
@@ -31,7 +28,6 @@ import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
@@ -74,6 +70,16 @@ class OGL3Backend implements IRendererBackend
     static final VERTEX_OFFSET_TEX = 28;
 
     /**
+     * Number of bytes in a 4x4 float matrix
+     */
+    static final BYTES_PER_MATRIX = 4 * 4 * 4;
+
+    /**
+     * Number of bytes needed to store the model, view, and projection matrix for each draw command.
+     */
+    static final BYTES_PER_DRAW_MATRICES = 4 * 4 * 4 * 3;
+
+    /**
      * Signals for when shaders and images are created and removed.
      */
     final resourceEvents : ResourceEvents;
@@ -108,6 +114,9 @@ class OGL3Backend implements IRendererBackend
      */
     final indexBuffer : UInt16Array;
 
+    /**
+     * Buffer used to store model, view, and projection matrices for all draws.
+     */
     final matrixBuffer : Float32Array;
 
     /**
@@ -153,10 +162,15 @@ class OGL3Backend implements IRendererBackend
      */
     final defaultSampler : Int;
 
-    final matricesPerBatch : Int;
+    /**
+     * Number of bytes for each mvp matrix range.
+     * Includes padding for ubo alignment.
+     */
+    final matrixRangeSize : Int;
 
-    final batchByteAlignment : Int;
-
+    /**
+     * Queue all draw commands will be placed into.
+     */
     final commandQueue : Array<GeometryDrawCommand>;
 
     /**
@@ -276,9 +290,10 @@ class OGL3Backend implements IRendererBackend
         var uboAlignment = [ 0 ];
         glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, uboAlignment);
 
-        matricesPerBatch   = Std.int(Maths.min(maxUboSize[0] / 64, 65535));
-        batchByteAlignment = uboAlignment[0];
-        commandQueue       = [];
+        // var matricesPerBatch   = Std.int(Maths.min(maxUboSize[0] / 64, 65535));
+
+        matrixRangeSize = BYTES_PER_DRAW_MATRICES + Std.int(Maths.max(uboAlignment[0] - BYTES_PER_DRAW_MATRICES, 0));
+        commandQueue    = [];
     }
 
     public function preDraw()
@@ -573,7 +588,7 @@ class OGL3Backend implements IRendererBackend
         {
             switch val.type
             {
-                case Matrix4: blockSize += 64;
+                case Matrix4: blockSize += BYTES_PER_MATRIX;
                 case Vector4: blockSize += 16;
                 case Int, Float: blockSize += 4;
             }
@@ -626,9 +641,6 @@ class OGL3Backend implements IRendererBackend
 
         final matDst = matrixBuffer.view.buffer.getData().address(0);
 
-        final bytesPerUbo = 3 * 4 * 4 * 4;
-        final postIncBy   = Std.int(Maths.max(batchByteAlignment - bytesPerUbo, 0));
-
         var bytesUploaded = 0;
 
         for (command in commandQueue)
@@ -646,7 +658,7 @@ class OGL3Backend implements IRendererBackend
                 memcpy(matDst.add(bytesUploaded +  64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
                 memcpy(matDst.add(bytesUploaded + 128), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
 
-                bytesUploaded += (bytesPerUbo + postIncBy);
+                bytesUploaded += matrixRangeSize;
             }
         }
 
@@ -679,8 +691,8 @@ class OGL3Backend implements IRendererBackend
                     {
                         case Matrix4:
                             final mat : Float32BufferData = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            memcpy(dst.add(pos), mat.bytes.getData().address(mat.byteOffset), 64);
-                            pos += 64;
+                            memcpy(dst.add(pos), mat.bytes.getData().address(mat.byteOffset), BYTES_PER_MATRIX);
+                            pos += BYTES_PER_MATRIX;
                         case Vector4:
                             final vec : Float32BufferData = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
                             memcpy(dst.add(pos), vec.bytes.getData().address(vec.byteOffset), 16);
@@ -735,7 +747,7 @@ class OGL3Backend implements IRendererBackend
 
                 idxOffset += geometry.indices.buffer.byteLength;
                 vtxOffset += Std.int(geometry.vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
-                matOffset += batchByteAlignment;
+                matOffset += matrixRangeSize;
             }
         }
     }
