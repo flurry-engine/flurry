@@ -45,7 +45,7 @@ class Renderer
 
                 case Dx11:
                     #if windows
-                        new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
+                        new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
                     #else
                         throw new BackendNotAvailableException(api);
                     #end
