@@ -4,7 +4,6 @@ import haxe.Exception;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 
 using Lambda;

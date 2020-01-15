@@ -24,8 +24,6 @@ class GeometryDrawCommand extends DrawCommand
         _uploadType : UploadType,
         _camera     : Camera,
         _clip       : Null<Rectangle>,
-        _vertices   : Int,
-        _indices    : Int,
         _primitive  : PrimitiveType,
         _target     : ImageResource,
         _shader     : ShaderResource,
@@ -43,6 +41,6 @@ class GeometryDrawCommand extends DrawCommand
     {
         geometry = _geometry;
 
-        super(_id, _uploadType, _camera, _clip, _vertices, _indices, _primitive, _target, _shader, _uniforms, _textures, _samplers, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
+        super(_id, _uploadType, _camera, _clip, _primitive, _target, _shader, _uniforms, _textures, _samplers, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
     }
 }

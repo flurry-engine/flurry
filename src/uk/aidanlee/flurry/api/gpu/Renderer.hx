@@ -40,7 +40,7 @@ class Renderer
         backend        = switch api
         {
             #if cpp
-                case Ogl4: new uk.aidanlee.flurry.api.gpu.backend.ogl4.OGL4Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
+                case Ogl4: new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
                 case Ogl3: new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
 
                 case Dx11:

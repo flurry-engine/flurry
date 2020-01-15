@@ -23,7 +23,6 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Maths;
@@ -605,20 +604,32 @@ class OGL3Backend implements IRendererBackend
 
         for (command in commandQueue)
         {
-            for (i in 0...command.geometry.length)
+            for (geometry in command.geometry)
             {
-                memcpy(
-                    idxDst.add(idxUploaded),
-                    command.geometry[i].indices.buffer.bytes.getData().address(command.geometry[i].indices.buffer.byteOffset),
-                    command.geometry[i].indices.buffer.byteLength);
+                switch geometry.data
+                {
+                    case Indexed(_vertices, _indices):
+                        memcpy(
+                            idxDst.add(idxUploaded),
+                            _indices.buffer.bytes.getData().address(_indices.buffer.byteOffset),
+                            _indices.buffer.byteLength);
 
-                memcpy(
-                    vtxDst.add(vtxUploaded),
-                    command.geometry[i].vertices.buffer.bytes.getData().address(command.geometry[i].vertices.buffer.byteOffset),
-                    command.geometry[i].vertices.buffer.byteLength);
+                        memcpy(
+                            vtxDst.add(vtxUploaded),
+                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
+                            _vertices.buffer.byteLength);
 
-                vtxUploaded += command.geometry[i].vertices.buffer.byteLength;
-                idxUploaded += command.geometry[i].indices.buffer.byteLength;
+                        vtxUploaded += _vertices.buffer.byteLength;
+                        idxUploaded += _indices.buffer.byteLength;
+
+                    case UnIndexed(_vertices):
+                        memcpy(
+                            vtxDst.add(vtxUploaded),
+                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
+                            _vertices.buffer.byteLength);
+
+                        vtxUploaded += _vertices.buffer.byteLength;
+                }
             }
         }
 
@@ -721,23 +732,25 @@ class OGL3Backend implements IRendererBackend
             {
                 glBindBufferRange(GL_UNIFORM_BUFFER, 0, glMatrixUbo, matOffset, 192);
 
-                // Draw the actual vertices
-                if (geometry.indices.buffer.byteLength > 0)
-                {
-                    untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})',
-                        command.primitive.getPrimitiveType(),
-                        geometry.indices.shortAccess.length,
-                        GL_UNSIGNED_SHORT,
-                        idxOffset,
-                        vtxOffset);
-                }
-                else
-                {
-                    glDrawArrays(command.primitive.getPrimitiveType(), vtxOffset, command.vertices);
+                switch geometry.data {
+                    case Indexed(_vertices, _indices):
+                        untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})',
+                            command.primitive.getPrimitiveType(),
+                            _indices.shortAccess.length,
+                            GL_UNSIGNED_SHORT,
+                            idxOffset,
+                            vtxOffset);
+
+                        idxOffset += _indices.buffer.byteLength;
+                        vtxOffset += Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
+                    case UnIndexed(_vertices):
+                        final numVertices = Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
+
+                        glDrawArrays(command.primitive.getPrimitiveType(), vtxOffset, numVertices);
+
+                        vtxOffset += numVertices;
                 }
 
-                idxOffset += geometry.indices.buffer.byteLength;
-                vtxOffset += Std.int(geometry.vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
                 matOffset += matrixRangeSize;
             }
         }

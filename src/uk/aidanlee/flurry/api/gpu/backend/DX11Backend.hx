@@ -67,7 +67,6 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
 import uk.aidanlee.flurry.api.gpu.textures.Filtering;

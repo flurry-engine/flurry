@@ -37,16 +37,17 @@ class QuadGeometry extends Geometry
         final u2 = _options.region!.u2.or(1);
         final v2 = _options.region!.v2.or(1);
 
-        _options.vertices = new VertexBlobBuilder(9 * 4)
-            .addVertex(new Vector3(         0, _options.h), new Color(), new Vector2(u1, v2))
-            .addVertex(new Vector3(_options.w, _options.h), new Color(), new Vector2(u2, v2))
-            .addVertex(new Vector3(         0,          0), new Color(), new Vector2(u1, v1))
-            .addVertex(new Vector3(_options.w,          0), new Color(), new Vector2(u2, v1))
-            .vertices;
-
-        _options.indices = new IndexBlobBuilder(6)
-            .addArray([ 0, 1, 2, 2, 1, 3 ])
-            .indices;
+        _options.data = Indexed(
+            new VertexBlobBuilder(9 * 4)
+                .addVertex(new Vector3(         0, _options.h), new Color(), new Vector2(u1, v2))
+                .addVertex(new Vector3(_options.w, _options.h), new Color(), new Vector2(u2, v2))
+                .addVertex(new Vector3(         0,          0), new Color(), new Vector2(u1, v1))
+                .addVertex(new Vector3(_options.w,          0), new Color(), new Vector2(u2, v1))
+                .vertices,
+            new IndexBlobBuilder(6)
+                .addArray([ 0, 1, 2, 2, 1, 3 ])
+                .indices
+        );
 
         super(_options);
 

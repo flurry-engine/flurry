@@ -18,8 +18,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 using Safety;
 
 typedef GeometryOptions = {
-    var ?vertices   : VertexBlob;
-    var ?indices    : IndexBlob;
+    var ?data        : GeometryData;
     var ?transform  : Transformation;
     var ?shader     : ShaderResource;
     var ?textures   : Array<ImageResource>;
@@ -32,6 +31,12 @@ typedef GeometryOptions = {
     var ?blend      : Blending;
     var ?uniforms   : Uniforms;
     var ?uploadType : UploadType;
+}
+
+enum GeometryData
+{
+    Indexed(_vertices : VertexBlob, _indices : IndexBlob);
+    UnIndexed(_vertices : VertexBlob);
 }
 
 /**
@@ -63,17 +68,6 @@ class Geometry
     public final transformation : Transformation;
 
     /**
-     * Vertex data of this geometry.
-     */
-    public final vertices : VertexBlob;
-
-    /**
-     * Index data of this geometry.
-     * If it is empty then the geometry is drawn unindexed.
-     */
-    public final indices : IndexBlob;
-
-    /**
      * Default colour of this geometry.
      */
     public final color : Color;
@@ -102,6 +96,11 @@ class Geometry
      * All of the samplers which will be used to sample data from the corresponding texture.
      */
     public final samplers : Array<Null<SamplerState>>;
+
+    /**
+     * Vertex data of this geometry.
+     */
+    public var data : GeometryData;
 
     /**
      * The specific shader for the geometry.
@@ -200,8 +199,7 @@ class Geometry
         changed        = new Signal0();
         dropped        = new Signal1<Geometry>();
         uploadType     = Stream;
-        vertices       = _options.vertices;
-        indices        = _options.indices;
+        data           = _options.data;
         transformation = _options.transform .or(new Transformation());
         textures       = _options.textures  .or([]);
         samplers       = _options.samplers  .or([]);
@@ -235,13 +233,5 @@ class Geometry
 
         uniforms = null;
         shader   = null;
-    }
-
-    /**
-     * Convenience function to check if this geometry is indexed.
-     */
-    public function isIndexed()
-    {
-        return indices.shortAccess.length != 0;
     }
 }

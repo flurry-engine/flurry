@@ -1,4 +1,4 @@
-package uk.aidanlee.flurry.api.gpu.backend.ogl4;
+package uk.aidanlee.flurry.api.gpu.backend;
 
 import haxe.io.Bytes;
 import haxe.ds.Map;
@@ -30,7 +30,6 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.utils.opengl.GLSyncWrapper;
 
@@ -84,16 +83,6 @@ class OGL4Backend implements IRendererBackend
      * The single VAO which is bound once when the backend is created.
      */
     final glVao : Int;
-
-    /**
-     * Stores all stream draw commands.
-     */
-    final streamStorage : StreamBufferManager;
-
-    /**
-     * Stores all static draw commands.
-     */
-    final staticStorage : StaticBufferManager;
 
     /**
      * Constant vector instance which is used to transform vertices when copying into the vertex buffer.
@@ -305,8 +294,6 @@ class OGL4Backend implements IRendererBackend
         perspectiveYFlipVector = new Vector3(31, -1, 1);
         transformationVector   = new Vector3();
         identityMatrix         = new Matrix();
-        streamStorage          = new StreamBufferManager(staticVertexBuffer, staticIndexBuffer, streamVertexBuffer, streamIndexBuffer, vtxBuffer, idxBuffer);
-        staticStorage          = new StaticBufferManager(staticVertexBuffer, staticIndexBuffer, glVbo, glIbo);
         rangeSyncPrimitives    = [ for (i in 0...3) new GLSyncWrapper() ];
         currentRange           = 0;
 
@@ -364,7 +351,7 @@ class OGL4Backend implements IRendererBackend
             }
         }
 
-        streamStorage.unlockBuffers(currentRange);
+        // streamStorage.unlockBuffers(currentRange);
 
         clip.set(0, 0, backbuffer.width, backbuffer.height);
         glScissor(0, 0, backbuffer.width, backbuffer.height);
@@ -932,7 +919,7 @@ class OGL4Backend implements IRendererBackend
                 switch _command.uploadType
                 {
                     case Static:
-                        var rng = staticStorage.get(_command);
+                        var rng = null; // staticStorage.get(_command);
                         var ptr = Pointer.arrayElem(rng.matrixBuffer.bytes.getData(), 0);
                         Stdlib.memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
                         Stdlib.memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
@@ -951,7 +938,7 @@ class OGL4Backend implements IRendererBackend
                         
                     case Stream, Immediate:
                         var ptr   = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
-                        var model = streamStorage.getModelMatrix(_command.id);
+                        var model = null; // streamStorage.getModelMatrix(_command.id);
                         Stdlib.memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
                         Stdlib.memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
                         Stdlib.memcpy(ptr.incBy(64), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);

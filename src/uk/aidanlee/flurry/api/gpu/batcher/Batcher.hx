@@ -211,8 +211,6 @@ class Batcher
 
         var startIndex  = 0;
         var endIndex    = 0;
-        var vertices    = 0;
-        var indices     = 0;
         var commandName = 0;
         var commandGeom = [];
 
@@ -240,8 +238,6 @@ class Batcher
                     state.uploadType,
                     camera,
                     state.clip,
-                    vertices,
-                    indices,
                     state.primitive,
                     target,
                     state.shader,
@@ -257,8 +253,6 @@ class Batcher
                     state.blend.dstAlpha
                 ));
                 startIndex  = endIndex;
-                vertices    = 0;
-                indices     = 0;
 
                 commandGeom = [];
                 commandName = id;
@@ -266,8 +260,6 @@ class Batcher
                 state.change(geom);
             }
 
-            vertices    += geom.vertices.floatAccess.length;
-            indices     += geom.indices.shortAccess.length;
             commandName += geom.id;
             commandGeom.push(geom);
 
@@ -278,7 +270,7 @@ class Batcher
         }
 
         // Push any remaining verticies.
-        if (vertices > 0)
+        if (commandGeom.length > 0)
         {
             _queue(new GeometryDrawCommand(
                 commandGeom,
@@ -286,8 +278,6 @@ class Batcher
                 state.uploadType,
                 camera,
                 state.clip,
-                vertices,
-                indices,
                 state.primitive,
                 target,
                 state.shader,

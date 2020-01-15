@@ -40,16 +40,6 @@ class DrawCommand
     public final clip : Null<Rectangle>;
 
     /**
-     * Number of vertices in this draw command.
-     */
-    public final vertices : Int;
-
-    /**
-     * Number of indices in this draw command.
-     */
-    public final indices : Int;
-
-    /**
      * Primitive type of this draw command.
      */
     public final primitive : PrimitiveType;
@@ -98,8 +88,6 @@ class DrawCommand
         _uploadType : UploadType,
         _camera     : Camera,
         _clip       : Null<Rectangle>,
-        _vertices   : Int,
-        _indices    : Int,
         _primitive  : PrimitiveType,
         _target     : ImageResource,
         _shader     : ShaderResource,
@@ -119,8 +107,6 @@ class DrawCommand
         uploadType = _uploadType;
         camera     = _camera;
         clip       = _clip;
-        vertices   = _vertices;
-        indices    = _indices;
         primitive  = _primitive;
         target     = _target;
         shader     = _shader;

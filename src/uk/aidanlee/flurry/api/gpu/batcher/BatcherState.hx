@@ -56,9 +56,9 @@ class BatcherState
     public var blend (default, null) : Blending;
 
     /**
-     * If the current batch is indexed.
+     * The enum index of the current geometrys data type.
      */
-    public var indexed (default, null) : Bool;
+    public var vertexDataType (default, null) : Int;
 
     /**
      * The batcher this state belongs to.
@@ -118,7 +118,7 @@ class BatcherState
 
         if (_geom.uploadType  != uploadType) return true;
         if (_geom.primitive   != primitive ) return true;
-        if (_geom.isIndexed() != indexed   ) return true;
+        if (_geom.data.getIndex() != vertexDataType) return true;
         if (!_geom.blend.equals(blend)) return true;
 
         if (_geom.clip == null && clip != null) return true;
@@ -157,9 +157,9 @@ class BatcherState
             samplers[i] = _geom.samplers[i];
         }
 
-        uploadType = _geom.uploadType;
-        primitive  = _geom.primitive;
-        indexed    = _geom.isIndexed();
+        uploadType     = _geom.uploadType;
+        primitive      = _geom.primitive;
+        vertexDataType = _geom.data.getIndex();
         blend.copyFrom(_geom.blend);
 
         if (clip == null)
