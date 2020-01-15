@@ -18,7 +18,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 using Safety;
 
 typedef GeometryOptions = {
-    var ?data        : GeometryData;
+    var ?data       : GeometryData;
     var ?transform  : Transformation;
     var ?shader     : ShaderResource;
     var ?textures   : Array<ImageResource>;

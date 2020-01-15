@@ -359,11 +359,8 @@ class Batcher
         }
 
         // Sort by primitive.
-        var aPrimitiveIndex = _a.primitive.getIndex();
-        var bPrimitiveIndex = _b.primitive.getIndex();
-
-        if (aPrimitiveIndex < bPrimitiveIndex) return -1;
-        if (aPrimitiveIndex > bPrimitiveIndex) return  1;
+        if ((cast _a.primitive : Int) < (cast _b.primitive : Int)) return -1;
+        if ((cast _a.primitive : Int) > (cast _b.primitive : Int)) return  1;
 
         // Sort by clip.
         if (_a.clip != _b.clip)
