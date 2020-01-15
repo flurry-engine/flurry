@@ -16,11 +16,6 @@ using Safety;
 class BatcherState
 {
     /**
-     * Provides a hint to the backend on how to store the vertex data.
-     */
-    public var uploadType (default, null) : UploadType;
-
-    /**
      * Geometric primitive currently active in this batcher.
      */
     public var primitive (default, null) : PrimitiveType;
@@ -120,7 +115,6 @@ class BatcherState
             if (samplers[i] != null && _geom.samplers[i] != null && !samplers[i].equal(_geom.samplers[i])) return true;
         }
 
-        if (_geom.uploadType  != uploadType) return true;
         if (_geom.primitive   != primitive ) return true;
         if (_geom.data.getIndex() != vertexDataType) return true;
         if (!_geom.blend.equals(blend)) return true;
@@ -163,7 +157,6 @@ class BatcherState
             samplers[i] = _geom.samplers[i];
         }
 
-        uploadType     = _geom.uploadType;
         primitive      = _geom.primitive;
         vertexDataType = _geom.data.getIndex();
         blend.copyFrom(_geom.blend);

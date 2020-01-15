@@ -105,11 +105,6 @@ class Batcher
     var dirty : Bool;
 
     /**
-     * All of the geometry to remove after batching.
-     */
-    final geometryToDrop : Array<Geometry>;
-
-    /**
      * The state of the batcher.
      */
     final state : BatcherState;
@@ -123,7 +118,6 @@ class Batcher
         id = Hash.uniqueHash();
         
         geometry       = [];
-        geometryToDrop = [];
         shader         = _options.shader;
         camera         = _options.camera;
         target         = _options.target;
@@ -200,9 +194,6 @@ class Batcher
 
     public function batch(_queue : (_geometry : GeometryDrawCommand) -> Void)
     {
-        // Clear the array of geometry to drop.
-        geometryToDrop.resize(0);
-
         // Exit early if there is no geometry to batch.
         if (geometry.length == 0)
         {
@@ -235,7 +226,6 @@ class Batcher
                 _queue(new GeometryDrawCommand(
                     commandGeom,
                     commandName,
-                    state.uploadType,
                     camera,
                     state.clip,
                     state.primitive,
@@ -262,11 +252,6 @@ class Batcher
 
             commandName += geom.id;
             commandGeom.push(geom);
-
-            if (geom.uploadType == Immediate)
-            {
-                geometryToDrop.push(geom);
-            }
         }
 
         // Push any remaining verticies.
@@ -275,7 +260,6 @@ class Batcher
             _queue(new GeometryDrawCommand(
                 commandGeom,
                 commandName,
-                state.uploadType,
                 camera,
                 state.clip,
                 state.primitive,
@@ -293,12 +277,6 @@ class Batcher
                 state.blend.dstAlpha
             ));
         }
-
-        // Filter out any immediate geometry.
-        for (geom in geometryToDrop)
-        {
-            removeGeometry(geom);
-        }
     }
 
     /**
@@ -309,7 +287,6 @@ class Batcher
         state.drop();
         
         geometry.resize(0);
-        geometryToDrop.resize(0);
     }
 
     /**

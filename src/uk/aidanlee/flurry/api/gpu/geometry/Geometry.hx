@@ -30,7 +30,6 @@ typedef GeometryOptions = {
     var ?batchers   : Array<Batcher>;
     var ?blend      : Blending;
     var ?uniforms   : Uniforms;
-    var ?uploadType : UploadType;
 }
 
 enum GeometryData
@@ -87,11 +86,6 @@ class Geometry
      * Clipping rectangle for this geometry. Null if none.
      */
     public final clip : Null<Rectangle>;
-
-    /**
-     * Provides a hint to the renderer about how this geometries data should be used.
-     */
-    public final uploadType : UploadType;
 
     /**
      * All of the images this image will provide to the shader.
@@ -204,7 +198,6 @@ class Geometry
 
         changed        = new Signal0();
         dropped        = new Signal1<Geometry>();
-        uploadType     = Stream;
         data           = _options.data;
         shader         = _options.shader    .or(None);
         transformation = _options.transform .or(new Transformation());

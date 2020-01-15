@@ -916,40 +916,40 @@ class OGL4Backend implements IRendererBackend
                 // The matrix buffer for static draws is uploaded in the static draw manager.
                 // 
                 // TODO : have static buffer draws use the default shader ssbo?
-                switch _command.uploadType
-                {
-                    case Static:
-                        var rng = null; // staticStorage.get(_command);
-                        var ptr = Pointer.arrayElem(rng.matrixBuffer.bytes.getData(), 0);
-                        Stdlib.memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
-                        Stdlib.memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
-                        glNamedBufferSubData(rng.glMatrixBuffer, 0, rng.matrixBuffer.length, rng.matrixBuffer.bytes.getData());
+                // switch _command.uploadType
+                // {
+                //     case Static:
+                //         var rng = null; // staticStorage.get(_command);
+                //         var ptr = Pointer.arrayElem(rng.matrixBuffer.bytes.getData(), 0);
+                //         Stdlib.memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
+                //         Stdlib.memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
+                //         glNamedBufferSubData(rng.glMatrixBuffer, 0, rng.matrixBuffer.length, rng.matrixBuffer.bytes.getData());
 
-                        if (ssbo != rng.glMatrixBuffer)
-                        {
-                            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, cache.blockBindings[i], rng.glMatrixBuffer);
-                            ssbo = rng.glMatrixBuffer;
-                        }
-                        if (cmds != rng.glCommandBuffer)
-                        {
-                            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, rng.glCommandBuffer);
-                            cmds = rng.glCommandBuffer;
-                        }
+                //         if (ssbo != rng.glMatrixBuffer)
+                //         {
+                //             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, cache.blockBindings[i], rng.glMatrixBuffer);
+                //             ssbo = rng.glMatrixBuffer;
+                //         }
+                //         if (cmds != rng.glCommandBuffer)
+                //         {
+                //             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, rng.glCommandBuffer);
+                //             cmds = rng.glCommandBuffer;
+                //         }
                         
-                    case Stream, Immediate:
-                        var ptr   = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
-                        var model = null; // streamStorage.getModelMatrix(_command.id);
-                        Stdlib.memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
-                        Stdlib.memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
-                        Stdlib.memcpy(ptr.incBy(64), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
-                        glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
+                //     case Stream, Immediate:
+                //         var ptr   = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
+                //         var model = null; // streamStorage.getModelMatrix(_command.id);
+                //         Stdlib.memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
+                //         Stdlib.memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
+                //         Stdlib.memcpy(ptr.incBy(64), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
+                //         glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
 
-                        if (ssbo != cache.blockBuffers[i])
-                        {
-                            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
-                            ssbo = cache.blockBuffers[i];
-                        }
-                }
+                //         if (ssbo != cache.blockBuffers[i])
+                //         {
+                //             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
+                //             ssbo = cache.blockBuffers[i];
+                //         }
+                // }
             }
             else
             {

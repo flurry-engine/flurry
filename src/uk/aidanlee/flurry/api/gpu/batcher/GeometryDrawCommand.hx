@@ -21,7 +21,6 @@ class GeometryDrawCommand extends DrawCommand
     public inline function new(
         _geometry   : Array<Geometry>,
         _id         : Int,
-        _uploadType : UploadType,
         _camera     : Camera,
         _clip       : Null<Rectangle>,
         _primitive  : PrimitiveType,
@@ -41,6 +40,6 @@ class GeometryDrawCommand extends DrawCommand
     {
         geometry = _geometry;
 
-        super(_id, _uploadType, _camera, _clip, _primitive, _target, _shader, _uniforms, _textures, _samplers, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
+        super(_id, _camera, _clip, _primitive, _target, _shader, _uniforms, _textures, _samplers, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
     }
 }

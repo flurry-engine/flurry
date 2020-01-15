@@ -25,11 +25,6 @@ class DrawCommand
     public final id : Int;
 
     /**
-     * Provides a hint to the backend on how to upload the vertex data.
-     */
-    public final uploadType : UploadType;
-
-    /**
      * Projection matrix to draw this command with.
      */
     public final camera : Camera;
@@ -85,7 +80,6 @@ class DrawCommand
 
     inline public function new(
         _id         : Int,
-        _uploadType : UploadType,
         _camera     : Camera,
         _clip       : Null<Rectangle>,
         _primitive  : PrimitiveType,
@@ -104,7 +98,6 @@ class DrawCommand
     )
     {
         id         = _id;
-        uploadType = _uploadType;
         camera     = _camera;
         clip       = _clip;
         primitive  = _primitive;
