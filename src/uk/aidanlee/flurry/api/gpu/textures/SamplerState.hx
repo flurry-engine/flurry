@@ -1,16 +1,14 @@
 package uk.aidanlee.flurry.api.gpu.textures;
 
-using haxe.EnumTools;
-
 class SamplerState
 {
-    public var uClamping : EdgeClamping;
+    public final uClamping : EdgeClamping;
 
-    public var vClamping : EdgeClamping;
+    public final vClamping : EdgeClamping;
 
-    public var minification : Filtering;
+    public final minification : Filtering;
 
-    public var magnification : Filtering;
+    public final magnification : Filtering;
 
     public function new(
         _uClamping     : EdgeClamping,
@@ -36,10 +34,10 @@ class SamplerState
     public function hash() : Int
     {
         var hash = 23;
-        hash *= 31 + uClamping.getIndex();
-        hash *= 31 + vClamping.getIndex();
-        hash *= 31 + minification.getIndex();
-        hash *= 31 + magnification.getIndex();
+        hash *= 31 + (cast uClamping : Int);
+        hash *= 31 + (cast vClamping : Int);
+        hash *= 31 + (cast minification : Int);
+        hash *= 31 + (cast magnification : Int);
 
         return hash;
     }

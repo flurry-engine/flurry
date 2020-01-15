@@ -1,9 +1,9 @@
 package uk.aidanlee.flurry.api.gpu.textures;
 
-enum EdgeClamping
+enum abstract EdgeClamping(Int)
 {
-    Wrap;
-    Mirror;
-    Clamp;
-    Border;
+    var Wrap;
+    var Mirror;
+    var Clamp;
+    var Border;
 }
