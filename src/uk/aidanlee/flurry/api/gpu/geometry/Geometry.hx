@@ -18,9 +18,9 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 using Safety;
 
 typedef GeometryOptions = {
-    var ?data       : GeometryData;
     var ?transform  : Transformation;
-    var ?shader     : ShaderResource;
+    var ?data       : GeometryData;
+    var ?shader     : GeometryShader;
     var ?textures   : Array<ImageResource>;
     var ?samplers   : Array<Null<SamplerState>>;
     var ?depth      : Float;
@@ -37,6 +37,12 @@ enum GeometryData
 {
     Indexed(_vertices : VertexBlob, _indices : IndexBlob);
     UnIndexed(_vertices : VertexBlob);
+}
+
+enum GeometryShader
+{
+    None;
+    Shader(_shader : ShaderResource);
 }
 
 /**
@@ -106,9 +112,9 @@ class Geometry
      * The specific shader for the geometry.
      * If null the batchers shader is used.
      */
-    public var shader (default, set) : Null<ShaderResource>;
+    public var shader (default, set) : GeometryShader;
 
-    inline function set_shader(_shader : Null<ShaderResource>) : Null<ShaderResource> {
+    inline function set_shader(_shader : GeometryShader) : GeometryShader {
         shader = _shader;
 
         changed.dispatch();
@@ -200,6 +206,7 @@ class Geometry
         dropped        = new Signal1<Geometry>();
         uploadType     = Stream;
         data           = _options.data;
+        shader         = _options.shader    .or(None);
         transformation = _options.transform .or(new Transformation());
         textures       = _options.textures  .or([]);
         samplers       = _options.samplers  .or([]);
@@ -208,7 +215,6 @@ class Geometry
         color          = _options.color     .or(new Color());
         blend          = _options.blend     .or(new Blending());
         clip           = _options.clip;
-        shader         = _options.shader;
         uniforms       = _options.uniforms;
 
         // Add to batchers.

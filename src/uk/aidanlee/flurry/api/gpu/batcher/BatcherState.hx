@@ -96,7 +96,11 @@ class BatcherState
             return true;
         }
 
-        var usedShader = _geom.shader.or(batcher.shader);
+        final usedShader = switch _geom.shader
+        {
+            case None : batcher.shader;
+            case Shader(_shader) : _shader;
+        }
 
         if (usedShader.id != shader.id) return true;
 
@@ -134,10 +138,12 @@ class BatcherState
      */
     public function change(_geom : Geometry)
     {
-        var usedShader = _geom.shader.or(batcher.shader);
-
-        shader   = usedShader;
-        uniforms = _geom.uniforms.or(usedShader.uniforms);
+        shader = switch _geom.shader
+        {
+            case None : batcher.shader;
+            case Shader(_shader) : _shader;
+        }
+        uniforms = _geom.uniforms.or(shader.uniforms);
 
         if (_geom.textures.length != textures.length)
         {

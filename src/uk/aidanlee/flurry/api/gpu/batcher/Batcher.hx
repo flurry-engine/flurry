@@ -336,14 +336,22 @@ class Batcher
         if (_a.depth > _b.depth) return  1;
 
         // Sort by texture.
-        if (_a.shader != null && _b.shader != null)
+        switch _a.shader
         {
-            if (_a.shader.id < _b.shader.id) return -1;
-            if (_a.shader.id > _b.shader.id) return  1;
-        }
-        {
-            if (_a.shader != null && _b.shader == null) return  1;
-            if (_a.shader == null && _b.shader != null) return -1;
+            case None:
+                switch _b.shader
+                {
+                    case None: // no op
+                    case Shader(_): return -1;
+                }
+            case Shader(_shaderA):
+                switch _b.shader
+                {
+                    case None: return 1;
+                    case Shader(_shaderB):
+                        if (_shaderA.id < _shaderB.id) return -1;
+                        if (_shaderA.id > _shaderB.id) return  1;
+                }
         }
 
         // Sort by texture.
