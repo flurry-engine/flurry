@@ -4,8 +4,6 @@ import cpp.UInt8;
 import haxe.Exception;
 import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
-import cpp.Float32;
-import cpp.Int32;
 import cpp.Pointer;
 import cpp.Stdlib.memcpy;
 import opengl.GL.*;
@@ -38,6 +36,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
 using Safety;
+using Lambda;
 using cpp.NativeArray;
 using uk.aidanlee.flurry.utils.opengl.GLConverters;
 
@@ -667,32 +666,33 @@ class OGL3Backend implements IRendererBackend
         glBufferSubData(GL_UNIFORM_BUFFER, 0, bytesUploaded, matrixBuffer.view.buffer.getData());
     }
 
+    /**
+     * Iterate over all uniform blobs provided by the command and update its UBO.
+     * Uniform blobs and their blocks are matched by their name.
+     * An exception will be thrown if it cannot find a matching block.
+     * @param _command Command to pull uniforms from.
+     */
     function uploadUniformData(_command : GeometryDrawCommand)
     {
         // Upload uniform data
         final cache = shaderUniforms.get(_command.shader.id);
 
-        var uniformIndex = 0;
-
-        // Upload and bind all buffer data.
-        for (i in 0...cache.layout.blocks.length)
+        for (block in _command.uniforms)
         {
-            if (cache.layout.blocks[i].name != 'flurry_matrices')
-            {
-                glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[i]);
+            final index = findBlockIndexByName(block.name, cache.layout.blocks);
 
-                final dst : Pointer<UInt8> = Pointer
-                    .fromRaw(glMapBufferRange(GL_UNIFORM_BUFFER, 0, cache.blockSizes[i], GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT))
-                    .reinterpret();
+            glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[index]);
 
-                final binding = cache.blockBindings[i];
+            final dst : Pointer<UInt8> = Pointer
+                .fromRaw(glMapBufferRange(GL_UNIFORM_BUFFER, 0, cache.blockSizes[index], GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT))
+                .reinterpret();
 
-                final src = _command.uniforms[binding - 1].buffer.bytes.getData().address(0);
-                
-                memcpy(dst, src, cache.blockSizes[i]);
+            memcpy(
+                dst,
+                block.buffer.bytes.getData().address(0),
+                cache.blockSizes[index]);
 
-                glUnmapBuffer(GL_UNIFORM_BUFFER);
-            }
+            glUnmapBuffer(GL_UNIFORM_BUFFER);
         }
     }
 
@@ -1039,6 +1039,19 @@ class OGL3Backend implements IRendererBackend
 
         return new BackBuffer(_width, _height, 1, tex[0], rbo[0], fbo[0]);
     }
+
+    function findBlockIndexByName(_name : String, _blocks : Array<ShaderBlock>) : Int
+    {
+        for (i in 0..._blocks.length)
+        {
+            if (_blocks[i].name == _name)
+            {
+                return i;
+            }
+        }
+
+        throw new GL32UniformBlockNotFoundException(_name);
+    }
 }
 
 /**
@@ -1188,5 +1201,13 @@ private class GL32NotEnoughTexturesException extends Exception
     public function new(_shaderID : String, _drawCommandID : Int, _expected : Int, _actual : Int)
     {
         super('Shader $_shaderID expects $_expected textures but the draw command $_drawCommandID only provided $_actual');
+    }
+}
+
+private class GL32UniformBlockNotFoundException extends Exception
+{
+    public function new(_blockName)
+    {
+        super('Unable to find a uniform block with the name $_blockName');
     }
 }
