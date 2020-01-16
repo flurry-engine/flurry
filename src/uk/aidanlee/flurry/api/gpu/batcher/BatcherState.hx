@@ -1,10 +1,11 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
+import haxe.ds.ReadOnlyArray;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending;
-import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 
@@ -28,7 +29,7 @@ class BatcherState
     /**
      * The uniform values currently active in this batcher.
      */
-    public var uniforms (default, null) : Uniforms;
+    public var uniforms (default, null) : ReadOnlyArray<UniformBlob>;
 
     /**
      * The textures currently active in this batcher.
@@ -74,6 +75,7 @@ class BatcherState
     {
         textures     = [];
         samplers     = [];
+        uniforms     = [];
         batcher      = _batcher;
         blend        = new Blending();
         internalClip = new Rectangle();
@@ -86,27 +88,36 @@ class BatcherState
      */
     public function requiresChange(_geom : Geometry) : Bool
     {
-        if (shader == null)
-        {
-            return true;
-        }
-
+        // Check shader ID
         final usedShader = switch _geom.shader
         {
             case None : batcher.shader;
             case Shader(_shader) : _shader;
+            case Uniforms(_shader, _) : _shader;
         }
-
         if (usedShader.id != shader.id) return true;
 
-        if (_geom.uniforms.or(usedShader.uniforms).id != uniforms.id) return true;
+        // Check uniforms
+        final usedUniforms = switch _geom.shader
+        {
+            case None : [];
+            case Shader(_) : [];
+            case Uniforms(_, _uniforms) : _uniforms;
+        }
+        if (usedUniforms.length != uniforms.length) return true;
+        for (i in 0...uniforms.length)
+        {
+            if (uniforms[i] != usedUniforms[i]) return true;
+        }
 
+        // Check textures
         if (_geom.textures.length != textures.length) return true;
         for (i in 0...textures.length)
         {
             if (textures[i].id != _geom.textures[i].id) return true;
         }
 
+        // Check samplers
         if (_geom.samplers.length != samplers.length) return true;
         for (i in 0...samplers.length)
         {
@@ -136,8 +147,14 @@ class BatcherState
         {
             case None : batcher.shader;
             case Shader(_shader) : _shader;
+            case Uniforms(_shader, _) : _shader;
         }
-        uniforms = _geom.uniforms.or(shader.uniforms);
+        uniforms = switch _geom.shader
+        {
+            case None : [];
+            case Shader(_) : [];
+            case Uniforms(_, _uniforms) : _uniforms;
+        }
 
         if (_geom.textures.length != textures.length)
         {

@@ -1,5 +1,6 @@
 package;
 
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob.UniformBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.geometry.Color;
 import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
@@ -24,20 +25,33 @@ class ShaderUniforms extends Flurry
 
     override function onReady()
     {
-        var u1 = new Uniforms();
-        u1.vector4.set('colour', new Color(1, 1, 1));
+        final u1 = new UniformBlobBuilder("colours")
+            .addVector4('colour', new Color(1.0, 1.0, 1.0))
+            .uniformBlob();
 
-        var u2 = new Uniforms();
-        u2.vector4.set('colour', new Color(1, 0.5, 0.5));
+        final u2 = new UniformBlobBuilder("colours")
+            .addVector4('colour', new Color(1.0, 0.5, 0.5))
+            .uniformBlob();
 
-        var u3 = new Uniforms();
-        u3.vector4.set('colour', new Color(0.5, 0.5, 1));
+        final u3 = new UniformBlobBuilder("colours")
+            .addVector4('colour', new Color(0.5, 0.5, 1.0))
+            .uniformBlob();
 
-        var camera  = new Camera2D(display.width, display.height);
-        var batcher = renderer.createBatcher({ shader : resources.get('colourise', ShaderResource), camera : camera });
+        final camera  = new Camera2D(display.width, display.height);
+        final shader  = resources.get('colourise', ShaderResource);
+        final batcher = renderer.createBatcher({ shader : shader, camera : camera });
 
-        new QuadGeometry({ textures : [ resources.get('tank1', ImageResource) ], batchers : [ batcher ], uniforms : u1 }).position.set_xy(  0, 128);
-        new QuadGeometry({ textures : [ resources.get('tank2', ImageResource) ], batchers : [ batcher ], uniforms : u2 }).position.set_xy(256, 128);
-        new QuadGeometry({ textures : [ resources.get('tank3', ImageResource) ], batchers : [ batcher ], uniforms : u3 }).position.set_xy(512, 128);
+        new QuadGeometry({
+            textures : [ resources.get('tank1', ImageResource) ],
+            batchers : [ batcher ],
+            shader   : Uniforms(shader, [ u1 ]) }).position.set_xy(  0, 128);
+        new QuadGeometry({
+            textures : [ resources.get('tank2', ImageResource) ],
+            batchers : [ batcher ],
+            shader   : Uniforms(shader, [ u2 ]) }).position.set_xy(256, 128);
+        new QuadGeometry({
+            textures : [ resources.get('tank3', ImageResource) ],
+            batchers : [ batcher ],
+            shader   : Uniforms(shader, [ u3 ]) }).position.set_xy(512, 128);
     }
 }

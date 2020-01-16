@@ -320,12 +320,27 @@ class Batcher
                 {
                     case None: // no op
                     case Shader(_): return -1;
+                    case Uniforms(_, _): return -1;
                 }
             case Shader(_shaderA):
                 switch _b.shader
                 {
                     case None: return 1;
                     case Shader(_shaderB):
+                        if (_shaderA.id < _shaderB.id) return -1;
+                        if (_shaderA.id > _shaderB.id) return  1;
+                    case Uniforms(_shaderB, _):
+                        if (_shaderA.id < _shaderB.id) return -1;
+                        if (_shaderA.id > _shaderB.id) return  1;
+                }
+            case Uniforms(_shaderA, _):
+                switch _b.shader
+                {
+                    case None: return 1;
+                    case Shader(_shaderB):
+                        if (_shaderA.id < _shaderB.id) return -1;
+                        if (_shaderA.id > _shaderB.id) return  1;
+                    case Uniforms(_shaderB, _):
                         if (_shaderA.id < _shaderB.id) return -1;
                         if (_shaderA.id > _shaderB.id) return  1;
                 }

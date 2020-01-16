@@ -1,14 +1,15 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import haxe.ds.ReadOnlyArray;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.gpu.BlendMode;
 import uk.aidanlee.flurry.api.gpu.DepthOptions;
 import uk.aidanlee.flurry.api.gpu.StencilOptions;
-import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 
 class GeometryDrawCommand extends DrawCommand
@@ -26,7 +27,7 @@ class GeometryDrawCommand extends DrawCommand
         _primitive  : PrimitiveType,
         _target     : ImageResource,
         _shader     : ShaderResource,
-        _uniforms   : Uniforms,
+        _uniforms   : ReadOnlyArray<UniformBlob>,
         _textures   : Array<ImageResource>,
         _samplers   : Array<Null<SamplerState>>,
         _depth      : DepthOptions,

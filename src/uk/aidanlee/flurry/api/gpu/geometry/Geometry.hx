@@ -1,11 +1,11 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import signals.Signal1;
 import signals.Signal.Signal0;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector3;
@@ -29,7 +29,6 @@ typedef GeometryOptions = {
     var ?primitive  : PrimitiveType;
     var ?batchers   : Array<Batcher>;
     var ?blend      : Blending;
-    var ?uniforms   : Uniforms;
 }
 
 enum GeometryData
@@ -42,6 +41,7 @@ enum GeometryShader
 {
     None;
     Shader(_shader : ShaderResource);
+    Uniforms(_shader : ShaderResource, _uniforms : Array<UniformBlob>);
 }
 
 /**
@@ -114,19 +114,6 @@ class Geometry
         changed.dispatch();
 
         return _shader;
-    }
-
-    /**
-     * Individual uniform values to override the shaders defaults.
-     */
-    public var uniforms (default, set) : Null<Uniforms>;
-
-    inline function set_uniforms(_uniforms : Null<Uniforms>) : Null<Uniforms> {
-        uniforms = _uniforms;
-
-        changed.dispatch();
-
-        return _uniforms;
     }
 
     /**
@@ -208,7 +195,6 @@ class Geometry
         color          = _options.color     .or(new Color());
         blend          = _options.blend     .or(new Blending());
         clip           = _options.clip;
-        uniforms       = _options.uniforms;
 
         // Add to batchers.
         if (_options.batchers != null)
@@ -229,8 +215,5 @@ class Geometry
 
         textures.resize(0);
         samplers.resize(0);
-
-        uniforms = null;
-        shader   = null;
     }
 }

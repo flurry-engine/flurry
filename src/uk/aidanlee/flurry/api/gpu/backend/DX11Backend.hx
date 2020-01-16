@@ -1127,7 +1127,7 @@ class DX11Backend implements IRendererBackend
     inline function setShaderValues(_command : DrawCommand)
     {
         var shaderResource = shaderResources.get(_command.shader.id);
-        var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
+        // var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
 
         // Set all textures.
         if (shaderResource.layout.textures.length <= _command.textures.length)
@@ -1195,23 +1195,23 @@ class DX11Backend implements IRendererBackend
                 // TODO : We should have some sort of error checking if the expected uniforms are not found.
                 for (val in shaderResource.layout.blocks[i].values)
                 {
-                    var pos = BytesPacker.getPosition(Dx11, shaderResource.layout.blocks[i].values, val.name);
+                    // var pos = BytesPacker.getPosition(Dx11, shaderResource.layout.blocks[i].values, val.name);
 
-                    switch val.type
-                    {
-                        case Matrix4:
-                            var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            memcpy(ptr.incBy(pos), (mat : Float32BufferData).bytes.getData().address((mat : Float32BufferData).byteOffset), 64);
-                        case Vector4:
-                            var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            memcpy(ptr.incBy(pos), (vec : Float32BufferData).bytes.getData().address((vec : Float32BufferData).byteOffset), 16);
-                        case Int:
-                            var dst : Pointer<Int32> = ptr.reinterpret();
-                            dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
-                        case Float:
-                            var dst : Pointer<Float32> = ptr.reinterpret();
-                            dst.setAt(Std.int(pos / 4), preferedUniforms.float.exists(val.name) ? preferedUniforms.float.get(val.name) : _command.shader.uniforms.float.get(val.name));
-                    }
+                    // switch val.type
+                    // {
+                    //     case Matrix4:
+                    //         var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
+                    //         memcpy(ptr.incBy(pos), (mat : Float32BufferData).bytes.getData().address((mat : Float32BufferData).byteOffset), 64);
+                    //     case Vector4:
+                    //         var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
+                    //         memcpy(ptr.incBy(pos), (vec : Float32BufferData).bytes.getData().address((vec : Float32BufferData).byteOffset), 16);
+                    //     case Int:
+                    //         var dst : Pointer<Int32> = ptr.reinterpret();
+                    //         dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
+                    //     case Float:
+                    //         var dst : Pointer<Float32> = ptr.reinterpret();
+                    //         dst.setAt(Std.int(pos / 4), preferedUniforms.float.exists(val.name) ? preferedUniforms.float.get(val.name) : _command.shader.uniforms.float.get(val.name));
+                    // }
                 }
             }
 

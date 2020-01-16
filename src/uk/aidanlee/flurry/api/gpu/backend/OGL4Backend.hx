@@ -850,7 +850,7 @@ class OGL4Backend implements IRendererBackend
     function setUniforms(_command : DrawCommand)
     {
         var cache = shaderUniforms.get(_command.shader.id);
-        var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
+        // var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
 
         // TEMP : Set all textures all the time.
         // TODO : Store all bound texture IDs and check before binding textures.
@@ -960,25 +960,25 @@ class OGL4Backend implements IRendererBackend
                 var pos = 0;
                 for (val in cache.layout.blocks[i].values)
                 {
-                    switch val.type
-                    {
-                        case Matrix4:
-                            var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            Stdlib.memcpy(ptr.incBy(pos), (mat : Float32BufferData).bytes.getData().address((mat : Float32BufferData).byteOffset), 64);
-                            pos += 64;
-                        case Vector4:
-                            var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            Stdlib.memcpy(ptr.incBy(pos), (vec : Float32BufferData).bytes.getData().address((vec : Float32BufferData).byteOffset), 16);
-                            pos += 16;
-                        case Int:
-                            var dst : Pointer<Int32> = ptr.reinterpret();
-                            dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
-                            pos += 4;
-                        case Float:
-                            var dst : Pointer<Float32> = ptr.reinterpret();
-                            dst.setAt(Std.int(pos / 4), preferedUniforms.float.exists(val.name) ? preferedUniforms.float.get(val.name) : _command.shader.uniforms.float.get(val.name));
-                            pos += 4;
-                    }
+                    // switch val.type
+                    // {
+                    //     case Matrix4:
+                    //         var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
+                    //         Stdlib.memcpy(ptr.incBy(pos), (mat : Float32BufferData).bytes.getData().address((mat : Float32BufferData).byteOffset), 64);
+                    //         pos += 64;
+                    //     case Vector4:
+                    //         var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
+                    //         Stdlib.memcpy(ptr.incBy(pos), (vec : Float32BufferData).bytes.getData().address((vec : Float32BufferData).byteOffset), 16);
+                    //         pos += 16;
+                    //     case Int:
+                    //         var dst : Pointer<Int32> = ptr.reinterpret();
+                    //         dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
+                    //         pos += 4;
+                    //     case Float:
+                    //         var dst : Pointer<Float32> = ptr.reinterpret();
+                    //         dst.setAt(Std.int(pos / 4), preferedUniforms.float.exists(val.name) ? preferedUniforms.float.get(val.name) : _command.shader.uniforms.float.get(val.name));
+                    //         pos += 4;
+                    // }
                 }
 
                 glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());

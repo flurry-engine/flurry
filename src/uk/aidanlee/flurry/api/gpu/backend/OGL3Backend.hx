@@ -670,8 +670,9 @@ class OGL3Backend implements IRendererBackend
     function uploadUniformData(_command : GeometryDrawCommand)
     {
         // Upload uniform data
-        final cache            = shaderUniforms.get(_command.shader.id);
-        final preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
+        final cache = shaderUniforms.get(_command.shader.id);
+
+        var uniformIndex = 0;
 
         // Upload and bind all buffer data.
         for (i in 0...cache.layout.blocks.length)
@@ -684,31 +685,11 @@ class OGL3Backend implements IRendererBackend
                     .fromRaw(glMapBufferRange(GL_UNIFORM_BUFFER, 0, cache.blockSizes[i], GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT))
                     .reinterpret();
 
-                // Otherwise upload all user specified uniform values.
-                // TODO : We should have some sort of error checking if the expected uniforms are not found.
-                var pos = 0;
-                for (val in cache.layout.blocks[i].values)
-                {
-                    switch val.type
-                    {
-                        case Matrix4:
-                            final mat : Float32BufferData = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            memcpy(dst.add(pos), mat.bytes.getData().address(mat.byteOffset), BYTES_PER_MATRIX);
-                            pos += BYTES_PER_MATRIX;
-                        case Vector4:
-                            final vec : Float32BufferData = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            memcpy(dst.add(pos), vec.bytes.getData().address(vec.byteOffset), 16);
-                            pos += 16;
-                        case Int:
-                            final ptr : Pointer<Int32> = dst.add(pos).reinterpret();
-                            ptr.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
-                            pos += 4;
-                        case Float:
-                            final ptr : Pointer<Float32> = dst.add(pos).reinterpret();
-                            ptr.setAt(Std.int(pos / 4), preferedUniforms.float.exists(val.name) ? preferedUniforms.float.get(val.name) : _command.shader.uniforms.float.get(val.name));
-                            pos += 4;
-                    }
-                }
+                final binding = cache.blockBindings[i];
+
+                final src = _command.uniforms[binding - 1].buffer.bytes.getData().address(0);
+                
+                memcpy(dst, src, cache.blockSizes[i]);
 
                 glUnmapBuffer(GL_UNIFORM_BUFFER);
             }
@@ -909,7 +890,6 @@ class OGL3Backend implements IRendererBackend
         // TODO : Only set uniforms if the value has changed.
         setTextures(_command);
 
-        // TODO : Bind uniform buffers
         final cache = shaderUniforms.get(_command.shader.id);
         for (i in 0...cache.layout.blocks.length)
         {
