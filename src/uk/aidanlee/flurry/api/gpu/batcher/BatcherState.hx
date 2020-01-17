@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import haxe.ds.ReadOnlyArray;
+import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;

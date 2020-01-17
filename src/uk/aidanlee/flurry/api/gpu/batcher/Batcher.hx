@@ -172,7 +172,6 @@ class Batcher
     public function addGeometry(_geom : Geometry)
     {
         _geom.changed.add(setDirty);
-        _geom.dropped.add(removeGeometry);
 
         geometry.push(_geom);
 
@@ -186,7 +185,6 @@ class Batcher
     public function removeGeometry(_geom : Geometry)
     {
         _geom.changed.remove(setDirty);
-        _geom.dropped.remove(removeGeometry);
 
         geometry.remove(_geom);
 

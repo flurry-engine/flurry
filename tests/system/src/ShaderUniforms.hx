@@ -1,14 +1,13 @@
 package;
 
-import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob.UniformBlobBuilder;
+import uk.aidanlee.flurry.Flurry;
+import uk.aidanlee.flurry.FlurryConfig;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.geometry.Color;
-import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
+import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
-import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
-import uk.aidanlee.flurry.FlurryConfig;
-import uk.aidanlee.flurry.Flurry;
 
 class ShaderUniforms extends Flurry
 {
@@ -44,14 +43,19 @@ class ShaderUniforms extends Flurry
         new QuadGeometry({
             textures : [ resources.get('tank1', ImageResource) ],
             batchers : [ batcher ],
-            shader   : Uniforms(shader, [ u1 ]) }).position.set_xy(  0, 128);
+            shader   : Uniforms(shader, [ u1 ])
+        }).position.set_xy(  0, 128);
+
         new QuadGeometry({
             textures : [ resources.get('tank2', ImageResource) ],
             batchers : [ batcher ],
-            shader   : Uniforms(shader, [ u2 ]) }).position.set_xy(256, 128);
+            shader   : Uniforms(shader, [ u2 ])
+        }).position.set_xy(256, 128);
+
         new QuadGeometry({
             textures : [ resources.get('tank3', ImageResource) ],
             batchers : [ batcher ],
-            shader   : Uniforms(shader, [ u3 ]) }).position.set_xy(512, 128);
+            shader   : Uniforms(shader, [ u3 ])
+        }).position.set_xy(512, 128);
     }
 }
