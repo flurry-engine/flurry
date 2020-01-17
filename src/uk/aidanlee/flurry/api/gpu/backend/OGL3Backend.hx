@@ -1,23 +1,24 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import uk.aidanlee.flurry.api.gpu.state.TargetState;
-import cpp.UInt8;
 import haxe.Exception;
-import haxe.io.Float32Array;
-import haxe.io.UInt16Array;
+import haxe.io.BytesData;
+import haxe.io.Bytes;
+import cpp.UInt8;
 import cpp.Pointer;
 import cpp.Stdlib.memcpy;
+import sdl.Window;
+import sdl.GLContext;
+import sdl.SDL;
+import glad.Glad;
 import opengl.GL.*;
 import opengl.WebGL.getShaderParameter;
 import opengl.WebGL.shaderSource;
 import opengl.WebGL.getProgramParameter;
 import opengl.WebGL.getProgramInfoLog;
 import opengl.WebGL.getShaderInfoLog;
-import sdl.Window;
-import sdl.GLContext;
-import sdl.SDL;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
+import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
@@ -36,8 +37,6 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
-using Safety;
-using Lambda;
 using cpp.NativeArray;
 using uk.aidanlee.flurry.utils.opengl.GLConverters;
 
@@ -106,17 +105,17 @@ class OGL3Backend implements IRendererBackend
     /**
      * Vertex buffer used by this backend.
      */
-    final vertexBuffer : Float32Array;
+    final vertexBuffer : BytesData;
 
     /**
      * Index buffer used by this backend.
      */
-    final indexBuffer : UInt16Array;
+    final indexBuffer : BytesData;
 
     /**
      * Buffer used to store model, view, and projection matrices for all draws.
      */
-    final matrixBuffer : Float32Array;
+    final matrixBuffer : BytesData;
 
     /**
      * Shader programs keyed by their associated shader resource IDs.
@@ -207,9 +206,9 @@ class OGL3Backend implements IRendererBackend
 
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
-        vertexBuffer = new Float32Array((_rendererConfig.dynamicVertices + _rendererConfig.unchangingVertices) * 9);
-        indexBuffer  = new UInt16Array(_rendererConfig.dynamicIndices + _rendererConfig.unchangingIndices);
-        matrixBuffer = new Float32Array((_rendererConfig.dynamicVertices + _rendererConfig.unchangingVertices));
+        vertexBuffer = Bytes.alloc(_rendererConfig.dynamicVertices * 9 * 2).getData();
+        indexBuffer  = Bytes.alloc(_rendererConfig.dynamicIndices * 2).getData();
+        matrixBuffer = Bytes.alloc(_rendererConfig.dynamicVertices * 4).getData();
 
         // Core OpenGL profiles require atleast one VAO is bound.
         var vao = [ 0 ];
@@ -228,11 +227,11 @@ class OGL3Backend implements IRendererBackend
         glEnableVertexAttribArray(3);
 
         glBindBuffer(GL_ARRAY_BUFFER, glMatrixUbo);
-        glBufferData(GL_ARRAY_BUFFER, matrixBuffer.view.byteLength, matrixBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, matrixBuffer.length, matrixBuffer, GL_DYNAMIC_DRAW);
 
         // Vertex data will be interleaved, sourced from the first vertex buffer.
         glBindBuffer(GL_ARRAY_BUFFER, glVertexVbo);
-        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.view.byteLength, vertexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.length, vertexBuffer, GL_DYNAMIC_DRAW);
 
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 0, 3, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_POS);
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 1, 4, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_COL);
@@ -244,7 +243,7 @@ class OGL3Backend implements IRendererBackend
         glIbo = ibos[0];
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIbo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer.view.byteLength, indexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer.length, indexBuffer, GL_DYNAMIC_DRAW);
 
         var samplers = [ 0 ];
         glGenSamplers(1, samplers);
@@ -310,8 +309,8 @@ class OGL3Backend implements IRendererBackend
     }
 
     /**
-     * Upload geometries to the gpu VRAM.
-     * @param _commands Array of commands to upload.
+     * Queue a command to be drawn this frame.
+     * @param _command Command to draw.
      */
     public function queue(_command : GeometryDrawCommand)
     {
@@ -319,9 +318,7 @@ class OGL3Backend implements IRendererBackend
     }
 
     /**
-     * Draw an array of commands. Command data must be uploaded to the GPU before being used.
-     * @param _commands    Commands to draw.
-     * @param _recordStats Record stats for this submit.
+     * Uploads all data to the gpu then issues draw calls for all queued commands.
      */
     public function submit()
     {
@@ -330,6 +327,10 @@ class OGL3Backend implements IRendererBackend
         drawCommands();
     }
 
+    /**
+     * Once all commands have been drawn we blit and vertically flip our custom backbuffer into the windows backbuffer.
+     * We then call the SDL function to swap the window.
+     */
     public function postDraw()
     {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -355,25 +356,43 @@ class OGL3Backend implements IRendererBackend
         displayEvents.sizeChanged.remove(onSizeChanged);
         displayEvents.changeRequested.remove(onChangeRequest);
 
-        for (shaderID in shaderPrograms.keys())
+        for (_ => shader in shaderPrograms)
         {
-            glDeleteProgram(shaderPrograms.get(shaderID));
-
-            shaderPrograms.remove(shaderID);
-            shaderUniforms.remove(shaderID);
+            glDeleteProgram(shader);
         }
 
-        for (textureID in textureObjects.keys())
+        for (_ => uniforms in shaderUniforms)
         {
-            glDeleteTextures(1, [ textureObjects.get(textureID) ]);
-            textureObjects.remove(textureID);
+            final blocks = uniforms.blockBuffers;
 
-            if (framebufferObjects.exists(textureID))
+            glDeleteBuffers(blocks.length, blocks);
+        }
+
+        for (_ => texture in textureObjects)
+        {
+            glDeleteTextures(1, [ texture ]);
+        }
+
+        for (_ => samplers in samplerObjects)
+        {
+            for (_ => sampler in samplers)
             {
-                glDeleteFramebuffers(1, [ framebufferObjects.get(textureID) ]);
-                framebufferObjects.remove(textureID);
+                glDeleteSamplers(1, [ sampler ]);
             }
         }
+
+        for (_ => framebuffer in framebufferObjects)
+        {
+            glDeleteFramebuffers(1, [ framebuffer ]);
+        }
+
+        glDeleteFramebuffers(1, [ backbuffer.framebuffer ]);
+
+        shaderPrograms.clear();
+        shaderUniforms.clear();
+        textureObjects.clear();
+        samplerObjects.clear();
+        framebufferObjects.clear();
 
         SDL.GL_DeleteContext(glContext);
         SDL.destroyWindow(window);
@@ -381,6 +400,12 @@ class OGL3Backend implements IRendererBackend
 
     // #region SDL Window Management
 
+    /**
+     * Create an SDL window and request a core 3.3 openGL context with it.
+     * Then bind that content to the current thread.
+     * GLAD is used to load all OpenGL functions with the SDL process address function.
+     * @param _options Initial window options.
+     */
     function createWindow(_options : FlurryWindowConfig)
     {        
         SDL.GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -398,6 +423,12 @@ class OGL3Backend implements IRendererBackend
         }
     }
 
+    /**
+     * When a size request comes in we call the appropriate SDL functions to set the size and state of the window and swap interval.
+     * We do not re-create the backbuffer here as resizing may fail for some reason.
+     * When a resize it successful a size changed event will be published through the engine which we listen to and resize the backbuffer then.
+     * @param _event Event containing the request details.
+     */
     function onChangeRequest(_event : DisplayEventChangeRequest)
     {
         SDL.setWindowSize(window, _event.width, _event.height);
@@ -405,6 +436,11 @@ class OGL3Backend implements IRendererBackend
         SDL.GL_SetSwapInterval(_event.vsync ? 1 : 0);
     }
 
+    /**
+     * When the window has been resized we need to recreate our backbuffer representation to match the new size.
+     * Since our backbuffer is custom we can't just update the viewport and be done.
+     * @param _event Event containing the new window size.
+     */
     function onSizeChanged(_event : DisplayEventData)
     {
         backbuffer = createBackbuffer(_event.width, _event.height);
@@ -434,13 +470,6 @@ class OGL3Backend implements IRendererBackend
         }
     }
 
-    /**
-     * Creates a shader from a vertex and fragment source.
-     * @param _vert   Vertex shader source.
-     * @param _frag   Fragment shader source.
-     * @param _layout Shader layout JSON description.
-     * @return Shader
-     */
     function createShader(_resource : ShaderResource)
     {
         if (shaderPrograms.exists(_resource.id))
@@ -508,26 +537,17 @@ class OGL3Backend implements IRendererBackend
         shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings, blockBuffers, blockSizes));
     }
 
-    /**
-     * Removes and frees the resources used by a shader.
-     * @param _name Name of the shader.
-     */
     function removeShader(_resource : ShaderResource)
     {
-        glDeleteProgram(shaderPrograms.get(_resource.id));
+        glDeleteProgram(shaderPrograms[_resource.id]);
+
+        final blocks = shaderUniforms[_resource.id].blockBuffers;
+        glDeleteBuffers(blocks.length, blocks);
 
         shaderPrograms.remove(_resource.id);
         shaderUniforms.remove(_resource.id);
     }
 
-    /**
-     * Creates a new texture given an array of pixel data.
-     * @param _name   Name of the texture/
-     * @param _pixels Pixel data.
-     * @param _width  Width of the texture.
-     * @param _height Height of the texture.
-     * @return Texture
-     */
     function createTexture(_resource : ImageResource)
     {
         var id = [ 0 ];
@@ -546,22 +566,23 @@ class OGL3Backend implements IRendererBackend
         samplerObjects[_resource.id] = new Map();
     }
 
-    /**
-     * Removes and frees the resources used by a texture.
-     * @param _name Name of the texture.
-     */
     function removeTexture(_resource : ImageResource)
     {
-        var samplers = [];
-        for (sampler in samplerObjects[_resource.id])
+        glDeleteTextures(1, [ textureObjects[_resource.id] ]);
+
+        for (_ => sampler in samplerObjects[_resource.id])
         {
-            samplers.push(sampler);
+            glDeleteSamplers(1, [ sampler ]);
         }
-        glDeleteSamplers(samplers.length, samplers);
-        glDeleteTextures(1, [ textureObjects.get(_resource.id) ]);
+
+        if (framebufferObjects.exists(_resource.id))
+        {
+            glDeleteFramebuffers(1, [ framebufferObjects[_resource.id] ]);
+        }
 
         textureObjects.remove(_resource.id);
         samplerObjects.remove(_resource.id);
+        framebufferObjects.remove(_resource.id);
     }
 
     /**
@@ -603,8 +624,8 @@ class OGL3Backend implements IRendererBackend
      */
     function uploadGeometryData()
     {
-        final vtxDst = vertexBuffer.view.buffer.getData().address(0);
-        final idxDst = indexBuffer.view.buffer.getData().address(0);
+        final vtxDst = vertexBuffer.address(0);
+        final idxDst = indexBuffer.address(0);
 
         var vtxUploaded = 0;
         var idxUploaded = 0;
@@ -640,15 +661,20 @@ class OGL3Backend implements IRendererBackend
             }
         }
 
-        glBufferSubData(GL_ARRAY_BUFFER, 0, vtxUploaded, vertexBuffer.view.buffer.getData());
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, idxUploaded, indexBuffer.view.buffer.getData());
+        glBufferSubData(GL_ARRAY_BUFFER, 0, vtxUploaded, vertexBuffer);
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, idxUploaded, indexBuffer);
     }
 
+    /**
+     * Update the projection, model, and view matrix for each queued command.
+     * Unfortunately there's no way to re-use the same projection and view matrix and all three must be copied per command.
+     * The most common UBO alignment value is also 256, meaning there's a very good chance 64 bytes (enough for another matrix) will be wasted per command.
+     */
     function uploadMatrixData()
     {
         glBindBuffer(GL_UNIFORM_BUFFER, glMatrixUbo);
 
-        final matDst = matrixBuffer.view.buffer.getData().address(0);
+        final matDst = matrixBuffer.address(0);
 
         var bytesUploaded = 0;
 
@@ -671,7 +697,7 @@ class OGL3Backend implements IRendererBackend
             }
         }
 
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, bytesUploaded, matrixBuffer.view.buffer.getData());
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, bytesUploaded, matrixBuffer);
     }
 
     /**
@@ -706,7 +732,9 @@ class OGL3Backend implements IRendererBackend
 
     /**
      * Loop over all commands and issue draw calls for them.
-     * 
+     * We update custom uniform values as multiple commands could use the same shader and expect different uniform values.
+     * Might be worth making each UBO buffer something like x10 larger than needed in the future to accomodate this.
+     * Or even allocate a fourth massive buffer and write all uniforms into that.
      */
     function drawCommands()
     {
@@ -723,9 +751,15 @@ class OGL3Backend implements IRendererBackend
 
             for (geometry in command.geometry)
             {
-                glBindBufferRange(GL_UNIFORM_BUFFER, 0, glMatrixUbo, matOffset, 192);
+                glBindBufferRange(
+                    GL_UNIFORM_BUFFER,
+                    findBlockIndexByName("flurry_matrices", command.shader.layout.blocks),
+                    glMatrixUbo,
+                    matOffset,
+                    192);
 
-                switch geometry.data {
+                switch geometry.data
+                {
                     case Indexed(_vertices, _indices):
                         untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})',
                             command.primitive.getPrimitiveType(),
@@ -746,6 +780,43 @@ class OGL3Backend implements IRendererBackend
 
                 matOffset += matrixRangeSize;
             }
+        }
+    }
+
+    /**
+     * Calculate the view and projection matrix for the camera based on its type.
+     * Will only recaulate the matrix if the camera has been flagged as dirty.
+     * @param _camera Camera to update.
+     */
+    function buildCameraMatrices(_camera : Camera)
+    {
+        switch _camera.type
+        {
+            case Orthographic:
+                var orth = (cast _camera : Camera2D);
+                if (orth.dirty)
+                {
+                    switch orth.viewport
+                    {
+                        case None: throw new GL32CameraViewportNotSetException();
+                        case Viewport(_, _, _width, _height):
+                            orth.projection.makeHomogeneousOrthographic(0, _width, _height, 0, -100, 100);
+                    }
+
+                    orth.view.copy(orth.transformation.world.matrix).invert();
+                    orth.dirty = false;
+                }
+            case Projection:
+                var proj = (cast _camera : Camera3D);
+                if (proj.dirty)
+                {
+                    proj.projection.makeHomogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
+                    proj.projection.scale(perspectiveYFlipVector);
+                    proj.view.copy(proj.transformation.world.matrix).invert();
+                    proj.dirty = false;
+                }
+            case Custom:
+                // Do nothing, user is responsible for building their custom camera matrices.
         }
     }
 
@@ -960,39 +1031,6 @@ class OGL3Backend implements IRendererBackend
 
     // #endregion
 
-    function buildCameraMatrices(_camera : Camera)
-    {
-        switch _camera.type
-        {
-            case Orthographic:
-                var orth = (cast _camera : Camera2D);
-                if (orth.dirty)
-                {
-                    switch orth.viewport
-                    {
-                        case None:
-                            orth.projection.makeHomogeneousOrthographic(0, orth.size.x, orth.size.y, 0, -100, 100);
-                        case Viewport(_, _, _width, _height):
-                            orth.projection.makeHomogeneousOrthographic(0, _width, _height, 0, -100, 100);
-                    }
-
-                    orth.view.copy(orth.transformation.world.matrix).invert();
-                    orth.dirty = false;
-                }
-            case Projection:
-                var proj = (cast _camera : Camera3D);
-                if (proj.dirty)
-                {
-                    proj.projection.makeHomogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
-                    proj.projection.scale(perspectiveYFlipVector);
-                    proj.view.copy(proj.transformation.world.matrix).invert();
-                    proj.dirty = false;
-                }
-            case Custom:
-                // Do nothing, user is responsible for building their custom camera matrices.
-        }
-    }
-
     function createSamplerObject(_sampler : SamplerState) : Int
     {
         var samplers = [ 0 ];
@@ -1190,5 +1228,13 @@ private class GL32UniformBlockNotFoundException extends Exception
     public function new(_blockName)
     {
         super('Unable to find a uniform block with the name $_blockName');
+    }
+}
+
+private class GL32CameraViewportNotSetException extends Exception
+{
+    public function new()
+    {
+        super('A viewport must be defined for orthographic cameras');
     }
 }
