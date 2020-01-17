@@ -1,15 +1,15 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
-import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import signals.Signal1;
 import signals.Signal.Signal0;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Transformation;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -25,7 +25,7 @@ typedef GeometryOptions = {
     var ?samplers   : Array<Null<SamplerState>>;
     var ?depth      : Float;
     var ?color      : Color;
-    var ?clip       : Rectangle;
+    var ?clip       : ClipState;
     var ?primitive  : PrimitiveType;
     var ?batchers   : Array<Batcher>;
     var ?blend      : Blending;
@@ -85,7 +85,7 @@ class Geometry
     /**
      * Clipping rectangle for this geometry. Null if none.
      */
-    public final clip : Null<Rectangle>;
+    public final clip : ClipState;
 
     /**
      * All of the images this image will provide to the shader.
@@ -187,6 +187,7 @@ class Geometry
         dropped        = new Signal1<Geometry>();
         data           = _options.data;
         shader         = _options.shader    .or(None);
+        clip           = _options.clip      .or(None);
         transformation = _options.transform .or(new Transformation());
         textures       = _options.textures  .or([]);
         samplers       = _options.samplers  .or([]);
@@ -194,7 +195,6 @@ class Geometry
         primitive      = _options.primitive .or(Triangles);
         color          = _options.color     .or(new Color());
         blend          = _options.blend     .or(new Blending());
-        clip           = _options.clip;
 
         // Add to batchers.
         if (_options.batchers != null)

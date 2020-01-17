@@ -984,14 +984,14 @@ class DX11Backend implements IRendererBackend
     function setState(_command : DrawCommand)
     {
         // Set the render target
-        if (_command.target != target)
-        {
-            target = _command.target;
+        // if (_command.target != target)
+        // {
+        //     target = _command.target;
 
-            context.omSetRenderTargets([
-                target == null ? backbuffer.renderTargetView : textureResources[target.id].renderTargetView
-            ], depthStencilView);
-        }
+        //     context.omSetRenderTargets([
+        //         target == null ? backbuffer.renderTargetView : textureResources[target.id].renderTargetView
+        //     ], depthStencilView);
+        // }
 
         // Write shader cbuffers and set it
         if (shader != _command.shader)
@@ -1032,62 +1032,62 @@ class DX11Backend implements IRendererBackend
         context.omSetDepthStencilState(depthStencilState, 1);
 
         // Update viewport
-        if (_command.camera.viewport == null)
-        {
-            if (target == null)
-            {
-                cmdViewport.set(0, 0, backbuffer.width, backbuffer.height);
-            }
-            else
-            {
-                cmdViewport.set(0, 0, target.width, target.height);
-            }
-        }
-        else
-        {
-            cmdViewport.copyFrom(_command.camera.viewport);
-        }
+        // if (_command.camera.viewport == null)
+        // {
+        //     if (target == null)
+        //     {
+        //         cmdViewport.set(0, 0, backbuffer.width, backbuffer.height);
+        //     }
+        //     else
+        //     {
+        //         cmdViewport.set(0, 0, target.width, target.height);
+        //     }
+        // }
+        // else
+        // {
+        //     cmdViewport.copyFrom(_command.camera.viewport);
+        // }
 
-        if (!viewport.equals(cmdViewport))
-        {
-            viewport.copyFrom(cmdViewport);
+        // if (!viewport.equals(cmdViewport))
+        // {
+        //     viewport.copyFrom(cmdViewport);
 
-            nativeView.topLeftX = viewport.x;
-            nativeView.topLeftY = viewport.y;
-            nativeView.width    = viewport.w;
-            nativeView.height   = viewport.h;
+        //     nativeView.topLeftX = viewport.x;
+        //     nativeView.topLeftY = viewport.y;
+        //     nativeView.width    = viewport.w;
+        //     nativeView.height   = viewport.h;
 
-            context.rsSetViewports([ nativeView ]);
-        }
+        //     context.rsSetViewports([ nativeView ]);
+        // }
 
-        // Update scissor
-        if (_command.clip == null)
-        {
-            if (target == null)
-            {
-                cmdClip.set(0, 0, backbuffer.width, backbuffer.height);
-            }
-            else
-            {
-                cmdClip.set(0, 0, target.width, target.height);
-            }
-        }
-        else
-        {
-            cmdClip.copyFrom(_command.clip);
-        }
+        // // Update scissor
+        // if (_command.clip == null)
+        // {
+        //     if (target == null)
+        //     {
+        //         cmdClip.set(0, 0, backbuffer.width, backbuffer.height);
+        //     }
+        //     else
+        //     {
+        //         cmdClip.set(0, 0, target.width, target.height);
+        //     }
+        // }
+        // else
+        // {
+        //     cmdClip.copyFrom(_command.clip);
+        // }
 
-        if (!scissor.equals(cmdClip))
-        {
-            scissor.copyFrom(cmdClip);
+        // if (!scissor.equals(cmdClip))
+        // {
+        //     scissor.copyFrom(cmdClip);
 
-            nativeClip.left   = Std.int(cmdClip.x);
-            nativeClip.top    = Std.int(cmdClip.y);
-            nativeClip.right  = Std.int(cmdClip.x + cmdClip.w);
-            nativeClip.bottom = Std.int(cmdClip.y + cmdClip.h);
+        //     nativeClip.left   = Std.int(cmdClip.x);
+        //     nativeClip.top    = Std.int(cmdClip.y);
+        //     nativeClip.right  = Std.int(cmdClip.x + cmdClip.w);
+        //     nativeClip.bottom = Std.int(cmdClip.y + cmdClip.h);
 
-            context.rsSetScissorRects([ nativeClip ]);
-        }
+        //     context.rsSetScissorRects([ nativeClip ]);
+        // }
 
         // SET BLENDING OPTIONS AND APPLY TO CONTEXT
         if (_command.blending)
@@ -1256,9 +1256,9 @@ class DX11Backend implements IRendererBackend
                 var orth = (cast _camera : Camera2D);
                 if (orth.dirty)
                 {
-                    orth.projection.makeHeterogeneousOrthographic(0, orth.viewport.w, 0, orth.viewport.h, -100, 100);
-                    orth.view.copy(orth.transformation.world.matrix).invert();
-                    orth.dirty = false;
+                    // orth.projection.makeHeterogeneousOrthographic(0, orth.viewport.w, 0, orth.viewport.h, -100, 100);
+                    // orth.view.copy(orth.transformation.world.matrix).invert();
+                    // orth.dirty = false;
                 }
             case Projection:
                 var proj = (cast _camera : Camera3D);

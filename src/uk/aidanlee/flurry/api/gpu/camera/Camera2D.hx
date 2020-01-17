@@ -109,11 +109,11 @@ class Camera2D extends Camera
      * @param _width  Width of the camera.
      * @param _height Height of the camera.
      */
-    public function new(_width : Float, _height : Float)
+    public function new(_width : Int, _height : Int)
     {
         super(Orthographic);
 
-        viewport       = new Rectangle(0, 0, _width, _height);
+        viewport       = Viewport(0, 0, _width, _height);
         size           = new Vector2(_width, _height);
         transformation = new Transformation();
         zoom           = 1;
@@ -138,8 +138,16 @@ class Camera2D extends Camera
         }
         
         // Update the position and virtual view size according to the scale mode.
-        var ratioX   = viewport.w / size.x;
-        var ratioY   = viewport.h / size.y;
+        var ratioX = 1.0;
+        var ratioY = 1.0;
+        switch viewport
+        {
+            case Viewport(_, _, _width, _height):
+                ratioX = _width / size.x;
+                ratioY = _height / size.y;
+            case _:
+        }
+
         var shortest = Maths.max(ratioX, ratioY);
         var longest  = Maths.min(ratioX, ratioY);
 

@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import cpp.UInt8;
 import haxe.Exception;
 import haxe.io.Float32Array;
@@ -178,7 +179,7 @@ class OGL3Backend implements IRendererBackend
 
     // GL state variables
 
-    var target   : ImageResource;
+    var target   : TargetState;
     var shader   : ShaderResource;
     var clip     : Rectangle;
     var viewport : Rectangle;
@@ -257,7 +258,7 @@ class OGL3Backend implements IRendererBackend
         viewport     = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
         clip         = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
         shader       = null;
-        target       = null;
+        target       = Backbuffer;
         textureSlots = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
 
         // Create our own custom backbuffer.
@@ -299,7 +300,7 @@ class OGL3Backend implements IRendererBackend
      */
     public function preDraw()
     {
-        target = null;
+        target = Backbuffer;
         clip.set(0, 0, backbuffer.width, backbuffer.height);
 
         glScissor(0, 0, backbuffer.width, backbuffer.height);
@@ -593,6 +594,13 @@ class OGL3Backend implements IRendererBackend
 
     // #region Command Submission
 
+    /**
+     * Iterate over all queued commands and upload their vertex data.
+     * 
+     * We use `glBufferSubData` to avoid poor performance with mapping buffer ranges.
+     * Best range mapping performance is to invalidate the requested range, but if you then write that entire range you kill your performance.
+     * To save having to iterate over all objects to count byte size, then iterate again to copy, we just copy and add up size as we go along and then use `glBufferSubData` instead.
+     */
     function uploadGeometryData()
     {
         final vtxDst = vertexBuffer.view.buffer.getData().address(0);
@@ -696,6 +704,10 @@ class OGL3Backend implements IRendererBackend
         }
     }
 
+    /**
+     * Loop over all commands and issue draw calls for them.
+     * 
+     */
     function drawCommands()
     {
         var matOffset = 0;
@@ -747,33 +759,31 @@ class OGL3Backend implements IRendererBackend
      */
     function setState(_command : DrawCommand)
     {
-        // Set the render target.
-        // If the target is null then the backbuffer is used.
-        // Render targets are created on the fly as and when needed since most textures probably won't be used as targets.
-        if (_command.target != target)
+        // Either sets the framebuffer to the backbuffer or to an uploaded texture.
+        // If the texture has not yet had a framebuffer generated for it, it is done on demand.
+        // This could be something which is done on texture creation in the future.
+        switch _command.target
         {
-            target = _command.target;
-
-            if (target != null && !framebufferObjects.exists(target.id))
-            {
-                // Create the framebuffer
-                var fbo = [ 0 ];
-                glGenFramebuffers(1, fbo);
-                glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureObjects.get(target.id), 0);
-
-                if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            case Backbuffer:
+                switch target
                 {
-                    throw new GL32IncompleteFramebufferException(target.id);
+                    case Backbuffer: // no change in target
+                    case Texture(_requested):
+                        bindTextureFramebuffer(_requested);
                 }
-
-                framebufferObjects.set(target.id, fbo[0]);
-
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            }
-
-            glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebuffer);
+            case Texture(_current):
+                switch target
+                {
+                    case Backbuffer:
+                        glBindFramebuffer(GL_FRAMEBUFFER, backbuffer.framebuffer);
+                    case Texture(_requested):
+                        if (_current != _requested)
+                        {
+                            bindTextureFramebuffer(_requested);
+                        }
+                }
         }
+        target = _command.target;
 
         // Apply shader changes.
         if (shader != _command.shader)
@@ -819,56 +829,32 @@ class OGL3Backend implements IRendererBackend
             glDisable(GL_STENCIL_TEST);
         }
 
-        // Set the viewport.
-        var cmdViewport = _command.camera.viewport;
-        if (cmdViewport == null)
-        {
-            if (target == null)
-            {
-                cmdViewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-            }
-            else
-            {
-                cmdViewport = new Rectangle(0, 0, target.width, target.height);
-            }
+        // If the camera does not specify a viewport (non orthographic) then the full size of the target is used.
+        switch _command.camera.viewport {
+            case None:
+                switch target {
+                    case Backbuffer:
+                        glViewport(0, 0, backbuffer.width, backbuffer.height);
+                    case Texture(_image):
+                        glViewport(0, 0, _image.width, _image.height);
+                }
+            case Viewport(_x, _y, _width, _height):
+                glViewport(_x, _y, _width, _height);
         }
 
-        if (!viewport.equals(cmdViewport))
+        // If the camera does not specify a clip rectangle then the full size of the target is used.
+        switch _command.clip
         {
-            viewport.copyFrom(cmdViewport);
-            
-            var x = viewport.x *= target == null ? backbuffer.scale : 1;
-            var y = viewport.y *= target == null ? backbuffer.scale : 1;
-            var w = viewport.w *= target == null ? backbuffer.scale : 1;
-            var h = viewport.h *= target == null ? backbuffer.scale : 1;
-
-            glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
-        }
-
-        // Set the scissor region.
-        var cmdClip = _command.clip;
-        if (cmdClip == null)
-        {
-            if (target == null)
-            {
-                cmdClip = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-            }
-            else
-            {
-                cmdClip = new Rectangle(0, 0, target.width, target.height);
-            }
-        }
-
-        if (!clip.equals(cmdClip))
-        {
-            clip.copyFrom(cmdClip);
-
-            var x = cmdClip.x * (target == null ? backbuffer.scale : 1);
-            var y = cmdClip.y * (target == null ? backbuffer.scale : 1);
-            var w = cmdClip.w * (target == null ? backbuffer.scale : 1);
-            var h = cmdClip.h * (target == null ? backbuffer.scale : 1);
-
-            glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
+            case None:
+                switch target
+                {
+                    case Backbuffer:
+                        glScissor(0, 0, backbuffer.width, backbuffer.height);
+                    case Texture(_image):
+                        glScissor(0, 0, _image.width, _image.height);
+                }
+            case Clip(_x, _y, _width, _height):
+                glScissor(_x, _y, _width, _height);
         }
 
         // Set the blending
@@ -949,6 +935,29 @@ class OGL3Backend implements IRendererBackend
         }
     }
 
+    function bindTextureFramebuffer(_image : ImageResource)
+    {
+        if (!framebufferObjects.exists(_image.id))
+        {
+            // Create the framebuffer
+            var fbo = [ 0 ];
+            glGenFramebuffers(1, fbo);
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureObjects.get(_image.id), 0);
+
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            {
+                throw new GL32IncompleteFramebufferException(_image.id);
+            }
+
+            framebufferObjects.set(_image.id, fbo[0]);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects.get(_image.id));
+    }
+
     // #endregion
 
     function buildCameraMatrices(_camera : Camera)
@@ -959,7 +968,14 @@ class OGL3Backend implements IRendererBackend
                 var orth = (cast _camera : Camera2D);
                 if (orth.dirty)
                 {
-                    orth.projection.makeHomogeneousOrthographic(0, orth.viewport.w, orth.viewport.h, 0, -100, 100);
+                    switch orth.viewport
+                    {
+                        case None:
+                            orth.projection.makeHomogeneousOrthographic(0, orth.size.x, orth.size.y, 0, -100, 100);
+                        case Viewport(_, _, _width, _height):
+                            orth.projection.makeHomogeneousOrthographic(0, _width, _height, 0, -100, 100);
+                    }
+
                     orth.view.copy(orth.transformation.world.matrix).invert();
                     orth.dirty = false;
                 }
@@ -1026,13 +1042,12 @@ class OGL3Backend implements IRendererBackend
         }
 
         // Cleanup / reset state after setting up new framebuffer.
-        if (target == null)
+        switch target
         {
-            glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
-        }
-        else
-        {
-            glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects.get(target.id));
+            case Backbuffer:
+                glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
+            case Texture(_image):
+                glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects.get(_image.id));
         }
 
         for (i in 0...textureSlots.length) textureSlots[i] = 0;
@@ -1119,40 +1134,6 @@ private class ShaderLocations
         blockBindings    = _blockBindings;
         blockBuffers     = _blockBuffers;
         blockSizes       = _blockSizes;
-    }
-}
-
-/**
- * Stores the range of a draw command.
- */
-private class DrawCommandRange
-{
-    /**
-     * The number of vertices in this draw command.
-     */
-    public final vertices : Int;
-
-    /**
-     * The number of vertices this command is offset into the current range.
-     */
-    public final vertexOffset : Int;
-
-    /**
-     * The number of indices in this draw command.
-     */
-    public final indices : Int;
-
-    /**
-     * The number of bytes this command is offset into the current range.
-     */
-    public final indexByteOffset : Int;
-
-    inline public function new(_vertices : Int, _vertexOffset : Int, _indices : Int, _indexByteOffset)
-    {
-        vertices        = _vertices;
-        vertexOffset    = _vertexOffset;
-        indices         = _indices;
-        indexByteOffset = _indexByteOffset;
     }
 }
 

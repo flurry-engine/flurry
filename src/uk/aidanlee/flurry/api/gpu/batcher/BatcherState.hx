@@ -1,15 +1,13 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import haxe.ds.ReadOnlyArray;
-import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.Blending;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-
-using Safety;
 
 /**
  * Stores all of the state properties for a batcher.
@@ -44,17 +42,12 @@ class BatcherState
     /**
      * The clipping box currently active in this batcher.
      */
-    public var clip (default, null) : Null<Rectangle>;
+    public var clip (default, null) : ClipState;
 
     /**
      * The blend state of the batcher.
      */
     public var blend (default, null) : Blending;
-
-    /**
-     * The enum index of the current geometrys data type.
-     */
-    public var vertexDataType (default, null) : Int;
 
     /**
      * The batcher this state belongs to.
@@ -63,9 +56,9 @@ class BatcherState
     final batcher : Batcher;
 
     /**
-     * 
+     * If the current state is for indexed geometry.
      */
-    final internalClip : Rectangle;
+    var indexed : Bool;
 
     /**
      * Creates a batcher state.
@@ -77,8 +70,8 @@ class BatcherState
         samplers     = [];
         uniforms     = [];
         batcher      = _batcher;
+        indexed      = false;
         blend        = new Blending();
-        internalClip = new Rectangle();
     }
 
     /**
@@ -126,13 +119,29 @@ class BatcherState
             if (samplers[i] != null && _geom.samplers[i] != null && !samplers[i].equal(_geom.samplers[i])) return true;
         }
 
-        if (_geom.primitive   != primitive ) return true;
-        if (_geom.data.getIndex() != vertexDataType) return true;
+        if (_geom.primitive != primitive ) return true;
+        if ((_geom.data.getIndex() == 0) != indexed) return true;
         if (!_geom.blend.equals(blend)) return true;
 
-        if (_geom.clip == null && clip != null) return true;
-        if (_geom.clip != null && clip == null) return true;
-        if (_geom.clip != null && clip != null && !_geom.clip.equals(clip)) return true;
+        switch _geom.clip
+        {
+            case None:
+                switch clip
+                {
+                    case None: // no op
+                    case Clip(_, _, _, _): return true;
+                }
+            case Clip(_x1, _y1, _width1, _height1):
+                switch clip
+                {
+                    case None: return true;
+                    case Clip(_x2, _y2, _width2, _height2):
+                        if (_x1 != _x2 || _y1 != _y2 || _width1 != _width2 || _height1 != _height2)
+                        {
+                            return true;
+                        }
+                }
+        }
 
         return false;
     }
@@ -175,28 +184,9 @@ class BatcherState
         }
 
         primitive      = _geom.primitive;
-        vertexDataType = _geom.data.getIndex();
+        clip           = _geom.clip;
+        indexed        = (_geom.data.getIndex() == 0);
         blend.copyFrom(_geom.blend);
-
-        if (clip == null)
-        {
-            if (_geom.clip != null)
-            {
-                clip = internalClip;
-                clip.copyFrom(_geom.clip);
-            }
-        }
-        else
-        {
-            if (_geom.clip != null)
-            {
-                clip.copyFrom(_geom.clip);
-            }
-            else
-            {
-                clip = null;
-            }
-        }
     }
 
     public function drop()

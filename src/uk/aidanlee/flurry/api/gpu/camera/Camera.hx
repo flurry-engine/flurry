@@ -1,14 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.camera;
 
-import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Matrix;
-
-enum CameraType
-{
-    Orthographic;
-    Projection;
-    Custom;
-}
+import uk.aidanlee.flurry.api.gpu.state.ViewportState;
 
 /**
  * Base camera class.
@@ -28,12 +21,13 @@ class Camera
      */
     public final view : Matrix;
 
-    public var viewport : Null<Rectangle>;
+    public var viewport : ViewportState;
 
     public function new(_type : CameraType)
     {
         type       = _type;
         projection = new Matrix();
         view       = new Matrix();
+        viewport   = None;
     }
 }

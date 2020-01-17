@@ -64,9 +64,14 @@ class MockBackend implements IRendererBackend
 
     function checkCommand(_command : DrawCommand)
     {
-        if (_command.target != null && !textures.exists(_command.target.id))
+        switch _command.target
         {
-            throw new FramebufferNotFoundException();
+            case Backbuffer:
+            case Texture(_image):
+                if (textures.exists(_image.id))
+                {
+                    throw new FramebufferNotFoundException();
+                }
         }
 
         if (!shaders.exists(_command.shader.id))

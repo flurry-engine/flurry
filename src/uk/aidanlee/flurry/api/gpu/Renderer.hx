@@ -139,21 +139,28 @@ class Renderer
      */
     function sortBatchers(_a : Batcher, _b : Batcher) : Int
     {
-        // Sort by framebuffer
-        if (_a.target != null && _b.target != null)
-        {
-            if (_a.target.id < _b.target.id) return -1;
-            if (_a.target.id > _b.target.id) return  1;
-        }
-        else
-        {
-            if (_a.target != null && _b.target == null) return -1;
-            if (_a.target == null && _b.target != null) return  1;
-        }
-
-        // Then depth
+        // Sort by depth
         if (_a.depth < _b.depth) return -1;
         if (_a.depth > _b.depth) return  1;
+
+        // Then target
+        switch _a.target
+        {
+            case Backbuffer:
+                switch _b.target
+                {
+                    case Backbuffer: // no op
+                    case Texture(_): return 1;
+                }
+            case Texture(_imageA):
+                switch _b.target
+                {
+                    case Backbuffer: return -1;
+                    case Texture(_imageB):
+                        if (_imageA.id < _imageB.id) return -1;
+                        if (_imageA.id < _imageB.id) return  1;
+                }
+        }
 
         // Lastly shader
         if (_a.shader.id < _b.shader.id) return -1;

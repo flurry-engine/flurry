@@ -1,12 +1,13 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import haxe.ds.ReadOnlyArray;
-import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.gpu.BlendMode;
 import uk.aidanlee.flurry.api.gpu.DepthOptions;
 import uk.aidanlee.flurry.api.gpu.StencilOptions;
+import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
@@ -22,10 +23,10 @@ class GeometryDrawCommand extends DrawCommand
     public inline function new(
         _geometry   : Array<Geometry>,
         _id         : Int,
-        _camera     : Camera,
-        _clip       : Null<Rectangle>,
+        _camera     : Camera,      
         _primitive  : PrimitiveType,
-        _target     : ImageResource,
+        _clip       : ClipState,
+        _target     : TargetState,
         _shader     : ShaderResource,
         _uniforms   : ReadOnlyArray<UniformBlob>,
         _textures   : Array<ImageResource>,
@@ -41,6 +42,6 @@ class GeometryDrawCommand extends DrawCommand
     {
         geometry = _geometry;
 
-        super(_id, _camera, _clip, _primitive, _target, _shader, _uniforms, _textures, _samplers, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
+        super(_id, _camera, _primitive, _clip, _target, _shader, _uniforms, _textures, _samplers, _depth, _stencil, _blending, _srcRGB, _dstRGB, _srcAlpha, _dstAlpha);
     }
 }

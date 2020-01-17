@@ -1,11 +1,12 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import haxe.ds.ReadOnlyArray;
-import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.gpu.BlendMode;
 import uk.aidanlee.flurry.api.gpu.DepthOptions;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.StencilOptions;
+import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
@@ -31,19 +32,16 @@ class DrawCommand
     public final camera : Camera;
 
     /**
-     * Screen space region this draw will be clipped to.
-     */
-    public final clip : Null<Rectangle>;
-
-    /**
      * Primitive type of this draw command.
      */
     public final primitive : PrimitiveType;
 
+    public final clip : ClipState;
+
     /**
      * The render target for this draw command.
      */
-    public final target : ImageResource;
+    public final target : TargetState;
 
     /**
      * Shader to be used to draw this data.
@@ -82,9 +80,9 @@ class DrawCommand
     inline public function new(
         _id         : Int,
         _camera     : Camera,
-        _clip       : Null<Rectangle>,
         _primitive  : PrimitiveType,
-        _target     : ImageResource,
+        _clip       : ClipState,
+        _target     : TargetState,
         _shader     : ShaderResource,
         _uniforms   : ReadOnlyArray<UniformBlob>,
         _textures   : Array<ImageResource>,
@@ -100,8 +98,8 @@ class DrawCommand
     {
         id         = _id;
         camera     = _camera;
-        clip       = _clip;
         primitive  = _primitive;
+        clip       = _clip;
         target     = _target;
         shader     = _shader;
         uniforms   = _uniforms;

@@ -702,27 +702,27 @@ class OGL4Backend implements IRendererBackend
         // Set the render target.
         // If the target is null then the backbuffer is used.
         // Render targets are created on the fly as and when needed since most textures probably won't be used as targets.
-        if (_command.target != target)
-        {
-            target = _command.target;
+        // if (_command.target != target)
+        // {
+        //     target = _command.target;
 
-            if (target != null && !framebufferObjects.exists(target.id))
-            {
-                // Create the framebuffer
-                var fbo = [ 0 ];
-                glCreateFramebuffers(1, fbo);
-                glNamedFramebufferTexture(fbo[0], GL_COLOR_ATTACHMENT0, textureObjects.get(target.id), 0);
+        //     if (target != null && !framebufferObjects.exists(target.id))
+        //     {
+        //         // Create the framebuffer
+        //         var fbo = [ 0 ];
+        //         glCreateFramebuffers(1, fbo);
+        //         glNamedFramebufferTexture(fbo[0], GL_COLOR_ATTACHMENT0, textureObjects.get(target.id), 0);
 
-                if (glCheckNamedFramebufferStatus(fbo[0], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-                {
-                    throw 'OpenGL 4.5 Backend Exception : ${target.id} : Framebuffer not complete';
-                }
+        //         if (glCheckNamedFramebufferStatus(fbo[0], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        //         {
+        //             throw 'OpenGL 4.5 Backend Exception : ${target.id} : Framebuffer not complete';
+        //         }
 
-                framebufferObjects.set(target.id, fbo[0]);
-            }
+        //         framebufferObjects.set(target.id, fbo[0]);
+        //     }
 
-            glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebuffer);
-        }
+        //     glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebuffer);
+        // }
 
         // Apply shader changes.
         if (shader != _command.shader)
@@ -770,58 +770,58 @@ class OGL4Backend implements IRendererBackend
 
         // Set the viewport.
         // If the viewport of the command is null then the backbuffer size is used (size of the window).
-        var cmdViewport = _command.camera.viewport;
-        if (cmdViewport == null)
-        {
-            if (target == null)
-            {
-                cmdViewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-            }
-            else
-            {
-                cmdViewport = new Rectangle(0, 0, target.width, target.height);
-            }
-        }
+        // var cmdViewport = _command.camera.viewport;
+        // if (cmdViewport == null)
+        // {
+        //     if (target == null)
+        //     {
+        //         cmdViewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
+        //     }
+        //     else
+        //     {
+        //         cmdViewport = new Rectangle(0, 0, target.width, target.height);
+        //     }
+        // }
 
-        if (!viewport.equals(cmdViewport))
-        {
-            viewport.set(cmdViewport.x, cmdViewport.y, cmdViewport.w, cmdViewport.h);
+        // if (!viewport.equals(cmdViewport))
+        // {
+        //     viewport.set(cmdViewport.x, cmdViewport.y, cmdViewport.w, cmdViewport.h);
 
-            var x = viewport.x *= target == null ? backbuffer.scale : 1;
-            var y = viewport.y *= target == null ? backbuffer.scale : 1;
-            var w = viewport.w *= target == null ? backbuffer.scale : 1;
-            var h = viewport.h *= target == null ? backbuffer.scale : 1;
+        //     var x = viewport.x *= target == null ? backbuffer.scale : 1;
+        //     var y = viewport.y *= target == null ? backbuffer.scale : 1;
+        //     var w = viewport.w *= target == null ? backbuffer.scale : 1;
+        //     var h = viewport.h *= target == null ? backbuffer.scale : 1;
 
-            // OpenGL works 0x0 is bottom left so we need to flip the y.
-            glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
-        }
+        //     // OpenGL works 0x0 is bottom left so we need to flip the y.
+        //     glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
+        // }
 
         // Apply the scissor clip.
-        var cmdClip = _command.clip;
-        if (cmdClip == null)
-        {
-            if (target == null)
-            {
-                cmdClip = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-            }
-            else
-            {
-                cmdClip = new Rectangle(0, 0, target.width, target.height);
-            }
-        }
+        // var cmdClip = _command.clip;
+        // if (cmdClip == null)
+        // {
+        //     if (target == null)
+        //     {
+        //         cmdClip = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
+        //     }
+        //     else
+        //     {
+        //         cmdClip = new Rectangle(0, 0, target.width, target.height);
+        //     }
+        // }
 
-        if (!clip.equals(cmdClip))
-        {
-            clip.copyFrom(cmdClip);
+        // if (!clip.equals(cmdClip))
+        // {
+        //     clip.copyFrom(cmdClip);
 
-            var x = cmdClip.x * (target == null ? backbuffer.scale : 1);
-            var y = cmdClip.y * (target == null ? backbuffer.scale : 1);
-            var w = cmdClip.w * (target == null ? backbuffer.scale : 1);
-            var h = cmdClip.h * (target == null ? backbuffer.scale : 1);
+        //     var x = cmdClip.x * (target == null ? backbuffer.scale : 1);
+        //     var y = cmdClip.y * (target == null ? backbuffer.scale : 1);
+        //     var w = cmdClip.w * (target == null ? backbuffer.scale : 1);
+        //     var h = cmdClip.h * (target == null ? backbuffer.scale : 1);
 
-            // OpenGL works 0x0 is bottom left so we need to flip the y.
-            glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
-        }
+        //     // OpenGL works 0x0 is bottom left so we need to flip the y.
+        //     glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
+        // }
 
         // Set the blending
         if (_command.blending)
@@ -1001,28 +1001,28 @@ class OGL4Backend implements IRendererBackend
 
     function buildCameraMatrices(_camera : Camera)
     {
-        switch _camera.type
-        {
-            case Orthographic:
-                var orth = (cast _camera : Camera2D);
-                if (orth.dirty)
-                {
-                    orth.projection.makeHeterogeneousOrthographic(0, orth.viewport.w, orth.viewport.h, 0, -100, 100);
-                    orth.view.copy(orth.transformation.world.matrix).invert();
-                    orth.dirty = false;
-                }
-            case Projection:
-                var proj = (cast _camera : Camera3D);
-                if (proj.dirty)
-                {
-                    proj.projection.makeHeterogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
-                    proj.projection.scale(perspectiveYFlipVector);
-                    proj.view.copy(proj.transformation.world.matrix).invert();
-                    proj.dirty = false;
-                }
-            case Custom:
-                // Do nothing, user is responsible for building their custom camera matrices.
-        }
+        // switch _camera.type
+        // {
+        //     case Orthographic:
+        //         var orth = (cast _camera : Camera2D);
+        //         if (orth.dirty)
+        //         {
+        //             orth.projection.makeHeterogeneousOrthographic(0, orth.viewport.w, orth.viewport.h, 0, -100, 100);
+        //             orth.view.copy(orth.transformation.world.matrix).invert();
+        //             orth.dirty = false;
+        //         }
+        //     case Projection:
+        //         var proj = (cast _camera : Camera3D);
+        //         if (proj.dirty)
+        //         {
+        //             proj.projection.makeHeterogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
+        //             proj.projection.scale(perspectiveYFlipVector);
+        //             proj.view.copy(proj.transformation.world.matrix).invert();
+        //             proj.dirty = false;
+        //         }
+        //     case Custom:
+        //         // Do nothing, user is responsible for building their custom camera matrices.
+        // }
     }
 
     function createBackbuffer(_width : Int, _height : Int, _remove : Bool = true) : BackBuffer

@@ -3,6 +3,7 @@ package uk.aidanlee.flurry.api.gpu.batcher;
 import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.maths.Hash;
@@ -24,7 +25,7 @@ typedef BatcherOptions = {
      * Optional render target for this batcher.
      * If not specified the backbuffer / default target will be used.
      */
-    var ?target : ImageResource;
+    var ?target : TargetState;
 
     /**
      * Optional initial depth for this batcher.
@@ -97,7 +98,7 @@ class Batcher
      * 
      * If null the backbuffer / default target will be used.
      */
-    public var target : ImageResource;
+    public var target : TargetState;
 
     /**
      * If the batcher needs to sort all of its geometries.
@@ -120,7 +121,7 @@ class Batcher
         geometry       = [];
         shader         = _options.shader;
         camera         = _options.camera;
-        target         = _options.target;
+        target         = _options.target.or(Backbuffer);
         depth          = _options.depth.or(0);
         depthOptions   = _options.depthOptions.or({
             depthTesting  : false,
@@ -227,8 +228,8 @@ class Batcher
                     commandGeom,
                     commandName,
                     camera,
-                    state.clip,
                     state.primitive,
+                    state.clip,
                     target,
                     state.shader,
                     state.uniforms,
@@ -261,8 +262,8 @@ class Batcher
                 commandGeom,
                 commandName,
                 camera,
-                state.clip,
                 state.primitive,
+                state.clip,
                 target,
                 state.shader,
                 state.uniforms,
