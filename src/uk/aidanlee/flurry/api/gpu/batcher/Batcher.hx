@@ -5,7 +5,6 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.maths.Hash;
 
 using Safety;
@@ -191,7 +190,7 @@ class Batcher
         dirty = true;
     }
 
-    public function batch(_queue : (_geometry : GeometryDrawCommand) -> Void)
+    public function batch(_queue : (_geometry : DrawCommand) -> Void)
     {
         // Exit early if there is no geometry to batch.
         if (geometry.length == 0)
@@ -221,9 +220,9 @@ class Batcher
             // We make copies of the texture and sampler array as otherwise all commands have the textures and samplers of the last batched geometry.
             if (!batchablePrimitive(geom) || state.requiresChange(geom))
             {
-                _queue(new GeometryDrawCommand(
-                    commandGeom,
+                _queue(new DrawCommand(
                     commandName,
+                    commandGeom,
                     camera,
                     state.primitive,
                     state.clip,
@@ -254,9 +253,9 @@ class Batcher
         // Push any remaining verticies.
         if (commandGeom.length > 0)
         {
-            _queue(new GeometryDrawCommand(
-                commandGeom,
+            _queue(new DrawCommand(
                 commandName,
+                commandGeom,
                 camera,
                 state.primitive,
                 state.clip,

@@ -67,7 +67,6 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
 import uk.aidanlee.flurry.api.gpu.textures.Filtering;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
@@ -581,7 +580,7 @@ class DX11Backend implements IRendererBackend
      * Upload geometries to the gpu VRAM.
      * @param _commands Array of commands to upload.
      */
-    public function queue(_command : GeometryDrawCommand)
+    public function queue(_command : DrawCommand)
     {
         // // Map the buffer.
         // if (context.map(vertexBuffer, 0, WriteDiscard, 0, mappedVertexBuffer) != 0)

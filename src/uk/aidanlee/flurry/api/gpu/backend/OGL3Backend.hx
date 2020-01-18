@@ -23,7 +23,6 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
@@ -169,7 +168,7 @@ class OGL3Backend implements IRendererBackend
     /**
      * Queue all draw commands will be placed into.
      */
-    final commandQueue : Array<GeometryDrawCommand>;
+    final commandQueue : Array<DrawCommand>;
 
     /**
      * Backbuffer display, default target if none is specified.
@@ -312,7 +311,7 @@ class OGL3Backend implements IRendererBackend
      * Queue a command to be drawn this frame.
      * @param _command Command to draw.
      */
-    public function queue(_command : GeometryDrawCommand)
+    public function queue(_command : DrawCommand)
     {
         commandQueue.push(_command);
     }
@@ -706,7 +705,7 @@ class OGL3Backend implements IRendererBackend
      * An exception will be thrown if it cannot find a matching block.
      * @param _command Command to pull uniforms from.
      */
-    function uploadUniformData(_command : GeometryDrawCommand)
+    function uploadUniformData(_command : DrawCommand)
     {
         // Upload uniform data
         final cache = shaderUniforms.get(_command.shader.id);

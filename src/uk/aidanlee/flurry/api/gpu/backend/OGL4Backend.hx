@@ -29,7 +29,6 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.utils.opengl.GLSyncWrapper;
 
@@ -364,7 +363,7 @@ class OGL4Backend implements IRendererBackend
      * Upload a series of geometry commands into the current buffer range.
      * @param _commands Commands to upload.
      */
-    public function queue(_command : GeometryDrawCommand)
+    public function queue(_command : DrawCommand)
     {
         // for (command in _commands)
         // {
