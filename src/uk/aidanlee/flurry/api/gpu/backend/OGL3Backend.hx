@@ -258,7 +258,7 @@ class OGL3Backend implements IRendererBackend
         clip         = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
         shader       = null;
         target       = Backbuffer;
-        textureSlots = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
+        textureSlots = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) -1 ];
 
         // Create our own custom backbuffer.
         // we blit a flipped version to the actual backbuffer before swapping.
@@ -839,21 +839,22 @@ class OGL3Backend implements IRendererBackend
                 switch target
                 {
                     case Backbuffer: // no change in target
-                    case Texture(_requested):
-                        bindTextureFramebuffer(_requested);
+                    case Texture(_):
+                        glBindFramebuffer(GL_FRAMEBUFFER, backbuffer.framebuffer);
                 }
-            case Texture(_current):
+            case Texture(_requested):
                 switch target
                 {
                     case Backbuffer:
-                        glBindFramebuffer(GL_FRAMEBUFFER, backbuffer.framebuffer);
-                    case Texture(_requested):
-                        if (_current != _requested)
+                        bindTextureFramebuffer(_requested);
+                    case Texture(_current):
+                        if (_current.id != _requested.id)
                         {
                             bindTextureFramebuffer(_requested);
                         }
                 }
         }
+
         target = _command.target;
 
         // Apply shader changes.
@@ -862,6 +863,20 @@ class OGL3Backend implements IRendererBackend
             shader = _command.shader;
             glUseProgram(shaderPrograms.get(shader.id));
         }
+
+        // Bind uniform blocks.
+        final cache = shaderUniforms.get(_command.shader.id);
+        for (i in 0...cache.layout.blocks.length)
+        {
+            if (cache.layout.blocks[i].name != 'flurry_matrices')
+            {
+                glBindBufferBase(GL_UNIFORM_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
+            }
+        }
+
+        // Apply the shaders uniforms
+        // TODO : Only set uniforms if the value has changed.
+        setTextures(_command);
 
         // Apply depth and stencil settings.
         if (_command.depth.depthTesting)
@@ -901,7 +916,8 @@ class OGL3Backend implements IRendererBackend
         }
 
         // If the camera does not specify a viewport (non orthographic) then the full size of the target is used.
-        switch _command.camera.viewport {
+        switch _command.camera.viewport
+        {
             case None:
                 switch target {
                     case Backbuffer:
@@ -942,19 +958,6 @@ class OGL3Backend implements IRendererBackend
         {
             glDisable(GL_BLEND);
         }
-
-        // Apply the shaders uniforms
-        // TODO : Only set uniforms if the value has changed.
-        setTextures(_command);
-
-        final cache = shaderUniforms.get(_command.shader.id);
-        for (i in 0...cache.layout.blocks.length)
-        {
-            if (cache.layout.blocks[i].name != 'flurry_matrices')
-            {
-                glBindBufferBase(GL_UNIFORM_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
-            }
-        }
     }
 
     /**
@@ -973,7 +976,8 @@ class OGL3Backend implements IRendererBackend
             for (i in 0..._command.textures.length)
             {
                 // Bind the texture if its not already bound.
-                var glTextureID  = textureObjects.get(_command.textures[i].id);
+                final glTextureID = textureObjects.get(_command.textures[i].id);
+
                 if (glTextureID != textureSlots[i])
                 {
                     glActiveTexture(GL_TEXTURE0 + i);
@@ -984,10 +988,11 @@ class OGL3Backend implements IRendererBackend
 
                 // Get / create and bind the sampler for the current texture.
                 var currentSampler = defaultSampler;
-                if (_command.samplers[i] != null)
+
+                if (i < _command.samplers.length)
                 {
-                    var samplerHash     = _command.samplers[i].hash();
-                    var textureSamplers = samplerObjects[_command.textures[i].id];
+                    final samplerHash     = _command.samplers[i].hash();
+                    final textureSamplers = samplerObjects[_command.textures[i].id];
 
                     if (!textureSamplers.exists(samplerHash))
                     {

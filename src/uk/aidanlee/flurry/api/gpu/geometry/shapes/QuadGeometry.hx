@@ -13,10 +13,10 @@ using Safety;
 typedef QuadGeometryOptions = {
     >GeometryOptions,
 
-    var ?x : Float;
-    var ?y : Float;
-    var ?w : Float;
-    var ?h : Float;
+    var x : Float;
+    var y : Float;
+    var w : Float;
+    var h : Float;
     var ?region : ImageRegion;
 }
 
@@ -25,12 +25,15 @@ typedef QuadGeometryOptions = {
  */
 class QuadGeometry extends Geometry
 {
+    var width : Float;
+    var height : Float;
+
     public function new(_options : QuadGeometryOptions)
     {
-        _options.x = _options.x.or(0);
-        _options.y = _options.y.or(0);
-        _options.w = _options.w.or(_options.textures[0].width);
-        _options.h = _options.h.or(_options.textures[0].height);
+        _options.x = _options.x;
+        _options.y = _options.y;
+        width      = _options.w;
+        height     = _options.h;
 
         final u1 = _options.region!.u1.or(0);
         final v1 = _options.region!.v1.or(0);
@@ -39,10 +42,10 @@ class QuadGeometry extends Geometry
 
         _options.data = Indexed(
             new VertexBlobBuilder(9 * 4)
-                .addVertex(new Vector3(         0, _options.h), new Color(), new Vector2(u1, v2))
-                .addVertex(new Vector3(_options.w, _options.h), new Color(), new Vector2(u2, v2))
-                .addVertex(new Vector3(         0,          0), new Color(), new Vector2(u1, v1))
-                .addVertex(new Vector3(_options.w,          0), new Color(), new Vector2(u2, v1))
+                .addVertex(new Vector3(     0, height), new Color(), new Vector2(u1, v2))
+                .addVertex(new Vector3( width, height), new Color(), new Vector2(u2, v2))
+                .addVertex(new Vector3(     0,      0), new Color(), new Vector2(u1, v1))
+                .addVertex(new Vector3( width,      0), new Color(), new Vector2(u2, v1))
                 .vertices,
             new IndexBlobBuilder(6)
                 .addArray([ 0, 1, 2, 2, 1, 3 ])
@@ -60,10 +63,7 @@ class QuadGeometry extends Geometry
      */
     public function resize(_vector : Vector2)
     {
-        // vertices[0].position.set_xy(        0, _vector.y);
-        // vertices[1].position.set_xy(_vector.x, _vector.y);
-        // vertices[2].position.set_xy(        0,         0);
-        // vertices[3].position.set_xy(_vector.x,         0);
+        updateSize(_vector.x, _vector.y);
     }
 
     /**
@@ -73,10 +73,7 @@ class QuadGeometry extends Geometry
      */
     public function resize_xy(_x : Float, _y : Float)
     {
-        // vertices[0].position.set_xy( 0, _y);
-        // vertices[1].position.set_xy(_x, _y);
-        // vertices[2].position.set_xy( 0,  0);
-        // vertices[3].position.set_xy(_x,  0);
+        updateSize(_x, _y);
     }
 
     /**
@@ -85,12 +82,9 @@ class QuadGeometry extends Geometry
      */
     public function set(_rectangle : Rectangle)
     {
-        // vertices[0].position.set_xy(           0, _rectangle.h);
-        // vertices[1].position.set_xy(_rectangle.w, _rectangle.h);
-        // vertices[2].position.set_xy(           0,            0);
-        // vertices[3].position.set_xy(_rectangle.w,            0);
+        updateSize(_rectangle.w, _rectangle.h);
 
-        // transformation.position.set_xy(_rectangle.x, _rectangle.y);
+        transformation.position.set_xy(_rectangle.x, _rectangle.y);
     }
 
     /**
@@ -102,12 +96,9 @@ class QuadGeometry extends Geometry
      */
     public function set_xywh(_x : Float, _y : Float, _width : Float, _height : Float)
     {
-        // vertices[0].position.set_xy(     0, _height);
-        // vertices[1].position.set_xy(_width, _height);
-        // vertices[2].position.set_xy(     0,  0);
-        // vertices[3].position.set_xy(_width,  0);
+        updateSize(_width, _height);
 
-        // transformation.position.set_xy(_x, _y);
+        transformation.position.set_xy(_x, _y);
     }
 
     /**
@@ -141,14 +132,51 @@ class QuadGeometry extends Geometry
      */
     public function uv_xyzw(_x : Float, _y : Float, _z : Float, _w : Float, _normalized : Bool = true)
     {
-        // var uv_x = _normalized ? _x : _x / textures[0].width;
-        // var uv_y = _normalized ? _y : _y / textures[0].height;
-        // var uv_w = _normalized ? _z : _z / textures[0].width;
-        // var uv_h = _normalized ? _w : _w / textures[0].height;
+        final uv_x = _normalized ? _x : _x / width;
+        final uv_y = _normalized ? _y : _y / height;
+        final uv_w = _normalized ? _z : _z / width;
+        final uv_h = _normalized ? _w : _w / height;
 
-        // vertices[0].texCoord.set(uv_x, uv_h);
-        // vertices[1].texCoord.set(uv_w, uv_h);
-        // vertices[2].texCoord.set(uv_x, uv_y);
-        // vertices[3].texCoord.set(uv_w, uv_y);
+        updateUVs(uv_x, uv_y, uv_w, uv_h);
+    }
+
+    function updateSize(_w : Float, _h : Float)
+    {
+        switch data
+        {
+            case Indexed(_vertices, _):
+                _vertices.floatAccess[0] = 0;
+                _vertices.floatAccess[1] = _w;
+
+                _vertices.floatAccess[ 9] = _w;
+                _vertices.floatAccess[10] = _h;
+
+                _vertices.floatAccess[18] = 0;
+                _vertices.floatAccess[19] = 0;
+
+                _vertices.floatAccess[27] = _w;
+                _vertices.floatAccess[28] = 0;
+            case _:
+        }
+    }
+
+    function updateUVs(_x : Float, _y : Float, _w : Float, _h : Float)
+    {
+        switch data
+        {
+            case Indexed(_vertices, _):
+                _vertices.floatAccess[ 7] = _x;
+                _vertices.floatAccess[ 8] = _h;
+
+                _vertices.floatAccess[16] = _w;
+                _vertices.floatAccess[17] = _h;
+
+                _vertices.floatAccess[25] = _x;
+                _vertices.floatAccess[26] = _y;
+
+                _vertices.floatAccess[34] = _w;
+                _vertices.floatAccess[35] = _y;
+            case _:
+        }
     }
 }

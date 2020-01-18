@@ -1,11 +1,11 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import haxe.ds.ReadOnlyArray;
 import uk.aidanlee.flurry.api.gpu.BlendMode;
 import uk.aidanlee.flurry.api.gpu.DepthOptions;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.StencilOptions;
+import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
@@ -56,9 +56,9 @@ class DrawCommand
     /**
      * Textures (if any) to draw with this data.
      */
-    public final textures : Array<ImageResource>;
+    public final textures : ReadOnlyArray<ImageResource>;
 
-    public final samplers : Array<Null<SamplerState>>;
+    public final samplers : ReadOnlyArray<SamplerState>;
 
     public final depth : DepthOptions;
 
@@ -85,8 +85,8 @@ class DrawCommand
         _target     : TargetState,
         _shader     : ShaderResource,
         _uniforms   : ReadOnlyArray<UniformBlob>,
-        _textures   : Array<ImageResource>,
-        _samplers   : Array<Null<SamplerState>>,
+        _textures   : ReadOnlyArray<ImageResource>,
+        _samplers   : ReadOnlyArray<Null<SamplerState>>,
         _depth      : DepthOptions,
         _stencil    : StencilOptions,
         _blending   : Bool,

@@ -37,7 +37,7 @@ class BatcherState
     /**
      * The samplers currently active in this batcher.
      */
-    public var samplers (default, null) : Array<Null<SamplerState>>;
+    public var samplers (default, null) : Array<SamplerState>;
 
     /**
      * The clipping box currently active in this batcher.
@@ -103,26 +103,48 @@ class BatcherState
             if (uniforms[i] != usedUniforms[i]) return true;
         }
 
-        // Check textures
-        if (_geom.textures.length != textures.length) return true;
-        for (i in 0...textures.length)
+        // Check textures and samplers
+        switch _geom.textures
         {
-            if (textures[i].id != _geom.textures[i].id) return true;
+            case None:
+                if (textures.length != 0)
+                {
+                    return true;
+                }
+            case Textures(_textures):
+                if (textures.length != _textures.length)
+                {
+                    return true;
+                }
+                for (i in 0...textures.length)
+                {
+                    if (textures[i] != _textures[i])
+                    {
+                        return true;
+                    }
+                }
+            case Samplers(_textures, _samplers):
+                if (textures.length != _textures.length || samplers.length != _samplers.length)
+                {
+                    return true;
+                }
+                for (i in 0...textures.length)
+                {
+                    if (textures[i] != _textures[i])
+                    {
+                        return true;
+                    }
+                }
+                for (i in 0...samplers.length)
+                {
+                    if (!samplers[i].equal(_samplers[i]))
+                    {
+                        return true;
+                    }
+                }
         }
 
-        // Check samplers
-        if (_geom.samplers.length != samplers.length) return true;
-        for (i in 0...samplers.length)
-        {
-            if (samplers[i] == null && _geom.samplers[i] != null) return true;
-            if (samplers[i] != null && _geom.samplers[i] == null) return true;
-            if (samplers[i] != null && _geom.samplers[i] != null && !samplers[i].equal(_geom.samplers[i])) return true;
-        }
-
-        if (_geom.primitive != primitive ) return true;
-        if ((_geom.data.getIndex() == 0) != indexed) return true;
-        if (!_geom.blend.equals(blend)) return true;
-
+        // Check clip rectangle
         switch _geom.clip
         {
             case None:
@@ -142,6 +164,11 @@ class BatcherState
                         }
                 }
         }
+
+        // Check other small bits.
+        if (_geom.primitive != primitive ) return true;
+        if ((_geom.data.getIndex() == 0) != indexed) return true;
+        if (!_geom.blend.equals(blend)) return true;
 
         return false;
     }
@@ -165,22 +192,31 @@ class BatcherState
             case Uniforms(_, _uniforms) : _uniforms;
         }
 
-        if (_geom.textures.length != textures.length)
+        switch _geom.textures
         {
-            textures.resize(_geom.textures.length);
-        }
-        for (i in 0...textures.length)
-        {
-            textures[i] = _geom.textures[i];
-        }
+            case None:
+                textures.resize(0);
+                samplers.resize(0);
+            case Textures(_textures):
+                textures.resize(_textures.length);
+                samplers.resize(0);
 
-        if (_geom.samplers.length != samplers.length)
-        {
-            samplers.resize(_geom.samplers.length);
-        }
-        for (i in 0...samplers.length)
-        {
-            samplers[i] = _geom.samplers[i];
+                for (i in 0...textures.length)
+                {
+                    textures[i] = _textures[i];
+                }
+            case Samplers(_textures, _samplers):
+                textures.resize(_textures.length);               
+                samplers.resize(_samplers.length);
+
+                for (i in 0...textures.length)
+                {
+                    textures[i] = _textures[i];
+                }
+                for (i in 0...samplers.length)
+                {
+                    samplers[i] = _samplers[i];
+                }
         }
 
         primitive      = _geom.primitive;

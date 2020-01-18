@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import haxe.ds.ReadOnlyArray;
 import signals.Signal1;
 import signals.Signal.Signal0;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
@@ -12,8 +13,8 @@ import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Transformation;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 
 using Safety;
 
@@ -21,8 +22,7 @@ typedef GeometryOptions = {
     var ?transform  : Transformation;
     var ?data       : GeometryData;
     var ?shader     : GeometryShader;
-    var ?textures   : Array<ImageResource>;
-    var ?samplers   : Array<Null<SamplerState>>;
+    var ?textures   : GeometryTextures;
     var ?depth      : Float;
     var ?color      : Color;
     var ?clip       : ClipState;
@@ -41,7 +41,14 @@ enum GeometryShader
 {
     None;
     Shader(_shader : ShaderResource);
-    Uniforms(_shader : ShaderResource, _uniforms : Array<UniformBlob>);
+    Uniforms(_shader : ShaderResource, _uniforms : ReadOnlyArray<UniformBlob>);
+}
+
+enum GeometryTextures
+{
+    None;
+    Textures(_textures : ReadOnlyArray<ImageResource>);
+    Samplers(_textures : ReadOnlyArray<ImageResource>, _samplers : ReadOnlyArray<SamplerState>);
 }
 
 /**
@@ -88,19 +95,22 @@ class Geometry
     public final clip : ClipState;
 
     /**
-     * All of the images this image will provide to the shader.
-     */
-    public final textures : Array<ImageResource>;
-
-    /**
-     * All of the samplers which will be used to sample data from the corresponding texture.
-     */
-    public final samplers : Array<Null<SamplerState>>;
-
-    /**
      * Vertex data of this geometry.
      */
     public var data : GeometryData;
+
+    /**
+     * All of the images this image will provide to the shader.
+     */
+    public var textures (default, set) : GeometryTextures;
+
+    inline function set_textures(_textures : GeometryTextures) : GeometryTextures {
+        textures = _textures;
+
+        changed.dispatch();
+
+        return _textures;
+    }
 
     /**
      * The specific shader for the geometry.
@@ -188,9 +198,8 @@ class Geometry
         data           = _options.data;
         shader         = _options.shader    .or(None);
         clip           = _options.clip      .or(None);
+        textures       = _options.textures  .or(None);
         transformation = _options.transform .or(new Transformation());
-        textures       = _options.textures  .or([]);
-        samplers       = _options.samplers  .or([]);
         depth          = _options.depth     .or(0);
         primitive      = _options.primitive .or(Triangles);
         color          = _options.color     .or(new Color());
@@ -204,16 +213,5 @@ class Geometry
                 batcher.addGeometry(this);
             }
         }
-    }
-
-    /**
-     * Remove this geometry from all the batchers it is in.
-     */
-    public function drop()
-    {
-        dropped.dispatch(this);
-
-        textures.resize(0);
-        samplers.resize(0);
     }
 }

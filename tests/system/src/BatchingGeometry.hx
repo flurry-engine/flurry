@@ -22,11 +22,25 @@ class BatchingGeometry extends Flurry
 
     override function onReady()
     {
-        var camera  = new Camera2D(display.width, display.height);
-        var batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
+        final camera  = new Camera2D(display.width, display.height);
+        final batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
 
-        new QuadGeometry({ textures : [ resources.get('tank1', ImageResource) ], batchers : [ batcher ] }).position.set_xy(  0, 128);
-        new QuadGeometry({ textures : [ resources.get('tank2', ImageResource) ], batchers : [ batcher ] }).position.set_xy(256, 128);
-        new QuadGeometry({ textures : [ resources.get('tank3', ImageResource) ], batchers : [ batcher ] }).position.set_xy(512, 128);
+        new QuadGeometry({
+            textures : Texture([ resources.get('tank2', ImageResource) ]),
+            batchers : [ batcher ],
+            x : 0, y : 128, w : 256, h : 256
+        });
+
+        new QuadGeometry({
+            textures : Texture([ resources.get('tank1', ImageResource) ]),
+            batchers : [ batcher ],
+            x : 256, y : 128, w : 256, h : 256
+        });
+
+        new QuadGeometry({
+            textures : Texture([ resources.get('tank2', ImageResource) ]),
+            batchers : [ batcher ],
+            x : 512, y : 128, w : 256, h : 256
+        });
     }
 }

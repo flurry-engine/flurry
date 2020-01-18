@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.textures;
 
 class SamplerState
-{
+{   
     public final uClamping : EdgeClamping;
 
     public final vClamping : EdgeClamping;

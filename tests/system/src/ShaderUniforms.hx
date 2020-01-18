@@ -41,21 +41,24 @@ class ShaderUniforms extends Flurry
         final batcher = renderer.createBatcher({ shader : shader, camera : camera });
 
         new QuadGeometry({
-            textures : [ resources.get('tank1', ImageResource) ],
+            textures : Texture([ resources.get('tank1', ImageResource) ]),
             batchers : [ batcher ],
-            shader   : Uniforms(shader, [ u1 ])
+            shader   : Uniforms(shader, [ u1 ]),
+            x : 0, y : 128, w : 256, h : 256
         }).position.set_xy(  0, 128);
 
         new QuadGeometry({
-            textures : [ resources.get('tank2', ImageResource) ],
+            textures : Texture([ resources.get('tank2', ImageResource) ]),
             batchers : [ batcher ],
-            shader   : Uniforms(shader, [ u2 ])
-        }).position.set_xy(256, 128);
+            shader   : Uniforms(shader, [ u2 ]),
+            x : 256, y : 128, w : 256, h : 256
+        });
 
         new QuadGeometry({
-            textures : [ resources.get('tank3', ImageResource) ],
+            textures : Texture([ resources.get('tank3', ImageResource) ]),
             batchers : [ batcher ],
-            shader   : Uniforms(shader, [ u3 ])
-        }).position.set_xy(512, 128);
+            shader   : Uniforms(shader, [ u3 ]),
+            x : 512, y : 128, w : 256, h : 256
+        });
     }
 }

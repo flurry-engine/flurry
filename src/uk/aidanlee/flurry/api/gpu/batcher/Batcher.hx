@@ -199,8 +199,6 @@ class Batcher
             return;
         }
 
-        var startIndex  = 0;
-        var endIndex    = 0;
         var commandName = 0;
         var commandGeom = [];
 
@@ -220,6 +218,7 @@ class Batcher
         {
             // Only triangles, lines, and points can be batched.
             // Line lists and triangle lists cannot (yet).
+            // We make copies of the texture and sampler array as otherwise all commands have the textures and samplers of the last batched geometry.
             if (!batchablePrimitive(geom) || state.requiresChange(geom))
             {
                 _queue(new GeometryDrawCommand(
@@ -231,8 +230,8 @@ class Batcher
                     target,
                     state.shader,
                     state.uniforms,
-                    [ for (texture in state.textures) texture ],
-                    [ for (i in 0...state.textures.length) i >= state.samplers.length ? null : state.samplers[i] ],
+                    state.textures.copy(),
+                    state.samplers.copy(),
                     depthOptions,
                     stencilOptions,
                     true,
@@ -241,7 +240,6 @@ class Batcher
                     state.blend.srcAlpha,
                     state.blend.dstAlpha
                 ));
-                startIndex  = endIndex;
 
                 commandGeom = [];
                 commandName = id;
@@ -265,8 +263,8 @@ class Batcher
                 target,
                 state.shader,
                 state.uniforms,
-                [ for (texture in state.textures) texture ],
-                [ for (i in 0...state.textures.length) i >= state.samplers.length ? null : state.samplers[i] ],
+                state.textures.copy(),
+                state.samplers.copy(),
                 depthOptions,
                 stencilOptions,
                 true,
@@ -311,15 +309,14 @@ class Batcher
         if (_a.depth < _b.depth) return -1;
         if (_a.depth > _b.depth) return  1;
 
-        // Sort by texture.
+        // Sort by shader.
         switch _a.shader
         {
             case None:
                 switch _b.shader
                 {
                     case None: // no op
-                    case Shader(_): return -1;
-                    case Uniforms(_, _): return -1;
+                    case _: return -1;
                 }
             case Shader(_shaderA):
                 switch _b.shader
@@ -346,15 +343,34 @@ class Batcher
         }
 
         // Sort by texture.
-        if (_a.textures.length != 0 && _b.textures.length != 0)
+        switch _a.textures
         {
-            if (_a.textures[0].id < _b.textures[0].id) return -1;
-            if (_a.textures[0].id > _b.textures[0].id) return  1;
-        }
-        else
-        {
-            if (_a.textures.length != 0 && _b.textures.length == 0) return  1;
-            if (_a.textures.length == 0 && _b.textures.length != 0) return -1;
+            case None:
+                switch _b.textures
+                {
+                    case None: // no op
+                    case _: return -1;
+                }
+            case Textures(_texturesA):
+                switch _b.textures
+                {
+                    case None: return 1;
+                    case Textures(_texturesB):
+                        if (_texturesA[0].id < _texturesB[0].id) return -1;
+                        if (_texturesA[0].id > _texturesB[0].id) return  1;
+                    case Samplers(_, _): return -1;
+                }
+            case Samplers(_texturesA, _samplersA):
+                switch _b.textures
+                {
+                    case None: return 1;
+                    case Textures(_): return -1;
+                    case Samplers(_texturesB, _samplersB):
+                        if (_texturesA[0].id < _texturesB[0].id) return -1;
+                        if (_texturesA[0].id > _texturesB[0].id) return  1;
+
+                        if (_samplersA[0].equal(_samplersB[0])) return -1;
+                }
         }
 
         // Sort by primitive.
