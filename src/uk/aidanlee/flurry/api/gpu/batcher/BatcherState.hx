@@ -86,24 +86,28 @@ class BatcherState
         {
             case None : batcher.shader;
             case Shader(_shader) : _shader;
-            case Uniforms(_shader, _) : _shader;
         }
-        if (usedShader.id != shader.id) return true;
+        if (usedShader.id != shader.id)
+        {
+            return true;
+        }
 
         // Check uniforms
-        final usedUniforms = switch _geom.shader
+        final usedUniforms = switch _geom.uniforms
         {
             case None : [];
-            case Shader(_) : [];
-            case Uniforms(_, _uniforms) : _uniforms;
+            case Uniforms(_uniforms) : _uniforms;
         }
-        if (usedUniforms.length != uniforms.length) return true;
+        if (usedUniforms.length != uniforms.length)
+        {
+            return true;
+        }
         for (i in 0...uniforms.length)
         {
             if (uniforms[i] != usedUniforms[i]) return true;
         }
 
-        // Check textures and samplers
+        // Check textures
         switch _geom.textures
         {
             case None:
@@ -123,17 +127,20 @@ class BatcherState
                         return true;
                     }
                 }
-            case Samplers(_textures, _samplers):
-                if (textures.length != _textures.length || samplers.length != _samplers.length)
+        }
+
+        // Check samplers
+        switch _geom.samplers
+        {
+            case None:
+                if (samplers.length != 0)
                 {
                     return true;
                 }
-                for (i in 0...textures.length)
+            case Samplers(_samplers):
+                if (samplers.length != _samplers.length)
                 {
-                    if (textures[i] != _textures[i])
-                    {
-                        return true;
-                    }
+                    return true;
                 }
                 for (i in 0...samplers.length)
                 {
@@ -183,36 +190,33 @@ class BatcherState
         {
             case None : batcher.shader;
             case Shader(_shader) : _shader;
-            case Uniforms(_shader, _) : _shader;
         }
-        uniforms = switch _geom.shader
+        uniforms = switch _geom.uniforms
         {
             case None : [];
-            case Shader(_) : [];
-            case Uniforms(_, _uniforms) : _uniforms;
+            case Uniforms(_uniforms) : _uniforms;
         }
 
         switch _geom.textures
         {
             case None:
                 textures.resize(0);
-                samplers.resize(0);
             case Textures(_textures):
                 textures.resize(_textures.length);
-                samplers.resize(0);
 
                 for (i in 0...textures.length)
                 {
                     textures[i] = _textures[i];
                 }
-            case Samplers(_textures, _samplers):
-                textures.resize(_textures.length);               
+        }
+
+        switch _geom.samplers
+        {
+            case None:
+                samplers.resize(0);
+            case Samplers(_samplers):
                 samplers.resize(_samplers.length);
 
-                for (i in 0...textures.length)
-                {
-                    textures[i] = _textures[i];
-                }
                 for (i in 0...samplers.length)
                 {
                     samplers[i] = _samplers[i];

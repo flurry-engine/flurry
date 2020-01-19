@@ -33,19 +33,22 @@ class ImageSamplers extends Flurry
         });
 
         new QuadGeometry({
-            textures : Samplers([ resources.get('van', ImageResource) ], [ new SamplerState(Wrap, Wrap, Nearest, Nearest) ]),
+            textures : Textures([ resources.get('van', ImageResource) ]),
+            samplers : Samplers([ new SamplerState(Wrap, Wrap, Nearest, Nearest) ]),
             batchers : [ batcher ],
             x : 384, y : 128, w : 128, h : 128
         });
 
         new QuadGeometry({
-            textures : Samplers([ resources.get('van', ImageResource) ], [ new SamplerState(Mirror, Mirror, Linear, Linear) ]),
+            textures : Textures([ resources.get('van', ImageResource) ]),
+            samplers : Samplers([ new SamplerState(Mirror, Mirror, Linear, Linear) ]),
             batchers : [ batcher ],
             x : 256, y : 256, w : 128, h : 128
         }).uv_xyzw(0, 0, 2, 2);
 
         new QuadGeometry({
-            textures : Samplers([ resources.get('van', ImageResource) ], [ new SamplerState(Wrap, Wrap, Linear, Linear) ]),
+            textures : Textures([ resources.get('van', ImageResource) ]),
+            samplers : Samplers([ new SamplerState(Wrap, Wrap, Linear, Linear) ]),
             batchers : [ batcher ],
             x : 384, y : 256, w : 128, h : 128
         }).uv_xyzw(0, 0, 2, 2);

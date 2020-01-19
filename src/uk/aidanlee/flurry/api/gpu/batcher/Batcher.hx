@@ -324,20 +324,6 @@ class Batcher
                     case Shader(_shaderB):
                         if (_shaderA.id < _shaderB.id) return -1;
                         if (_shaderA.id > _shaderB.id) return  1;
-                    case Uniforms(_shaderB, _):
-                        if (_shaderA.id < _shaderB.id) return -1;
-                        if (_shaderA.id > _shaderB.id) return  1;
-                }
-            case Uniforms(_shaderA, _):
-                switch _b.shader
-                {
-                    case None: return 1;
-                    case Shader(_shaderB):
-                        if (_shaderA.id < _shaderB.id) return -1;
-                        if (_shaderA.id > _shaderB.id) return  1;
-                    case Uniforms(_shaderB, _):
-                        if (_shaderA.id < _shaderB.id) return -1;
-                        if (_shaderA.id > _shaderB.id) return  1;
                 }
         }
 
@@ -357,18 +343,27 @@ class Batcher
                     case Textures(_texturesB):
                         if (_texturesA[0].id < _texturesB[0].id) return -1;
                         if (_texturesA[0].id > _texturesB[0].id) return  1;
-                    case Samplers(_, _): return -1;
                 }
-            case Samplers(_texturesA, _samplersA):
-                switch _b.textures
+        }
+
+        // Sort by sampler.
+        switch _a.samplers
+        {
+            case None:
+                switch _b.samplers
+                {
+                    case None: // no op
+                    case _: return -1;
+                }
+            case Samplers(_samplersA):
+                switch _b.samplers
                 {
                     case None: return 1;
-                    case Textures(_): return -1;
-                    case Samplers(_texturesB, _samplersB):
-                        if (_texturesA[0].id < _texturesB[0].id) return -1;
-                        if (_texturesA[0].id > _texturesB[0].id) return  1;
-
-                        if (_samplersA[0].equal(_samplersB[0])) return -1;
+                    case Samplers(_samplersB):
+                        if (_samplersA[0].equal(_samplersB[0]))
+                        {
+                            return -1;
+                        }
                 }
         }
 

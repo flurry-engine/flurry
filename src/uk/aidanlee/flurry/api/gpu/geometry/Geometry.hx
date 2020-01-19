@@ -22,7 +22,9 @@ typedef GeometryOptions = {
     var ?transform  : Transformation;
     var ?data       : GeometryData;
     var ?shader     : GeometryShader;
+    var ?uniforms   : GeometryUniforms;
     var ?textures   : GeometryTextures;
+    var ?samplers   : GeometrySamplers;
     var ?depth      : Float;
     var ?clip       : ClipState;
     var ?primitive  : PrimitiveType;
@@ -40,14 +42,24 @@ enum GeometryShader
 {
     None;
     Shader(_shader : ShaderResource);
-    Uniforms(_shader : ShaderResource, _uniforms : ReadOnlyArray<UniformBlob>);
+}
+
+enum GeometryUniforms
+{
+    None;
+    Uniforms(_uniforms : ReadOnlyArray<UniformBlob>);
 }
 
 enum GeometryTextures
 {
     None;
     Textures(_textures : ReadOnlyArray<ImageResource>);
-    Samplers(_textures : ReadOnlyArray<ImageResource>, _samplers : ReadOnlyArray<SamplerState>);
+}
+
+enum GeometrySamplers
+{
+    None;
+    Samplers(_samplers : ReadOnlyArray<SamplerState>);
 }
 
 /**
@@ -106,6 +118,16 @@ class Geometry
         return _textures;
     }
 
+    public var samplers (default, set) : GeometrySamplers;
+
+    inline function set_samplers(_samplers : GeometrySamplers) : GeometrySamplers {
+        samplers = _samplers;
+
+        changed.dispatch();
+
+        return _samplers;
+    }
+
     /**
      * The specific shader for the geometry.
      * If null the batchers shader is used.
@@ -118,6 +140,16 @@ class Geometry
         changed.dispatch();
 
         return _shader;
+    }
+
+    public var uniforms (default, set) : GeometryUniforms;
+
+    inline function set_uniforms(_uniforms : GeometryUniforms) : GeometryUniforms {
+        uniforms = _uniforms;
+
+        changed.dispatch();
+
+        return _uniforms;
     }
 
     /**
@@ -191,11 +223,13 @@ class Geometry
         dropped        = new Signal1<Geometry>();
         data           = _options.data;
         shader         = _options.shader    .or(None);
-        clip           = _options.clip      .or(None);
+        uniforms       = _options.uniforms  .or(None);
         textures       = _options.textures  .or(None);
-        transformation = _options.transform .or(new Transformation());
-        depth          = _options.depth     .or(0);
+        samplers       = _options.samplers  .or(None);
+        clip           = _options.clip      .or(None);
         primitive      = _options.primitive .or(Triangles);
+        depth          = _options.depth     .or(0);
+        transformation = _options.transform .or(new Transformation());
         blend          = _options.blend     .or(new Blending());
 
         // Add to batchers.
