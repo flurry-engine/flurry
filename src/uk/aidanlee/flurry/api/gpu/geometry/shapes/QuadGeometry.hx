@@ -41,12 +41,12 @@ class QuadGeometry extends Geometry
         final v2 = _options.region!.v2.or(1);
 
         _options.data = Indexed(
-            new VertexBlobBuilder(9 * 4)
+            new VertexBlobBuilder()
                 .addVertex(new Vector3(     0, height), new Color(), new Vector2(u1, v2))
                 .addVertex(new Vector3( width, height), new Color(), new Vector2(u2, v2))
                 .addVertex(new Vector3(     0,      0), new Color(), new Vector2(u1, v1))
                 .addVertex(new Vector3( width,      0), new Color(), new Vector2(u2, v1))
-                .vertices,
+                .vertexBlob(),
             new IndexBlobBuilder(6)
                 .addArray([ 0, 1, 2, 2, 1, 3 ])
                 .indices
@@ -110,15 +110,12 @@ class QuadGeometry extends Geometry
      */
     public function uv(_uv : Rectangle, _normalized : Bool = true)
     {
-        // var uv_x = _normalized ? _uv.x : _uv.x / textures[0].width;
-        // var uv_y = _normalized ? _uv.y : _uv.y / textures[0].height;
-        // var uv_w = _normalized ? _uv.w : _uv.w / textures[0].width;
-        // var uv_h = _normalized ? _uv.h : _uv.h / textures[0].height;
+        final uv_x = _normalized ? _uv.x : _uv.x / width;
+        final uv_y = _normalized ? _uv.y : _uv.y / height;
+        final uv_w = _normalized ? _uv.w : _uv.w / width;
+        final uv_h = _normalized ? _uv.h : _uv.h / height;
 
-        // vertices[0].texCoord.set(uv_x, uv_h);
-        // vertices[1].texCoord.set(uv_w, uv_h);
-        // vertices[2].texCoord.set(uv_x, uv_y);
-        // vertices[3].texCoord.set(uv_w, uv_y);
+        updateUVs(uv_x, uv_y, uv_w, uv_h);
     }
 
     /**

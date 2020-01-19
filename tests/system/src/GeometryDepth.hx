@@ -22,11 +22,26 @@ class GeometryDepth extends Flurry
 
     override function onReady()
     {
-        var camera  = new Camera2D(display.width, display.height);
-        var batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
+        final camera  = new Camera2D(display.width, display.height);
+        final batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
 
-        new QuadGeometry({ textures : [ resources.get('tank1', ImageResource) ], batchers : [ batcher ], depth : 1 }).position.set_xy(192,  64);
-        new QuadGeometry({ textures : [ resources.get('tank2', ImageResource) ], batchers : [ batcher ], depth : 0 }).position.set_xy(256, 128);
-        new QuadGeometry({ textures : [ resources.get('tank3', ImageResource) ], batchers : [ batcher ], depth : 2 }).position.set_xy(320, 192);
+        new QuadGeometry({
+            textures : Textures([ resources.get('tank1', ImageResource) ]),
+            batchers : [ batcher ],
+            depth : 1,
+            x : 192, y :  64, w : 256, h : 256
+        });
+        new QuadGeometry({
+            textures : Textures([ resources.get('tank2', ImageResource) ]),
+            batchers : [ batcher ],
+            depth : 0,
+            x : 256, y : 128, w : 256, h : 256
+        });
+        new QuadGeometry({
+            textures : Textures([ resources.get('tank3', ImageResource) ]),
+            batchers : [ batcher ],
+            depth : 2,
+            x : 320, y : 192, w : 256, h : 256
+        });
     }
 }

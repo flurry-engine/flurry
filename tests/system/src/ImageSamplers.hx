@@ -1,14 +1,12 @@
 package;
 
-import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
+import uk.aidanlee.flurry.Flurry;
+import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
-import uk.aidanlee.flurry.FlurryConfig;
-import uk.aidanlee.flurry.Flurry;
-
-using ImageSamplers;
 
 class ImageSamplers extends Flurry
 {
@@ -29,7 +27,7 @@ class ImageSamplers extends Flurry
         var batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
 
         new QuadGeometry({
-            textures : Texture([ resources.get('van', ImageResource) ]),
+            textures : Textures([ resources.get('van', ImageResource) ]),
             batchers : [ batcher ],
             x : 256, y : 128, w : 128, h : 128
         });

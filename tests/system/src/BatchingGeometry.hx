@@ -1,11 +1,11 @@
 package;
 
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.Flurry;
+import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
-import uk.aidanlee.flurry.FlurryConfig;
-import uk.aidanlee.flurry.Flurry;
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 
 class BatchingGeometry extends Flurry
 {
@@ -26,19 +26,19 @@ class BatchingGeometry extends Flurry
         final batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
 
         new QuadGeometry({
-            textures : Texture([ resources.get('tank2', ImageResource) ]),
+            textures : Textures([ resources.get('tank2', ImageResource) ]),
             batchers : [ batcher ],
             x : 0, y : 128, w : 256, h : 256
         });
 
         new QuadGeometry({
-            textures : Texture([ resources.get('tank1', ImageResource) ]),
+            textures : Textures([ resources.get('tank1', ImageResource) ]),
             batchers : [ batcher ],
             x : 256, y : 128, w : 256, h : 256
         });
 
         new QuadGeometry({
-            textures : Texture([ resources.get('tank2', ImageResource) ]),
+            textures : Textures([ resources.get('tank2', ImageResource) ]),
             batchers : [ batcher ],
             x : 512, y : 128, w : 256, h : 256
         });

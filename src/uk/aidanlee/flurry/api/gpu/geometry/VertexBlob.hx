@@ -1,9 +1,9 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import haxe.io.BytesBuffer;
 import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Vector2;
-import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.buffers.BufferData;
 
@@ -13,50 +13,45 @@ class VertexBlob
 
     public final floatAccess : Float32BufferData;
 
-    public function new(_size : Int)
+    public function new(_buffer : BufferData)
     {
-        final bytes = Bytes.alloc(_size * Float32BufferData.BYTES_PER_FLOAT);
-
-        buffer      = new BufferData(bytes, 0, bytes.length);
-        floatAccess = buffer;
+        buffer      = _buffer;
+        floatAccess = _buffer;
     }
 }
 
 class VertexBlobBuilder
 {
-    public final vertices : VertexBlob;
+    final builder : BytesBuffer;
 
-    var idx : Int;
-
-    public function new(_size : Int)
+    public function new()
     {
-        vertices = new VertexBlob(_size);
-        idx      = 0;
+        builder = new BytesBuffer();
     }
 
     public function addVector2(_vec : Vector2) : VertexBlobBuilder
     {
-        vertices.floatAccess[idx++] = _vec.x;
-        vertices.floatAccess[idx++] = _vec.y;
+        builder.addFloat(_vec.x);
+        builder.addFloat(_vec.y);
 
         return this;
     }
 
     public function addVector3(_vec : Vector3) : VertexBlobBuilder
     {
-        vertices.floatAccess[idx++] = _vec.x;
-        vertices.floatAccess[idx++] = _vec.y;
-        vertices.floatAccess[idx++] = _vec.z;
+        builder.addFloat(_vec.x);
+        builder.addFloat(_vec.y);
+        builder.addFloat(_vec.z);
 
         return this;
     }
 
     public function addVector4(_vec : Vector4) : VertexBlobBuilder
     {
-        vertices.floatAccess[idx++] = _vec.x;
-        vertices.floatAccess[idx++] = _vec.y;
-        vertices.floatAccess[idx++] = _vec.z;
-        vertices.floatAccess[idx++] = _vec.w;
+        builder.addFloat(_vec.x);
+        builder.addFloat(_vec.y);
+        builder.addFloat(_vec.z);
+        builder.addFloat(_vec.w);
 
         return this;
     }
@@ -74,9 +69,16 @@ class VertexBlobBuilder
     {
         for (v in _array)
         {
-            vertices.floatAccess[idx++] = v;
+            builder.addFloat(v);
         }
 
         return this;
+    }
+
+    public function vertexBlob()
+    {
+        final bytes = builder.getBytes();
+
+        return new VertexBlob(new BufferData(bytes, 0, bytes.length));
     }
 }

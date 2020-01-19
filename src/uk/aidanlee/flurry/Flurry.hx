@@ -210,6 +210,6 @@ class Flurry
 
     final function onPreloadParcelError(_error : String)
     {
-        throw 'Error loading preload parcel : $_error';
+        trace('Error loading preload parcel : $_error');
     }
 }

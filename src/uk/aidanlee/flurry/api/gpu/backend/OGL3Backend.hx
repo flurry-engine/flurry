@@ -205,7 +205,7 @@ class OGL3Backend implements IRendererBackend
 
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
-        vertexBuffer = Bytes.alloc(_rendererConfig.dynamicVertices * 9 * 2).getData();
+        vertexBuffer = Bytes.alloc(_rendererConfig.dynamicVertices * 9 * 4).getData();
         indexBuffer  = Bytes.alloc(_rendererConfig.dynamicIndices * 2).getData();
         matrixBuffer = Bytes.alloc(_rendererConfig.dynamicVertices * 4).getData();
 
@@ -215,18 +215,18 @@ class OGL3Backend implements IRendererBackend
         glBindVertexArray(vao[0]);
 
         // Create two vertex buffers
-        var vbos = [ 0, 0 ];
+        var vbos = [ 0, 0, 0 ];
         glGenBuffers(vbos.length, vbos);
         glVertexVbo = vbos[0];
         glMatrixUbo = vbos[1];
+        glIbo       = vbos[2];
 
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glEnableVertexAttribArray(2);
-        glEnableVertexAttribArray(3);
 
-        glBindBuffer(GL_ARRAY_BUFFER, glMatrixUbo);
-        glBufferData(GL_ARRAY_BUFFER, matrixBuffer.length, matrixBuffer, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_UNIFORM_BUFFER, glMatrixUbo);
+        glBufferData(GL_UNIFORM_BUFFER, matrixBuffer.length, matrixBuffer, GL_DYNAMIC_DRAW);
 
         // Vertex data will be interleaved, sourced from the first vertex buffer.
         glBindBuffer(GL_ARRAY_BUFFER, glVertexVbo);
@@ -237,10 +237,6 @@ class OGL3Backend implements IRendererBackend
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 2, 2, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_TEX);
 
         // Setup index buffer.
-        var ibos = [ 0 ];
-        glGenBuffers(1, ibos);
-        glIbo = ibos[0];
-
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIbo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer.length, indexBuffer, GL_DYNAMIC_DRAW);
 
@@ -660,8 +656,14 @@ class OGL3Backend implements IRendererBackend
             }
         }
 
-        glBufferSubData(GL_ARRAY_BUFFER, 0, vtxUploaded, vertexBuffer);
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, idxUploaded, indexBuffer);
+        if (vtxUploaded > 0)
+        {
+            glBufferSubData(GL_ARRAY_BUFFER, 0, vtxUploaded, vertexBuffer);
+        }
+        if (idxUploaded > 0)
+        {
+            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, idxUploaded, indexBuffer);
+        }
     }
 
     /**
@@ -770,11 +772,12 @@ class OGL3Backend implements IRendererBackend
                         idxOffset += _indices.buffer.byteLength;
                         vtxOffset += Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
                     case UnIndexed(_vertices):
-                        final numVertices = Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
+                        final numOfVerts = Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
+                        final primitive  = command.primitive.getPrimitiveType();
 
-                        glDrawArrays(command.primitive.getPrimitiveType(), vtxOffset, numVertices);
+                        glDrawArrays(primitive, vtxOffset, numOfVerts);
 
-                        vtxOffset += numVertices;
+                        vtxOffset += numOfVerts;
                 }
 
                 matOffset += matrixRangeSize;
