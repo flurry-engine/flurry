@@ -24,7 +24,6 @@ typedef GeometryOptions = {
     var ?shader     : GeometryShader;
     var ?textures   : GeometryTextures;
     var ?depth      : Float;
-    var ?color      : Color;
     var ?clip       : ClipState;
     var ?primitive  : PrimitiveType;
     var ?batchers   : Array<Batcher>;
@@ -78,11 +77,6 @@ class Geometry
      * Transformation of this geometry.
      */
     public final transformation : Transformation;
-
-    /**
-     * Default colour of this geometry.
-     */
-    public final color : Color;
 
     /**
      * The blend state for this geometry.
@@ -202,7 +196,6 @@ class Geometry
         transformation = _options.transform .or(new Transformation());
         depth          = _options.depth     .or(0);
         primitive      = _options.primitive .or(Triangles);
-        color          = _options.color     .or(new Color());
         blend          = _options.blend     .or(new Blending());
 
         // Add to batchers.
