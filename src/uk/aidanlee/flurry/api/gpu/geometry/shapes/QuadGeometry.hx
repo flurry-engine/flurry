@@ -1,11 +1,12 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
-import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
-import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
+import uk.aidanlee.flurry.api.maths.Transformation;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.textures.ImageRegion;
 
 using Safety;
@@ -25,36 +26,30 @@ typedef QuadGeometryOptions = {
  */
 class QuadGeometry extends Geometry
 {
-    var width : Float;
-    var height : Float;
-
     public function new(_options : QuadGeometryOptions)
     {
-        _options.x = _options.x;
-        _options.y = _options.y;
-        width      = _options.w;
-        height     = _options.h;
-
         final u1 = _options.region!.u1.or(0);
         final v1 = _options.region!.v1.or(0);
         final u2 = _options.region!.u2.or(1);
         final v2 = _options.region!.v2.or(1);
+        final tf = new Transformation();
+
+        tf.position.set_xy(_options.x, _options.y);
 
         _options.data = Indexed(
             new VertexBlobBuilder()
-                .addVertex(new Vector3(     0, height), new Color(), new Vector2(u1, v2))
-                .addVertex(new Vector3( width, height), new Color(), new Vector2(u2, v2))
-                .addVertex(new Vector3(     0,      0), new Color(), new Vector2(u1, v1))
-                .addVertex(new Vector3( width,      0), new Color(), new Vector2(u2, v1))
+                .addVertex(new Vector3(         0, _options.h), new Color(), new Vector2(u1, v2))
+                .addVertex(new Vector3(_options.w, _options.h), new Color(), new Vector2(u2, v2))
+                .addVertex(new Vector3(         0,          0), new Color(), new Vector2(u1, v1))
+                .addVertex(new Vector3(_options.w,          0), new Color(), new Vector2(u2, v1))
                 .vertexBlob(),
             new IndexBlobBuilder(6)
                 .addArray([ 0, 1, 2, 2, 1, 3 ])
                 .indices
         );
+        _options.transform = tf;
 
         super(_options);
-
-        transformation.position.set_xy(_options.x, _options.y);
     }
 
     /**
@@ -110,12 +105,20 @@ class QuadGeometry extends Geometry
      */
     public function uv(_uv : Rectangle, _normalized : Bool = true)
     {
-        final uv_x = _normalized ? _uv.x : _uv.x / width;
-        final uv_y = _normalized ? _uv.y : _uv.y / height;
-        final uv_w = _normalized ? _uv.w : _uv.w / width;
-        final uv_h = _normalized ? _uv.h : _uv.h / height;
+        switch textures
+        {
+            case None: //
+            case Textures(_textures):
+                final width  = _textures[0].width;
+                final height = _textures[0].height;
 
-        updateUVs(uv_x, uv_y, uv_w, uv_h);
+                final uv_x = _normalized ? _uv.x : _uv.x / width;
+                final uv_y = _normalized ? _uv.y : _uv.y / height;
+                final uv_w = _normalized ? _uv.w : _uv.w / width;
+                final uv_h = _normalized ? _uv.h : _uv.h / height;
+
+                updateUVs(uv_x, uv_y, uv_w, uv_h);
+        }
     }
 
     /**
@@ -129,12 +132,20 @@ class QuadGeometry extends Geometry
      */
     public function uv_xyzw(_x : Float, _y : Float, _z : Float, _w : Float, _normalized : Bool = true)
     {
-        final uv_x = _normalized ? _x : _x / width;
-        final uv_y = _normalized ? _y : _y / height;
-        final uv_w = _normalized ? _z : _z / width;
-        final uv_h = _normalized ? _w : _w / height;
+        switch textures
+        {
+            case None: //
+            case Textures(_textures):
+                final width  = _textures[0].width;
+                final height = _textures[0].height;
 
-        updateUVs(uv_x, uv_y, uv_w, uv_h);
+                final uv_x = _normalized ? _x : _x / width;
+                final uv_y = _normalized ? _y : _y / height;
+                final uv_w = _normalized ? _z : _z / width;
+                final uv_h = _normalized ? _w : _w / height;
+
+                updateUVs(uv_x, uv_y, uv_w, uv_h);
+        }
     }
 
     function updateSize(_w : Float, _h : Float)
