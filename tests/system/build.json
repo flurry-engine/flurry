@@ -1,7 +1,7 @@
 {
     "app" : {
         "name"      : "SystemTests",
-        "main"      : "ImageSamplers",
+        "main"      : "ShaderUniforms",
         "output"    : "bin",
         "codepaths" : [ "src", "../../src" ],
         "namespace" : "uk.aidanlee.flurry.tests.system",

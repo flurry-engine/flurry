@@ -89,17 +89,22 @@ class OGL3Backend implements IRendererBackend
     /**
      * The single VBO used by the backend.
      */
-    final glVertexVbo : Int;
-
-    /**
-     * The ubo used to store all matrix data.
-     */
-    final glMatrixUbo : Int;
+    final glVertexBuffer : Int;
 
     /**
      * The single index buffer used by the backend.
      */
-    final glIbo : Int;
+    final glIndexbuffer : Int;
+
+    /**
+     * The ubo used to store all matrix data.
+     */
+    final glMatrixBuffer : Int;
+
+    /**
+     * The ubo used to store all uniform data.
+     */
+    final glUniformBuffer : Int;
 
     /**
      * Vertex buffer used by this backend.
@@ -115,6 +120,11 @@ class OGL3Backend implements IRendererBackend
      * Buffer used to store model, view, and projection matrices for all draws.
      */
     final matrixBuffer : BytesData;
+
+    /**
+     * Buffer used to store all uniform data for draws.
+     */
+    final uniformBuffer : BytesData;
 
     /**
      * Shader programs keyed by their associated shader resource IDs.
@@ -158,6 +168,11 @@ class OGL3Backend implements IRendererBackend
      * The default sampler object to use if no sampler is provided.
      */
     final defaultSampler : Int;
+
+    /**
+     * The bytes alignment for ubos.
+     */
+    final glUboAlignment : Int;
 
     /**
      * Number of bytes for each mvp matrix range.
@@ -205,9 +220,10 @@ class OGL3Backend implements IRendererBackend
 
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
-        vertexBuffer = Bytes.alloc(_rendererConfig.dynamicVertices * 9 * 4).getData();
-        indexBuffer  = Bytes.alloc(_rendererConfig.dynamicIndices * 2).getData();
-        matrixBuffer = Bytes.alloc(_rendererConfig.dynamicVertices * 4).getData();
+        vertexBuffer  = Bytes.alloc(_rendererConfig.dynamicVertices * 9 * 4).getData();
+        indexBuffer   = Bytes.alloc(_rendererConfig.dynamicIndices * 2).getData();
+        matrixBuffer  = Bytes.alloc(_rendererConfig.dynamicVertices * 4).getData();
+        uniformBuffer = Bytes.alloc(_rendererConfig.dynamicVertices * 4).getData();
 
         // Core OpenGL profiles require atleast one VAO is bound.
         var vao = [ 0 ];
@@ -215,29 +231,34 @@ class OGL3Backend implements IRendererBackend
         glBindVertexArray(vao[0]);
 
         // Create two vertex buffers
-        var vbos = [ 0, 0, 0 ];
+        var vbos = [ 0, 0, 0, 0 ];
         glGenBuffers(vbos.length, vbos);
-        glVertexVbo = vbos[0];
-        glMatrixUbo = vbos[1];
-        glIbo       = vbos[2];
+        glVertexBuffer  = vbos[0];
+        glIndexbuffer   = vbos[1];
+        glMatrixBuffer  = vbos[2];
+        glUniformBuffer = vbos[3];
+
+        // Allocate the matrix buffer.
+        glBindBuffer(GL_UNIFORM_BUFFER, glMatrixBuffer);
+        glBufferData(GL_UNIFORM_BUFFER, matrixBuffer.length, matrixBuffer, GL_DYNAMIC_DRAW);
+
+        glBindBuffer(GL_UNIFORM_BUFFER, glUniformBuffer);
+        glBufferData(GL_UNIFORM_BUFFER, uniformBuffer.length, uniformBuffer, GL_DYNAMIC_DRAW);
+
+        // Vertex data will be interleaved, sourced from the first vertex buffer.
+        glBindBuffer(GL_ARRAY_BUFFER, glVertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.length, vertexBuffer, GL_DYNAMIC_DRAW);
 
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glEnableVertexAttribArray(2);
-
-        glBindBuffer(GL_UNIFORM_BUFFER, glMatrixUbo);
-        glBufferData(GL_UNIFORM_BUFFER, matrixBuffer.length, matrixBuffer, GL_DYNAMIC_DRAW);
-
-        // Vertex data will be interleaved, sourced from the first vertex buffer.
-        glBindBuffer(GL_ARRAY_BUFFER, glVertexVbo);
-        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.length, vertexBuffer, GL_DYNAMIC_DRAW);
 
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 0, 3, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_POS);
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 1, 4, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_COL);
         untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 2, 2, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_TEX);
 
         // Setup index buffer.
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIbo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIndexbuffer);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer.length, indexBuffer, GL_DYNAMIC_DRAW);
 
         var samplers = [ 0 ];
@@ -285,7 +306,8 @@ class OGL3Backend implements IRendererBackend
 
         // var matricesPerBatch   = Std.int(Maths.min(maxUboSize[0] / 64, 65535));
 
-        matrixRangeSize = BYTES_PER_DRAW_MATRICES + Std.int(Maths.max(uboAlignment[0] - BYTES_PER_DRAW_MATRICES, 0));
+        glUboAlignment  = uboAlignment[0];
+        matrixRangeSize = BYTES_PER_DRAW_MATRICES + Std.int(Maths.max(glUboAlignment - BYTES_PER_DRAW_MATRICES, 0));
         commandQueue    = [];
     }
 
@@ -319,6 +341,7 @@ class OGL3Backend implements IRendererBackend
     {
         uploadGeometryData();
         uploadMatrixData();
+        uploadUniformData();
         drawCommands();
     }
 
@@ -354,13 +377,6 @@ class OGL3Backend implements IRendererBackend
         for (_ => shader in shaderPrograms)
         {
             glDeleteProgram(shader);
-        }
-
-        for (_ => uniforms in shaderUniforms)
-        {
-            final blocks = uniforms.blockBuffers;
-
-            glDeleteBuffers(blocks.length, blocks);
         }
 
         for (_ => texture in textureObjects)
@@ -522,22 +538,13 @@ class OGL3Backend implements IRendererBackend
             glUniformBlockBinding(program, blockLocations[i], blockBindings[i]);
         }
 
-        // Generate gl buffers and haxe byte objects for all our blocks
-
-        var blockBuffers = [ for (i in 0..._resource.layout.blocks.length) 0 ];
-        glGenBuffers(blockBuffers.length, blockBuffers);
-        var blockSizes = [ for (i in 0..._resource.layout.blocks.length) generateUniformBlock(_resource.layout.blocks[i], blockBuffers[i], blockBindings[i]) ];
-
         shaderPrograms.set(_resource.id, program);
-        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings, blockBuffers, blockSizes));
+        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings));
     }
 
     function removeShader(_resource : ShaderResource)
     {
         glDeleteProgram(shaderPrograms[_resource.id]);
-
-        final blocks = shaderUniforms[_resource.id].blockBuffers;
-        glDeleteBuffers(blocks.length, blocks);
 
         shaderPrograms.remove(_resource.id);
         shaderUniforms.remove(_resource.id);
@@ -578,32 +585,6 @@ class OGL3Backend implements IRendererBackend
         textureObjects.remove(_resource.id);
         samplerObjects.remove(_resource.id);
         framebufferObjects.remove(_resource.id);
-    }
-
-    /**
-     * Calculates the size of a shader block, creates the OpenGL object, and returns haxe bytes of the needed size.
-     * @param _block   Shader block to initialise.
-     * @param _buffer  OpenGL UBO buffer ID.
-     * @param _binding OpenGL UBO binding position.
-     * @return Bytes
-     */
-    function generateUniformBlock(_block : ShaderBlock, _buffer : Int, _binding : Int) : Int
-    {
-        var blockSize = 0;
-        for (val in _block.values)
-        {
-            switch val.type
-            {
-                case Matrix4: blockSize += BYTES_PER_MATRIX;
-                case Vector4: blockSize += 16;
-                case Int, Float: blockSize += 4;
-            }
-        }
-
-        glBindBuffer(GL_UNIFORM_BUFFER, _buffer);
-        untyped __cpp__('glBufferData(GL_UNIFORM_BUFFER, {0}, nullptr, GL_DYNAMIC_DRAW)', blockSize);
-
-        return blockSize;
     }
 
     //  #endregion
@@ -673,7 +654,7 @@ class OGL3Backend implements IRendererBackend
      */
     function uploadMatrixData()
     {
-        glBindBuffer(GL_UNIFORM_BUFFER, glMatrixUbo);
+        glBindBuffer(GL_UNIFORM_BUFFER, glMatrixBuffer);
 
         final matDst = matrixBuffer.address(0);
 
@@ -705,30 +686,30 @@ class OGL3Backend implements IRendererBackend
      * Iterate over all uniform blobs provided by the command and update its UBO.
      * Uniform blobs and their blocks are matched by their name.
      * An exception will be thrown if it cannot find a matching block.
-     * @param _command Command to pull uniforms from.
      */
-    function uploadUniformData(_command : DrawCommand)
+    function uploadUniformData()
     {
-        // Upload uniform data
-        final cache = shaderUniforms.get(_command.shader.id);
+        glBindBuffer(GL_UNIFORM_BUFFER, glUniformBuffer);
 
-        for (block in _command.uniforms)
+        final dst = uniformBuffer.address(0);
+
+        var byteIndex  = 0;
+
+        for (command in commandQueue)
         {
-            final index = findBlockIndexByName(block.name, cache.layout.blocks);
+            for (block in command.uniforms)
+            {
+                memcpy(
+                    dst.add(byteIndex),
+                    block.buffer.bytes.getData().address(block.buffer.byteOffset),
+                    block.buffer.byteLength);
 
-            glBindBuffer(GL_UNIFORM_BUFFER, cache.blockBuffers[index]);
-
-            final dst : Pointer<UInt8> = Pointer
-                .fromRaw(glMapBufferRange(GL_UNIFORM_BUFFER, 0, cache.blockSizes[index], GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT))
-                .reinterpret();
-
-            memcpy(
-                dst,
-                block.buffer.bytes.getData().address(0),
-                cache.blockSizes[index]);
-
-            glUnmapBuffer(GL_UNIFORM_BUFFER);
+                byteIndex += block.buffer.byteLength;
+                byteIndex  = Maths.ceil(byteIndex / glUboAlignment) * glUboAlignment;
+            }
         }
+
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, byteIndex, uniformBuffer);
     }
 
     /**
@@ -747,15 +728,15 @@ class OGL3Backend implements IRendererBackend
         for (command in commandQueue)
         {
             // Change the state so the vertices are drawn correctly.
-            uploadUniformData(command);
             setState(command);
 
             for (geometry in command.geometry)
             {
+                glBindBuffer(GL_UNIFORM_BUFFER, glMatrixBuffer);
                 glBindBufferRange(
                     GL_UNIFORM_BUFFER,
                     findBlockIndexByName("flurry_matrices", command.shader.layout.blocks),
-                    glMatrixUbo,
+                    glMatrixBuffer,
                     matOffset,
                     192);
 
@@ -867,13 +848,21 @@ class OGL3Backend implements IRendererBackend
         }
 
         // Bind uniform blocks.
-        final cache = shaderUniforms.get(_command.shader.id);
-        for (i in 0...cache.layout.blocks.length)
+        glBindBuffer(GL_UNIFORM_BUFFER, glUniformBuffer);
+
+        var byteIndex = 0;
+
+        for (block in _command.uniforms)
         {
-            if (cache.layout.blocks[i].name != 'flurry_matrices')
-            {
-                glBindBufferBase(GL_UNIFORM_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
-            }
+            glBindBufferRange(
+                GL_UNIFORM_BUFFER,
+                findBlockIndexByName(block.name, _command.shader.layout.blocks),
+                glUniformBuffer,
+                byteIndex,
+                block.buffer.byteLength);
+
+            byteIndex += block.buffer.byteLength;
+            byteIndex  = Maths.ceil(byteIndex / glUboAlignment) * glUboAlignment;
         }
 
         // Apply the shaders uniforms
@@ -1162,23 +1151,11 @@ private class ShaderLocations
      */
     public final blockBindings : Array<Int>;
 
-    /**
-     * SSBO buffer objects.
-     */
-    public final blockBuffers : Array<Int>;
-
-    /**
-     * Size in bytes of all blocks.
-     */
-    public final blockSizes : Array<Int>;
-
-    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockBindings : Array<Int>, _blockBuffers : Array<Int>, _blockSizes : Array<Int>)
+    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockBindings : Array<Int>)
     {
         layout           = _layout;
         textureLocations = _textureLocations;
         blockBindings    = _blockBindings;
-        blockBuffers     = _blockBuffers;
-        blockSizes       = _blockSizes;
     }
 }
 
