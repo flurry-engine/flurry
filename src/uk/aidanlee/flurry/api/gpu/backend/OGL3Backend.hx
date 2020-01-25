@@ -3,8 +3,7 @@ package uk.aidanlee.flurry.api.gpu.backend;
 import haxe.Exception;
 import haxe.io.BytesData;
 import haxe.io.Bytes;
-import cpp.UInt8;
-import cpp.Pointer;
+import haxe.ds.ReadOnlyArray;
 import cpp.Stdlib.memcpy;
 import sdl.Window;
 import sdl.GLContext;
@@ -39,11 +38,6 @@ import uk.aidanlee.flurry.api.resources.ResourceEvents;
 using cpp.NativeArray;
 using uk.aidanlee.flurry.utils.opengl.GLConverters;
 
-/**
- * WebGL backend written against the webGL 1.0 spec (openGL ES 2.0).
- * Uses snows openGL module so it can run on desktops and web platforms.
- * Allows targeting web, osx, and older integrated GPUs (anywhere where openGL 4.5 isn't supported).
- */
 class OGL3Backend implements IRendererBackend
 {
     /**
@@ -159,10 +153,16 @@ class OGL3Backend implements IRendererBackend
     final perspectiveYFlipVector : Vector3;
 
     /**
-     * Array of opengl textures objects which will be bound.
-     * Size of this array is equal to the max number of texture bindings allowed .
+     * Array of opengl textures objects which are bound.
+     * Size of this array is equal to the max number of texture bindings allowed.
      */
     final textureSlots : Array<Int>;
+
+    /**
+     * Array of opengl sampler objects which are bound.
+     * Size of this array is equal to the max number of texture bindings allowed.
+     */
+    final samplerSlots : Array<Int>;
 
     /**
      * The default sampler object to use if no sampler is provided.
@@ -274,7 +274,8 @@ class OGL3Backend implements IRendererBackend
         clip         = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
         shader       = null;
         target       = Backbuffer;
-        textureSlots = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) -1 ];
+        textureSlots = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
+        samplerSlots = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
 
         // Create our own custom backbuffer.
         // we blit a flipped version to the actual backbuffer before swapping.
@@ -303,8 +304,6 @@ class OGL3Backend implements IRendererBackend
 
         var uboAlignment = [ 0 ];
         glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, uboAlignment);
-
-        // var matricesPerBatch   = Std.int(Maths.min(maxUboSize[0] / 64, 65535));
 
         glUboAlignment  = uboAlignment[0];
         matrixRangeSize = BYTES_PER_DRAW_MATRICES + Std.int(Maths.max(glUboAlignment - BYTES_PER_DRAW_MATRICES, 0));
@@ -808,8 +807,10 @@ class OGL3Backend implements IRendererBackend
     // #region State Management
 
     /**
-     * Update the openGL state so it can draw the provided command.
-     * @param _command      Command to set the state for.
+     * Setup the required openGL state to draw a command.
+     * The current state is stored in this class, to reduce expensive state changes we check to see
+     * if the provided command has a different set to whats currently set.
+     * @param _command Command to set the state for.
      */
     function setState(_command : DrawCommand)
     {
@@ -865,8 +866,7 @@ class OGL3Backend implements IRendererBackend
             byteIndex  = Maths.ceil(byteIndex / glUboAlignment) * glUboAlignment;
         }
 
-        // Apply the shaders uniforms
-        // TODO : Only set uniforms if the value has changed.
+        // Bind textures
         setTextures(_command);
 
         // Apply depth and stencil settings.
@@ -952,21 +952,22 @@ class OGL3Backend implements IRendererBackend
     }
 
     /**
-     * Apply all of a shaders uniforms.
-     * @param _combined Only required uniform. VP combined matrix.
+     * Enables and binds all textures and samplers for drawing a command.
+     * The currently bound textures are tracked to stop re-binding the same textures.
+     * @param _command Command to bind textures and samplers for.
      */
     function setTextures(_command : DrawCommand)
     {
-        // Find this shaders location cache.
         final cache = shaderUniforms.get(_command.shader.id);
 
-        // Bind textures and samplers.
-        if (cache.layout.textures.length <= _command.textures.length)
+        // If the shader description specifies more textures than the command provides throw an exception.
+        // If less is specified than provided we just ignore the extra, maybe we should throw as well?
+        if (cache.layout.textures.length >= _command.textures.length)
         {
             // then go through each texture and bind it if it isn't already.
             for (i in 0..._command.textures.length)
             {
-                // Bind the texture if its not already bound.
+                // Bind and activate the texture if its not already bound.
                 final glTextureID = textureObjects.get(_command.textures[i].id);
 
                 if (glTextureID != textureSlots[i])
@@ -977,9 +978,8 @@ class OGL3Backend implements IRendererBackend
                     textureSlots[i] = glTextureID;
                 }
 
-                // Get / create and bind the sampler for the current texture.
+                // Fetch the custom sampler (first create it if a hash of the sampler is not found).
                 var currentSampler = defaultSampler;
-
                 if (i < _command.samplers.length)
                 {
                     final samplerHash     = _command.samplers[i].hash();
@@ -992,8 +992,14 @@ class OGL3Backend implements IRendererBackend
 
                     currentSampler = textureSamplers[samplerHash];
                 }
-                
-                glBindSampler(i, currentSampler);
+
+                // If its not already bound bind it and update the bound sampler array.
+                if (currentSampler != samplerSlots[i])
+                {
+                    glBindSampler(i, currentSampler);
+
+                    samplerSlots[i] = currentSampler;
+                }
             }
         }
         else
@@ -1002,6 +1008,11 @@ class OGL3Backend implements IRendererBackend
         }
     }
 
+    /**
+     * Bind a framebuffer from the provided image resource.
+     * If a framebuffer does not exist for the image, create one and store it.
+     * @param _image Image to bind a framebuffer for.
+     */
     function bindTextureFramebuffer(_image : ImageResource)
     {
         if (!framebufferObjects.exists(_image.id))
@@ -1027,6 +1038,11 @@ class OGL3Backend implements IRendererBackend
 
     // #endregion
 
+    /**
+     * Creates a new openGL sampler object from a flurry sampler state instance.
+     * @param _sampler State to create an openGL sampler from.
+     * @return OpenGL sampler object.
+     */
     function createSamplerObject(_sampler : SamplerState) : Int
     {
         var samplers = [ 0 ];
@@ -1039,6 +1055,16 @@ class OGL3Backend implements IRendererBackend
         return samplers[0];
     }
 
+    /**
+     * Creates a new backbuffer representation.
+     * Can optionally remove the existing custom backbuffer.
+     * This is an expensive function as it makes two framebuffer binding calls
+     * and wipes the state of all bound textures and samplers.
+     * @param _width Width of the new backbuffer.
+     * @param _height Height of the new backbuffer.
+     * @param _remove If the existing backbuffer should be removed.
+     * @return BackBuffer instance.
+     */
     function createBackbuffer(_width : Int, _height : Int, _remove : Bool = true) : BackBuffer
     {
         // Cleanup previous backbuffer
@@ -1084,12 +1110,23 @@ class OGL3Backend implements IRendererBackend
                 glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects.get(_image.id));
         }
 
-        for (i in 0...textureSlots.length) textureSlots[i] = 0;
+        for (i in 0...GL_MAX_TEXTURE_IMAGE_UNITS)
+        {
+            textureSlots[i] = 0;
+            samplerSlots[i] = 0;
+        }
 
         return new BackBuffer(_width, _height, 1, tex[0], rbo[0], fbo[0]);
     }
 
-    function findBlockIndexByName(_name : String, _blocks : Array<ShaderBlock>) : Int
+    /**
+     * Finds the first shader block with the provided name.
+     * If no matching block is found an exception is thrown.
+     * @param _name Name to look for.
+     * @param _blocks Array of all shader blocks.
+     * @return Index into the array of blocks to the first matching block.
+     */
+    function findBlockIndexByName(_name : String, _blocks : ReadOnlyArray<ShaderBlock>) : Int
     {
         for (i in 0..._blocks.length)
         {
