@@ -427,9 +427,9 @@ class OGL3Backend implements IRendererBackend
 
         SDL.GL_MakeCurrent(window, glContext);
 
-        if (glad.Glad.gladLoadGLLoader(untyped __cpp__('&SDL_GL_GetProcAddress')) == 0)
+        if (Glad.gladLoadGLLoader(untyped __cpp__('&SDL_GL_GetProcAddress')) == 0)
         {
-            throw 'failed to load gl library';
+            throw new OGL3FailedToLoad();
         }
     }
 
@@ -489,7 +489,7 @@ class OGL3Backend implements IRendererBackend
 
         if (_resource.ogl3 == null)
         {
-            throw new GL32NoShaderSourceException(_resource.id);
+            throw new OGL3NoShaderSourceException(_resource.id);
         }
 
         // Create vertex shader.
@@ -499,7 +499,7 @@ class OGL3Backend implements IRendererBackend
 
         if (getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
         {
-            throw new GL32VertexCompilationError(_resource.id, getShaderInfoLog(vertex));
+            throw new OGL3VertexCompilationError(_resource.id, getShaderInfoLog(vertex));
         }
 
         // Create fragment shader.
@@ -509,7 +509,7 @@ class OGL3Backend implements IRendererBackend
 
         if (getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
         {
-            throw new GL32FragmentCompilationError(_resource.id, getShaderInfoLog(vertex));
+            throw new OGL3FragmentCompilationError(_resource.id, getShaderInfoLog(vertex));
         }
 
         // Link the shaders into a program.
@@ -520,7 +520,7 @@ class OGL3Backend implements IRendererBackend
 
         if (getProgramParameter(program, GL_LINK_STATUS) == 0)
         {
-            throw new GL32ShaderLinkingException(_resource.id, getProgramInfoLog(program));
+            throw new OGL3ShaderLinkingException(_resource.id, getProgramInfoLog(program));
         }
 
         // Delete the shaders now that they're linked
@@ -780,7 +780,7 @@ class OGL3Backend implements IRendererBackend
                 {
                     switch orth.viewport
                     {
-                        case None: throw new GL32CameraViewportNotSetException();
+                        case None: throw new OGL3CameraViewportNotSetException();
                         case Viewport(_, _, _width, _height):
                             orth.projection.makeHomogeneousOrthographic(0, _width, _height, 0, -100, 100);
                     }
@@ -910,7 +910,8 @@ class OGL3Backend implements IRendererBackend
         switch _command.camera.viewport
         {
             case None:
-                switch target {
+                switch target
+                {
                     case Backbuffer:
                         glViewport(0, 0, backbuffer.width, backbuffer.height);
                     case Texture(_image):
@@ -1004,7 +1005,7 @@ class OGL3Backend implements IRendererBackend
         }
         else
         {
-            throw new GL32NotEnoughTexturesException(_command.shader.id, _command.id, cache.layout.textures.length, _command.textures.length);
+            throw new OGL3NotEnoughTexturesException(_command.shader.id, _command.id, cache.layout.textures.length, _command.textures.length);
         }
     }
 
@@ -1025,7 +1026,7 @@ class OGL3Backend implements IRendererBackend
 
             if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             {
-                throw new GL32IncompleteFramebufferException(_image.id);
+                throw new OGL3IncompleteFramebufferException(_image.id);
             }
 
             framebufferObjects.set(_image.id, fbo[0]);
@@ -1098,7 +1099,7 @@ class OGL3Backend implements IRendererBackend
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         {
-            throw new GL32IncompleteFramebufferException('backbuffer');
+            throw new OGL3IncompleteFramebufferException('backbuffer');
         }
 
         // Cleanup / reset state after setting up new framebuffer.
@@ -1136,7 +1137,7 @@ class OGL3Backend implements IRendererBackend
             }
         }
 
-        throw new GL32UniformBlockNotFoundException(_name);
+        throw new OGL3UniformBlockNotFoundException(_name);
     }
 }
 
@@ -1196,7 +1197,15 @@ private class ShaderLocations
     }
 }
 
-private class GL32NoShaderSourceException extends Exception
+private class OGL3FailedToLoad extends Exception
+{
+    public function new()
+    {
+        super('Failed to load OpenGL library');
+    }
+}
+
+private class OGL3NoShaderSourceException extends Exception
 {
     public function new(_id : String)
     {
@@ -1204,7 +1213,7 @@ private class GL32NoShaderSourceException extends Exception
     }
 }
 
-private class GL32VertexCompilationError extends Exception
+private class OGL3VertexCompilationError extends Exception
 {
     public function new(_id : String, _error : String)
     {
@@ -1212,7 +1221,7 @@ private class GL32VertexCompilationError extends Exception
     }
 }
 
-private class GL32FragmentCompilationError extends Exception
+private class OGL3FragmentCompilationError extends Exception
 {
     public function new(_id : String, _error : String)
     {
@@ -1220,7 +1229,7 @@ private class GL32FragmentCompilationError extends Exception
     }
 }
 
-private class GL32ShaderLinkingException extends Exception
+private class OGL3ShaderLinkingException extends Exception
 {
     public function new(_id : String, _error : String)
     {
@@ -1228,7 +1237,7 @@ private class GL32ShaderLinkingException extends Exception
     }
 }
 
-private class GL32IncompleteFramebufferException extends Exception
+private class OGL3IncompleteFramebufferException extends Exception
 {
     public function new(_error : String)
     {
@@ -1236,7 +1245,7 @@ private class GL32IncompleteFramebufferException extends Exception
     }
 }
 
-private class GL32NotEnoughTexturesException extends Exception
+private class OGL3NotEnoughTexturesException extends Exception
 {
     public function new(_shaderID : String, _drawCommandID : Int, _expected : Int, _actual : Int)
     {
@@ -1244,7 +1253,7 @@ private class GL32NotEnoughTexturesException extends Exception
     }
 }
 
-private class GL32UniformBlockNotFoundException extends Exception
+private class OGL3UniformBlockNotFoundException extends Exception
 {
     public function new(_blockName)
     {
@@ -1252,7 +1261,7 @@ private class GL32UniformBlockNotFoundException extends Exception
     }
 }
 
-private class GL32CameraViewportNotSetException extends Exception
+private class OGL3CameraViewportNotSetException extends Exception
 {
     public function new()
     {
