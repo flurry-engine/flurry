@@ -233,11 +233,7 @@ class Batcher
                     state.samplers.copy(),
                     depthOptions,
                     stencilOptions,
-                    true,
-                    state.blend.srcRGB,
-                    state.blend.dstRGB,
-                    state.blend.srcAlpha,
-                    state.blend.dstAlpha
+                    state.blend.clone()
                 ));
 
                 commandGeom = [];
@@ -266,11 +262,7 @@ class Batcher
                 state.samplers.copy(),
                 depthOptions,
                 stencilOptions,
-                true,
-                state.blend.srcRGB,
-                state.blend.dstRGB,
-                state.blend.srcAlpha,
-                state.blend.dstAlpha
+                state.blend.clone()
             ));
         }
     }

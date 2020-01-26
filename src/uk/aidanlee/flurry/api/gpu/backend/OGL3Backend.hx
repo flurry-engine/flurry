@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.gpu.geometry.Blending;
 import haxe.Exception;
 import haxe.io.BytesData;
 import haxe.io.Bytes;
@@ -191,11 +192,17 @@ class OGL3Backend implements IRendererBackend
     var backbuffer : BackBuffer;
 
     // GL state variables
+    // Making redundent GL state changes can be very expensive
+    // Querying the current state with glGet is also very expensive
+    // So we track the current state with the equivilent flurry sturctures.
 
-    var target   : TargetState;
-    var shader   : ShaderResource;
-    var clip     : Rectangle;
-    var viewport : Rectangle;
+    var target     : TargetState;
+    var shader     : ShaderResource;
+    final clip     : Rectangle;
+    final viewport : Rectangle;
+    final blend    : Blending;
+    final depth    : DepthOptions;
+    final stencil  : StencilOptions;
 
     // SDL Window and GL Context
 
@@ -270,8 +277,29 @@ class OGL3Backend implements IRendererBackend
         glSamplerParameteri(defaultSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         // default state
-        viewport     = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
-        clip         = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
+        viewport     = new Rectangle();
+        clip         = new Rectangle();
+        blend        = new Blending();
+        depth        = {
+            depthTesting  : false,
+            depthMasking  : false,
+            depthFunction : Always
+        };
+        stencil      = {
+            stencilTesting : false,
+
+            stencilFrontMask          : 0xff,
+            stencilFrontFunction      : Always,
+            stencilFrontTestFail      : Keep,
+            stencilFrontDepthTestFail : Keep,
+            stencilFrontDepthTestPass : Keep,
+            
+            stencilBackMask          : 0xff,
+            stencilBackFunction      : Always,
+            stencilBackTestFail      : Keep,
+            stencilBackDepthTestFail : Keep,
+            stencilBackDepthTestPass : Keep
+        };
         shader       = null;
         target       = Backbuffer;
         textureSlots = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
@@ -282,7 +310,8 @@ class OGL3Backend implements IRendererBackend
         backbuffer = createBackbuffer(_windowConfig.width, _windowConfig.height, false);
 
         // Default blend mode
-        // TODO : Move this to be a settable property in the geometry or renderer or something
+        // Blend equation is not currently changable
+        glEnable(GL_BLEND);
         glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
@@ -291,7 +320,8 @@ class OGL3Backend implements IRendererBackend
 
         // Default scissor test
         glEnable(GL_SCISSOR_TEST);
-        glScissor(0, 0, backbuffer.width, backbuffer.height);
+        updateClip(0, 0, backbuffer.width, backbuffer.height);
+        updateViewport(0, 0, backbuffer.width, backbuffer.height);
 
         resourceEvents.created.add(onResourceCreated);
         resourceEvents.removed.add(onResourceRemoved);
@@ -316,9 +346,9 @@ class OGL3Backend implements IRendererBackend
     public function preDraw()
     {
         target = Backbuffer;
-        clip.set(0, 0, backbuffer.width, backbuffer.height);
 
-        glScissor(0, 0, backbuffer.width, backbuffer.height);
+        updateClip(0, 0, backbuffer.width, backbuffer.height);
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         commandQueue.resize(0);
@@ -729,9 +759,10 @@ class OGL3Backend implements IRendererBackend
             // Change the state so the vertices are drawn correctly.
             setState(command);
 
+            glBindBuffer(GL_UNIFORM_BUFFER, glMatrixBuffer);
+
             for (geometry in command.geometry)
             {
-                glBindBuffer(GL_UNIFORM_BUFFER, glMatrixBuffer);
                 glBindBufferRange(
                     GL_UNIFORM_BUFFER,
                     findBlockIndexByName("flurry_matrices", command.shader.layout.blocks),
@@ -869,16 +900,30 @@ class OGL3Backend implements IRendererBackend
         // Bind textures
         setTextures(_command);
 
-        // Apply depth and stencil settings.
-        if (_command.depth.depthTesting)
+        // Update depth testing
+        if (!_command.depth.equals(depth))
         {
-            glEnable(GL_DEPTH_TEST);
-            glDepthMask(_command.depth.depthMasking);
-            glDepthFunc(_command.depth.depthFunction.getComparisonFunc());
-        }
-        else
-        {
-            glDisable(GL_DEPTH_TEST);
+            if (!_command.depth.depthTesting)
+            {
+                glDisable(GL_DEPTH_TEST);
+            }
+            else
+            {
+                if (_command.depth.depthTesting != depth.depthTesting)
+                {
+                    glEnable(GL_DEPTH_TEST);
+                }
+                if (_command.depth.depthMasking != depth.depthMasking)
+                {
+                    glDepthMask(_command.depth.depthMasking);
+                }
+                if (_command.depth.depthFunction != depth.depthFunction)
+                {
+                    glDepthFunc(_command.depth.depthFunction.getComparisonFunc());
+                }
+            }
+
+            depth.copyFrom(_command.depth);
         }
 
         if (_command.stencil.stencilTesting)
@@ -913,12 +958,12 @@ class OGL3Backend implements IRendererBackend
                 switch target
                 {
                     case Backbuffer:
-                        glViewport(0, 0, backbuffer.width, backbuffer.height);
+                        updateViewport(0, 0, backbuffer.width, backbuffer.height);
                     case Texture(_image):
-                        glViewport(0, 0, _image.width, _image.height);
+                        updateViewport(0, 0, _image.width, _image.height);
                 }
             case Viewport(_x, _y, _width, _height):
-                glViewport(_x, _y, _width, _height);
+                updateViewport(_x, _y, _width, _height);
         }
 
         // If the camera does not specify a clip rectangle then the full size of the target is used.
@@ -928,27 +973,36 @@ class OGL3Backend implements IRendererBackend
                 switch target
                 {
                     case Backbuffer:
-                        glScissor(0, 0, backbuffer.width, backbuffer.height);
+                        updateClip(0, 0, backbuffer.width, backbuffer.height);
                     case Texture(_image):
-                        glScissor(0, 0, _image.width, _image.height);
+                        updateClip(0, 0, _image.width, _image.height);
                 }
             case Clip(_x, _y, _width, _height):
-                glScissor(_x, _y, _width, _height);
+                updateClip(_x, _y, _width, _height);
         }
 
-        // Set the blending
-        if (_command.blending)
+        // Update blending
+        if (!_command.blending.equals(blend))
         {
-            glEnable(GL_BLEND);
-            glBlendFuncSeparate(
-                _command.srcRGB.getBlendMode(),
-                _command.dstRGB.getBlendMode(),
-                _command.srcAlpha.getBlendMode(),
-                _command.dstAlpha.getBlendMode());
-        }
-        else
-        {
-            glDisable(GL_BLEND);
+            if (_command.blending.enabled)
+            {
+                if (!blend.enabled)
+                {
+                    glEnable(GL_BLEND);
+                }
+
+                glBlendFuncSeparate(
+                    _command.blending.srcRGB.getBlendMode(),
+                    _command.blending.dstRGB.getBlendMode(),
+                    _command.blending.srcAlpha.getBlendMode(),
+                    _command.blending.dstAlpha.getBlendMode());
+            }
+            else
+            {
+                glDisable(GL_BLEND);
+            }
+
+            blend.copyFrom(_command.blending);
         }
     }
 
@@ -1006,6 +1060,26 @@ class OGL3Backend implements IRendererBackend
         else
         {
             throw new OGL3NotEnoughTexturesException(_command.shader.id, _command.id, cache.layout.textures.length, _command.textures.length);
+        }
+    }
+
+    function updateClip(_x : Int, _y : Int, _width : Int, _height : Int)
+    {
+        if (clip.x != _x || clip.y != _y || clip.w != _width || clip.h != _width)
+        {
+            glScissor(_x, _y, _width, _height);
+
+            clip.set(_x, _y, _width, _height);
+        }
+    }
+
+    function updateViewport(_x : Int, _y : Int, _width : Int, _height : Int)
+    {
+        if (viewport.x != _x || viewport.y != _y || viewport.w != _width || viewport.h != _height)
+        {
+            glViewport(_x, _y, _width, _height);
+
+            viewport.set(_x, _y, _width, _height);
         }
     }
 

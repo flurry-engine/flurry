@@ -3,17 +3,52 @@ package uk.aidanlee.flurry.api.gpu;
 @:structInit
 class StencilOptions
 {
-    public final stencilTesting : Bool;
+    public var stencilTesting (default, null) : Bool;
 
-    public final stencilFrontMask : Int;
-    public final stencilFrontFunction : ComparisonFunction;
-    public final stencilFrontTestFail : StencilFunction;
-    public final stencilFrontDepthTestFail : StencilFunction;
-    public final stencilFrontDepthTestPass : StencilFunction;
+    public var stencilFrontMask (default, null) : Int;
+    public var stencilFrontFunction (default, null) : ComparisonFunction;
+    public var stencilFrontTestFail (default, null) : StencilFunction;
+    public var stencilFrontDepthTestFail (default, null) : StencilFunction;
+    public var stencilFrontDepthTestPass (default, null) : StencilFunction;
 
-    public final stencilBackMask : Int;
-    public final stencilBackFunction : ComparisonFunction;
-    public final stencilBackTestFail : StencilFunction;
-    public final stencilBackDepthTestFail : StencilFunction;
-    public final stencilBackDepthTestPass : StencilFunction;
+    public var stencilBackMask (default, null) : Int;
+    public var stencilBackFunction (default, null) : ComparisonFunction;
+    public var stencilBackTestFail (default, null) : StencilFunction;
+    public var stencilBackDepthTestFail (default, null) : StencilFunction;
+    public var stencilBackDepthTestPass (default, null) : StencilFunction;
+
+    public function equals(_other : StencilOptions) : Bool
+    {
+        return
+            stencilTesting == _other.stencilTesting &&
+
+            stencilFrontMask == _other.stencilFrontMask &&
+            stencilFrontFunction == _other.stencilFrontFunction &&
+            stencilFrontTestFail == _other.stencilFrontTestFail &&
+            stencilFrontDepthTestFail == _other.stencilFrontDepthTestFail &&
+            stencilFrontDepthTestPass == _other.stencilFrontDepthTestPass &&
+
+            stencilBackMask == _other.stencilBackMask &&
+            stencilBackFunction == _other.stencilBackFunction &&
+            stencilBackTestFail == _other.stencilBackTestFail &&
+            stencilBackDepthTestFail == _other.stencilBackDepthTestFail &&
+            stencilBackDepthTestPass == _other.stencilBackDepthTestPass;
+    }
+
+    public function copyFrom(_other : StencilOptions)
+    {
+        stencilTesting = _other.stencilTesting;
+
+        stencilFrontMask          = _other.stencilFrontMask;
+        stencilFrontFunction      = _other.stencilFrontFunction;
+        stencilFrontTestFail      = _other.stencilFrontTestFail;
+        stencilFrontDepthTestFail = _other.stencilFrontDepthTestFail;
+        stencilFrontDepthTestPass = _other.stencilFrontDepthTestPass;
+
+        stencilBackMask          = _other.stencilBackMask;
+        stencilBackFunction      = _other.stencilBackFunction;
+        stencilBackTestFail      = _other.stencilBackTestFail;
+        stencilBackDepthTestFail = _other.stencilBackDepthTestFail;
+        stencilBackDepthTestPass = _other.stencilBackDepthTestPass;
+    }
 }

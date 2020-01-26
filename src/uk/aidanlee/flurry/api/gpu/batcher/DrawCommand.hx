@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.gpu.geometry.Blending;
 import haxe.ds.ReadOnlyArray;
 import uk.aidanlee.flurry.api.gpu.BlendMode;
 import uk.aidanlee.flurry.api.gpu.DepthOptions;
@@ -73,15 +74,7 @@ class DrawCommand
     /**
      * If blending is enabled for this draw command.
      */
-    public final blending : Bool;
-
-    public final srcRGB : BlendMode;
-
-    public final dstRGB : BlendMode;
-
-    public final srcAlpha : BlendMode;
-
-    public final dstAlpha : BlendMode;
+    public final blending : Blending;
 
     inline public function new(
         _id         : Int,
@@ -96,11 +89,7 @@ class DrawCommand
         _samplers   : ReadOnlyArray<Null<SamplerState>>,
         _depth      : DepthOptions,
         _stencil    : StencilOptions,
-        _blending   : Bool,
-        _srcRGB     : BlendMode = null,
-        _dstRGB     : BlendMode = null,
-        _srcAlpha   : BlendMode = null,
-        _dstAlpha   : BlendMode = null
+        _blending   : Blending
     )
     {
         id         = _id;
@@ -116,9 +105,5 @@ class DrawCommand
         depth      = _depth;
         stencil    = _stencil;
         blending   = _blending;
-        srcRGB     = _srcRGB;
-        dstRGB     = _dstRGB;
-        srcAlpha   = _srcAlpha;
-        dstAlpha   = _dstAlpha;
     }
 }

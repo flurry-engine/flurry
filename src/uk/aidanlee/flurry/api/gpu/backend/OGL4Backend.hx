@@ -823,19 +823,19 @@ class OGL4Backend implements IRendererBackend
         // }
 
         // Set the blending
-        if (_command.blending)
-        {
-            glEnable(GL_BLEND);
-            glBlendFuncSeparate(
-                _command.srcRGB.getBlendMode(),
-                _command.dstRGB.getBlendMode(),
-                _command.srcAlpha.getBlendMode(),
-                _command.dstAlpha.getBlendMode());
-        }
-        else
-        {
-            glDisable(GL_BLEND);
-        }
+        // if (_command.blending)
+        // {
+        //     glEnable(GL_BLEND);
+        //     glBlendFuncSeparate(
+        //         _command.srcRGB.getBlendMode(),
+        //         _command.dstRGB.getBlendMode(),
+        //         _command.srcAlpha.getBlendMode(),
+        //         _command.dstAlpha.getBlendMode());
+        // }
+        // else
+        // {
+        //     glDisable(GL_BLEND);
+        // }
 
         // Update shader blocks and bind any textures required.
         setUniforms(_command);

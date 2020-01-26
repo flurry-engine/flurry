@@ -1089,18 +1089,18 @@ class DX11Backend implements IRendererBackend
         // }
 
         // SET BLENDING OPTIONS AND APPLY TO CONTEXT
-        if (_command.blending)
-        {
-            blendDescription.renderTarget[0].blendEnable    = true;
-            blendDescription.renderTarget[0].srcBlend       = getBlend(_command.srcRGB);
-            blendDescription.renderTarget[0].srcBlendAlpha  = getBlend(_command.srcAlpha);
-            blendDescription.renderTarget[0].destBlend      = getBlend(_command.dstRGB);
-            blendDescription.renderTarget[0].destBlendAlpha = getBlend(_command.dstAlpha);
-        }
-        else
-        {
-            blendDescription.renderTarget[0].blendEnable = false;
-        }
+        // if (_command.blending)
+        // {
+        //     blendDescription.renderTarget[0].blendEnable    = true;
+        //     blendDescription.renderTarget[0].srcBlend       = getBlend(_command.srcRGB);
+        //     blendDescription.renderTarget[0].srcBlendAlpha  = getBlend(_command.srcAlpha);
+        //     blendDescription.renderTarget[0].destBlend      = getBlend(_command.dstRGB);
+        //     blendDescription.renderTarget[0].destBlendAlpha = getBlend(_command.dstAlpha);
+        // }
+        // else
+        // {
+        //     blendDescription.renderTarget[0].blendEnable = false;
+        // }
 
         if (device.createBlendState(blendDescription, blendState) != 0)
         {

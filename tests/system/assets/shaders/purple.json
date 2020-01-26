@@ -1,5 +1,5 @@
 {
-    "textures" : [ ],
+    "textures" : [ "defaultTexture" ],
     "blocks"   : [
         {
             "name"    : "flurry_matrices",
