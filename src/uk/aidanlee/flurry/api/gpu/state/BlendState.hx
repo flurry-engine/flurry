@@ -1,6 +1,6 @@
-package uk.aidanlee.flurry.api.gpu.geometry;
+package uk.aidanlee.flurry.api.gpu.state;
 
-class Blending
+class BlendState
 {
     /**
      * If blending is enabled for this state.
@@ -42,7 +42,7 @@ class Blending
         dstAlpha = _dstAlpha;
     }
 
-    public function equals(_other : Blending) : Bool
+    public function equals(_other : BlendState) : Bool
     {
         return enabled  == _other.enabled  &&
                srcRGB   == _other.srcRGB   &&
@@ -51,7 +51,7 @@ class Blending
                dstAlpha == _other.dstAlpha;
     }
 
-    public function copyFrom(_other : Blending) : Blending
+    public function copyFrom(_other : BlendState) : BlendState
     {
         enabled  = _other.enabled;
         srcRGB   = _other.srcRGB;
@@ -62,8 +62,8 @@ class Blending
         return this;
     }
 
-    public function clone() : Blending
+    public function clone() : BlendState
     {
-        return new Blending(enabled, srcRGB, srcAlpha, dstRGB, dstAlpha);
+        return new BlendState(enabled, srcRGB, srcAlpha, dstRGB, dstAlpha);
     }
 }

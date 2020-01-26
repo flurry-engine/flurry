@@ -2,8 +2,8 @@ package uk.aidanlee.flurry.api.gpu.batcher;
 
 import haxe.ds.ReadOnlyArray;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
-import uk.aidanlee.flurry.api.gpu.geometry.Blending;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -47,7 +47,7 @@ class BatcherState
     /**
      * The blend state of the batcher.
      */
-    public var blend (default, null) : Blending;
+    public var blend (default, null) : BlendState;
 
     /**
      * The batcher this state belongs to.
@@ -71,7 +71,7 @@ class BatcherState
         uniforms     = [];
         batcher      = _batcher;
         indexed      = false;
-        blend        = new Blending();
+        blend        = new BlendState();
     }
 
     /**

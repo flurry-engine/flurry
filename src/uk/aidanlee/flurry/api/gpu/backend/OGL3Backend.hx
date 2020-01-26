@@ -18,11 +18,13 @@ import opengl.WebGL.getShaderInfoLog;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
+import uk.aidanlee.flurry.api.gpu.state.StencilState;
+import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
-import uk.aidanlee.flurry.api.gpu.geometry.Blending;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Maths;
@@ -201,9 +203,9 @@ class OGL3Backend implements IRendererBackend
     var shader     : ShaderResource;
     final clip     : Rectangle;
     final viewport : Rectangle;
-    final blend    : Blending;
-    final depth    : DepthOptions;
-    final stencil  : StencilOptions;
+    final blend    : BlendState;
+    final depth    : DepthState;
+    final stencil  : StencilState;
 
     // SDL Window and GL Context
 
@@ -280,7 +282,7 @@ class OGL3Backend implements IRendererBackend
         // default state
         viewport     = new Rectangle();
         clip         = new Rectangle();
-        blend        = new Blending();
+        blend        = new BlendState();
         depth        = {
             depthTesting  : false,
             depthMasking  : false,
@@ -1031,7 +1033,7 @@ class OGL3Backend implements IRendererBackend
         }
     }
 
-    function updateDepth(_newDepth : DepthOptions)
+    function updateDepth(_newDepth : DepthState)
     {
         if (!_newDepth.equals(depth))
         {
@@ -1059,7 +1061,7 @@ class OGL3Backend implements IRendererBackend
         }
     }
 
-    function updateStencil(_newStencil : StencilOptions)
+    function updateStencil(_newStencil : StencilState)
     {
         if (!_newStencil.equals(stencil))
         {
@@ -1119,7 +1121,7 @@ class OGL3Backend implements IRendererBackend
         }
     }
 
-    function updateBlending(_newBlend : Blending)
+    function updateBlending(_newBlend : BlendState)
     {
         if (!_newBlend.equals(blend))
         {

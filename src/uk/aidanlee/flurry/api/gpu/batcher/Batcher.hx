@@ -4,6 +4,8 @@ import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
+import uk.aidanlee.flurry.api.gpu.state.StencilState;
+import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.maths.Hash;
 
@@ -35,12 +37,12 @@ typedef BatcherOptions = {
     /**
      * Depth testing options to be used by the batcher.
      */
-    var ?depthOptions : DepthOptions;
+    var ?depthOptions : DepthState;
 
     /**
      * Stencil testing options to be used by the batcher.
      */
-    var ?stencilOptions : StencilOptions;
+    var ?stencilOptions : StencilState;
 }
 
 /**
@@ -70,12 +72,12 @@ class Batcher
     /**
      * This batchers depth testing settings.
      */
-    public final depthOptions : DepthOptions;
+    public final depthOptions : DepthState;
 
     /**
      * This batchers stencil testing settings.
      */
-    public final stencilOptions : StencilOptions;
+    public final stencilOptions : StencilState;
 
     /**
      * The depth of the batcher is the deciding factor in which batchers get drawn first.

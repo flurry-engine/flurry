@@ -1,13 +1,12 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.gpu.geometry.Blending;
 import haxe.ds.ReadOnlyArray;
-import uk.aidanlee.flurry.api.gpu.BlendMode;
-import uk.aidanlee.flurry.api.gpu.DepthOptions;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
-import uk.aidanlee.flurry.api.gpu.StencilOptions;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
+import uk.aidanlee.flurry.api.gpu.state.DepthState;
+import uk.aidanlee.flurry.api.gpu.state.StencilState;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
@@ -67,14 +66,11 @@ class DrawCommand
 
     public final samplers : ReadOnlyArray<SamplerState>;
 
-    public final depth : DepthOptions;
+    public final depth : DepthState;
 
-    public final stencil : StencilOptions;
+    public final stencil : StencilState;
 
-    /**
-     * If blending is enabled for this draw command.
-     */
-    public final blending : Blending;
+    public final blending : BlendState;
 
     inline public function new(
         _id         : Int,
@@ -87,9 +83,9 @@ class DrawCommand
         _uniforms   : ReadOnlyArray<UniformBlob>,
         _textures   : ReadOnlyArray<ImageResource>,
         _samplers   : ReadOnlyArray<Null<SamplerState>>,
-        _depth      : DepthOptions,
-        _stencil    : StencilOptions,
-        _blending   : Blending
+        _depth      : DepthState,
+        _stencil    : StencilState,
+        _blending   : BlendState
     )
     {
         id         = _id;

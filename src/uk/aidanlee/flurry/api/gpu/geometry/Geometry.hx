@@ -9,6 +9,7 @@ import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Quaternion;
@@ -29,7 +30,7 @@ typedef GeometryOptions = {
     var ?clip       : ClipState;
     var ?primitive  : PrimitiveType;
     var ?batchers   : Array<Batcher>;
-    var ?blend      : Blending;
+    var ?blend      : BlendState;
 }
 
 enum GeometryData
@@ -93,7 +94,7 @@ class Geometry
     /**
      * The blend state for this geometry.
      */
-    public final blend : Blending;
+    public final blend : BlendState;
 
     /**
      * Clipping rectangle for this geometry. Null if none.
@@ -230,7 +231,7 @@ class Geometry
         primitive      = _options.primitive .or(Triangles);
         depth          = _options.depth     .or(0);
         transformation = _options.transform .or(new Transformation());
-        blend          = _options.blend     .or(new Blending());
+        blend          = _options.blend     .or(new BlendState());
 
         // Add to batchers.
         if (_options.batchers != null)

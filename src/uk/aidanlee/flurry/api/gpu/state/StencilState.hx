@@ -1,7 +1,7 @@
-package uk.aidanlee.flurry.api.gpu;
+package uk.aidanlee.flurry.api.gpu.state;
 
 @:structInit
-class StencilOptions
+class StencilState
 {
     public var stencilTesting (default, null) : Bool;
 
@@ -17,7 +17,7 @@ class StencilOptions
     public var stencilBackDepthTestFail (default, null) : StencilFunction;
     public var stencilBackDepthTestPass (default, null) : StencilFunction;
 
-    public function equals(_other : StencilOptions) : Bool
+    public function equals(_other : StencilState) : Bool
     {
         return
             stencilTesting == _other.stencilTesting &&
@@ -35,7 +35,7 @@ class StencilOptions
             stencilBackDepthTestPass == _other.stencilBackDepthTestPass;
     }
 
-    public function copyFrom(_other : StencilOptions)
+    public function copyFrom(_other : StencilState)
     {
         stencilTesting = _other.stencilTesting;
 
