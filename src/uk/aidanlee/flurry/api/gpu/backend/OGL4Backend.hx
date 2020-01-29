@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import cpp.RawConstPointer;
+import cpp.ConstCharStar;
 import haxe.io.Bytes;
 import haxe.ds.Map;
 import cpp.Stdlib;
@@ -10,6 +12,7 @@ import cpp.Pointer;
 import sdl.GLContext;
 import sdl.Window;
 import sdl.SDL;
+import glad.Glad;
 import opengl.GL.*;
 import opengl.WebGL;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
@@ -38,10 +41,12 @@ using uk.aidanlee.flurry.utils.opengl.GLConverters;
 
 class OGL4Backend implements IRendererBackend
 {
+    static final BUFFERING_COUNT = 3;
+
     /**
      * The number of floats in each vertex.
      */
-    static final VERTEX_FLOAT_SIZE = 9;
+    static final VERTEX_BYTE_SIZE = 36;
 
     /**
      * The byte offset for the position in each vertex.
@@ -69,29 +74,41 @@ class OGL4Backend implements IRendererBackend
     final displayEvents : DisplayEvents;
 
     /**
-     * The single VBO used by the backend.
-     */
-    final glVbo : Int;
-
-    /**
-     * The single Index buffer used by the backend.
-     */
-    final glIbo : Int;
-
-    /**
      * The single VAO which is bound once when the backend is created.
      */
     final glVao : Int;
 
     /**
-     * Constant vector instance which is used to transform vertices when copying into the vertex buffer.
+     * The single VBO used by the backend.
      */
-    final transformationVector : Vector3;
+    final glVertexBuffer : Int;
 
     /**
-     * Constant identity matrix, used as the model matrix for non multi draw shaders.
+     * The single index buffer used by the backend.
      */
-    final identityMatrix : Matrix;
+    final glIndexbuffer : Int;
+
+    /**
+     * The ubo used to store all matrix data.
+     */
+    final glMatrixBuffer : Int;
+
+    final glIndirectBuffer : Int;
+
+    /**
+     * The ubo used to store all uniform data.
+     */
+    final glUniformBuffer : Int;
+
+    final vertexBuffer : Pointer<UInt8>;
+
+    final indexBuffer : Pointer<UInt8>;
+
+    final matrixBuffer : Pointer<UInt8>;
+
+    final uniformBuffer : Pointer<UInt8>;
+
+    final indirectBuffer : Pointer<UInt8>;
 
     /**
      * Shader programs keyed by their associated shader resource IDs.
@@ -147,39 +164,6 @@ class OGL4Backend implements IRendererBackend
     final textureSlots : Array<Int>;
 
     /**
-     * Index pointing to the current writable vertex buffer range.
-     */
-    var vertexBufferRangeIndex : Int;
-
-    /**
-     * Index pointing to the current writing index buffer range.
-     */
-    var indexBufferRangeIndex : Int;
-
-    /**
-     * The index into the vertex buffer to write.
-     * Writing more floats must increment this value. Set the to current ranges offset in preDraw.
-     */
-    var vertexFloatOffset : Int;
-
-    /**
-     * Offset to use when calling openngl draw commands.
-     * Writing more verticies must increment this value. Set the to current ranges offset in preDraw.
-     */
-    var vertexOffset : Int;
-
-    /**
-     * The current index position into the index buffer we are writing to.
-     * Like vertexOffset at the beginning of each frame it is set to an initial offset into the index buffer.
-     */
-    var indexOffset : Int;
-
-    /**
-     * The number of bytes into the index buffer we are writing to.
-     */
-    var indexByteOffset : Int;
-
-    /**
      * Backbuffer display, default target if none is specified.
      */
     var backbuffer : BackBuffer;
@@ -191,34 +175,11 @@ class OGL4Backend implements IRendererBackend
 
     // GL state variables
 
-    /**
-     * The current viewport size.
-     */
     var viewport : Rectangle;
-
-    /**
-     * The current scissor region size.
-     */
     var clip : Rectangle;
-
-    /**
-     * The target to use. If null the backbuffer is used.
-     */
     var target : ImageResource;
-
-    /**
-     * Shader to use.
-     */
     var shader : ShaderResource;
-
-    /**
-     * The bound ssbo buffer.
-     */
     var ssbo : Int;
-
-    /**
-     * The bound indirect command buffer.
-     */
     var cmds : Int;
 
     // SDL Window and GL Context
@@ -240,46 +201,49 @@ class OGL4Backend implements IRendererBackend
         resourceEvents = _resourceEvents;
         displayEvents  = _displayEvents;
 
-        var staticVertexBuffer = _rendererConfig.unchangingVertices;
-        var streamVertexBuffer = _rendererConfig.dynamicVertices;
-        var staticIndexBuffer  = _rendererConfig.unchangingIndices;
-        var streamIndexBuffer  = _rendererConfig.dynamicIndices;
-
         // Create two empty buffers, for the vertex and index data
-        var buffers = [ 0, 0 ];
-        glCreateBuffers(2, buffers);
+        var buffers = [ 0, 0, 0, 0, 0 ];
+        glCreateBuffers(buffers.length, buffers);
+        glVertexBuffer   = buffers[0];
+        glIndexbuffer    = buffers[1];
+        glMatrixBuffer   = buffers[2];
+        glUniformBuffer  = buffers[3];
+        glIndirectBuffer = buffers[4];
 
-        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", buffers[0], staticVertexBuffer * 9 * 4 + ((streamVertexBuffer * 9 * 4) * 3), GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", buffers[1], staticIndexBuffer * 2  + ((streamIndexBuffer * 2) * 3), GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glVertexBuffer  , BUFFERING_COUNT * (_rendererConfig.dynamicVertices * VERTEX_BYTE_SIZE), GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glIndexbuffer   , BUFFERING_COUNT * (_rendererConfig.dynamicIndices * 2)                , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glMatrixBuffer  , BUFFERING_COUNT * (_rendererConfig.dynamicVertices * 4)               , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glUniformBuffer , BUFFERING_COUNT * (_rendererConfig.dynamicVertices * 4)               , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glIndirectBuffer, BUFFERING_COUNT * (_rendererConfig.dynamicVertices * 4)               , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 
         // Create the vao and bind the vbo to it.
         var vao = [ 0 ];
-        glCreateVertexArrays(1, vao);
-        glVertexArrayVertexBuffer(vao[0], 0, buffers[0], 0, Float32BufferData.BYTES_PER_FLOAT * VERTEX_FLOAT_SIZE);
+        glCreateVertexArrays(vao.length, vao);
+        glVao = vao[0];
+
+        glVertexArrayVertexBuffer(glVao, 0, glVertexBuffer, 0, VERTEX_BYTE_SIZE);
 
         // Enable and setup the vertex attributes for this batcher.
-        glEnableVertexArrayAttrib(vao[0], 0);
-        glEnableVertexArrayAttrib(vao[0], 1);
-        glEnableVertexArrayAttrib(vao[0], 2);
+        glVertexArrayAttribFormat(glVertexBuffer, 0, 3, GL_FLOAT, false, Float32BufferData.BYTES_PER_FLOAT * VERTEX_OFFSET_POS);
+        glVertexArrayAttribFormat(glVertexBuffer, 1, 4, GL_FLOAT, false, Float32BufferData.BYTES_PER_FLOAT * VERTEX_OFFSET_COL);
+        glVertexArrayAttribFormat(glVertexBuffer, 2, 2, GL_FLOAT, false, Float32BufferData.BYTES_PER_FLOAT * VERTEX_OFFSET_TEX);
 
-        glVertexArrayAttribFormat(buffers[0], 0, 3, GL_FLOAT, false, Float32BufferData.BYTES_PER_FLOAT * VERTEX_OFFSET_POS);
-        glVertexArrayAttribFormat(buffers[0], 1, 4, GL_FLOAT, false, Float32BufferData.BYTES_PER_FLOAT * VERTEX_OFFSET_COL);
-        glVertexArrayAttribFormat(buffers[0], 2, 2, GL_FLOAT, false, Float32BufferData.BYTES_PER_FLOAT * VERTEX_OFFSET_TEX);
+        glEnableVertexArrayAttrib(glVao, 0);
+        glEnableVertexArrayAttrib(glVao, 1);
+        glEnableVertexArrayAttrib(glVao, 2);
 
-        glVertexArrayAttribBinding(vao[0], 0, 0);
-        glVertexArrayAttribBinding(vao[0], 1, 0);
-        glVertexArrayAttribBinding(vao[0], 2, 0);
-
-        glVbo = buffers[0];
-        glIbo = buffers[1];
-        glVao = vao[0];
+        glVertexArrayAttribBinding(glVao, 0, 0);
+        glVertexArrayAttribBinding(glVao, 1, 0);
+        glVertexArrayAttribBinding(glVao, 2, 0);
 
         // Bind our VAO once.
         glBindVertexArray(glVao);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIbo);
+
+        // Bind the index buffer to the VAO
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIndexbuffer);
 
         var samplers = [ 0 ];
-        glGenSamplers(1, samplers);
+        glCreateSamplers(samplers.length, samplers);
         defaultSampler = samplers[0];
         glSamplerParameteri(defaultSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glSamplerParameteri(defaultSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -287,13 +251,14 @@ class OGL4Backend implements IRendererBackend
         glSamplerParameteri(defaultSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         // Map the streaming parts of the vertex and index buffer.
-        var vtxBuffer : Pointer<UInt8> = Pointer.fromRaw(glMapNamedBufferRange(glVbo, staticVertexBuffer * 9 * 4, (streamVertexBuffer * 9 * 4) * 3, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
-        var idxBuffer : Pointer<UInt8> = Pointer.fromRaw(glMapNamedBufferRange(glIbo, staticIndexBuffer * 2     , (streamIndexBuffer * 2) * 3     , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
+        vertexBuffer   = Pointer.fromRaw(glMapNamedBufferRange(glVertexBuffer  , 0, BUFFERING_COUNT * (_rendererConfig.dynamicVertices * VERTEX_BYTE_SIZE), GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
+        indexBuffer    = Pointer.fromRaw(glMapNamedBufferRange(glIndexbuffer   , 0, BUFFERING_COUNT * (_rendererConfig.dynamicIndices * 2)                , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
+        matrixBuffer   = Pointer.fromRaw(glMapNamedBufferRange(glMatrixBuffer  , 0, BUFFERING_COUNT * (_rendererConfig.dynamicVertices * 4)               , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
+        uniformBuffer  = Pointer.fromRaw(glMapNamedBufferRange(glUniformBuffer , 0, BUFFERING_COUNT * (_rendererConfig.dynamicVertices * 4)               , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
+        indirectBuffer = Pointer.fromRaw(glMapNamedBufferRange(glIndirectBuffer, 0, BUFFERING_COUNT * (_rendererConfig.dynamicVertices * 4)               , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
 
-        perspectiveYFlipVector = new Vector3(31, -1, 1);
-        transformationVector   = new Vector3();
-        identityMatrix         = new Matrix();
-        rangeSyncPrimitives    = [ for (i in 0...3) new GLSyncWrapper() ];
+        perspectiveYFlipVector = new Vector3(1, -1, 1);
+        rangeSyncPrimitives    = [ for (_ in 0...3) new GLSyncWrapper() ];
         currentRange           = 0;
 
         backbuffer = createBackbuffer(_windowConfig.width, _windowConfig.height, false);
@@ -333,6 +298,41 @@ class OGL4Backend implements IRendererBackend
         displayEvents.changeRequested.add(onChangeRequest);
     }
 
+    @:void static function glDebugCallback(_source : cpp.UInt32, _type : cpp.UInt32, _id : cpp.UInt32, _severity : cpp.UInt32, _length : Int, _message : cpp.ConstCharStar, _userParam : cpp.RawConstPointer<cpp.Void>)
+    {
+        trace('OpenGL Debug Callback');
+        trace('\tid       : $_id');
+        trace('\tmessage  : $_message');
+        trace('\tsource   : ${ switch _source {
+                case GL_DEBUG_SOURCE_API: 'api';
+                case GL_DEBUG_SOURCE_APPLICATION: 'application';
+                case GL_DEBUG_SOURCE_OTHER: 'other';
+                case GL_DEBUG_SOURCE_SHADER_COMPILER: 'shader compiler';
+                case GL_DEBUG_SOURCE_THIRD_PARTY: 'third party';
+                case GL_DEBUG_SOURCE_WINDOW_SYSTEM: 'window system';
+                case _unknown: 'unknown source : $_unknown';
+        } }');
+        trace('\ttype     : ${ switch _type {
+                case GL_DEBUG_TYPE_ERROR: 'error';
+                case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: 'deprecated behaviour';
+                case GL_DEBUG_TYPE_MARKER: 'marker';
+                case GL_DEBUG_TYPE_OTHER: 'other';
+                case GL_DEBUG_TYPE_PERFORMANCE: 'performance';
+                case GL_DEBUG_TYPE_POP_GROUP: 'pop group';
+                case GL_DEBUG_TYPE_PORTABILITY: 'portability';
+                case GL_DEBUG_TYPE_PUSH_GROUP: 'push group';
+                case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: 'undefined behaviour';
+                case _unknown: 'unknown type : $_unknown';
+            } }');
+        trace('\tseverity : ${ switch _severity {
+                case GL_DEBUG_SEVERITY_HIGH: 'high';
+                case GL_DEBUG_SEVERITY_LOW: 'low';
+                case GL_DEBUG_SEVERITY_MEDIUM: 'medium';
+                case GL_DEBUG_SEVERITY_NOTIFICATION: 'notification';
+                case _unknown: 'unknown severity : $_unknown';
+            } }');
+    }
+
     /**
      * Unlock the range we will be writing into and set the offsets to that of the range.
      */
@@ -359,44 +359,16 @@ class OGL4Backend implements IRendererBackend
         glClearNamedFramebufferfv(backbuffer.framebuffer, GL_COLOR, 0, clearColour);
     }
 
-    /**
-     * Upload a series of geometry commands into the current buffer range.
-     * @param _commands Commands to upload.
-     */
     public function queue(_command : DrawCommand)
     {
-        // for (command in _commands)
-        // {
-        //     switch (command.uploadType)
-        //     {
-        //         case Static : staticStorage.uploadGeometry(command);
-        //         case Stream, Immediate : streamStorage.uploadGeometry(command);
-        //     }
-        // }
+        //
     }
 
-    /**
-     * Submit a series of uploaded commands to be drawn.
-     * @param _commands    Commands to draw.
-     * @param _recordStats If stats are to be recorded.
-     */
     public function submit()
     {
-        // for (command in _commands)
-        // {
-        //     setState(command, _recordStats);
-
-        //     switch (command.uploadType)
-        //     {
-        //         case Static : staticStorage.draw(command);
-        //         case Stream, Immediate : streamStorage.draw(command);
-        //     }
-        // }
+        //
     }
 
-    /**
-     * Locks the range we are currenly writing to and increments the index.
-     */
     public function postDraw()
     {
         if (rangeSyncPrimitives[currentRange].sync != null)
@@ -406,7 +378,7 @@ class OGL4Backend implements IRendererBackend
 
         rangeSyncPrimitives[currentRange].sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 
-        currentRange = (currentRange + 1) % 3;
+        currentRange = (currentRange + 1) % BUFFERING_COUNT;
 
         glBlitNamedFramebuffer(
             backbuffer.framebuffer, 0,
@@ -427,7 +399,10 @@ class OGL4Backend implements IRendererBackend
         displayEvents.sizeChanged.remove(onSizeChanged);
         displayEvents.changeRequested.remove(onChangeRequest);
 
-        glUnmapNamedBuffer(glVbo);
+        glUnmapNamedBuffer(glVertexBuffer);
+        glUnmapNamedBuffer(glIndexbuffer);
+        glUnmapNamedBuffer(glMatrixBuffer);
+        glUnmapNamedBuffer(glUniformBuffer);
 
         for (shaderID in shaderPrograms.keys())
         {
@@ -460,15 +435,26 @@ class OGL4Backend implements IRendererBackend
         SDL.GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
         SDL.GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
         SDL.GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+        SDL.GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0x0001); // Debug context
 
         window    = SDL.createWindow(_options.title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _options.width, _options.height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
         glContext = SDL.GL_CreateContext(window);
 
         SDL.GL_MakeCurrent(window, glContext);
 
-        if (glad.Glad.gladLoadGLLoader(untyped __cpp__('&SDL_GL_GetProcAddress')) == 0)
+        if (Glad.gladLoadGLLoader(untyped __cpp__('&SDL_GL_GetProcAddress')) == 0)
         {
             throw 'failed to load gl library';
+        }
+
+        final flags = [ 0 ];
+        glGetIntegerv(GL_CONTEXT_FLAGS, flags);
+        if (cast flags[0] & GL_CONTEXT_FLAG_DEBUG_BIT)
+        {
+            glEnable(GL_DEBUG_OUTPUT);
+            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+            untyped __cpp__('glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE)');
+            untyped __cpp__('glDebugMessageCallback({0}, nullptr)', cpp.Callable.fromStaticFunction(glDebugCallback));
         }
     }
 
@@ -561,14 +547,8 @@ class OGL4Backend implements IRendererBackend
             glShaderStorageBlockBinding(program, blockLocations[i], blockBindings[i]);
         }
 
-        var blockBuffers = [ for (i in 0..._resource.layout.blocks.length) 0 ];
-        glCreateBuffers(blockBuffers.length, blockBuffers);
-        var blockBytes = [ for (i in 0..._resource.layout.blocks.length) generateUniformBlock(_resource.layout.blocks[i], blockBuffers[i], blockBindings[i]) ];
-
-        glBindBuffersBase(GL_SHADER_STORAGE_BUFFER, blockBindings[0], blockBindings.length, blockBuffers);
-
         shaderPrograms.set(_resource.id, program);
-        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings, blockBuffers, blockBytes));
+        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings));
     }
 
     function vertexFromSPIRV(_spirv : Bytes) : Int
@@ -666,25 +646,6 @@ class OGL4Backend implements IRendererBackend
 
         textureObjects.remove(_resource.id);
         samplerObjects.remove(_resource.id);
-    }
-
-    function generateUniformBlock(_block : ShaderBlock, _buffer : Int, _binding : Int) : Bytes
-    {
-        var blockSize = 0;
-        for (val in _block.values)
-        {
-            switch val.type
-            {
-                case Matrix4: blockSize += 64;
-                case Vector4: blockSize += 16;
-                case Int, Float: blockSize += 4;
-            }
-        }
-
-        var bytes = Bytes.alloc(blockSize);
-        glNamedBufferData(_buffer, bytes.length, bytes.getData(), GL_DYNAMIC_DRAW);
-        
-        return bytes;
     }
 
     // #endregion
@@ -952,8 +913,6 @@ class OGL4Backend implements IRendererBackend
             }
             else
             {
-                var ptr : Pointer<UInt8> = Pointer.arrayElem(cache.blockBytes[i].getData(), 0).reinterpret();
-
                 // Otherwise upload all user specified uniform values.
                 // TODO : We should have some sort of error checking if the expected uniforms are not found.
                 var pos = 0;
@@ -979,9 +938,6 @@ class OGL4Backend implements IRendererBackend
                     //         pos += 4;
                     // }
                 }
-
-                glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
             }
         }
     }
@@ -1000,28 +956,33 @@ class OGL4Backend implements IRendererBackend
 
     function buildCameraMatrices(_camera : Camera)
     {
-        // switch _camera.type
-        // {
-        //     case Orthographic:
-        //         var orth = (cast _camera : Camera2D);
-        //         if (orth.dirty)
-        //         {
-        //             orth.projection.makeHeterogeneousOrthographic(0, orth.viewport.w, orth.viewport.h, 0, -100, 100);
-        //             orth.view.copy(orth.transformation.world.matrix).invert();
-        //             orth.dirty = false;
-        //         }
-        //     case Projection:
-        //         var proj = (cast _camera : Camera3D);
-        //         if (proj.dirty)
-        //         {
-        //             proj.projection.makeHeterogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
-        //             proj.projection.scale(perspectiveYFlipVector);
-        //             proj.view.copy(proj.transformation.world.matrix).invert();
-        //             proj.dirty = false;
-        //         }
-        //     case Custom:
-        //         // Do nothing, user is responsible for building their custom camera matrices.
-        // }
+        switch _camera.type
+        {
+            case Orthographic:
+                var orth = (cast _camera : Camera2D);
+                if (orth.dirty)
+                {
+                    switch orth.viewport
+                    {
+                        case None: throw 'Camera2D must define a viewport';
+                        case Viewport(_x, _y, _width, _height):
+                            orth.projection.makeHeterogeneousOrthographic(_x, _width, _height, _y, -100, 100);
+                            orth.view.copy(orth.transformation.world.matrix).invert();
+                            orth.dirty = false;
+                    }
+                }
+            case Projection:
+                var proj = (cast _camera : Camera3D);
+                if (proj.dirty)
+                {
+                    proj.projection.makeHeterogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
+                    proj.projection.scale(perspectiveYFlipVector);
+                    proj.view.copy(proj.transformation.world.matrix).invert();
+                    proj.dirty = false;
+                }
+            case Custom:
+                // Do nothing, user is responsible for building their custom camera matrices.
+        }
     }
 
     function createBackbuffer(_width : Int, _height : Int, _remove : Bool = true) : BackBuffer
@@ -1110,22 +1071,10 @@ private class ShaderLocations
      */
     public final blockBindings : Array<Int>;
 
-    /**
-     * SSBO buffer objects.
-     */
-    public final blockBuffers : Array<Int>;
-
-    /**
-     * Bytes for each SSBO buffer.
-     */
-    public final blockBytes : Array<Bytes>;
-
-    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockBindings : Array<Int>, _blockBuffers : Array<Int>, _blockBytes : Array<Bytes>)
+    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockBindings : Array<Int>)
     {
         layout           = _layout;
         textureLocations = _textureLocations;
         blockBindings    = _blockBindings;
-        blockBuffers     = _blockBuffers;
-        blockBytes       = _blockBytes;
     }
 }
