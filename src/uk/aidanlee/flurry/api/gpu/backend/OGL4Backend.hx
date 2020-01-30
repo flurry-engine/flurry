@@ -34,6 +34,7 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.utils.opengl.GLSyncWrapper;
+import cpp.Stdlib.memcpy;
 
 using Safety;
 using cpp.NativeArray;
@@ -110,6 +111,20 @@ class OGL4Backend implements IRendererBackend
 
     final indirectBuffer : Pointer<UInt8>;
 
+    final vertexRangeSize : Int;
+
+    final indexRangeSize : Int;
+
+    final matrixRangeSize : Int;
+
+    final uniformRangeSize : Int;
+
+    final indirectRangeSize : Int;
+
+    final multiDrawIndexedCopyBuffer : Bytes;
+
+    final multiDrawUnIndexedCopyBuffer : Bytes;
+
     /**
      * Shader programs keyed by their associated shader resource IDs.
      */
@@ -163,6 +178,8 @@ class OGL4Backend implements IRendererBackend
      */
     final textureSlots : Array<Int>;
 
+    final commandQueue : Array<DrawCommand>;
+
     /**
      * Backbuffer display, default target if none is specified.
      */
@@ -210,11 +227,20 @@ class OGL4Backend implements IRendererBackend
         glUniformBuffer  = buffers[3];
         glIndirectBuffer = buffers[4];
 
-        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glVertexBuffer  , BUFFERING_COUNT * (_rendererConfig.dynamicVertices * VERTEX_BYTE_SIZE), GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glIndexbuffer   , BUFFERING_COUNT * (_rendererConfig.dynamicIndices * 2)                , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glMatrixBuffer  , BUFFERING_COUNT * (_rendererConfig.dynamicVertices * 4)               , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glUniformBuffer , BUFFERING_COUNT * (_rendererConfig.dynamicVertices * 4)               , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glIndirectBuffer, BUFFERING_COUNT * (_rendererConfig.dynamicVertices * 4)               , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        vertexRangeSize   = _rendererConfig.dynamicVertices * VERTEX_BYTE_SIZE;
+        indexRangeSize    = _rendererConfig.dynamicIndices * 2;
+        matrixRangeSize   = _rendererConfig.dynamicVertices * 4;
+        uniformRangeSize  = _rendererConfig.dynamicVertices * 4;
+        indirectRangeSize = _rendererConfig.dynamicVertices * 4;
+
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glVertexBuffer  , BUFFERING_COUNT * vertexRangeSize  , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glIndexbuffer   , BUFFERING_COUNT * indexRangeSize   , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glMatrixBuffer  , BUFFERING_COUNT * matrixRangeSize  , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glUniformBuffer , BUFFERING_COUNT * uniformRangeSize , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glIndirectBuffer, BUFFERING_COUNT * indirectRangeSize, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+
+        multiDrawIndexedCopyBuffer   = Bytes.alloc(20);
+        multiDrawUnIndexedCopyBuffer = Bytes.alloc(16);
 
         // Create the vao and bind the vbo to it.
         var vao = [ 0 ];
@@ -258,8 +284,9 @@ class OGL4Backend implements IRendererBackend
         indirectBuffer = Pointer.fromRaw(glMapNamedBufferRange(glIndirectBuffer, 0, BUFFERING_COUNT * (_rendererConfig.dynamicVertices * 4)               , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
 
         perspectiveYFlipVector = new Vector3(1, -1, 1);
-        rangeSyncPrimitives    = [ for (_ in 0...3) new GLSyncWrapper() ];
+        rangeSyncPrimitives    = [ for (_ in 0...BUFFERING_COUNT) new GLSyncWrapper() ];
         currentRange           = 0;
+        commandQueue           = [];
 
         backbuffer = createBackbuffer(_windowConfig.width, _windowConfig.height, false);
 
@@ -350,7 +377,7 @@ class OGL4Backend implements IRendererBackend
             }
         }
 
-        // streamStorage.unlockBuffers(currentRange);
+        commandQueue.resize(0);
 
         clip.set(0, 0, backbuffer.width, backbuffer.height);
         glScissor(0, 0, backbuffer.width, backbuffer.height);
@@ -361,12 +388,13 @@ class OGL4Backend implements IRendererBackend
 
     public function queue(_command : DrawCommand)
     {
-        //
+        commandQueue.push(_command);
     }
 
     public function submit()
     {
-        //
+        uploadData();
+        drawCommands();
     }
 
     public function postDraw()
@@ -426,6 +454,99 @@ class OGL4Backend implements IRendererBackend
 
         SDL.GL_DeleteContext(glContext);
         SDL.destroyWindow(window);
+    }
+
+    function uploadData()
+    {
+        var vtxUploaded = currentRange * vertexRangeSize;
+        var idxUploaded = currentRange * indexRangeSize;
+        var matUploaded = currentRange * matrixRangeSize;
+        var unfUploaded = currentRange * uniformRangeSize;
+        var cmdUploaded = currentRange * indirectRangeSize;
+
+        for (command in commandQueue)
+        {
+            // Add the commands view and projection matrices
+            buildCameraMatrices(command.camera);
+
+            final proj : Float32BufferData = command.camera.projection;
+            final view : Float32BufferData = command.camera.view;
+
+            memcpy(matrixBuffer.add(matUploaded)     , proj.bytes.getData().address(proj.byteOffset), 64);
+            memcpy(matrixBuffer.add(matUploaded + 64), view.bytes.getData().address(view.byteOffset), 64);
+
+            // Upload the uniform data
+            for (block in command.uniforms)
+            {
+                memcpy(
+                    uniformBuffer.add(unfUploaded),
+                    block.buffer.bytes.getData().address(block.buffer.byteOffset),
+                    block.buffer.byteLength);
+
+                unfUploaded += 256;
+            }
+
+            for (geometry in command.geometry)
+            {
+                // Upload the vertex and index data as well as the multi draw command data
+                switch geometry.data
+                {
+                    case Indexed(_vertices, _indices):
+                        // Memcpy the blob data
+                        memcpy(
+                            indexBuffer.add(idxUploaded),
+                            _indices.buffer.bytes.getData().address(_indices.buffer.byteOffset),
+                            _indices.buffer.byteLength);
+                        memcpy(
+                            vertexBuffer.add(vtxUploaded),
+                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
+                            _vertices.buffer.byteLength);
+
+                        // Upload command data
+                        multiDrawIndexedCopyBuffer.setInt32( 0, cast _indices.buffer.byteLength / 2); // Number of indices
+                        multiDrawIndexedCopyBuffer.setInt32( 4, 1); // number of instances (always 1)
+                        multiDrawIndexedCopyBuffer.setInt32( 8, cast idxUploaded / 2); // number of indices into the buffer
+                        multiDrawIndexedCopyBuffer.setInt32(12, cast vtxUploaded / VERTEX_BYTE_SIZE); // number of vertices into the buffer
+                        multiDrawIndexedCopyBuffer.setInt32(16, 0); // base instance (always 0)
+                        memcpy(
+                            indirectBuffer.add(cmdUploaded),
+                            multiDrawIndexedCopyBuffer.getData().address(0),
+                            multiDrawIndexedCopyBuffer.getData().length);
+
+                        vtxUploaded += _vertices.buffer.byteLength;
+                        idxUploaded += _indices.buffer.byteLength;
+                        cmdUploaded += 256;
+                    case UnIndexed(_vertices):
+                        memcpy(
+                            vertexBuffer.add(vtxUploaded),
+                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
+                            _vertices.buffer.byteLength);
+
+                        // Upload command data
+                        multiDrawUnIndexedCopyBuffer.setInt32( 0, cast _vertices.buffer.byteLength / VERTEX_BYTE_SIZE); // Number of vertices
+                        multiDrawUnIndexedCopyBuffer.setInt32( 4, 1); // number of instances (always 1)
+                        multiDrawUnIndexedCopyBuffer.setInt32( 8, cast vtxUploaded / VERTEX_BYTE_SIZE); // number of vertices into the buffer
+                        multiDrawUnIndexedCopyBuffer.setInt32(12, 0); // base instance (always 0)
+                        memcpy(
+                            indirectBuffer.add(cmdUploaded),
+                            multiDrawUnIndexedCopyBuffer.getData().address(0),
+                            multiDrawUnIndexedCopyBuffer.getData().length);
+
+                        vtxUploaded += _vertices.buffer.byteLength;
+                        cmdUploaded += 256;
+                }
+
+                // Upload the model matrix
+                final model : Float32BufferData = geometry.transformation.world.matrix;
+                memcpy(matrixBuffer.add(matUploaded + 128), model.bytes.getData().address(model.byteOffset), 64);
+                matUploaded += 256;
+            }
+        }
+    }
+
+    function drawCommands()
+    {
+        //
     }
 
     // #region SDL Window Management

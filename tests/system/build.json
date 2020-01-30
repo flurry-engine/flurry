@@ -1,7 +1,7 @@
 {
     "app" : {
         "name"      : "SystemTests",
-        "main"      : "StencilTesting",
+        "main"      : "BatchingGeometry",
         "output"    : "bin",
         "codepaths" : [ "src", "../../src" ],
         "namespace" : "uk.aidanlee.flurry.tests.system",
