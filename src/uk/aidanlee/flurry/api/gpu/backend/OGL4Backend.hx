@@ -1,5 +1,12 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.maths.Maths;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
+import uk.aidanlee.flurry.api.gpu.state.StencilState;
+import uk.aidanlee.flurry.api.gpu.state.DepthState;
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
+import haxe.ds.ReadOnlyArray;
+import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import cpp.RawConstPointer;
 import cpp.ConstCharStar;
 import haxe.io.Bytes;
@@ -178,6 +185,8 @@ class OGL4Backend implements IRendererBackend
      */
     final textureSlots : Array<Int>;
 
+    final samplerSlots : Array<Int>;
+
     final commandQueue : Array<DrawCommand>;
 
     /**
@@ -192,10 +201,13 @@ class OGL4Backend implements IRendererBackend
 
     // GL state variables
 
-    var viewport : Rectangle;
-    var clip : Rectangle;
-    var target : ImageResource;
-    var shader : ShaderResource;
+    var target     : TargetState;
+    var shader     : ShaderResource;
+    final clip     : Rectangle;
+    final viewport : Rectangle;
+    final blend    : BlendState;
+    final depth    : DepthState;
+    final stencil  : StencilState;
     var ssbo : Int;
     var cmds : Int;
 
@@ -229,9 +241,9 @@ class OGL4Backend implements IRendererBackend
 
         vertexRangeSize   = _rendererConfig.dynamicVertices * VERTEX_BYTE_SIZE;
         indexRangeSize    = _rendererConfig.dynamicIndices * 2;
-        matrixRangeSize   = _rendererConfig.dynamicVertices * 4;
+        matrixRangeSize   = nextMultipleOff(_rendererConfig.dynamicVertices * 4, 256);
         uniformRangeSize  = _rendererConfig.dynamicVertices * 4;
-        indirectRangeSize = _rendererConfig.dynamicVertices * 4;
+        indirectRangeSize = 100000;
 
         untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glVertexBuffer  , BUFFERING_COUNT * vertexRangeSize  , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
         untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glIndexbuffer   , BUFFERING_COUNT * indexRangeSize   , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
@@ -265,8 +277,9 @@ class OGL4Backend implements IRendererBackend
         // Bind our VAO once.
         glBindVertexArray(glVao);
 
-        // Bind the index buffer to the VAO
+        // Setup single time binds
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIndexbuffer);
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, glIndirectBuffer);
 
         var samplers = [ 0 ];
         glCreateSamplers(samplers.length, samplers);
@@ -277,11 +290,11 @@ class OGL4Backend implements IRendererBackend
         glSamplerParameteri(defaultSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         // Map the streaming parts of the vertex and index buffer.
-        vertexBuffer   = Pointer.fromRaw(glMapNamedBufferRange(glVertexBuffer  , 0, BUFFERING_COUNT * (_rendererConfig.dynamicVertices * VERTEX_BYTE_SIZE), GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
-        indexBuffer    = Pointer.fromRaw(glMapNamedBufferRange(glIndexbuffer   , 0, BUFFERING_COUNT * (_rendererConfig.dynamicIndices * 2)                , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
-        matrixBuffer   = Pointer.fromRaw(glMapNamedBufferRange(glMatrixBuffer  , 0, BUFFERING_COUNT * (_rendererConfig.dynamicVertices * 4)               , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
-        uniformBuffer  = Pointer.fromRaw(glMapNamedBufferRange(glUniformBuffer , 0, BUFFERING_COUNT * (_rendererConfig.dynamicVertices * 4)               , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
-        indirectBuffer = Pointer.fromRaw(glMapNamedBufferRange(glIndirectBuffer, 0, BUFFERING_COUNT * (_rendererConfig.dynamicVertices * 4)               , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
+        vertexBuffer   = Pointer.fromRaw(glMapNamedBufferRange(glVertexBuffer  , 0, BUFFERING_COUNT * vertexRangeSize  , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
+        indexBuffer    = Pointer.fromRaw(glMapNamedBufferRange(glIndexbuffer   , 0, BUFFERING_COUNT * indexRangeSize   , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
+        matrixBuffer   = Pointer.fromRaw(glMapNamedBufferRange(glMatrixBuffer  , 0, BUFFERING_COUNT * matrixRangeSize  , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
+        uniformBuffer  = Pointer.fromRaw(glMapNamedBufferRange(glUniformBuffer , 0, BUFFERING_COUNT * uniformRangeSize , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
+        indirectBuffer = Pointer.fromRaw(glMapNamedBufferRange(glIndirectBuffer, 0, BUFFERING_COUNT * indirectRangeSize, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
 
         perspectiveYFlipVector = new Vector3(1, -1, 1);
         rangeSyncPrimitives    = [ for (_ in 0...BUFFERING_COUNT) new GLSyncWrapper() ];
@@ -291,7 +304,8 @@ class OGL4Backend implements IRendererBackend
         backbuffer = createBackbuffer(_windowConfig.width, _windowConfig.height, false);
 
         // Default blend mode
-        // TODO : Move this to be a settable property in the geometry or renderer or something
+        // Blend equation is not currently changable
+        glEnable(GL_BLEND);
         glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
@@ -305,14 +319,36 @@ class OGL4Backend implements IRendererBackend
         glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
         // default state
-        viewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-        clip     = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-        target   = null;
-        shader   = null;
-        ssbo     = 0;
-        cmds     = 0;
+        viewport     = new Rectangle();
+        clip         = new Rectangle();
+        blend        = new BlendState();
+        depth        = {
+            depthTesting  : false,
+            depthMasking  : false,
+            depthFunction : Always
+        };
+        stencil      = {
+            stencilTesting : false,
+
+            stencilFrontMask          : 0xff,
+            stencilFrontFunction      : Always,
+            stencilFrontTestFail      : Keep,
+            stencilFrontDepthTestFail : Keep,
+            stencilFrontDepthTestPass : Keep,
+            
+            stencilBackMask          : 0xff,
+            stencilBackFunction      : Always,
+            stencilBackTestFail      : Keep,
+            stencilBackDepthTestFail : Keep,
+            stencilBackDepthTestPass : Keep
+        };
+        shader       = null;
+        target       = Backbuffer;
+        ssbo         = 0;
+        cmds         = 0;
 
         textureSlots       = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
+        samplerSlots       = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
         shaderPrograms     = [];
         shaderUniforms     = [];
         textureObjects     = [];
@@ -340,7 +376,7 @@ class OGL4Backend implements IRendererBackend
                 case _unknown: 'unknown source : $_unknown';
         } }');
         trace('\ttype     : ${ switch _type {
-                case GL_DEBUG_TYPE_ERROR: 'error';
+                case GL_DEBUG_TYPE_ERROR: throw 'error';
                 case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: 'deprecated behaviour';
                 case GL_DEBUG_TYPE_MARKER: 'marker';
                 case GL_DEBUG_TYPE_OTHER: 'other';
@@ -472,8 +508,8 @@ class OGL4Backend implements IRendererBackend
             final proj : Float32BufferData = command.camera.projection;
             final view : Float32BufferData = command.camera.view;
 
-            memcpy(matrixBuffer.add(matUploaded)     , proj.bytes.getData().address(proj.byteOffset), 64);
-            memcpy(matrixBuffer.add(matUploaded + 64), view.bytes.getData().address(view.byteOffset), 64);
+            memcpy(matrixBuffer.add(matUploaded)      , proj.bytes.getData().address(proj.byteOffset), 64);
+            memcpy(matrixBuffer.add(matUploaded += 64), view.bytes.getData().address(view.byteOffset), 64);
 
             // Upload the uniform data
             for (block in command.uniforms)
@@ -488,11 +524,10 @@ class OGL4Backend implements IRendererBackend
 
             for (geometry in command.geometry)
             {
-                // Upload the vertex and index data as well as the multi draw command data
                 switch geometry.data
                 {
                     case Indexed(_vertices, _indices):
-                        // Memcpy the blob data
+                        // Memcpy vertex blob data
                         memcpy(
                             indexBuffer.add(idxUploaded),
                             _indices.buffer.bytes.getData().address(_indices.buffer.byteOffset),
@@ -513,10 +548,12 @@ class OGL4Backend implements IRendererBackend
                             multiDrawIndexedCopyBuffer.getData().address(0),
                             multiDrawIndexedCopyBuffer.getData().length);
 
+                        // Increase all offsets
                         vtxUploaded += _vertices.buffer.byteLength;
                         idxUploaded += _indices.buffer.byteLength;
-                        cmdUploaded += 256;
+                        cmdUploaded += multiDrawIndexedCopyBuffer.length;
                     case UnIndexed(_vertices):
+                        // Memcpy vertex blob data
                         memcpy(
                             vertexBuffer.add(vtxUploaded),
                             _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
@@ -533,20 +570,47 @@ class OGL4Backend implements IRendererBackend
                             multiDrawUnIndexedCopyBuffer.getData().length);
 
                         vtxUploaded += _vertices.buffer.byteLength;
-                        cmdUploaded += 256;
+                        cmdUploaded += multiDrawUnIndexedCopyBuffer.length;
                 }
 
                 // Upload the model matrix
                 final model : Float32BufferData = geometry.transformation.world.matrix;
-                memcpy(matrixBuffer.add(matUploaded + 128), model.bytes.getData().address(model.byteOffset), 64);
-                matUploaded += 256;
+                memcpy(matrixBuffer.add(matUploaded += 64), model.bytes.getData().address(model.byteOffset), 64);
             }
+
+            matUploaded = nextMultipleOff(matUploaded, 256);
         }
     }
 
     function drawCommands()
     {
-        //
+        var matOffset = currentRange * matrixRangeSize;
+        var unfOffset = currentRange * uniformRangeSize;
+        var cmdOffset = currentRange * indirectRangeSize;
+
+        for (command in commandQueue)
+        {
+            updateState(command);
+
+            glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, glMatrixBuffer, matOffset, 128 + (64 * command.geometry.length));
+
+            // Would like a nicer way to get if the command is indexed or unindexed
+            // Problem is that OGl4 doesn't manually issue draw commands for all geometries
+            switch command.geometry[0].data
+            {
+                case Indexed(_, _):
+                    untyped __cpp__('glMultiDrawElementsIndirect({0}, GL_UNSIGNED_SHORT, (const void *){1}, {2}, 0)',
+                        command.primitive.getPrimitiveType(),
+                        cmdOffset,
+                        command.geometry.length);
+
+                    cmdOffset += 20;
+                case UnIndexed(_):
+                    //
+            }
+
+            matOffset = nextMultipleOff(matOffset + 128 + (64 * command.geometry.length), 256);
+        }
     }
 
     // #region SDL Window Management
@@ -778,288 +842,292 @@ class OGL4Backend implements IRendererBackend
      * @param _command      Command to set the state for.
      * @param _enableStats If stats are to be recorded.
      */
-    function setState(_command : DrawCommand)
+    function updateState(_command : DrawCommand)
     {
-        // Set the render target.
-        // If the target is null then the backbuffer is used.
-        // Render targets are created on the fly as and when needed since most textures probably won't be used as targets.
-        // if (_command.target != target)
-        // {
-        //     target = _command.target;
+        updateFramebuffer(_command.target);
+        updateShader(_command.shader);
+        updateUniformBindings(_command.uniforms, _command.shader.layout.blocks);
+        updateTextures(_command.shader.layout.textures.length, _command.textures, _command.samplers);
+        updateDepth(_command.depth);
+        updateStencil(_command.stencil);
+        updateBlending(_command.blending);
 
-        //     if (target != null && !framebufferObjects.exists(target.id))
-        //     {
-        //         // Create the framebuffer
-        //         var fbo = [ 0 ];
-        //         glCreateFramebuffers(1, fbo);
-        //         glNamedFramebufferTexture(fbo[0], GL_COLOR_ATTACHMENT0, textureObjects.get(target.id), 0);
-
-        //         if (glCheckNamedFramebufferStatus(fbo[0], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        //         {
-        //             throw 'OpenGL 4.5 Backend Exception : ${target.id} : Framebuffer not complete';
-        //         }
-
-        //         framebufferObjects.set(target.id, fbo[0]);
-        //     }
-
-        //     glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebuffer);
-        // }
-
-        // Apply shader changes.
-        if (shader != _command.shader)
+        // If the camera does not specify a viewport (non orthographic) then the full size of the target is used.
+        switch _command.camera.viewport
         {
-            shader = _command.shader;
-            glUseProgram(shaderPrograms.get(shader.id));
+            case None:
+                switch target
+                {
+                    case Backbuffer:
+                        updateViewport(0, 0, backbuffer.width, backbuffer.height);
+                    case Texture(_image):
+                        updateViewport(0, 0, _image.width, _image.height);
+                }
+            case Viewport(_x, _y, _width, _height):
+                updateViewport(_x, _y, _width, _height);
         }
 
-        // Apply depth and stencil settings.
-        if (_command.depth.depthTesting)
+        // If the camera does not specify a clip rectangle then the full size of the target is used.
+        switch _command.clip
         {
-            glEnable(GL_DEPTH_TEST);
-            glDepthMask(_command.depth.depthMasking);
-            glDepthFunc(_command.depth.depthFunction.getComparisonFunc());
+            case None:
+                switch target
+                {
+                    case Backbuffer:
+                        updateClip(0, 0, backbuffer.width, backbuffer.height);
+                    case Texture(_image):
+                        updateClip(0, 0, _image.width, _image.height);
+                }
+            case Clip(_x, _y, _width, _height):
+                updateClip(_x, _y, _width, _height);
         }
-        else
-        {
-            glDisable(GL_DEPTH_TEST);
-        }
-
-        if (_command.stencil.stencilTesting)
-        {
-            glEnable(GL_STENCIL_TEST);
-            
-            glStencilMaskSeparate(GL_FRONT, _command.stencil.stencilFrontMask);
-            glStencilFuncSeparate(GL_FRONT, _command.stencil.stencilFrontFunction.getComparisonFunc(), 1, 0xff);
-            glStencilOpSeparate(
-                GL_FRONT,
-                _command.stencil.stencilFrontTestFail.getStencilFunc(),
-                _command.stencil.stencilFrontDepthTestFail.getStencilFunc(),
-                _command.stencil.stencilFrontDepthTestPass.getStencilFunc());
-
-            glStencilMaskSeparate(GL_BACK, _command.stencil.stencilBackMask);
-            glStencilFuncSeparate(GL_BACK, _command.stencil.stencilBackFunction.getComparisonFunc(), 1, 0xff);
-            glStencilOpSeparate(
-                GL_BACK,
-                _command.stencil.stencilBackTestFail.getStencilFunc(),
-                _command.stencil.stencilBackDepthTestFail.getStencilFunc(),
-                _command.stencil.stencilBackDepthTestPass.getStencilFunc());
-        }
-        else
-        {
-            glDisable(GL_STENCIL_TEST);
-        }
-
-        // Set the viewport.
-        // If the viewport of the command is null then the backbuffer size is used (size of the window).
-        // var cmdViewport = _command.camera.viewport;
-        // if (cmdViewport == null)
-        // {
-        //     if (target == null)
-        //     {
-        //         cmdViewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-        //     }
-        //     else
-        //     {
-        //         cmdViewport = new Rectangle(0, 0, target.width, target.height);
-        //     }
-        // }
-
-        // if (!viewport.equals(cmdViewport))
-        // {
-        //     viewport.set(cmdViewport.x, cmdViewport.y, cmdViewport.w, cmdViewport.h);
-
-        //     var x = viewport.x *= target == null ? backbuffer.scale : 1;
-        //     var y = viewport.y *= target == null ? backbuffer.scale : 1;
-        //     var w = viewport.w *= target == null ? backbuffer.scale : 1;
-        //     var h = viewport.h *= target == null ? backbuffer.scale : 1;
-
-        //     // OpenGL works 0x0 is bottom left so we need to flip the y.
-        //     glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
-        // }
-
-        // Apply the scissor clip.
-        // var cmdClip = _command.clip;
-        // if (cmdClip == null)
-        // {
-        //     if (target == null)
-        //     {
-        //         cmdClip = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-        //     }
-        //     else
-        //     {
-        //         cmdClip = new Rectangle(0, 0, target.width, target.height);
-        //     }
-        // }
-
-        // if (!clip.equals(cmdClip))
-        // {
-        //     clip.copyFrom(cmdClip);
-
-        //     var x = cmdClip.x * (target == null ? backbuffer.scale : 1);
-        //     var y = cmdClip.y * (target == null ? backbuffer.scale : 1);
-        //     var w = cmdClip.w * (target == null ? backbuffer.scale : 1);
-        //     var h = cmdClip.h * (target == null ? backbuffer.scale : 1);
-
-        //     // OpenGL works 0x0 is bottom left so we need to flip the y.
-        //     glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
-        // }
-
-        // Set the blending
-        // if (_command.blending)
-        // {
-        //     glEnable(GL_BLEND);
-        //     glBlendFuncSeparate(
-        //         _command.srcRGB.getBlendMode(),
-        //         _command.dstRGB.getBlendMode(),
-        //         _command.srcAlpha.getBlendMode(),
-        //         _command.dstAlpha.getBlendMode());
-        // }
-        // else
-        // {
-        //     glDisable(GL_BLEND);
-        // }
-
-        // Update shader blocks and bind any textures required.
-        setUniforms(_command);
     }
 
-    /**
-     * Apply all of a shaders uniforms.
-     * @param _command     Command to set the state for.
-     * @param _enableStats If stats are to be recorded.
-     */
-    function setUniforms(_command : DrawCommand)
+    function updateFramebuffer(_newTarget : TargetState)
     {
-        var cache = shaderUniforms.get(_command.shader.id);
-        // var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
-
-        // TEMP : Set all textures all the time.
-        // TODO : Store all bound texture IDs and check before binding textures.
-
-        if (cache.layout.textures.length <= _command.textures.length)
+        switch _newTarget
         {
-            // See how many texture actually need changing
-            var toChange = 0;
-            for (i in 0..._command.textures.length)
-            {
-                // Handle samplers quickly, for now...
-
-                // Get / create and bind the sampler for the current texture.
-                var currentSampler = defaultSampler;
-                if (_command.samplers[i] != null)
+            case Backbuffer:
+                switch target
                 {
-                    var samplerHash     = _command.samplers[i].hash();
-                    var textureSamplers = samplerObjects[_command.textures[i].id];
+                    case Backbuffer: // no change in target
+                    case Texture(_):
+                        glBindFramebuffer(GL_FRAMEBUFFER, backbuffer.framebuffer);
+                }
+            case Texture(_requested):
+                switch target
+                {
+                    case Backbuffer:
+                        updateTextureFramebuffer(_requested);
+                    case Texture(_current):
+                        if (_current.id != _requested.id)
+                        {
+                            updateTextureFramebuffer(_requested);
+                        }
+                }
+        }
 
-                    if (!textureSamplers.exists(samplerHash))
+        target = _newTarget;
+    }
+
+    function updateShader(_newShader : ShaderResource)
+    {
+        if (_newShader != shader)
+        {
+            glUseProgram(shaderPrograms.get(_newShader.id));
+
+            shader = _newShader;
+        }
+    }
+
+    function updateUniformBindings(_buffers : ReadOnlyArray<UniformBlob>, _blocks : ReadOnlyArray<ShaderBlock>)
+    {
+        //
+    }
+
+    function updateTextures(_expectedTextures : Int, _textures : ReadOnlyArray<ImageResource>, _samplers : ReadOnlyArray<SamplerState>)
+    {
+        // If the shader description specifies more textures than the command provides throw an exception.
+        // If less is specified than provided we just ignore the extra, maybe we should throw as well?
+        if (_expectedTextures >= _textures.length)
+            {
+                // then go through each texture and bind it if it isn't already.
+                for (i in 0..._textures.length)
+                {
+                    // Bind and activate the texture if its not already bound.
+                    final glTextureID = textureObjects.get(_textures[i].id);
+    
+                    if (glTextureID != textureSlots[i])
                     {
-                        textureSamplers[samplerHash] = createSamplerObject(_command.samplers[i]);
+                        glActiveTexture(GL_TEXTURE0 + i);
+                        glBindTexture(GL_TEXTURE_2D, glTextureID);
+    
+                        textureSlots[i] = glTextureID;
                     }
-
-                    currentSampler = textureSamplers[samplerHash];
+    
+                    // Fetch the custom sampler (first create it if a hash of the sampler is not found).
+                    var currentSampler = defaultSampler;
+                    if (i < _samplers.length)
+                    {
+                        final samplerHash     = _samplers[i].hash();
+                        final textureSamplers = samplerObjects[_textures[i].id];
+    
+                        if (!textureSamplers.exists(samplerHash))
+                        {
+                            textureSamplers[samplerHash] = createSamplerObject(_samplers[i]);
+                        }
+    
+                        currentSampler = textureSamplers[samplerHash];
+                    }
+    
+                    // If its not already bound bind it and update the bound sampler array.
+                    if (currentSampler != samplerSlots[i])
+                    {
+                        glBindSampler(i, currentSampler);
+    
+                        samplerSlots[i] = currentSampler;
+                    }
                 }
-                
-                glBindSampler(i, currentSampler);
-
-                // see if textures need updating.
-                var tex = textureObjects.get(_command.textures[i].id);
-                if (tex != textureSlots[i])
-                {
-                    textureSlots[i] = tex;
-
-                    toChange++;
-                }
-            }
-
-            // If we need to update textures just re-bind them all for ease of gl api use.
-            if (toChange > 0)
-            {
-                glBindTextures(0, _command.textures.length, textureSlots);
-            }
-        }
-        else
-        {
-            throw 'OpenGL 4.5 Backend Exception : ${_command.shader.id} : More textures required by the shader than are provided by the draw command';
-        }
-        
-        for (i in 0...cache.layout.blocks.length)
-        {
-            if (cache.layout.blocks[i].name == 'defaultMatrices')
-            {
-                buildCameraMatrices(_command.camera);
-
-                var view       = _command.camera.view;
-                var projection = _command.camera.projection;
-
-                // The matrix ssbo used depends on if its a static or stream command
-                // stream draws are batched and only have a single model matrix, they use the shaders default matrix ssbo.
-                // static draws have individual ssbos for each command. These ssbos fit a model matrix per geometry.
-                // The matrix buffer for static draws is uploaded in the static draw manager.
-                // 
-                // TODO : have static buffer draws use the default shader ssbo?
-                // switch _command.uploadType
-                // {
-                //     case Static:
-                //         var rng = null; // staticStorage.get(_command);
-                //         var ptr = Pointer.arrayElem(rng.matrixBuffer.bytes.getData(), 0);
-                //         Stdlib.memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
-                //         Stdlib.memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
-                //         glNamedBufferSubData(rng.glMatrixBuffer, 0, rng.matrixBuffer.length, rng.matrixBuffer.bytes.getData());
-
-                //         if (ssbo != rng.glMatrixBuffer)
-                //         {
-                //             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, cache.blockBindings[i], rng.glMatrixBuffer);
-                //             ssbo = rng.glMatrixBuffer;
-                //         }
-                //         if (cmds != rng.glCommandBuffer)
-                //         {
-                //             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, rng.glCommandBuffer);
-                //             cmds = rng.glCommandBuffer;
-                //         }
-                        
-                //     case Stream, Immediate:
-                //         var ptr   = Pointer.arrayElem(cache.blockBytes[i].getData(), 0);
-                //         var model = null; // streamStorage.getModelMatrix(_command.id);
-                //         Stdlib.memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
-                //         Stdlib.memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
-                //         Stdlib.memcpy(ptr.incBy(64), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
-                //         glNamedBufferSubData(cache.blockBuffers[i], 0, cache.blockBytes[i].length, cache.blockBytes[i].getData());
-
-                //         if (ssbo != cache.blockBuffers[i])
-                //         {
-                //             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
-                //             ssbo = cache.blockBuffers[i];
-                //         }
-                // }
             }
             else
             {
-                // Otherwise upload all user specified uniform values.
-                // TODO : We should have some sort of error checking if the expected uniforms are not found.
-                var pos = 0;
-                for (val in cache.layout.blocks[i].values)
+                throw 'new OGL3NotEnoughTexturesException(_expectedTextures, _textures.length)';
+            }
+    }
+
+    function updateClip(_x : Int, _y : Int, _width : Int, _height : Int)
+    {
+        if (clip.x != _x || clip.y != _y || clip.w != _width || clip.h != _width)
+        {
+            glScissor(_x, _y, _width, _height);
+
+            clip.set(_x, _y, _width, _height);
+        }
+    }
+
+    function updateViewport(_x : Int, _y : Int, _width : Int, _height : Int)
+    {
+        if (viewport.x != _x || viewport.y != _y || viewport.w != _width || viewport.h != _height)
+        {
+            glViewport(_x, _y, _width, _height);
+
+            viewport.set(_x, _y, _width, _height);
+        }
+    }
+
+    function updateDepth(_newDepth : DepthState)
+    {
+        if (!_newDepth.equals(depth))
+        {
+            if (!_newDepth.depthTesting)
+            {
+                glDisable(GL_DEPTH_TEST);
+            }
+            else
+            {
+                if (_newDepth.depthTesting != depth.depthTesting)
                 {
-                    // switch val.type
-                    // {
-                    //     case Matrix4:
-                    //         var mat = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                    //         Stdlib.memcpy(ptr.incBy(pos), (mat : Float32BufferData).bytes.getData().address((mat : Float32BufferData).byteOffset), 64);
-                    //         pos += 64;
-                    //     case Vector4:
-                    //         var vec = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                    //         Stdlib.memcpy(ptr.incBy(pos), (vec : Float32BufferData).bytes.getData().address((vec : Float32BufferData).byteOffset), 16);
-                    //         pos += 16;
-                    //     case Int:
-                    //         var dst : Pointer<Int32> = ptr.reinterpret();
-                    //         dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
-                    //         pos += 4;
-                    //     case Float:
-                    //         var dst : Pointer<Float32> = ptr.reinterpret();
-                    //         dst.setAt(Std.int(pos / 4), preferedUniforms.float.exists(val.name) ? preferedUniforms.float.get(val.name) : _command.shader.uniforms.float.get(val.name));
-                    //         pos += 4;
-                    // }
+                    glEnable(GL_DEPTH_TEST);
+                }
+                if (_newDepth.depthMasking != depth.depthMasking)
+                {
+                    glDepthMask(_newDepth.depthMasking);
+                }
+                if (_newDepth.depthFunction != depth.depthFunction)
+                {
+                    glDepthFunc(_newDepth.depthFunction.getComparisonFunc());
                 }
             }
+
+            depth.copyFrom(_newDepth);
+        }
+    }
+
+    function updateStencil(_newStencil : StencilState)
+    {
+        if (!_newStencil.equals(stencil))
+        {
+            if (!_newStencil.stencilTesting)
+            {
+                glDisable(GL_STENCIL_TEST);
+            }
+            else
+            {
+                if (_newStencil.stencilTesting != stencil.stencilTesting)
+                {
+                    glEnable(GL_STENCIL_TEST);
+                }
+
+                // Front tests
+                if (_newStencil.stencilFrontMask != stencil.stencilFrontMask)
+                {
+                    glStencilMaskSeparate(GL_FRONT, _newStencil.stencilFrontMask);
+                }
+                if (_newStencil.stencilFrontFunction != stencil.stencilFrontFunction)
+                {
+                    glStencilFuncSeparate(GL_FRONT, _newStencil.stencilFrontFunction.getComparisonFunc(), 1, 0xff);
+                }
+                if (_newStencil.stencilFrontTestFail != stencil.stencilFrontTestFail ||
+                    _newStencil.stencilFrontDepthTestFail != stencil.stencilFrontDepthTestFail ||
+                    _newStencil.stencilFrontDepthTestPass != stencil.stencilFrontDepthTestPass)
+                {
+                    glStencilOpSeparate(
+                        GL_FRONT,
+                        _newStencil.stencilFrontTestFail.getStencilFunc(),
+                        _newStencil.stencilFrontDepthTestFail.getStencilFunc(),
+                        _newStencil.stencilFrontDepthTestPass.getStencilFunc());
+                }
+
+                // Back tests
+                if (_newStencil.stencilBackMask != stencil.stencilBackMask)
+                {
+                    glStencilMaskSeparate(GL_BACK, _newStencil.stencilBackMask);
+                }
+                if (_newStencil.stencilBackFunction != stencil.stencilBackFunction)
+                {
+                    glStencilFuncSeparate(GL_BACK, _newStencil.stencilBackFunction.getComparisonFunc(), 1, 0xff);
+                }
+                if (_newStencil.stencilBackTestFail != stencil.stencilBackTestFail ||
+                    _newStencil.stencilBackDepthTestFail != stencil.stencilBackDepthTestFail ||
+                    _newStencil.stencilBackDepthTestPass != stencil.stencilBackDepthTestPass)
+                {
+                    glStencilOpSeparate(
+                        GL_BACK,
+                        _newStencil.stencilBackTestFail.getStencilFunc(),
+                        _newStencil.stencilBackDepthTestFail.getStencilFunc(),
+                        _newStencil.stencilBackDepthTestPass.getStencilFunc());
+                }
+            }
+
+            stencil.copyFrom(_newStencil);
+        }
+    }
+
+    function updateBlending(_newBlend : BlendState)
+    {
+        if (!_newBlend.equals(blend))
+        {
+            if (_newBlend.enabled)
+            {
+                if (!blend.enabled)
+                {
+                    glEnable(GL_BLEND);
+                }
+
+                glBlendFuncSeparate(
+                    _newBlend.srcRGB.getBlendMode(),
+                    _newBlend.dstRGB.getBlendMode(),
+                    _newBlend.srcAlpha.getBlendMode(),
+                    _newBlend.dstAlpha.getBlendMode());
+            }
+            else
+            {
+                glDisable(GL_BLEND);
+            }
+
+            blend.copyFrom(_newBlend);
+        }
+    }
+
+    function updateTextureFramebuffer(_image : ImageResource)
+    {
+        if (framebufferObjects.exists(_image.id))
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects[_image.id]);
+        }
+        else
+        {
+            var fbo = [ 0 ];
+            glCreateFramebuffers(1, fbo);
+            glNamedFramebufferTexture(fbo[0], GL_COLOR_ATTACHMENT0, textureObjects[_image.id], 0);
+
+            if (glCheckNamedFramebufferStatus(fbo[0], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            {
+                throw 'OpenGL 4.5 Backend Exception : ${_image.id} : Framebuffer not complete';
+            }
+
+            framebufferObjects[_image.id] = fbo[0];
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
         }
     }
 
@@ -1139,6 +1207,11 @@ class OGL4Backend implements IRendererBackend
         }
 
         return new BackBuffer(_width, _height, 1, tex[0], rbo[0], fbo[0]);
+    }
+
+    function nextMultipleOff(_number : Int, _multiple : Int) : Int
+    {
+        return Maths.ceil(_number / _multiple) * _multiple;
     }
 
     // #endregion
