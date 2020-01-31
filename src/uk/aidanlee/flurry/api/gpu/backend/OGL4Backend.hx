@@ -190,6 +190,11 @@ class OGL4Backend implements IRendererBackend
     final commandQueue : Array<DrawCommand>;
 
     /**
+     * The bytes alignment for ubos.
+     */
+    final glUboAlignment : Int;
+
+    /**
      * Backbuffer display, default target if none is specified.
      */
     var backbuffer : BackBuffer;
@@ -239,9 +244,14 @@ class OGL4Backend implements IRendererBackend
         glUniformBuffer  = buffers[3];
         glIndirectBuffer = buffers[4];
 
+        var uboAlignment = [ 0 ];
+        glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, uboAlignment);
+
+        glUboAlignment = uboAlignment[0];
+
         vertexRangeSize   = _rendererConfig.dynamicVertices * VERTEX_BYTE_SIZE;
         indexRangeSize    = _rendererConfig.dynamicIndices * 2;
-        matrixRangeSize   = nextMultipleOff(_rendererConfig.dynamicVertices * 4, 256);
+        matrixRangeSize   = nextMultipleOff(_rendererConfig.dynamicVertices * 4, glUboAlignment);
         uniformRangeSize  = _rendererConfig.dynamicVertices * 4;
         indirectRangeSize = 100000;
 
@@ -376,7 +386,7 @@ class OGL4Backend implements IRendererBackend
                 case _unknown: 'unknown source : $_unknown';
         } }');
         trace('\ttype     : ${ switch _type {
-                case GL_DEBUG_TYPE_ERROR: throw 'error';
+                case GL_DEBUG_TYPE_ERROR: 'error';
                 case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: 'deprecated behaviour';
                 case GL_DEBUG_TYPE_MARKER: 'marker';
                 case GL_DEBUG_TYPE_OTHER: 'other';
@@ -518,8 +528,8 @@ class OGL4Backend implements IRendererBackend
                     uniformBuffer.add(unfUploaded),
                     block.buffer.bytes.getData().address(block.buffer.byteOffset),
                     block.buffer.byteLength);
-
-                unfUploaded += 256;
+                
+                unfUploaded = nextMultipleOff(unfUploaded + block.buffer.byteLength, glUboAlignment);
             }
 
             for (geometry in command.geometry)
@@ -578,7 +588,7 @@ class OGL4Backend implements IRendererBackend
                 memcpy(matrixBuffer.add(matUploaded += 64), model.bytes.getData().address(model.byteOffset), 64);
             }
 
-            matUploaded = nextMultipleOff(matUploaded, 256);
+            matUploaded = nextMultipleOff(matUploaded, glUboAlignment);
         }
     }
 
@@ -592,7 +602,12 @@ class OGL4Backend implements IRendererBackend
         {
             updateState(command);
 
-            glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, glMatrixBuffer, matOffset, 128 + (64 * command.geometry.length));
+            glBindBufferRange(
+                GL_SHADER_STORAGE_BUFFER,
+                findBlockIndexByName("flurry_matrices",
+                command.shader.layout.blocks),
+                glMatrixBuffer,
+                matOffset, 128 + (64 * command.geometry.length));
 
             // Would like a nicer way to get if the command is indexed or unindexed
             // Problem is that OGl4 doesn't manually issue draw commands for all geometries
@@ -606,10 +621,15 @@ class OGL4Backend implements IRendererBackend
 
                     cmdOffset += 20;
                 case UnIndexed(_):
-                    //
+                    untyped __cpp__('glMultiDrawArraysIndirect({0}, (const void *){1}, {2}, 0)',
+                        command.primitive.getPrimitiveType(),
+                        cmdOffset,
+                        command.geometry.length);
+                    
+                    cmdOffset += 16;
             }
 
-            matOffset = nextMultipleOff(matOffset + 128 + (64 * command.geometry.length), 256);
+            matOffset = nextMultipleOff(matOffset + 128 + (64 * command.geometry.length), glUboAlignment);
         }
     }
 
@@ -724,13 +744,7 @@ class OGL4Backend implements IRendererBackend
         glDeleteShader(fragment);
 
         var textureLocations = [ for (t in _resource.layout.textures) glGetUniformLocation(program, t) ];
-        var blockLocations   = [ for (b in _resource.layout.blocks) glGetProgramResourceIndex(program, GL_SHADER_STORAGE_BLOCK, b.name) ];
         var blockBindings    = [ for (i in 0..._resource.layout.blocks.length) _resource.layout.blocks[i].binding ];
-
-        for (i in 0..._resource.layout.blocks.length)
-        {
-            glShaderStorageBlockBinding(program, blockLocations[i], blockBindings[i]);
-        }
 
         shaderPrograms.set(_resource.id, program);
         shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings));
@@ -922,7 +936,19 @@ class OGL4Backend implements IRendererBackend
 
     function updateUniformBindings(_buffers : ReadOnlyArray<UniformBlob>, _blocks : ReadOnlyArray<ShaderBlock>)
     {
-        //
+        var byteIndex = 0;
+
+        for (block in _buffers)
+        {
+            glBindBufferRange(
+                GL_UNIFORM_BUFFER,
+                findBlockIndexByName(block.name, _blocks),
+                glUniformBuffer,
+                byteIndex,
+                block.buffer.byteLength);
+
+            byteIndex = nextMultipleOff(byteIndex + block.buffer.byteLength, glUboAlignment);
+        }
     }
 
     function updateTextures(_expectedTextures : Int, _textures : ReadOnlyArray<ImageResource>, _samplers : ReadOnlyArray<SamplerState>)
@@ -1207,6 +1233,26 @@ class OGL4Backend implements IRendererBackend
         }
 
         return new BackBuffer(_width, _height, 1, tex[0], rbo[0], fbo[0]);
+    }
+
+    /**
+     * Finds the first shader block with the provided name.
+     * If no matching block is found an exception is thrown.
+     * @param _name Name to look for.
+     * @param _blocks Array of all shader blocks.
+     * @return Index into the array of blocks to the first matching block.
+     */
+    function findBlockIndexByName(_name : String, _blocks : ReadOnlyArray<ShaderBlock>) : Int
+    {
+        for (i in 0..._blocks.length)
+        {
+            if (_blocks[i].name == _name)
+            {
+                return i;
+            }
+        }
+
+        throw 'new OGL3UniformBlockNotFoundException(_name)';
     }
 
     function nextMultipleOff(_number : Int, _multiple : Int) : Int
