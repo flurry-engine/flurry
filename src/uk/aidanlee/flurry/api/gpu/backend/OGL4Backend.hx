@@ -247,7 +247,7 @@ class OGL4Backend implements IRendererBackend
 
         vertexRangeSize   = _rendererConfig.dynamicVertices * VERTEX_BYTE_SIZE;
         indexRangeSize    = _rendererConfig.dynamicIndices * 2;
-        matrixRangeSize   = nextMultipleOff(_rendererConfig.dynamicVertices * 4, glUboAlignment);
+        matrixRangeSize   = Maths.nextMultipleOff(_rendererConfig.dynamicVertices * 4, glUboAlignment);
         uniformRangeSize  = _rendererConfig.dynamicVertices * 4;
         indirectRangeSize = 100000;
 
@@ -317,6 +317,7 @@ class OGL4Backend implements IRendererBackend
 
         // Set the clear colour
         clearColour = [ _rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a ];
+        glClearColor(_rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a);
 
         // Default scissor test
         glEnable(GL_SCISSOR_TEST);
@@ -369,10 +370,10 @@ class OGL4Backend implements IRendererBackend
 
     @:void static function glDebugCallback(_source : cpp.UInt32, _type : cpp.UInt32, _id : cpp.UInt32, _severity : cpp.UInt32, _length : Int, _message : cpp.ConstCharStar, _userParam : cpp.RawConstPointer<cpp.Void>)
     {
-        trace('OpenGL Debug Callback');
-        trace('\tid       : $_id');
-        trace('\tmessage  : $_message');
-        trace('\tsource   : ${ switch _source {
+        Sys.println('OpenGL Debug Callback');
+        Sys.println('\tid       : $_id');
+        Sys.println('\tmessage  : $_message');
+        Sys.println('\tsource   : ${ switch _source {
                 case GL_DEBUG_SOURCE_API: 'api';
                 case GL_DEBUG_SOURCE_APPLICATION: 'application';
                 case GL_DEBUG_SOURCE_OTHER: 'other';
@@ -381,7 +382,7 @@ class OGL4Backend implements IRendererBackend
                 case GL_DEBUG_SOURCE_WINDOW_SYSTEM: 'window system';
                 case _unknown: 'unknown source : $_unknown';
         } }');
-        trace('\ttype     : ${ switch _type {
+        Sys.println('\ttype     : ${ switch _type {
                 case GL_DEBUG_TYPE_ERROR: 'error';
                 case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: 'deprecated behaviour';
                 case GL_DEBUG_TYPE_MARKER: 'marker';
@@ -393,7 +394,7 @@ class OGL4Backend implements IRendererBackend
                 case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: 'undefined behaviour';
                 case _unknown: 'unknown type : $_unknown';
             } }');
-        trace('\tseverity : ${ switch _severity {
+        Sys.println('\tseverity : ${ switch _severity {
                 case GL_DEBUG_SEVERITY_HIGH: 'high';
                 case GL_DEBUG_SEVERITY_LOW: 'low';
                 case GL_DEBUG_SEVERITY_MEDIUM: 'medium';
@@ -403,7 +404,8 @@ class OGL4Backend implements IRendererBackend
     }
 
     /**
-     * Unlock the range we will be writing into and set the offsets to that of the range.
+     * Clear the backbuffer and empty the command queue.
+     * Also waits until the range we will write to is ready. 
      */
     public function preDraw()
     {
@@ -421,24 +423,34 @@ class OGL4Backend implements IRendererBackend
 
         commandQueue.resize(0);
 
-        clip.set(0, 0, backbuffer.width, backbuffer.height);
-        glScissor(0, 0, backbuffer.width, backbuffer.height);
+        updateClip(0, 0, backbuffer.width, backbuffer.height);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glClearNamedFramebufferfv(backbuffer.framebuffer, GL_COLOR, 0, clearColour);
+        // glClearNamedFramebufferfv(backbuffer.framebuffer, GL_COLOR, 0, clearColour);
     }
 
+    /**
+     * Queue a command to be drawn this frame.
+     * @param _command Command to draw.
+     */
     public function queue(_command : DrawCommand)
     {
         commandQueue.push(_command);
     }
 
+    /**
+     * Uploads all data to the gpu then issues draw calls for all queued commands.
+     */
     public function submit()
     {
         uploadData();
         drawCommands();
     }
 
+    /**
+     * Once all commands have been drawn we blit and vertically flip our custom backbuffer into the windows backbuffer.
+     * We then call the SDL function to swap the window.
+     */
     public function postDraw()
     {
         glDeleteSync(rangeSyncPrimitives[currentRange].sync);
@@ -465,35 +477,45 @@ class OGL4Backend implements IRendererBackend
         displayEvents.sizeChanged.remove(onSizeChanged);
         displayEvents.changeRequested.remove(onChangeRequest);
 
-        glUnmapNamedBuffer(glVertexBuffer);
-        glUnmapNamedBuffer(glIndexbuffer);
-        glUnmapNamedBuffer(glMatrixBuffer);
-        glUnmapNamedBuffer(glUniformBuffer);
-
-        for (shaderID in shaderPrograms.keys())
+        for (_ => shader in shaderPrograms)
         {
-            glDeleteProgram(shaderPrograms.get(shaderID));
-
-            shaderPrograms.remove(shaderID);
-            shaderUniforms.remove(shaderID);
+            glDeleteProgram(shader);
         }
 
-        for (textureID in textureObjects.keys())
+        for (_ => texture in textureObjects)
         {
-            glDeleteTextures(1, [ textureObjects.get(textureID) ]);
-            textureObjects.remove(textureID);
+            glDeleteTextures(1, [ texture ]);
+        }
 
-            if (framebufferObjects.exists(textureID))
+        for (_ => samplers in samplerObjects)
+        {
+            for (_ => sampler in samplers)
             {
-                glDeleteFramebuffers(1, [ framebufferObjects.get(textureID) ]);
-                framebufferObjects.remove(textureID);
+                glDeleteSamplers(1, [ sampler ]);
             }
         }
+
+        for (_ => framebuffer in framebufferObjects)
+        {
+            glDeleteFramebuffers(1, [ framebuffer ]);
+        }
+
+        glDeleteFramebuffers(1, [ backbuffer.framebuffer ]);
+
+        shaderPrograms.clear();
+        shaderUniforms.clear();
+        textureObjects.clear();
+        samplerObjects.clear();
+        framebufferObjects.clear();
 
         SDL.GL_DeleteContext(glContext);
         SDL.destroyWindow(window);
     }
 
+    /**
+     * Writes all vertex, matrix, uniform, and command data into the mapped buffers.
+     * The projection and view matrix only need to be added once for an entire command due to multi draw indirect.
+     */
     function uploadData()
     {
         var vtxUploaded = currentRange * vertexRangeSize;
@@ -523,7 +545,7 @@ class OGL4Backend implements IRendererBackend
                     block.buffer.bytes.getData().address(block.buffer.byteOffset),
                     block.buffer.byteLength);
                 
-                unfUploaded = nextMultipleOff(unfUploaded + block.buffer.byteLength, glUboAlignment);
+                unfUploaded = Maths.nextMultipleOff(unfUploaded + block.buffer.byteLength, glUboAlignment);
             }
 
             for (geometry in command.geometry)
@@ -585,10 +607,13 @@ class OGL4Backend implements IRendererBackend
                 matUploaded += 64;
             }
 
-            matUploaded = nextMultipleOff(matUploaded, glUboAlignment);
+            matUploaded = Maths.nextMultipleOff(matUploaded, glUboAlignment);
         }
     }
 
+    /**
+     * Loop over all commands and issue draw calls for them.
+     */
     function drawCommands()
     {
         var matOffset = currentRange * matrixRangeSize;
@@ -617,7 +642,7 @@ class OGL4Backend implements IRendererBackend
                     unfOffset,
                     block.buffer.byteLength);
     
-                unfOffset = nextMultipleOff(unfOffset + block.buffer.byteLength, glUboAlignment);
+                unfOffset = Maths.nextMultipleOff(unfOffset + block.buffer.byteLength, glUboAlignment);
             }
 
             // Would like a nicer way to get if the command is indexed or unindexed
@@ -641,7 +666,7 @@ class OGL4Backend implements IRendererBackend
             }
 
             matOffset += 128 + (64 * command.geometry.length);
-            matOffset = nextMultipleOff(matOffset, glUboAlignment);
+            matOffset = Maths.nextMultipleOff(matOffset, glUboAlignment);
         }
     }
 
@@ -847,16 +872,21 @@ class OGL4Backend implements IRendererBackend
      */
     function removeTexture(_resource : ImageResource)
     {
-        var samplers = [];
-        for (sampler in samplerObjects[_resource.id])
+        glDeleteTextures(1, [ textureObjects[_resource.id] ]);
+
+        for (_ => sampler in samplerObjects[_resource.id])
         {
-            samplers.push(sampler);
+            glDeleteSamplers(1, [ sampler ]);
         }
-        glDeleteSamplers(samplers.length, samplers);
-        glDeleteTextures(1, [ textureObjects.get(_resource.id) ]);
+
+        if (framebufferObjects.exists(_resource.id))
+        {
+            glDeleteFramebuffers(1, [ framebufferObjects[_resource.id] ]);
+        }
 
         textureObjects.remove(_resource.id);
         samplerObjects.remove(_resource.id);
+        framebufferObjects.remove(_resource.id);
     }
 
     // #endregion
@@ -908,6 +938,12 @@ class OGL4Backend implements IRendererBackend
         }
     }
 
+    /**
+     * Either sets the framebuffer to the backbuffer or to an uploaded texture.
+     * If the texture has not yet had a framebuffer generated for it, it is done on demand.
+     * This could be something which is done on texture creation in the future.
+     * @param _newTarget New target
+     */
     function updateFramebuffer(_newTarget : TargetState)
     {
         switch _newTarget
@@ -1129,6 +1165,11 @@ class OGL4Backend implements IRendererBackend
         }
     }
 
+    /**
+     * Bind a framebuffer from the provided image resource.
+     * If a framebuffer does not exist for the image, create one and store it.
+     * @param _image Image to bind a framebuffer for.
+     */
     function updateTextureFramebuffer(_image : ImageResource)
     {
         if (framebufferObjects.exists(_image.id))
@@ -1151,6 +1192,11 @@ class OGL4Backend implements IRendererBackend
         }
     }
 
+    /**
+     * Creates a new openGL sampler object from a flurry sampler state instance.
+     * @param _sampler State to create an openGL sampler from.
+     * @return OpenGL sampler object.
+     */
     function createSamplerObject(_sampler : SamplerState) : Int
     {
         var samplers = [ 0 ];
@@ -1247,11 +1293,6 @@ class OGL4Backend implements IRendererBackend
         }
 
         throw 'new OGL3UniformBlockNotFoundException(_name)';
-    }
-
-    function nextMultipleOff(_number : Int, _multiple : Int) : Int
-    {
-        return Maths.ceil(_number / _multiple) * _multiple;
     }
 
     // #endregion

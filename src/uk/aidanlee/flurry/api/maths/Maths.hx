@@ -74,6 +74,11 @@ class Maths
         return Maths.sin(Maths.toRadians(_direction)) * _length;
     }
 
+    public static inline function nextMultipleOff(_number : Float, _multiple : Int) : Int
+    {
+        return Maths.ceil(_number / _multiple) * _multiple;
+    }
+
     // Wrapper functions around std Math for consistent access. 
 
     public static final NEGATIVE_INFINITY = Math.NEGATIVE_INFINITY;

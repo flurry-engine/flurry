@@ -735,8 +735,7 @@ class OGL3Backend implements IRendererBackend
                     block.buffer.bytes.getData().address(block.buffer.byteOffset),
                     block.buffer.byteLength);
 
-                byteIndex += block.buffer.byteLength;
-                byteIndex  = Maths.ceil(byteIndex / glUboAlignment) * glUboAlignment;
+                byteIndex = Maths.nextMultipleOff(byteIndex + block.buffer.byteLength, glUboAlignment);
             }
         }
 
@@ -745,9 +744,6 @@ class OGL3Backend implements IRendererBackend
 
     /**
      * Loop over all commands and issue draw calls for them.
-     * We update custom uniform values as multiple commands could use the same shader and expect different uniform values.
-     * Might be worth making each UBO buffer something like x10 larger than needed in the future to accomodate this.
-     * Or even allocate a fourth massive buffer and write all uniforms into that.
      */
     function drawCommands()
     {
@@ -772,8 +768,7 @@ class OGL3Backend implements IRendererBackend
                     unfOffset,
                     block.buffer.byteLength);
     
-                unfOffset += block.buffer.byteLength;
-                unfOffset  = Maths.ceil(unfOffset / glUboAlignment) * glUboAlignment;
+                unfOffset = Maths.nextMultipleOff(unfOffset + block.buffer.byteLength, glUboAlignment);
             }
 
             for (geometry in command.geometry)
