@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import haxe.Exception;
 import opengl.GL.GLSync;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
@@ -418,6 +419,10 @@ class OGL4Backend implements IRendererBackend
                 {
                     break;
                 }
+                else
+                {
+                    throw new OGL4FailedToWaitForSyncObject(waitReturn);
+                }
             }
         }
 
@@ -686,7 +691,7 @@ class OGL4Backend implements IRendererBackend
 
         if (Glad.gladLoadGLLoader(untyped __cpp__('&SDL_GL_GetProcAddress')) == 0)
         {
-            throw 'failed to load gl library';
+            throw new OGL4FailedToLoad();
         }
 
         final flags = [ 0 ];
@@ -742,14 +747,14 @@ class OGL4Backend implements IRendererBackend
      */
     function createShader(_resource : ShaderResource)
     {
-        if (_resource.ogl4 == null)
-        {
-            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Attempting to create a shader from a resource which has no gl45 shader source';
-        }
-
         if (shaderPrograms.exists(_resource.id))
         {
-            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Attempting to create a shader which already exists';
+            return;
+        }
+
+        if (_resource.ogl4 == null)
+        {
+            throw new OGL4NoShaderSourceException(_resource.id);
         }
 
         var vertex   = 0;
@@ -773,7 +778,7 @@ class OGL4Backend implements IRendererBackend
 
         if (WebGL.getProgramParameter(program, GL_LINK_STATUS) == 0)
         {
-            throw 'OpenGL 4.5 Backend Exception : ${_resource.id} : Error linking program : ${WebGL.getProgramInfoLog(program)}';
+            throw new OGL4ShaderLinkingException(_resource.id, WebGL.getProgramInfoLog(program));
         }
 
         // Delete the shaders now that they're linked
@@ -813,7 +818,7 @@ class OGL4Backend implements IRendererBackend
 
         if (WebGL.getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
         {
-            throw 'OpenGL 4.5 Backend Exception : Error compiling vertex shader : ${WebGL.getShaderInfoLog(vertex)}';
+            throw new OGL4VertexCompilationError(WebGL.getShaderInfoLog(vertex));
         }
 
         return vertex;
@@ -827,7 +832,7 @@ class OGL4Backend implements IRendererBackend
 
         if (WebGL.getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
         {
-            throw 'OpenGL 4.5 Backend Exception : Error compiling fragment shader : ${WebGL.getShaderInfoLog(fragment)}';
+            throw new OGL4FragmentCompilationError(WebGL.getShaderInfoLog(fragment));
         }
 
         return fragment;
@@ -1027,7 +1032,7 @@ class OGL4Backend implements IRendererBackend
             }
             else
             {
-                throw 'new OGL3NotEnoughTexturesException(_expectedTextures, _textures.length)';
+                throw new OGL4NotEnoughTexturesException(_expectedTextures, _textures.length);
             }
     }
 
@@ -1184,7 +1189,7 @@ class OGL4Backend implements IRendererBackend
 
             if (glCheckNamedFramebufferStatus(fbo[0], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             {
-                throw 'OpenGL 4.5 Backend Exception : ${_image.id} : Framebuffer not complete';
+                throw new OGL4IncompleteFramebufferException(_image.id);
             }
 
             framebufferObjects[_image.id] = fbo[0];
@@ -1219,7 +1224,7 @@ class OGL4Backend implements IRendererBackend
                 {
                     switch orth.viewport
                     {
-                        case None: throw 'Camera2D must define a viewport';
+                        case None: throw new OGL4CameraViewportNotSetException();
                         case Viewport(_x, _y, _width, _height):
                             orth.projection.makeHeterogeneousOrthographic(_x, _width, _height, _y, -100, 100);
                             orth.view.copy(orth.transformation.world.matrix).invert();
@@ -1264,7 +1269,7 @@ class OGL4Backend implements IRendererBackend
 
         if (glCheckNamedFramebufferStatus(fbo[0], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         {
-            throw 'unable to create framebuffer';
+            throw new OGL4IncompleteFramebufferException('backbuffer');
         }
 
         if (target == null)
@@ -1292,7 +1297,7 @@ class OGL4Backend implements IRendererBackend
             }
         }
 
-        throw 'new OGL3UniformBlockNotFoundException(_name)';
+        throw new OGL4UniformBlockNotFoundException(_name);
     }
 
     // #endregion
@@ -1365,5 +1370,85 @@ private class GLSyncWrapper
     public function new()
     {
         sync   = null;
+    }
+}
+
+private class OGL4FailedToLoad extends Exception
+{
+    public function new()
+    {
+        super('Failed to load OpenGL library');
+    }
+}
+
+private class OGL4FailedToWaitForSyncObject extends Exception
+{
+    public function new(_error : Int)
+    {
+        super('Failed to wait for OpenGL sync object : $_error');
+    }
+}
+
+private class OGL4NoShaderSourceException extends Exception
+{
+    public function new(_id : String)
+    {
+        super('$_id does not contain source code for a openGL 4.6 shader');
+    }
+}
+
+private class OGL4VertexCompilationError extends Exception
+{
+    public function new(_error : String)
+    {
+        super('Unable to compile the vertex shader : $_error');
+    }
+}
+
+private class OGL4FragmentCompilationError extends Exception
+{
+    public function new(_error : String)
+    {
+        super('Unable to compile the fragment shader for : $_error');
+    }
+}
+
+private class OGL4ShaderLinkingException extends Exception
+{
+    public function new(_id : String, _error : String)
+    {
+        super('Unable to link a shader from $_id : $_error');
+    }
+}
+
+private class OGL4IncompleteFramebufferException extends Exception
+{
+    public function new(_error : String)
+    {
+        super(_error);
+    }
+}
+
+private class OGL4NotEnoughTexturesException extends Exception
+{
+    public function new(_expected : Int, _actual : Int)
+    {
+        super('Shader expects $_expected textures but the draw command only provided $_actual');
+    }
+}
+
+private class OGL4UniformBlockNotFoundException extends Exception
+{
+    public function new(_blockName)
+    {
+        super('Unable to find a uniform block with the name $_blockName');
+    }
+}
+
+private class OGL4CameraViewportNotSetException extends Exception
+{
+    public function new()
+    {
+        super('A viewport must be defined for orthographic cameras');
     }
 }
