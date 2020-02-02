@@ -599,13 +599,26 @@ class OGL4Backend implements IRendererBackend
         {
             updateState(command);
 
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, glMatrixBuffer);
+            // Bind the correct range for the matrix buffer
             glBindBufferRange(
                 GL_SHADER_STORAGE_BUFFER,
                 findBlockIndexByName("flurry_matrices",
                 command.shader.layout.blocks),
                 glMatrixBuffer,
                 matOffset, 128 + (64 * command.geometry.length));
+
+            // Bind the correct range for all uniforms
+            for (block in command.uniforms)
+            {
+                glBindBufferRange(
+                    GL_SHADER_STORAGE_BUFFER,
+                    findBlockIndexByName(block.name, command.shader.layout.blocks),
+                    glUniformBuffer,
+                    unfOffset,
+                    block.buffer.byteLength);
+    
+                unfOffset = nextMultipleOff(unfOffset + block.buffer.byteLength, glUboAlignment);
+            }
 
             // Would like a nicer way to get if the command is indexed or unindexed
             // Problem is that OGl4 doesn't manually issue draw commands for all geometries
@@ -859,7 +872,6 @@ class OGL4Backend implements IRendererBackend
     {
         updateFramebuffer(_command.target);
         updateShader(_command.shader);
-        updateUniformBindings(_command.uniforms, _command.shader.layout.blocks);
         updateTextures(_command.shader.layout.textures.length, _command.textures, _command.samplers);
         updateDepth(_command.depth);
         updateStencil(_command.stencil);
@@ -930,24 +942,6 @@ class OGL4Backend implements IRendererBackend
             glUseProgram(shaderPrograms.get(_newShader.id));
 
             shader = _newShader;
-        }
-    }
-
-    function updateUniformBindings(_buffers : ReadOnlyArray<UniformBlob>, _blocks : ReadOnlyArray<ShaderBlock>)
-    {
-        var byteIndex = 0;
-
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, glMatrixBuffer);
-        for (block in _buffers)
-        {
-            glBindBufferRange(
-                GL_SHADER_STORAGE_BUFFER,
-                findBlockIndexByName(block.name, _blocks),
-                glUniformBuffer,
-                byteIndex,
-                block.buffer.byteLength);
-
-            byteIndex = nextMultipleOff(byteIndex + block.buffer.byteLength, glUboAlignment);
         }
     }
 

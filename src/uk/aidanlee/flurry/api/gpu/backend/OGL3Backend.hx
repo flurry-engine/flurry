@@ -754,6 +754,7 @@ class OGL3Backend implements IRendererBackend
         var matOffset = 0;
         var idxOffset = 0;
         var vtxOffset = 0;
+        var unfOffset = 0;
 
         // Draw the queued commands
         for (command in commandQueue)
@@ -761,10 +762,23 @@ class OGL3Backend implements IRendererBackend
             // Change the state so the vertices are drawn correctly.
             updateState(command);
 
-            glBindBuffer(GL_UNIFORM_BUFFER, glMatrixBuffer);
+            // Bind the correct range for all uniforms
+            for (block in command.uniforms)
+            {
+                glBindBufferRange(
+                    GL_UNIFORM_BUFFER,
+                    findBlockIndexByName(block.name, command.shader.layout.blocks),
+                    glUniformBuffer,
+                    unfOffset,
+                    block.buffer.byteLength);
+    
+                unfOffset += block.buffer.byteLength;
+                unfOffset  = Maths.ceil(unfOffset / glUboAlignment) * glUboAlignment;
+            }
 
             for (geometry in command.geometry)
             {
+                // Bind the correct range for the matrix buffer
                 glBindBufferRange(
                     GL_UNIFORM_BUFFER,
                     findBlockIndexByName("flurry_matrices", command.shader.layout.blocks),
@@ -849,7 +863,6 @@ class OGL3Backend implements IRendererBackend
     {
         updateFramebuffer(_command.target);
         updateShader(_command.shader);
-        updateUniformBindings(_command.uniforms, _command.shader.layout.blocks);
         updateTextures(_command.shader.layout.textures.length, _command.textures, _command.samplers);
         updateDepth(_command.depth);
         updateStencil(_command.stencil);
@@ -972,31 +985,6 @@ class OGL3Backend implements IRendererBackend
         }
 
         target = _newTarget;
-    }
-
-    /**
-     * Bind uniform buffers. Buffers are identified by the uniform blob name and the matching shader block name.
-     * @param _buffers Buffer to bind.
-     * @param _blocks Shader block descriptions.
-     */
-    function updateUniformBindings(_buffers : ReadOnlyArray<UniformBlob>, _blocks : ReadOnlyArray<ShaderBlock>)
-    {
-        glBindBuffer(GL_UNIFORM_BUFFER, glUniformBuffer);
-
-        var byteIndex = 0;
-
-        for (block in _buffers)
-        {
-            glBindBufferRange(
-                GL_UNIFORM_BUFFER,
-                findBlockIndexByName(block.name, _blocks),
-                glUniformBuffer,
-                byteIndex,
-                block.buffer.byteLength);
-
-            byteIndex += block.buffer.byteLength;
-            byteIndex  = Maths.ceil(byteIndex / glUboAlignment) * glUboAlignment;
-        }
     }
 
     function updateShader(_newShader : ShaderResource)
