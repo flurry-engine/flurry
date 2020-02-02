@@ -154,7 +154,7 @@ class QuadGeometry extends Geometry
         {
             case Indexed(_vertices, _):
                 _vertices.floatAccess[0] = 0;
-                _vertices.floatAccess[1] = _w;
+                _vertices.floatAccess[1] = _h;
 
                 _vertices.floatAccess[ 9] = _w;
                 _vertices.floatAccess[10] = _h;

@@ -40,7 +40,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
 using cpp.NativeArray;
-using uk.aidanlee.flurry.utils.opengl.GLConverters;
+using uk.aidanlee.flurry.api.gpu.backend.GLUtils;
 
 class OGL3Backend implements IRendererBackend
 {
@@ -333,10 +333,6 @@ class OGL3Backend implements IRendererBackend
         resourceEvents.removed.add(onResourceRemoved);
         displayEvents.sizeChanged.add(onSizeChanged);
         displayEvents.changeRequested.add(onChangeRequest);
-
-        // Get UBO size and alignment
-        var maxUboSize = [ 0 ];
-        glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, maxUboSize);
 
         var uboAlignment = [ 0 ];
         glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, uboAlignment);

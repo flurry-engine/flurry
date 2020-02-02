@@ -1,19 +1,18 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import opengl.GL.GLSync;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
+import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import haxe.ds.ReadOnlyArray;
-import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import cpp.RawConstPointer;
 import cpp.ConstCharStar;
 import haxe.io.Bytes;
 import haxe.ds.Map;
-import cpp.Stdlib;
 import cpp.Float32;
-import cpp.Int32;
 import cpp.UInt8;
 import cpp.Pointer;
 import sdl.GLContext;
@@ -25,7 +24,6 @@ import opengl.WebGL;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
@@ -40,12 +38,11 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.utils.opengl.GLSyncWrapper;
 import cpp.Stdlib.memcpy;
 
 using Safety;
 using cpp.NativeArray;
-using uk.aidanlee.flurry.utils.opengl.GLConverters;
+using uk.aidanlee.flurry.api.gpu.backend.GLUtils;
 
 class OGL4Backend implements IRendererBackend
 {
@@ -445,11 +442,7 @@ class OGL4Backend implements IRendererBackend
 
     public function postDraw()
     {
-        if (rangeSyncPrimitives[currentRange].sync != null)
-        {
-            glDeleteSync(rangeSyncPrimitives[currentRange].sync);
-        }
-
+        glDeleteSync(rangeSyncPrimitives[currentRange].sync);
         rangeSyncPrimitives[currentRange].sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 
         currentRange = (currentRange + 1) % BUFFERING_COUNT;
@@ -518,8 +511,10 @@ class OGL4Backend implements IRendererBackend
             final proj : Float32BufferData = command.camera.projection;
             final view : Float32BufferData = command.camera.view;
 
-            memcpy(matrixBuffer.add(matUploaded)      , proj.bytes.getData().address(proj.byteOffset), 64);
-            memcpy(matrixBuffer.add(matUploaded += 64), view.bytes.getData().address(view.byteOffset), 64);
+            memcpy(matrixBuffer.add(matUploaded)     , proj.bytes.getData().address(proj.byteOffset), 64);
+            memcpy(matrixBuffer.add(matUploaded + 64), view.bytes.getData().address(view.byteOffset), 64);
+
+            matUploaded += 128;
 
             // Upload the uniform data
             for (block in command.uniforms)
@@ -556,12 +551,13 @@ class OGL4Backend implements IRendererBackend
                         memcpy(
                             indirectBuffer.add(cmdUploaded),
                             multiDrawIndexedCopyBuffer.getData().address(0),
-                            multiDrawIndexedCopyBuffer.getData().length);
+                            multiDrawIndexedCopyBuffer.length);
 
                         // Increase all offsets
                         vtxUploaded += _vertices.buffer.byteLength;
                         idxUploaded += _indices.buffer.byteLength;
                         cmdUploaded += multiDrawIndexedCopyBuffer.length;
+                        
                     case UnIndexed(_vertices):
                         // Memcpy vertex blob data
                         memcpy(
@@ -577,7 +573,7 @@ class OGL4Backend implements IRendererBackend
                         memcpy(
                             indirectBuffer.add(cmdUploaded),
                             multiDrawUnIndexedCopyBuffer.getData().address(0),
-                            multiDrawUnIndexedCopyBuffer.getData().length);
+                            multiDrawUnIndexedCopyBuffer.length);
 
                         vtxUploaded += _vertices.buffer.byteLength;
                         cmdUploaded += multiDrawUnIndexedCopyBuffer.length;
@@ -585,7 +581,9 @@ class OGL4Backend implements IRendererBackend
 
                 // Upload the model matrix
                 final model : Float32BufferData = geometry.transformation.world.matrix;
-                memcpy(matrixBuffer.add(matUploaded += 64), model.bytes.getData().address(model.byteOffset), 64);
+                memcpy(matrixBuffer.add(matUploaded), model.bytes.getData().address(model.byteOffset), 64);
+
+                matUploaded += 64;
             }
 
             matUploaded = nextMultipleOff(matUploaded, glUboAlignment);
@@ -602,6 +600,7 @@ class OGL4Backend implements IRendererBackend
         {
             updateState(command);
 
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, glMatrixBuffer);
             glBindBufferRange(
                 GL_SHADER_STORAGE_BUFFER,
                 findBlockIndexByName("flurry_matrices",
@@ -619,17 +618,18 @@ class OGL4Backend implements IRendererBackend
                         cmdOffset,
                         command.geometry.length);
 
-                    cmdOffset += 20;
+                    cmdOffset += (multiDrawIndexedCopyBuffer.length * command.geometry.length);
                 case UnIndexed(_):
                     untyped __cpp__('glMultiDrawArraysIndirect({0}, (const void *){1}, {2}, 0)',
                         command.primitive.getPrimitiveType(),
                         cmdOffset,
                         command.geometry.length);
                     
-                    cmdOffset += 16;
+                    cmdOffset += (multiDrawUnIndexedCopyBuffer.length * command.geometry.length);
             }
 
-            matOffset = nextMultipleOff(matOffset + 128 + (64 * command.geometry.length), glUboAlignment);
+            matOffset += 128 + (64 * command.geometry.length);
+            matOffset = nextMultipleOff(matOffset, glUboAlignment);
         }
     }
 
@@ -938,10 +938,11 @@ class OGL4Backend implements IRendererBackend
     {
         var byteIndex = 0;
 
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, glMatrixBuffer);
         for (block in _buffers)
         {
             glBindBufferRange(
-                GL_UNIFORM_BUFFER,
+                GL_SHADER_STORAGE_BUFFER,
                 findBlockIndexByName(block.name, _blocks),
                 glUniformBuffer,
                 byteIndex,
@@ -1316,5 +1317,19 @@ private class ShaderLocations
         layout           = _layout;
         textureLocations = _textureLocations;
         blockBindings    = _blockBindings;
+    }
+}
+
+/**
+ * Very simple wrapper around a GLSync object.
+ * Needed to work around hxcpp's weirdness with native types in haxe arrays.
+ */
+private class GLSyncWrapper
+{
+    public var sync : Null<GLSync>;
+
+    public function new()
+    {
+        sync   = null;
     }
 }

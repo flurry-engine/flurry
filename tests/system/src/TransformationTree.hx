@@ -22,18 +22,15 @@ class TransformationTree extends Flurry
 
     override function onReady()
     {
-        var camera  = new Camera2D(display.width, display.height);
-        var batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
+        final camera  = new Camera2D(display.width, display.height);
+        final batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
 
-        var g1 = new QuadGeometry({ textures : [ resources.get('tank1', ImageResource) ], batchers : [ batcher ] });
-        g1.position.set_xy(256, 128);
+        final g1 = new QuadGeometry({ textures : Textures([ resources.get('tank1', ImageResource) ]), batchers : [ batcher ], x : 256, y : 128, w : 256, h : 256 });
 
-        var g2 = new QuadGeometry({ textures : [ resources.get('tank2', ImageResource) ], batchers : [ batcher ] });
-        g2.position.set_xy(64, 48);
+        final g2 = new QuadGeometry({ textures : Textures([ resources.get('tank2', ImageResource) ]), batchers : [ batcher ], x : 64, y : 48, w : 256, h : 256 });
         g2.transformation.parent = g1.transformation;
 
-        var g3 = new QuadGeometry({ textures : [ resources.get('tank3', ImageResource) ], batchers : [ batcher ] });
-        g3.position.set_xy(32, -24);
+        final g3 = new QuadGeometry({ textures : Textures([ resources.get('tank3', ImageResource) ]), batchers : [ batcher ], x : 32, y : -24, w : 256, h : 256 });
         g3.transformation.parent = g2.transformation;
     }
 }

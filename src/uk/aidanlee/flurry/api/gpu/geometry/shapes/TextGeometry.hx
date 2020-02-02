@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
 import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontData;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.maths.Vector2;
@@ -77,6 +78,8 @@ class TextGeometry extends Geometry
      */
     public function new(_options : TextGeometryOptions)
     {
+        _options.data = UnIndexed(new VertexBlobBuilder().vertexBlob());
+
         super(_options);
 
         cursorPosition     = _options.position.clone();
@@ -93,40 +96,40 @@ class TextGeometry extends Geometry
      */
     function generateGeometry()
     {
-        // Remove all verticies.
-        vertices.resize(0);
+        // // Remove all verticies.
+        // vertices.resize(0);
 
-        // Generate all of the text geometry.
-        for (line in text.split('\n'))
-        {
-            for (i in 0...line.length)
-            {
-                var char = font.chars.get(line.charCodeAt(i));
+        // // Generate all of the text geometry.
+        // for (line in text.split('\n'))
+        // {
+        //     for (i in 0...line.length)
+        //     {
+        //         var char = font.chars.get(line.charCodeAt(i));
 
-                // Move the cursor by the kerning amount.
-                if (i != 0)
-                {
-                    var map = font.kernings.get(char.id);
-                    if (map != null)
-                    {
-                        var value = map.get(line.charCodeAt(i - 1));
-                        if (value != null)
-                        {
-                            cursorPosition.x += value;
-                        }
-                    }
-                }
+        //         // Move the cursor by the kerning amount.
+        //         if (i != 0)
+        //         {
+        //             var map = font.kernings.get(char.id);
+        //             if (map != null)
+        //             {
+        //                 var value = map.get(line.charCodeAt(i - 1));
+        //                 if (value != null)
+        //                 {
+        //                     cursorPosition.x += value;
+        //                 }
+        //             }
+        //         }
 
-                // Add the character quad.
-                addCharacter(char, cursorPosition.x, cursorPosition.y);
+        //         // Add the character quad.
+        //         addCharacter(char, cursorPosition.x, cursorPosition.y);
 
-                // Move the cursor to the next characters position.
-                cursorPosition.x += char.xAdvance;
-            }
+        //         // Move the cursor to the next characters position.
+        //         cursorPosition.x += char.xAdvance;
+        //     }
 
-            cursorPosition.y += font.lineHeight;
-            cursorPosition.x  = position.x;
-        }
+        //     cursorPosition.y += font.lineHeight;
+        //     cursorPosition.x  = position.x;
+        // }
     }
 
     /**
@@ -137,22 +140,22 @@ class TextGeometry extends Geometry
      */
     function addCharacter(_char : Character, _x : Float, _y : Float)
     {
-        var tlPos = new Vector3((_x + _char.xOffset)              , _y + _char.yOffset);
-        var trPos = new Vector3((_x + _char.xOffset) + _char.width, _y + _char.yOffset);
-        var blPos = new Vector3((_x + _char.xOffset)              , _y + _char.yOffset + _char.height);
-        var brPos = new Vector3((_x + _char.xOffset) + _char.width, _y + _char.yOffset + _char.height);
+        // var tlPos = new Vector3((_x + _char.xOffset)              , _y + _char.yOffset);
+        // var trPos = new Vector3((_x + _char.xOffset) + _char.width, _y + _char.yOffset);
+        // var blPos = new Vector3((_x + _char.xOffset)              , _y + _char.yOffset + _char.height);
+        // var brPos = new Vector3((_x + _char.xOffset) + _char.width, _y + _char.yOffset + _char.height);
 
-        var tlUV = new Vector2(_char.x / textures[0].width                , _char.y / textures[0].height);
-        var trUV = new Vector2((_char.x + _char.width) / textures[0].width, _char.y / textures[0].height);
-        var blUV = new Vector2(_char.x / textures[0].width                , (_char.y + _char.height) / textures[0].height);
-        var brUV = new Vector2((_char.x + _char.width) / textures[0].width, (_char.y + _char.height) / textures[0].height);
+        // var tlUV = new Vector2(_char.x / textures[0].width                , _char.y / textures[0].height);
+        // var trUV = new Vector2((_char.x + _char.width) / textures[0].width, _char.y / textures[0].height);
+        // var blUV = new Vector2(_char.x / textures[0].width                , (_char.y + _char.height) / textures[0].height);
+        // var brUV = new Vector2((_char.x + _char.width) / textures[0].width, (_char.y + _char.height) / textures[0].height);
 
-        vertices.push(new Vertex( blPos, color, blUV ));
-        vertices.push(new Vertex( brPos, color, brUV ));
-        vertices.push(new Vertex( tlPos, color, tlUV ));
+        // vertices.push(new Vertex( blPos, color, blUV ));
+        // vertices.push(new Vertex( brPos, color, brUV ));
+        // vertices.push(new Vertex( tlPos, color, tlUV ));
 
-        vertices.push(new Vertex( tlPos, color, tlUV ));
-        vertices.push(new Vertex( brPos, color, brUV ));
-        vertices.push(new Vertex( trPos, color, trUV ));
+        // vertices.push(new Vertex( tlPos, color, tlUV ));
+        // vertices.push(new Vertex( brPos, color, brUV ));
+        // vertices.push(new Vertex( trPos, color, trUV ));
     }
 }

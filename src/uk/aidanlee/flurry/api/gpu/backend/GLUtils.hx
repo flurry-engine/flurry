@@ -1,4 +1,4 @@
-package uk.aidanlee.flurry.utils.opengl;
+package uk.aidanlee.flurry.api.gpu.backend;
 
 import opengl.GL.*;
 import uk.aidanlee.flurry.api.gpu.StencilFunction;
@@ -8,7 +8,7 @@ import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.textures.Filtering;
 import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
 
-class GLConverters
+class GLUtils
 {
     public static function getPrimitiveType(_primitive : PrimitiveType) : Int
     {
