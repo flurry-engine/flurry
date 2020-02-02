@@ -40,9 +40,8 @@ import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import cpp.Stdlib.memcpy;
 
-using Safety;
 using cpp.NativeArray;
-using uk.aidanlee.flurry.api.gpu.backend.GLUtils;
+using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
 
 class OGL4Backend implements IRendererBackend
 {

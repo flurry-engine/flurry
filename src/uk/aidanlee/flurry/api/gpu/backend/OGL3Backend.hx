@@ -40,7 +40,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
 using cpp.NativeArray;
-using uk.aidanlee.flurry.api.gpu.backend.GLUtils;
+using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
 
 class OGL3Backend implements IRendererBackend
 {

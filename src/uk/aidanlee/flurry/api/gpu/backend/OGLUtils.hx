@@ -8,7 +8,7 @@ import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.textures.Filtering;
 import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
 
-class GLUtils
+class OGLUtils
 {
     public static function getPrimitiveType(_primitive : PrimitiveType) : Int
     {
