@@ -83,10 +83,10 @@ import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.utils.bytes.BytesPacker;
 
-using Safety;
 using cpp.NativeArray;
 
 @:headerCode('#include <D3Dcompiler.h>
+#include <D3D11_1.h>
 #include "SDL_syswm.h"')
 @:buildXml('<target id = "haxe">
     <lib name = "dxgi.lib"        if = "windows" unless = "static_link" />
@@ -95,8 +95,6 @@ using cpp.NativeArray;
 </target>')
 class DX11Backend implements IRendererBackend
 {
-    static final RENDERER_THREADS = #if flurry_dx11_no_multithreading 1 #else Std.int(Maths.max(SDL.getCPUCount() - 2, 1)) #end;
-
     /**
      * Signals for when shaders and images are created and removed.
      */
@@ -108,24 +106,14 @@ class DX11Backend implements IRendererBackend
     final displayEvents : DisplayEvents;
 
     /**
-     * Constant vector instance which is used to transform vertices when copying into the vertex buffer.
-     */
-    final transformationVectors : Array<Vector3>;
-
-    /**
-     * Queue for running functions on another thread.
-     */
-    final jobQueue : JobQueue;
-
-    /**
      * D3D11 device for this window.
      */
-    final device : D3d11Device;
+    final device : D3d11Device1;
 
     /**
      * Main D3D11 context for this windows device.
      */
-    final context : D3d11DeviceContext;
+    final context : D3d11DeviceContext1;
 
     /**
      * DXGI swapchain for presenting the backbuffer to the window.
@@ -141,6 +129,10 @@ class DX11Backend implements IRendererBackend
      * Single main index buffer.
      */
     final indexBuffer : D3d11Buffer;
+
+    final matrixBuffer : D3d11Buffer;
+
+    final uniformBuffer : D3d11Buffer;
 
     /**
      * Native D3D viewport struct.
@@ -202,6 +194,8 @@ class DX11Backend implements IRendererBackend
      */
     final mappedIndexBuffer : D3d11MappedSubResource;
 
+    final mappedMatrixBuffer : D3d11MappedSubResource;
+
     /**
      * D3D11 resource used for mapping constant buffers.
      */
@@ -217,11 +211,6 @@ class DX11Backend implements IRendererBackend
      * Normalised RGBA colour to clear the backbuffer with each frame.
      */
     final clearColour : Array<Float>;
-
-    /**
-     * dummy identity matrix for passing into shaders so they have parity with OGL4 shaders.
-     */
-    final dummyModelMatrix : Matrix;
 
     /**
      * All the resource views which will be bound for the shader.
@@ -249,21 +238,6 @@ class DX11Backend implements IRendererBackend
     final defaultSampler : D3d11SamplerState;
 
     /**
-     * Map of command IDs and the vertex offset into the buffer.
-     */
-    final commandVtxOffsets : Map<Int, Int>;
-
-    /**
-     * Map of command IDs and the index offset into the buffer.
-     */
-    final commandIdxOffsets : Map<Int, Int>;
-
-    /**
-     * Map of all the model matices to transform buffer commands.
-     */
-    final bufferModelMatrix : Map<Int, Matrix>;
-
-    /**
      * Rectangle used to hold the clip coordinates of the command currently being processed.
      */
     final cmdClip : Rectangle;
@@ -273,20 +247,7 @@ class DX11Backend implements IRendererBackend
      */
     final cmdViewport : Rectangle;
 
-    /**
-     * The number of vertices that have been written into the vertex buffer this frame.
-     */
-    var vertexOffset : Int;
-
-    /**
-     * The number of 32bit floats that have been written into the vertex buffer this frame.
-     */
-    var vertexFloatOffset : Int;
-
-    /**
-     * The number of indices that have been written into the index buffer this frame.
-     */
-    var indexOffset : Int;
+    final commandQueue : Array<DrawCommand>;
 
     // State trackers
     var viewport : Rectangle;
@@ -331,8 +292,8 @@ class DX11Backend implements IRendererBackend
         // Persistent D3D11 objects and descriptions
         swapchain               = new DxgiSwapChain();
         swapchainTexture        = new D3d11Texture2D();
-        device                  = new D3d11Device();
-        context                 = new D3d11DeviceContext();
+        device                  = new D3d11Device1();
+        context                 = new D3d11DeviceContext1();
         depthStencilView        = new D3d11DepthStencilView();
         depthStencilState       = new D3d11DepthStencilState();
         depthStencilTexture     = new D3d11Texture2D();
@@ -340,9 +301,12 @@ class DX11Backend implements IRendererBackend
         rasterState             = new D3d11RasterizerState();
         mappedVertexBuffer      = new D3d11MappedSubResource();
         mappedIndexBuffer       = new D3d11MappedSubResource();
+        mappedMatrixBuffer      = new D3d11MappedSubResource();
         mappedUniformBuffer     = new D3d11MappedSubResource();
         vertexBuffer            = new D3d11Buffer();
         indexBuffer             = new D3d11Buffer();
+        matrixBuffer            = new D3d11Buffer();
+        uniformBuffer           = new D3d11Buffer();
         depthStencilDescription = new D3d11DepthStencilDescription();
 
         // Setup the DXGI factory and get this windows adapter and output.
@@ -377,10 +341,22 @@ class DX11Backend implements IRendererBackend
         var deviceCreationFlags = D3d11CreateDeviceFlags.SingleThreaded;
 
         // Create our actual device and swapchain
-        if (D3d11.createDevice(adapter, Unknown, null, deviceCreationFlags, null, D3d11.SdkVersion, device, null, context) != Ok)
+        final d3d11dev = new D3d11Device();
+        final d3d11con = new D3d11DeviceContext();
+        if (D3d11.createDevice(adapter, Unknown, null, deviceCreationFlags, null, D3d11.SdkVersion, d3d11dev, null, d3d11con) != Ok)
         {
             throw new Dx11ResourceCreationException('ID3D11Device');
         }
+
+        if (d3d11dev.queryInterface(D3d11Device1.uuid, device) != 0)
+        {
+            throw 'failed to cast device';
+        }
+        if (d3d11con.queryInterface(D3d11DeviceContext1.uuid, context) != 0)
+        {
+            throw 'failed to cast context';
+        }
+
         if (factory.createSwapChain(device, description, swapchain) != 0)
         {
             throw new Dx11ResourceCreationException('IDXGISwapChain');
@@ -450,25 +426,50 @@ class DX11Backend implements IRendererBackend
             throw new Dx11ResourceCreationException('ID3D11BlendState');
         }
 
-        // Create our (initially) empty vertex buffer.
-        var bufferDesc = new D3d11BufferDescription();
+        // Create the vertex buffer.
+        final bufferDesc = new D3d11BufferDescription();
         bufferDesc.byteWidth      = (_rendererConfig.dynamicVertices + _rendererConfig.unchangingVertices) * 9;
         bufferDesc.usage          = Dynamic;
-        bufferDesc.bindFlags      = D3d11BindFlag.VertexBuffer;
-        bufferDesc.cpuAccessFlags = D3d11CpuAccessFlag.Write;
+        bufferDesc.bindFlags      = VertexBuffer;
+        bufferDesc.cpuAccessFlags = Write;
 
         if (device.createBuffer(bufferDesc, null, vertexBuffer) != Ok)
         {
             throw new Dx11ResourceCreationException('ID3D11Buffer');
         }
 
-        var bufferDesc = new D3d11BufferDescription();
+        // Create the index buffer
+        final bufferDesc = new D3d11BufferDescription();
         bufferDesc.byteWidth      = (_rendererConfig.dynamicIndices + _rendererConfig.unchangingIndices) * 2;
         bufferDesc.usage          = Dynamic;
-        bufferDesc.bindFlags      = D3d11BindFlag.IndexBuffer;
-        bufferDesc.cpuAccessFlags = D3d11CpuAccessFlag.Write;
+        bufferDesc.bindFlags      = IndexBuffer;
+        bufferDesc.cpuAccessFlags = Write;
 
         if (device.createBuffer(bufferDesc, null, indexBuffer) != Ok)
+        {
+            throw new Dx11ResourceCreationException('ID3D11Buffer');
+        }
+
+        // Create the matrix buffer
+        final bufferDesc = new D3d11BufferDescription();
+        bufferDesc.byteWidth      = _rendererConfig.dynamicVertices * 4;
+        bufferDesc.usage          = Dynamic;
+        bufferDesc.bindFlags      = ConstantBuffer;
+        bufferDesc.cpuAccessFlags = Write;
+
+        if (device.createBuffer(bufferDesc, null, matrixBuffer) != Ok)
+        {
+            throw new Dx11ResourceCreationException('ID3D11Buffer');
+        }
+
+        // Create the uniform buffer
+        final bufferDesc = new D3d11BufferDescription();
+        bufferDesc.byteWidth      = _rendererConfig.dynamicVertices * 4;
+        bufferDesc.usage          = Dynamic;
+        bufferDesc.bindFlags      = ConstantBuffer;
+        bufferDesc.cpuAccessFlags = Write;
+
+        if (device.createBuffer(bufferDesc, null, uniformBuffer) != Ok)
         {
             throw new Dx11ResourceCreationException('ID3D11Buffer');
         }
@@ -534,20 +535,14 @@ class DX11Backend implements IRendererBackend
         context.rsSetState(rasterState);
         context.omSetRenderTargets([ backbuffer.renderTargetView ], depthStencilView);
 
-        vertexOffset      = 0;
-        vertexFloatOffset = 0;
-        indexOffset       = 0;
-
-        commandVtxOffsets     = [];
-        commandIdxOffsets     = [];
-        bufferModelMatrix     = [];
-        transformationVectors = [ for (i in 0...RENDERER_THREADS) new Vector3() ];
-        clearColour           = [ _rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a ];
-        jobQueue              = new JobQueue(RENDERER_THREADS);
-        dummyModelMatrix      = new Matrix();
-
-        cmdClip     = new Rectangle();
-        cmdViewport = new Rectangle();
+        commandQueue = [];
+        clearColour  = [
+            _rendererConfig.clearColour.r,
+            _rendererConfig.clearColour.g,
+            _rendererConfig.clearColour.b,
+            _rendererConfig.clearColour.a ];
+        cmdClip      = new Rectangle();
+        cmdViewport  = new Rectangle();
 
         // Setup initial state tracker
         viewport = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
@@ -567,13 +562,6 @@ class DX11Backend implements IRendererBackend
     {
         context.clearRenderTargetView(backbuffer.renderTargetView, clearColour);
         context.clearDepthStencilView(depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
-
-        vertexOffset      = 0;
-        vertexFloatOffset = 0;
-        indexOffset       = 0;
-        commandVtxOffsets.clear();
-        commandIdxOffsets.clear();
-        bufferModelMatrix.clear();
     }
 
     /**
@@ -582,87 +570,7 @@ class DX11Backend implements IRendererBackend
      */
     public function queue(_command : DrawCommand)
     {
-        // // Map the buffer.
-        // if (context.map(vertexBuffer, 0, WriteDiscard, 0, mappedVertexBuffer) != 0)
-        // {
-        //     throw new DX11MappingBufferException('Vertex Buffer');
-        // }
-
-        // if (context.map(indexBuffer, 0, WriteDiscard, 0, mappedIndexBuffer) != 0)
-        // {
-        //     throw new DX11MappingBufferException('Index Buffer');
-        // }
-
-        // // Get a buffer to float32s so we can copy our float32array over.
-        // var vtxDst : Pointer<Float32> = mappedVertexBuffer.data.reinterpret();
-        // var idxDst : Pointer<UInt16>  = mappedIndexBuffer.data.reinterpret();
-
-        // for (command in _commands)
-        // {
-        //     commandVtxOffsets.set(command.id, vertexOffset);
-        //     commandIdxOffsets.set(command.id, indexOffset);
-
-        //     var split     = Maths.floor(command.geometry.length / RENDERER_THREADS);
-        //     var remainder = command.geometry.length % RENDERER_THREADS;
-        //     var range     = command.geometry.length < RENDERER_THREADS ? command.geometry.length : RENDERER_THREADS;
-        //     for (i in 0...range)
-        //     {
-        //         var geomStartIdx   = split * i;
-        //         var geomEndIdx     = geomStartIdx + (i != range - 1 ? split : split + remainder);
-        //         var idxValueOffset = 0;
-        //         var idxWriteOffset = indexOffset;
-        //         var vtxWriteOffset = vertexFloatOffset;
-
-        //         for (j in 0...geomStartIdx)
-        //         {
-        //             // idxValueOffset += command.geometry[j].vertices.length;
-        //             // idxWriteOffset += command.geometry[j].indices.length;
-        //             // vtxWriteOffset += command.geometry[j].vertices.length * 9;
-        //         }
-
-        //         jobQueue.queue(() -> {
-        //             for (j in geomStartIdx...geomEndIdx)
-        //             {
-        //                 // for (index in command.geometry[j].indices)
-        //                 // {
-        //                 //     idxDst[idxWriteOffset++] = idxValueOffset + index;
-        //                 // }
-
-        //                 // for (vertex in command.geometry[j].vertices)
-        //                 // {
-        //                 //     // Copy the vertex into another vertex.
-        //                 //     // This allows us to apply the transformation without permanently modifying the original geometry.
-        //                 //     transformationVectors[i].copyFrom(vertex.position);
-        //                 //     transformationVectors[i].transform(command.geometry[j].transformation.world.matrix);
-
-        //                 //     vtxDst[vtxWriteOffset++] = transformationVectors[i].x;
-        //                 //     vtxDst[vtxWriteOffset++] = transformationVectors[i].y;
-        //                 //     vtxDst[vtxWriteOffset++] = transformationVectors[i].z;
-        //                 //     vtxDst[vtxWriteOffset++] = vertex.color.r;
-        //                 //     vtxDst[vtxWriteOffset++] = vertex.color.g;
-        //                 //     vtxDst[vtxWriteOffset++] = vertex.color.b;
-        //                 //     vtxDst[vtxWriteOffset++] = vertex.color.a;
-        //                 //     vtxDst[vtxWriteOffset++] = vertex.texCoord.x;
-        //                 //     vtxDst[vtxWriteOffset++] = vertex.texCoord.y;
-        //                 // }
-
-        //                 // idxValueOffset += command.geometry[j].vertices.length;
-        //             }
-        //         });
-        //     }
-
-        //     for (geom in command.geometry)
-        //     {
-        //         // vertexFloatOffset += geom.vertices.length * 9;
-        //         // indexOffset       += geom.indices.length;
-        //         // vertexOffset      += geom.vertices.length;
-        //     }
-
-        //     jobQueue.wait();
-        // }
-
-        // context.unmap(vertexBuffer, 0);
-        // context.unmap(indexBuffer, 0);
+        commandQueue.push(_command);
     }
 
     /**
@@ -672,24 +580,103 @@ class DX11Backend implements IRendererBackend
      */
     public function submit()
     {
-        // for (command in _commands)
-        // {
-        //     var idxOffset = commandIdxOffsets.get(command.id);
-        //     var vtxOffset = commandVtxOffsets.get(command.id);
+        uploadCommands();
+        drawCommands();
+    }
 
-        //     // Set context state
-        //     setState(command);
+    function uploadCommands()
+    {
+        if (context.map(vertexBuffer, 0, WriteDiscard, 0, mappedVertexBuffer) != Ok)
+        {
+            throw new DX11MappingBufferException('Vertex Buffer');
+        }
+        if (context.map(indexBuffer, 0, WriteDiscard, 0, mappedIndexBuffer) != Ok)
+        {
+            throw new DX11MappingBufferException('Index Buffer');
+        }
+        if (context.map(matrixBuffer, 0, WriteDiscard, 0, mappedMatrixBuffer) != Ok)
+        {
+            throw new DX11MappingBufferException('Matrix Buffer');
+        }
+        if (context.map(uniformBuffer, 0, WriteDiscard, 0, mappedUniformBuffer) != Ok)
+        {
+            throw new DX11MappingBufferException('Uniform Buffer');
+        }
 
-        //     // Draw
-        //     if (command.indices > 0)
-        //     {               
-        //         context.drawIndexed(command.indices, idxOffset, vtxOffset);
-        //     }
-        //     else
-        //     {
-        //         context.draw(command.vertices, vtxOffset);
-        //     }
-        // }
+        final vtxDst : Pointer<UInt8> = mappedVertexBuffer.data.reinterpret();
+        final idxDst : Pointer<UInt8> = mappedIndexBuffer.data.reinterpret();
+        final matDst : Pointer<UInt8> = mappedMatrixBuffer.data.reinterpret();
+        final unfDst : Pointer<UInt8> = mappedUniformBuffer.data.reinterpret();
+
+        var vtxUploaded = 0;
+        var idxUploaded = 0;
+        var matUploaded = 0;
+        var unfUploaded = 0;
+
+        for (command in commandQueue)
+        {
+            for (geometry in command.geometry)
+            {
+                // Upload vertex data
+                switch geometry.data
+                {
+                    case Indexed(_vertices, _indices):
+                        memcpy(
+                            idxDst.add(idxUploaded),
+                            _indices.buffer.bytes.getData().address(_indices.buffer.byteOffset),
+                            _indices.buffer.byteLength);
+
+                        memcpy(
+                            vtxDst.add(vtxUploaded),
+                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
+                            _vertices.buffer.byteLength);
+
+                        vtxUploaded += _vertices.buffer.byteLength;
+                        idxUploaded += _indices.buffer.byteLength;
+                    case UnIndexed(_vertices):
+                        memcpy(
+                            vtxDst.add(vtxUploaded),
+                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
+                            _vertices.buffer.byteLength);
+
+                        vtxUploaded += _vertices.buffer.byteLength;
+                }
+
+                // Upload matrix data
+                buildCameraMatrices(command.camera);
+
+                final view       = command.camera.view;
+                final projection = command.camera.projection;
+                final model      = geometry.transformation.world.matrix;
+
+                memcpy(matDst.add(matUploaded)      , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
+                memcpy(matDst.add(matUploaded +  64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
+                memcpy(matDst.add(matUploaded + 128), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
+
+                matUploaded = Maths.nextMultipleOff(matUploaded + 192, 256);
+
+                // Upload uniform data
+                for (block in command.uniforms)
+                {
+                    memcpy(
+                        unfDst.add(unfUploaded),
+                        block.buffer.bytes.getData().address(block.buffer.byteOffset),
+                        block.buffer.byteLength);
+    
+                    unfUploaded = Maths.nextMultipleOff(unfUploaded + block.buffer.byteLength, 256);
+                }
+            }
+        }
+
+        context.unmap(vertexBuffer, 0);
+        context.unmap(indexBuffer, 0);
+        context.unmap(matrixBuffer, 0);
+        context.unmap(uniformBuffer, 0);
+    }
+
+    function drawCommands()
+    {
+        //
     }
 
     /**
@@ -1178,15 +1165,15 @@ class DX11Backend implements IRendererBackend
 
             if (shaderResource.layout.blocks[i].name == 'defaultMatrices')
             {
-                buildCameraMatrices(_command.camera);
+                // buildCameraMatrices(_command.camera);
 
-                var model      = bufferModelMatrix.exists(_command.id) ? bufferModelMatrix.get(_command.id) : dummyModelMatrix;
-                var view       = _command.camera.view;
-                var projection = _command.camera.projection;
+                // var model      = bufferModelMatrix.exists(_command.id) ? bufferModelMatrix.get(_command.id) : dummyModelMatrix;
+                // var view       = _command.camera.view;
+                // var projection = _command.camera.projection;
 
-                memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
-                memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
-                memcpy(ptr.incBy(64), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
+                // memcpy(ptr          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
+                // memcpy(ptr.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
+                // memcpy(ptr.incBy(64), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
             }
             else
             {
