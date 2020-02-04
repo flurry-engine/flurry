@@ -12,6 +12,8 @@
 -D linc_directx
 -D format
 -D threads
+-D dxgi_feature_level=1.1
+-D d3d11_feature_level=1.1
 
 -lib hxcpp
 -lib linc_imgui
