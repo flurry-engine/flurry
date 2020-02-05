@@ -1,19 +1,8 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import d3dcommon.enumerations.D3dFeatureLevel;
-import d3d11.enumerations.D3dFeatureLevel;
-import haxe.ds.ReadOnlyArray;
-import uk.aidanlee.flurry.api.gpu.state.BlendState;
-import uk.aidanlee.flurry.api.gpu.state.StencilState;
-import uk.aidanlee.flurry.api.gpu.state.DepthState;
-import uk.aidanlee.flurry.api.gpu.state.TargetState;
-import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import haxe.Exception;
-import haxe.io.Bytes;
-import cpp.Float32;
-import cpp.Int32;
+import haxe.ds.ReadOnlyArray;
 import cpp.UInt8;
-import cpp.UInt16;
 import cpp.Pointer;
 import cpp.Stdlib.memcpy;
 import sdl.Window;
@@ -70,6 +59,10 @@ import uk.aidanlee.flurry.api.gpu.StencilFunction;
 import uk.aidanlee.flurry.api.gpu.ComparisonFunction;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.BlendMode;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
+import uk.aidanlee.flurry.api.gpu.state.StencilState;
+import uk.aidanlee.flurry.api.gpu.state.DepthState;
+import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
@@ -83,17 +76,14 @@ import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.thread.JobQueue;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.maths.Matrix;
-import uk.aidanlee.flurry.utils.bytes.BytesPacker;
+import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 
 using cpp.NativeArray;
 
 @:headerCode('#include <D3Dcompiler.h>
-#include <D3D11_1.h>
+#include <d3d11_1.h>
 #include "SDL_syswm.h"')
 @:buildXml('<target id = "haxe">
     <lib name = "dxgi.lib"        if = "windows" unless = "static_link" />
@@ -105,7 +95,7 @@ class DX11Backend implements IRendererBackend
     /**
      * The number of floats in each vertex.
      */
-     static final VERTEX_BYTE_SIZE = 36;
+    static final VERTEX_BYTE_SIZE = 36;
 
     /**
      * Signals for when shaders and images are created and removed.
@@ -142,8 +132,14 @@ class DX11Backend implements IRendererBackend
      */
     final indexBuffer : D3d11Buffer;
 
+    /**
+     * Buffer which will store all model, view, projection matrix collections.
+     */
     final matrixBuffer : D3d11Buffer;
 
+    /**
+     * Buffer which will stor all uniform data.
+     */
     final uniformBuffer : D3d11Buffer;
 
     /**
@@ -206,10 +202,13 @@ class DX11Backend implements IRendererBackend
      */
     final mappedIndexBuffer : D3d11MappedSubResource;
 
+    /**
+     * D3D11 resource used for mapping the matrix buffer.
+     */
     final mappedMatrixBuffer : D3d11MappedSubResource;
 
     /**
-     * D3D11 resource used for mapping constant buffers.
+     * D3D11 resource used for mapping the uniform buffer.
      */
     final mappedUniformBuffer : D3d11MappedSubResource;
 
@@ -262,14 +261,13 @@ class DX11Backend implements IRendererBackend
     final commandQueue : Array<DrawCommand>;
 
     // State trackers
-    var viewport : Rectangle;
-    var clip     : Rectangle;
+
     var depth    : DepthState;
     var stencil  : StencilState;
     var blend    : BlendState;
     var topology : PrimitiveType;
-    var shader   : ShaderResource;
-    var texture  : ImageResource;
+    var shader   : String;
+    var texture  : String;
     var target   : TargetState;
 
     // SDL Window
@@ -325,9 +323,9 @@ class DX11Backend implements IRendererBackend
         depthStencilDescription = new D3d11DepthStencilDescription();
 
         // Setup the DXGI factory and get this windows adapter and output.
-        var factory = new DxgiFactory();
-        var adapter = new DxgiAdapter();
-        var output  = new DxgiOutput();
+        final factory = new DxgiFactory();
+        final adapter = new DxgiAdapter();
+        final output  = new DxgiOutput();
 
         if (Dxgi.createFactory(factory) != Ok)
         {
@@ -343,33 +341,31 @@ class DX11Backend implements IRendererBackend
         }
 
         // Create the device, context, and swapchain.
-        var description = new DxgiSwapChainDescription();
+        final description = new DxgiSwapChainDescription();
         description.bufferDesc.width  = _windowConfig.width;
         description.bufferDesc.height = _windowConfig.height;
         description.bufferDesc.format = R8G8B8A8UNorm;
         description.sampleDesc.count  = 1;
         description.outputWindow      = hwnd;
-        description.bufferCount       = 1;
+        description.bufferCount       = 2;
         description.bufferUsage       = RenderTargetOutput;
         description.windowed          = true;
 
-        var deviceCreationFlags = D3d11CreateDeviceFlags.SingleThreaded;
+        final deviceCreationFlags = D3d11CreateDeviceFlags.SingleThreaded;
 
         // Create our actual device and swapchain
-        final d3d11dev = new D3d11Device();
-        final d3d11con = new D3d11DeviceContext();
-        if (D3d11.createDevice(adapter, Unknown, null, deviceCreationFlags, [ Level11_1 ], D3d11.SdkVersion, d3d11dev, null, d3d11con) != Ok)
+        if (D3d11.createDevice(adapter, Unknown, null, deviceCreationFlags, [ Level11_1 ], D3d11.SdkVersion, device, null, context) != Ok)
         {
             throw new Dx11ResourceCreationException('ID3D11Device');
         }
 
-        if (d3d11dev.queryInterface(D3d11Device1.uuid, device) != 0)
+        if (device.queryInterface(D3d11Device1.uuid, device) != 0)
         {
-            throw 'failed to cast device';
+            throw new Exception('failed to cast ID3D11Device to an ID3D11Device1');
         }
-        if (d3d11con.queryInterface(D3d11DeviceContext1.uuid, context) != 0)
+        if (context.queryInterface(D3d11DeviceContext1.uuid, context) != 0)
         {
-            throw 'failed to cast context';
+            throw new Exception('failed to cast ID3D11DeviceContext to an ID3D11DeviceContext1');
         }
 
         if (factory.createSwapChain(device, description, swapchain) != 0)
@@ -406,7 +402,7 @@ class DX11Backend implements IRendererBackend
         nativeClip.bottom = _windowConfig.height;
 
         // Setup the rasterizer state.
-        var rasterDescription = new D3d11RasterizerDescription();
+        final rasterDescription = new D3d11RasterizerDescription();
         rasterDescription.fillMode              = Solid;
         rasterDescription.cullMode              = None;
         rasterDescription.frontCounterClockwise = false;
@@ -489,7 +485,7 @@ class DX11Backend implements IRendererBackend
             throw new Dx11ResourceCreationException('ID3D11Buffer');
         }
 
-        var depthTextureDesc = new D3d11Texture2DDescription();
+        final depthTextureDesc = new D3d11Texture2DDescription();
         depthTextureDesc.width              = _windowConfig.width;
         depthTextureDesc.height             = _windowConfig.height;
         depthTextureDesc.mipLevels          = 1;
@@ -507,7 +503,7 @@ class DX11Backend implements IRendererBackend
             throw new Dx11ResourceCreationException('ID3D11Texture2D');
         }
 
-        var depthStencilViewDescription = new D3d11DepthStencilViewDescription();
+        final depthStencilViewDescription = new D3d11DepthStencilViewDescription();
         depthStencilViewDescription.format             = D32FloatS8X24UInt;
         depthStencilViewDescription.viewDimension      = Texture2D;
         depthStencilViewDescription.texture2D.mipSlice = 0;
@@ -518,7 +514,7 @@ class DX11Backend implements IRendererBackend
         }
 
         // Create the default texture sampler
-        var samplerDescription = new D3d11SamplerDescription();
+        final samplerDescription = new D3d11SamplerDescription();
         samplerDescription.filter         = MinMagMipPoint;
         samplerDescription.addressU       = Clamp;
         samplerDescription.addressV       = Clamp;
@@ -540,8 +536,8 @@ class DX11Backend implements IRendererBackend
         }
 
         // Set the initial context state.
-        var stride = (9 * 4);
-        var offset = 0;
+        final stride = (9 * 4);
+        final offset = 0;
         context.iaSetIndexBuffer(indexBuffer, R16UInt, offset);
         context.iaSetVertexBuffers(0, [ vertexBuffer ], [ stride ], [ offset ]);
         context.iaSetPrimitiveTopology(TriangleList);
@@ -582,12 +578,10 @@ class DX11Backend implements IRendererBackend
         };
 
         // Setup initial state tracker
-        viewport = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
-        clip     = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
         topology = Triangles;
         target   = Backbuffer;
-        shader   = null;
-        texture  = null;
+        shader   = '';
+        texture  = '';
 
         resourceEvents.created.add(onResourceCreated);
         resourceEvents.removed.add(onResourceRemoved);
@@ -622,170 +616,12 @@ class DX11Backend implements IRendererBackend
         drawCommands();
     }
 
-    function uploadCommands()
-    {
-        if (context.map(vertexBuffer, 0, WriteDiscard, 0, mappedVertexBuffer) != Ok)
-        {
-            throw new DX11MappingBufferException('Vertex Buffer');
-        }
-        if (context.map(indexBuffer, 0, WriteDiscard, 0, mappedIndexBuffer) != Ok)
-        {
-            throw new DX11MappingBufferException('Index Buffer');
-        }
-        if (context.map(matrixBuffer, 0, WriteDiscard, 0, mappedMatrixBuffer) != Ok)
-        {
-            throw new DX11MappingBufferException('Matrix Buffer');
-        }
-        if (context.map(uniformBuffer, 0, WriteDiscard, 0, mappedUniformBuffer) != Ok)
-        {
-            throw new DX11MappingBufferException('Uniform Buffer');
-        }
-
-        final vtxDst : Pointer<UInt8> = mappedVertexBuffer.data.reinterpret();
-        final idxDst : Pointer<UInt8> = mappedIndexBuffer.data.reinterpret();
-        final matDst : Pointer<UInt8> = mappedMatrixBuffer.data.reinterpret();
-        final unfDst : Pointer<UInt8> = mappedUniformBuffer.data.reinterpret();
-
-        var vtxUploaded = 0;
-        var idxUploaded = 0;
-        var matUploaded = 0;
-        var unfUploaded = 0;
-
-        for (command in commandQueue)
-        {
-            for (geometry in command.geometry)
-            {
-                // Upload vertex data
-                switch geometry.data
-                {
-                    case Indexed(_vertices, _indices):
-                        memcpy(
-                            idxDst.add(idxUploaded),
-                            _indices.buffer.bytes.getData().address(_indices.buffer.byteOffset),
-                            _indices.buffer.byteLength);
-
-                        memcpy(
-                            vtxDst.add(vtxUploaded),
-                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
-                            _vertices.buffer.byteLength);
-
-                        vtxUploaded += _vertices.buffer.byteLength;
-                        idxUploaded += _indices.buffer.byteLength;
-                    case UnIndexed(_vertices):
-                        memcpy(
-                            vtxDst.add(vtxUploaded),
-                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
-                            _vertices.buffer.byteLength);
-
-                        vtxUploaded += _vertices.buffer.byteLength;
-                }
-
-                // Upload matrix data
-                buildCameraMatrices(command.camera);
-
-                final view       = command.camera.view;
-                final projection = command.camera.projection;
-                final model      = geometry.transformation.world.matrix;
-
-                memcpy(matDst.add(matUploaded)      , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
-                memcpy(matDst.add(matUploaded +  64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
-                memcpy(matDst.add(matUploaded + 128), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
-
-                matUploaded = Maths.nextMultipleOff(matUploaded + 192, 256);
-
-                // Upload uniform data
-                for (block in command.uniforms)
-                {
-                    memcpy(
-                        unfDst.add(unfUploaded),
-                        block.buffer.bytes.getData().address(block.buffer.byteOffset),
-                        block.buffer.byteLength);
-    
-                    unfUploaded = Maths.nextMultipleOff(unfUploaded + block.buffer.byteLength, 256);
-                }
-            }
-        }
-
-        context.unmap(vertexBuffer, 0);
-        context.unmap(indexBuffer, 0);
-        context.unmap(matrixBuffer, 0);
-        context.unmap(uniformBuffer, 0);
-    }
-
-    function findBlockIndexByName(_name : String, _blocks : ReadOnlyArray<ShaderBlock>) : Int
-    {
-        for (i in 0..._blocks.length)
-        {
-            if (_blocks[i].name == _name)
-            {
-                return i;
-            }
-        }
-
-        throw 'new OGL3UniformBlockNotFoundException(_name)';
-    }
-
-    function drawCommands()
-    {
-        var matOffset = 0;
-        var idxOffset = 0;
-        var vtxOffset = 0;
-        var unfOffset = 0;
-
-        for (command in commandQueue)
-        {
-            // Update State
-            updateState(command);
-            // Bind CBuffers
-            for (block in command.uniforms)
-            {
-                context.vsSetConstantBuffers1(
-                    findBlockIndexByName(block.name, command.shader.layout.blocks),
-                    [ uniformBuffer ],
-                    [ cast unfOffset / 16 ],
-                    [ Maths.nextMultipleOff(block.buffer.byteLength, 256) ]);
-                context.psSetConstantBuffers1(
-                    findBlockIndexByName(block.name, command.shader.layout.blocks),
-                    [ uniformBuffer ],
-                    [ cast unfOffset / 16 ],
-                    [ Maths.nextMultipleOff(block.buffer.byteLength, 256) ]);
-
-                unfOffset = Maths.nextMultipleOff(unfOffset + block.buffer.byteLength, 256);
-            }
-
-            for (geometry in command.geometry)
-            {
-                // Bind Matrix CBuffer
-                context.vsSetConstantBuffers1(
-                    findBlockIndexByName('flurry_matrices', command.shader.layout.blocks),
-                    [ matrixBuffer ],
-                    [ cast matOffset / 16 ],
-                    [ 256 ]);
-
-                matOffset = Maths.nextMultipleOff(matOffset + 192, 256);
-                // Draw
-                switch geometry.data
-                {
-                    case Indexed(_vertices, _indices):
-                        context.drawIndexed(cast _indices.shortAccess.length, idxOffset, vtxOffset);
-
-                        idxOffset += _indices.shortAccess.length;
-                        vtxOffset += Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
-                    case UnIndexed(_vertices):
-                        context.draw(cast _vertices.buffer.byteLength / VERTEX_BYTE_SIZE, vtxOffset);
-
-                        vtxOffset += Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
-                }
-            }
-        }
-    }
-
     /**
      * Present our backbuffer to the window.
      */
     public function postDraw()
     {
-        swapchain.present(Discard, 0);
+        swapchain.present(FlipSequential, 0);
     }
 
     /**
@@ -823,7 +659,10 @@ class DX11Backend implements IRendererBackend
 
         // Set the scissor to the new width and height.
         // This is needed to force a clip change so it doesn't stay with the old backbuffer size.
-        clip.set(0, 0, _width, _height);
+        nativeClip.left   = 0;
+        nativeClip.top    = 0;
+        nativeClip.right  = _width;
+        nativeClip.bottom = _height;
     }
 
     /**
@@ -968,28 +807,7 @@ class DX11Backend implements IRendererBackend
         }
 
         // Create our shader and a class to store its resources.
-        var resource = new ShaderInformation(_resource.layout, vertexShader, pixelShader, inputLayout);
-
-        for (i in 0..._resource.layout.blocks.length)
-        {
-            var blockBytes       = BytesPacker.allocateBytes(Dx11, _resource.layout.blocks[i].values);
-            var constantBuffer   = new D3d11Buffer();
-            var blockDescription = new D3d11BufferDescription();
-            blockDescription.byteWidth      = blockBytes.length;
-            blockDescription.usage          = Dynamic;
-            blockDescription.bindFlags      = ConstantBuffer;
-            blockDescription.cpuAccessFlags = Write;
-
-            if (device.createBuffer(blockDescription, null, constantBuffer) != Ok)
-            {
-                throw new Dx11ResourceCreationException('ID3D11Buffer');
-            }
-
-            resource.constantBuffers.push(constantBuffer);
-            resource.bytes.push(blockBytes);
-        }
-
-        shaderResources.set(_resource.id, resource);
+        shaderResources.set(_resource.id, new ShaderInformation(_resource.layout, vertexShader, pixelShader, inputLayout));
     }
 
     /**
@@ -1063,6 +881,175 @@ class DX11Backend implements IRendererBackend
 
     // #endregion
 
+    function uploadCommands()
+    {
+        if (context.map(vertexBuffer, 0, WriteDiscard, 0, mappedVertexBuffer) != Ok)
+        {
+            throw new DX11MappingBufferException('Vertex Buffer');
+        }
+        if (context.map(indexBuffer, 0, WriteDiscard, 0, mappedIndexBuffer) != Ok)
+        {
+            throw new DX11MappingBufferException('Index Buffer');
+        }
+        if (context.map(matrixBuffer, 0, WriteDiscard, 0, mappedMatrixBuffer) != Ok)
+        {
+            throw new DX11MappingBufferException('Matrix Buffer');
+        }
+        if (context.map(uniformBuffer, 0, WriteDiscard, 0, mappedUniformBuffer) != Ok)
+        {
+            throw new DX11MappingBufferException('Uniform Buffer');
+        }
+
+        final vtxDst : Pointer<UInt8> = mappedVertexBuffer.data.reinterpret();
+        final idxDst : Pointer<UInt8> = mappedIndexBuffer.data.reinterpret();
+        final matDst : Pointer<UInt8> = mappedMatrixBuffer.data.reinterpret();
+        final unfDst : Pointer<UInt8> = mappedUniformBuffer.data.reinterpret();
+
+        var vtxUploaded = 0;
+        var idxUploaded = 0;
+        var matUploaded = 0;
+        var unfUploaded = 0;
+
+        for (command in commandQueue)
+        {
+            for (geometry in command.geometry)
+            {
+                // Upload vertex data
+                switch geometry.data
+                {
+                    case Indexed(_vertices, _indices):
+                        memcpy(
+                            idxDst.add(idxUploaded),
+                            _indices.buffer.bytes.getData().address(_indices.buffer.byteOffset),
+                            _indices.buffer.byteLength);
+
+                        memcpy(
+                            vtxDst.add(vtxUploaded),
+                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
+                            _vertices.buffer.byteLength);
+
+                        vtxUploaded += _vertices.buffer.byteLength;
+                        idxUploaded += _indices.buffer.byteLength;
+                    case UnIndexed(_vertices):
+                        memcpy(
+                            vtxDst.add(vtxUploaded),
+                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
+                            _vertices.buffer.byteLength);
+
+                        vtxUploaded += _vertices.buffer.byteLength;
+                }
+
+                // Upload matrix data
+                buildCameraMatrices(command.camera);
+
+                final view       = command.camera.view;
+                final projection = command.camera.projection;
+                final model      = geometry.transformation.world.matrix;
+
+                memcpy(matDst.add(matUploaded)      , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
+                memcpy(matDst.add(matUploaded +  64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
+                memcpy(matDst.add(matUploaded + 128), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
+
+                matUploaded = Maths.nextMultipleOff(matUploaded + 192, 256);
+
+                // Upload uniform data
+                for (block in command.uniforms)
+                {
+                    memcpy(
+                        unfDst.add(unfUploaded),
+                        block.buffer.bytes.getData().address(block.buffer.byteOffset),
+                        block.buffer.byteLength);
+    
+                    unfUploaded = Maths.nextMultipleOff(unfUploaded + block.buffer.byteLength, 256);
+                }
+            }
+        }
+
+        context.unmap(vertexBuffer, 0);
+        context.unmap(indexBuffer, 0);
+        context.unmap(matrixBuffer, 0);
+        context.unmap(uniformBuffer, 0);
+    }
+
+    function drawCommands()
+    {
+        var matOffset = 0;
+        var idxOffset = 0;
+        var vtxOffset = 0;
+        var unfOffset = 0;
+
+        for (command in commandQueue)
+        {
+            updateState(command);
+            
+            for (block in command.uniforms)
+            {
+                // Bind uniform buffers to both vertex and fragment stage
+                // Might at some point be worth having the user specify which stages the blocks apply to.
+                final buffer = [ uniformBuffer ];
+                final offset = [ cast unfOffset / 16 ];
+                final length = [ Maths.nextMultipleOff(block.buffer.byteLength, 256) ];
+
+                context.vsSetConstantBuffers1(
+                    findBlockIndexByName(block.name, command.shader.layout.blocks),
+                    buffer,
+                    offset,
+                    length);
+                context.psSetConstantBuffers1(
+                    findBlockIndexByName(block.name, command.shader.layout.blocks),
+                    buffer,
+                    offset,
+                    length);
+
+                unfOffset = Maths.nextMultipleOff(unfOffset + block.buffer.byteLength, 256);
+            }
+
+            for (geometry in command.geometry)
+            {
+                // Bind Matrix CBuffer
+                final buffer = [ matrixBuffer ];
+                final offset = [ cast matOffset / 16 ];
+                final length = [ 256 ];
+
+                context.vsSetConstantBuffers1(
+                    findBlockIndexByName('flurry_matrices', command.shader.layout.blocks),
+                    buffer,
+                    offset,
+                    length);
+
+                matOffset += 256;
+                
+                switch geometry.data
+                {
+                    case Indexed(_vertices, _indices):
+                        context.drawIndexed(_indices.shortAccess.length, idxOffset, vtxOffset);
+
+                        idxOffset += _indices.shortAccess.length;
+                        vtxOffset += Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
+                    case UnIndexed(_vertices):
+                        final vertices = Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
+
+                        context.draw(vertices, vtxOffset);
+
+                        vtxOffset += vertices;
+                }
+            }
+        }
+    }
+
+    function findBlockIndexByName(_name : String, _blocks : ReadOnlyArray<ShaderBlock>) : Int
+    {
+        for (i in 0..._blocks.length)
+        {
+            if (_blocks[i].name == _name)
+            {
+                return i;
+            }
+        }
+
+        throw new Exception('Unable to find a uniform block with that name "$_name"');
+    }
+
     /**
      * Sets the state of the D3D11 context to draw the provided command.
      * Will check against the current state to prevent unneeded state changes.
@@ -1070,80 +1057,13 @@ class DX11Backend implements IRendererBackend
      */
     function updateState(_command : DrawCommand)
     {
-        switch _command.target
-        {
-            case Backbuffer:
-                switch target
-                {
-                    case Backbuffer: // no op
-                    case Texture(_):
-                        context.omSetRenderTargets([ backbuffer.renderTargetView ], depthStencilView);
-                }
-            case Texture(_requested):
-                switch target
-                {
-                    case Backbuffer:
-                        context.omSetRenderTargets([ textureResources[_requested.id].renderTargetView ], depthStencilView);
-                    case Texture(_current):
-                        if (_current.id != _requested.id)
-                        {
-                            context.omSetRenderTargets([ textureResources[_requested.id].renderTargetView ], depthStencilView);
-                        }
-                }
-        }
-
-        target = _command.target;
-
-        // Write shader cbuffers and set it
-        if (shader != _command.shader)
-        {
-            // Apply the actual shader and input layout.
-            final shaderResource = shaderResources.get(_command.shader.id);
-
-            context.iaSetInputLayout(shaderResource.inputLayout);
-            context.vsSetShader(shaderResource.vertexShader, null);
-            context.psSetShader(shaderResource.pixelShader, null);
-        }
-
-        shader = _command.shader;
-
+        updateFramebuffer(_command.target);
+        updateShader(_command.shader);
         updateTextures(_command.shader.layout.textures.length, _command.textures, _command.samplers);
+        updateBlend(_command.blending);
+        updateTopology(_command.primitive);
 
-        // Depth
-
-        var depthChanged = false;
-        if (!_command.depth.equals(depth))
-        {
-            depthStencilDescription.depthEnable    = _command.depth.depthTesting;
-            depthStencilDescription.depthWriteMask = _command.depth.depthMasking ? All : Zero;
-            depthStencilDescription.depthFunction  = getComparisonFunction(_command.depth.depthFunction);
-
-            depthChanged = true;
-            depth.copyFrom(_command.depth);
-        }
-
-        // Stencil
-
-        var stencilChanged = false;
-        if (!_command.stencil.equals(stencil))
-        {
-            depthStencilDescription.frontFace.stencilFailOp      = getStencilOp(_command.stencil.stencilFrontTestFail);
-            depthStencilDescription.frontFace.stencilDepthFailOp = getStencilOp(_command.stencil.stencilFrontDepthTestFail);
-            depthStencilDescription.frontFace.stencilPassOp      = getStencilOp(_command.stencil.stencilFrontDepthTestPass);
-            depthStencilDescription.frontFace.stencilFunction    = getComparisonFunction(_command.stencil.stencilFrontFunction);
-
-            depthStencilDescription.backFace.stencilFailOp      = getStencilOp(_command.stencil.stencilBackTestFail);
-            depthStencilDescription.backFace.stencilDepthFailOp = getStencilOp(_command.stencil.stencilBackDepthTestFail);
-            depthStencilDescription.backFace.stencilPassOp      = getStencilOp(_command.stencil.stencilBackDepthTestPass);
-            depthStencilDescription.backFace.stencilFunction    = getComparisonFunction(_command.stencil.stencilBackFunction);
-
-            stencilChanged = true;
-            stencil.copyFrom(_command.stencil);
-        }
-
-        // Apply Changes
-
-        if (depthChanged || stencilChanged)
+        if (updateDepth(_command.depth) || updateStencil(_command.stencil))
         {
             if (device.createDepthStencilState(depthStencilDescription, depthStencilState) != Ok)
             {
@@ -1153,27 +1073,6 @@ class DX11Backend implements IRendererBackend
             context.omSetDepthStencilState(depthStencilState, 1);
         }
 
-        // Blend
-
-        if (!_command.blending.equals(blend))
-        {
-            blendDescription.renderTarget[0].blendEnable    = _command.blending.enabled;
-            blendDescription.renderTarget[0].srcBlend       = getBlend(_command.blending.srcRGB);
-            blendDescription.renderTarget[0].srcBlendAlpha  = getBlend(_command.blending.srcAlpha);
-            blendDescription.renderTarget[0].destBlend      = getBlend(_command.blending.dstRGB);
-            blendDescription.renderTarget[0].destBlendAlpha = getBlend(_command.blending.dstAlpha);
-
-            if (device.createBlendState(blendDescription, blendState) != 0)
-            {
-                throw new Dx11ResourceCreationException('ID3D11BlendState');
-            }
-
-            context.omSetBlendState(blendState, [ 1, 1, 1, 1 ], 0xffffffff);
-
-            blend.copyFrom(_command.blending);
-        }
-
-        // If the camera does not specify a viewport (non orthographic) then the full size of the target is used.
         switch _command.camera.viewport
         {
             case None:
@@ -1188,7 +1087,6 @@ class DX11Backend implements IRendererBackend
                 updateViewport(_x, _y, _width, _height);
         }
 
-        // If the camera does not specify a clip rectangle then the full size of the target is used.
         switch _command.clip
         {
             case None:
@@ -1202,18 +1100,126 @@ class DX11Backend implements IRendererBackend
             case Clip(_x, _y, _width, _height):
                 updateClip(_x, _y, _width, _height);
         }
+    }
 
-        // Set primitive topology
-        if (topology != _command.primitive)
+    function updateFramebuffer(_newTarget : TargetState)
+    {
+        switch _newTarget
         {
-            context.iaSetPrimitiveTopology(getPrimitive(_command.primitive));
-            topology = _command.primitive;
+            case Backbuffer:
+                switch target
+                {
+                    case Backbuffer: // no op
+                    case Texture(_):
+                        context.omSetRenderTargets([ backbuffer.renderTargetView ], depthStencilView);
+                }
+            case Texture(_requested):
+                switch target
+                {
+                    case Backbuffer:
+                        context.omSetRenderTargets([ textureResources[_requested.id].renderTargetView ], null);
+                    case Texture(_current):
+                        if (_current.id != _requested.id)
+                        {
+                            context.omSetRenderTargets([ textureResources[_requested.id].renderTargetView ], null);
+                        }
+                }
+        }
+
+        target = _newTarget;
+    }
+
+    function updateShader(_newShader : ShaderResource)
+    {
+        // Write shader cbuffers and set it
+        if (shader != _newShader.id)
+        {
+            // Apply the actual shader and input layout.
+            final shaderResource = shaderResources.get(_newShader.id);
+
+            context.iaSetInputLayout(shaderResource.inputLayout);
+            context.vsSetShader(shaderResource.vertexShader, null);
+            context.psSetShader(shaderResource.pixelShader, null);
+        }
+
+        shader = _newShader.id;
+    }
+
+    function updateDepth(_newDepth : DepthState) : Bool
+    {
+        if (!_newDepth.equals(depth))
+        {
+            depthStencilDescription.depthEnable    = _newDepth.depthTesting;
+            depthStencilDescription.depthWriteMask = _newDepth.depthMasking ? All : Zero;
+            depthStencilDescription.depthFunction  = getComparisonFunction(_newDepth.depthFunction);
+
+            depth.copyFrom(_newDepth);
+
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    function updateStencil(_newStencil : StencilState) : Bool
+    {
+        if (!_newStencil.equals(stencil))
+        {
+            depthStencilDescription.frontFace.stencilFailOp      = getStencilOp(_newStencil.stencilFrontTestFail);
+            depthStencilDescription.frontFace.stencilDepthFailOp = getStencilOp(_newStencil.stencilFrontDepthTestFail);
+            depthStencilDescription.frontFace.stencilPassOp      = getStencilOp(_newStencil.stencilFrontDepthTestPass);
+            depthStencilDescription.frontFace.stencilFunction    = getComparisonFunction(_newStencil.stencilFrontFunction);
+
+            depthStencilDescription.backFace.stencilFailOp      = getStencilOp(_newStencil.stencilBackTestFail);
+            depthStencilDescription.backFace.stencilDepthFailOp = getStencilOp(_newStencil.stencilBackDepthTestFail);
+            depthStencilDescription.backFace.stencilPassOp      = getStencilOp(_newStencil.stencilBackDepthTestPass);
+            depthStencilDescription.backFace.stencilFunction    = getComparisonFunction(_newStencil.stencilBackFunction);
+
+            stencil.copyFrom(_newStencil);
+
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    function updateBlend(_newBlend : BlendState)
+    {
+        if (!_newBlend.equals(blend))
+        {
+            blendDescription.renderTarget[0].blendEnable    = _newBlend.enabled;
+            blendDescription.renderTarget[0].srcBlend       = getBlend(_newBlend.srcRGB);
+            blendDescription.renderTarget[0].srcBlendAlpha  = getBlend(_newBlend.srcAlpha);
+            blendDescription.renderTarget[0].destBlend      = getBlend(_newBlend.dstRGB);
+            blendDescription.renderTarget[0].destBlendAlpha = getBlend(_newBlend.dstAlpha);
+
+            if (device.createBlendState(blendDescription, blendState) != 0)
+            {
+                throw new Dx11ResourceCreationException('ID3D11BlendState');
+            }
+
+            context.omSetBlendState(blendState, [ 1, 1, 1, 1 ], 0xffffffff);
+
+            blend.copyFrom(_newBlend);
+        }
+    }
+
+    function updateTopology(_newTopology : PrimitiveType)
+    {
+        if (topology != _newTopology)
+        {
+            context.iaSetPrimitiveTopology(getPrimitive(_newTopology));
+            topology = _newTopology;
         }
     }
 
     function updateClip(_x : Int, _y : Int, _width : Int, _height : Int)
     {
-        if (clip.x != _x || clip.y != _y || clip.w != _width || clip.h != _width)
+        if (nativeClip.left != _x || nativeClip.top != _y || nativeClip.right != (_x + _width) || nativeClip.bottom != (_y + _height))
         {
             nativeClip.left   = _x;
             nativeClip.top    = _y;
@@ -1221,14 +1227,12 @@ class DX11Backend implements IRendererBackend
             nativeClip.bottom = _y + _height;
 
             context.rsSetScissorRects([ nativeClip ]);
-
-            clip.set(_x, _y, _width, _height);
         }
     }
 
     function updateViewport(_x : Int, _y : Int, _width : Int, _height : Int)
     {
-        if (viewport.x != _x || viewport.y != _y || viewport.w != _width || viewport.h != _height)
+        if (nativeView.topLeftX != _x || nativeView.topLeftY != _y || nativeView.width != _width || nativeView.height != _height)
         {
             nativeView.topLeftX = _x;
             nativeView.topLeftY = _y;
@@ -1236,8 +1240,6 @@ class DX11Backend implements IRendererBackend
             nativeView.height   = _height;
 
             context.rsSetViewports([ nativeView ]);
-
-            viewport.set(_x, _y, _width, _height);
         }
     }
 
@@ -1278,7 +1280,7 @@ class DX11Backend implements IRendererBackend
         }
         else
         {
-            throw 'new OGL3NotEnoughTexturesException(_expectedTextures, _textures.length)';
+            throw new Exception('Not enough textures provided by the draw command. Expected $_expectedTextures but received ${_textures.length}');
         }
     }
 
@@ -1313,7 +1315,7 @@ class DX11Backend implements IRendererBackend
         switch _camera.type
         {
             case Orthographic:
-                var orth = (cast _camera : Camera2D);
+                final orth = (cast _camera : Camera2D);
                 if (orth.dirty)
                 {
                     switch orth.viewport
@@ -1326,7 +1328,7 @@ class DX11Backend implements IRendererBackend
                     }
                 }
             case Projection:
-                var proj = (cast _camera : Camera3D);
+                final proj = (cast _camera : Camera3D);
                 if (proj.dirty)
                 {
                     proj.projection.makeHeterogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
@@ -1340,7 +1342,8 @@ class DX11Backend implements IRendererBackend
 
     inline function getBlend(_blend : BlendMode) : D3d11Blend
     {
-        return switch _blend {
+        return switch _blend
+        {
             case Zero             : Zero;
             case One              : One;
             case SrcAlphaSaturate : SourceAlphaSat;
@@ -1448,12 +1451,12 @@ private class BackBuffer
     /**
      * View scale of the backbuffer.
      */
-    public var viewportScale : Float;
+    public final viewportScale : Float;
 
     /**
      * Framebuffer object for the backbuffer.
      */
-    public var renderTargetView : D3d11RenderTargetView;
+    public final renderTargetView : D3d11RenderTargetView;
 
     public function new(_width : Int, _height : Int, _viewportScale : Float)
     {
@@ -1472,22 +1475,22 @@ private class TextureInformation
     /**
      * D3D11 Texture2D pointer.
      */
-    public var texture : D3d11Texture2D;
+    public final texture : D3d11Texture2D;
 
     /**
      * D3D11 Shader Resource View to view the texture.
      */
-    public var shaderResourceView : D3d11ShaderResourceView;
+    public final shaderResourceView : D3d11ShaderResourceView;
 
     /**
      * D3D11 Render Target View to draw to the texture.
      */
-    public var renderTargetView : D3d11RenderTargetView;
+    public final renderTargetView : D3d11RenderTargetView;
 
     /**
      * D3D11 Sampler State to sample the textures data.
      */
-    public var samplers : Map<Int, D3d11SamplerState>;
+    public final samplers : Map<Int, D3d11SamplerState>;
 
     public function new(_texture : D3d11Texture2D, _resView : D3d11ShaderResourceView, _rtvView : D3d11RenderTargetView)
     {
@@ -1535,25 +1538,12 @@ private class ShaderInformation
      */
     public final inputLayout : D3d11InputLayout;
 
-    /**
-     * Map to all D3D11 cbuffers used in this shader.
-     * Array cannot be used since hxcpp doesn't like array of pointers.
-     */
-    public final constantBuffers : Array<D3d11Buffer>;
-
-    /**
-     * Array of all bytes for user the corresponding buffer.
-     */
-    public final bytes : Array<Bytes>;
-
     public function new(_layout : ShaderLayout, _vertex : D3d11VertexShader, _pixel : D3d11PixelShader, _input : D3d11InputLayout)
     {
         layout          = _layout;
         vertexShader    = _vertex;
         pixelShader     = _pixel;
         inputLayout     = _input;
-        constantBuffers = [];
-        bytes           = [];
     }
 
     public function destroy()
@@ -1561,11 +1551,6 @@ private class ShaderInformation
         vertexShader.release();
         pixelShader.release();
         inputLayout.release();
-
-        for (cbuffer in constantBuffers)
-        {
-            cbuffer.release();
-        }
     }
 }
 
