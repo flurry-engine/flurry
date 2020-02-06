@@ -43,9 +43,9 @@ class QuadGeometry extends Geometry
                 .addVertex(new Vector3(         0,          0), new Color(), new Vector2(u1, v1))
                 .addVertex(new Vector3(_options.w,          0), new Color(), new Vector2(u2, v1))
                 .vertexBlob(),
-            new IndexBlobBuilder(6)
+            new IndexBlobBuilder()
                 .addArray([ 0, 1, 2, 2, 1, 3 ])
-                .indices
+                .indexBlob()
         );
         _options.transform = tf;
 

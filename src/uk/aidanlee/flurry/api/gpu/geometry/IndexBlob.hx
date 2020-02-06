@@ -1,8 +1,8 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
-import haxe.io.Bytes;
-import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
+import haxe.io.BytesBuffer;
 import uk.aidanlee.flurry.api.buffers.BufferData;
+import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
 
 class IndexBlob
 {
@@ -10,34 +10,37 @@ class IndexBlob
 
     public final shortAccess : UInt16BufferData;
 
-    public function new(_size : Int)
+    public function new(_buffer : BufferData)
     {
-        final bytes = Bytes.alloc(_size * UInt16BufferData.BYTES_PER_UINT);
-
-        buffer       = new BufferData(bytes, 0, bytes.length);
-        shortAccess = buffer;
+        buffer      = _buffer;
+        shortAccess = _buffer;
     }
 }
 
 class IndexBlobBuilder
 {
-    public final indices : IndexBlob;
+    final builder : BytesBuffer;
 
-    var idx : Int;
-
-    public function new(_size : Int)
+    public function new()
     {
-        indices = new IndexBlob(_size);
-        idx     = 0;
+        builder = new BytesBuffer();
     }
 
     public function addArray(_array : Array<Int>) : IndexBlobBuilder
     {
         for (val in _array)
         {
-            indices.shortAccess[idx++] = val;
+            builder.addByte(val & 0xff);
+            builder.addByte(val >> 8);
         }
 
         return this;
+    }
+
+    public function indexBlob()
+    {
+        final bytes = builder.getBytes();
+
+        return new IndexBlob(new BufferData(bytes, 0, bytes.length));
     }
 }
