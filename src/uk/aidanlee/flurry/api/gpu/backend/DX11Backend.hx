@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import dxgi.structures.DxgiPresentParameters;
+import dxgi.constants.DxgiPresent;
 import haxe.Exception;
 import haxe.ds.ReadOnlyArray;
 import cpp.UInt8;
@@ -108,6 +110,11 @@ class DX11Backend implements IRendererBackend
     final displayEvents : DisplayEvents;
 
     /**
+     * Parameters to define the area of the window to update when presenting.
+     */
+    final presentParameters : DxgiPresentParameters;
+
+    /**
      * D3D11 device for this window.
      */
     final device : D3d11Device1;
@@ -120,7 +127,7 @@ class DX11Backend implements IRendererBackend
     /**
      * DXGI swapchain for presenting the backbuffer to the window.
      */
-    final swapchain : DxgiSwapChain;
+    final swapchain : DxgiSwapChain1;
 
     /**
      * Single main vertex buffer.
@@ -303,7 +310,7 @@ class DX11Backend implements IRendererBackend
         shaderTextureSamplers  = [ for (i in 0...16) null ];
 
         // Persistent D3D11 objects and descriptions
-        swapchain               = new DxgiSwapChain();
+        swapchain               = new DxgiSwapChain1();
         swapchainTexture        = new D3d11Texture2D();
         device                  = new D3d11Device1();
         context                 = new D3d11DeviceContext1();
@@ -323,11 +330,11 @@ class DX11Backend implements IRendererBackend
         depthStencilDescription = new D3d11DepthStencilDescription();
 
         // Setup the DXGI factory and get this windows adapter and output.
-        final factory = new DxgiFactory();
+        final factory = new DxgiFactory2();
         final adapter = new DxgiAdapter();
         final output  = new DxgiOutput();
 
-        if (Dxgi.createFactory(factory) != Ok)
+        if (Dxgi.createFactory2(0, factory) != Ok)
         {
             throw new Exception('DXGI Failure creating factory');
         }
@@ -341,17 +348,20 @@ class DX11Backend implements IRendererBackend
         }
 
         // Create the device, context, and swapchain.
-        final description = new DxgiSwapChainDescription();
-        description.bufferDesc.width  = _windowConfig.width;
-        description.bufferDesc.height = _windowConfig.height;
-        description.bufferDesc.format = R8G8B8A8UNorm;
-        description.sampleDesc.count  = 1;
-        description.outputWindow      = hwnd;
-        description.bufferCount       = 2;
-        description.bufferUsage       = RenderTargetOutput;
-        description.windowed          = true;
+        final description = new DxgiSwapChainDescription1();
+        description.sampleDesc.count   = 1;
+        description.sampleDesc.quality = 0;
+        description.width       = 0;
+        description.height      = 0;
+        description.format      = R8G8B8A8UNorm;
+        description.stereo      = false;
+        description.bufferCount = 2;
+        description.bufferUsage = RenderTargetOutput;
+        description.scaling     = Stretch;
+        description.swapEffect  = FlipDiscard;
+        description.alphaMode   = Unspecified;
 
-        final deviceCreationFlags = D3d11CreateDeviceFlags.SingleThreaded;
+        final deviceCreationFlags = D3d11CreateDeviceFlags.None;
 
         // Create our actual device and swapchain
         if (D3d11.createDevice(adapter, Unknown, null, deviceCreationFlags, [ Level11_1 ], D3d11.SdkVersion, device, null, context) != Ok)
@@ -368,13 +378,14 @@ class DX11Backend implements IRendererBackend
             throw new Exception('failed to cast ID3D11DeviceContext to an ID3D11DeviceContext1');
         }
 
-        if (factory.createSwapChain(device, description, swapchain) != 0)
+        if (factory.createSwapChainForHwnd(device, hwnd, description, null, null, swapchain) != Ok)
         {
             throw new Dx11ResourceCreationException('IDXGISwapChain');
         }
 
-        // Create the backbuffer render target.
-        backbuffer = new BackBuffer(_windowConfig.width, _windowConfig.height, 1);
+        backbuffer        = new BackBuffer(_windowConfig.width, _windowConfig.height, 1);
+        presentParameters = new DxgiPresentParameters();
+        presentParameters.dirtyRectsCount = 0;
 
         if (swapchain.getBuffer(0, NativeID3D11Texture2D.uuid(), swapchainTexture) != Ok)
         {
@@ -621,7 +632,10 @@ class DX11Backend implements IRendererBackend
      */
     public function postDraw()
     {
-        swapchain.present(FlipSequential, 0);
+        swapchain.present1(0, 0, presentParameters);
+
+        context.omSetRenderTargets([ backbuffer.renderTargetView ], depthStencilView);
+        target = Backbuffer;
     }
 
     /**
@@ -639,7 +653,7 @@ class DX11Backend implements IRendererBackend
         backbuffer.renderTargetView.release();
         swapchainTexture.release();
 
-        if (swapchain.resizeBuffers(0, _width, _height, Unknown, 0) != Ok)
+        if (swapchain.resizeBuffers(0, 0, 0, Unknown, 0) != Ok)
         {
             throw new DX11ResizeBackbufferException();
         }

@@ -1,17 +1,11 @@
 {
     "app" : {
         "name"      : "SystemTests",
-        "main"      : "ShaderUniforms",
+        "main"      : "ImageSamplers",
         "output"    : "bin",
         "codepaths" : [ "src", "../../src" ],
         "namespace" : "uk.aidanlee.flurry.tests.system",
         "backend"   : "Snow"
-    },
-
-    "build" : {
-        "defines" : [
-            { "def" : "d3d11_feature_level", "val" : "1.1" }
-        ]
     },
 
     "parcels" : [ "assets/assets.json" ]
