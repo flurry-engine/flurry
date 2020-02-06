@@ -653,7 +653,8 @@ class DX11Backend implements IRendererBackend
         backbuffer.renderTargetView.release();
         swapchainTexture.release();
 
-        if (swapchain.resizeBuffers(0, 0, 0, Unknown, 0) != Ok)
+        // Resise the swapchain texture
+        if (swapchain.resizeBuffers(0, _width, _height, Unknown, 0) != Ok)
         {
             throw new DX11ResizeBackbufferException();
         }
@@ -664,6 +665,37 @@ class DX11Backend implements IRendererBackend
         if (device.createRenderTargetView(swapchainTexture, null, backbuffer.renderTargetView) != Ok)
         {
             throw new Dx11ResourceCreationException('ID3D11RenderTargetView');
+        }
+
+        // Rebuild the depth and stencil buffer
+        depthStencilView.release();
+
+        final depthTextureDesc = new D3d11Texture2DDescription();
+        depthTextureDesc.width              = _width;
+        depthTextureDesc.height             = _height;
+        depthTextureDesc.mipLevels          = 1;
+        depthTextureDesc.arraySize          = 1;
+        depthTextureDesc.format             = D32FloatS8X24UInt;
+        depthTextureDesc.sampleDesc.count   = 1;
+        depthTextureDesc.sampleDesc.quality = 0;
+        depthTextureDesc.usage              = Default;
+        depthTextureDesc.bindFlags          = DepthStencil;
+        depthTextureDesc.cpuAccessFlags     = 0;
+        depthTextureDesc.miscFlags          = 0;
+
+        if (device.createTexture2D(depthTextureDesc, null, depthStencilTexture) != 0)
+        {
+            throw new Dx11ResourceCreationException('ID3D11Texture2D');
+        }
+
+        final depthStencilViewDescription = new D3d11DepthStencilViewDescription();
+        depthStencilViewDescription.format             = D32FloatS8X24UInt;
+        depthStencilViewDescription.viewDimension      = Texture2D;
+        depthStencilViewDescription.texture2D.mipSlice = 0;
+
+        if (device.createDepthStencilView(depthStencilTexture, depthStencilViewDescription, depthStencilView) != 0)
+        {
+            throw new Dx11ResourceCreationException('ID3D11DepthStencilView');
         }
 
         // If we don't force a render target change here then the previous backbuffer pointer might still be bound and used.
@@ -677,6 +709,13 @@ class DX11Backend implements IRendererBackend
         nativeClip.top    = 0;
         nativeClip.right  = _width;
         nativeClip.bottom = _height;
+        context.rsSetScissorRects([ nativeClip ]);
+
+        nativeView.topLeftX = 0;
+        nativeView.topLeftY = 0;
+        nativeView.width    = _width;
+        nativeView.height   = _height;
+        context.rsSetViewports([ nativeView ]);
     }
 
     /**
