@@ -1,8 +1,9 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import rx.Subject;
+import rx.Unit;
+import rx.Observable;
 import haxe.ds.ReadOnlyArray;
-import signals.Signal1;
-import signals.Signal.Signal0;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
@@ -79,12 +80,7 @@ class Geometry
     /**
      * Signal which is dispatched when some property of this geometry is changed.
      */
-    public final changed : Signal0;
-
-    /**
-     * Signal which is dispatched when the geometry is disposed of.
-     */
-    public final dropped : Signal1<Geometry>;
+    public final changed : Observable<Unit>;
 
     /**
      * Transformation of this geometry.
@@ -114,7 +110,7 @@ class Geometry
     inline function set_textures(_textures : GeometryTextures) : GeometryTextures {
         textures = _textures;
 
-        changed.dispatch();
+        (cast changed : Subject<Unit>).onNext(unit);
 
         return _textures;
     }
@@ -124,7 +120,7 @@ class Geometry
     inline function set_samplers(_samplers : GeometrySamplers) : GeometrySamplers {
         samplers = _samplers;
 
-        changed.dispatch();
+        (cast changed : Subject<Unit>).onNext(unit);
 
         return _samplers;
     }
@@ -138,7 +134,7 @@ class Geometry
     inline function set_shader(_shader : GeometryShader) : GeometryShader {
         shader = _shader;
 
-        changed.dispatch();
+        (cast changed : Subject<Unit>).onNext(unit);
 
         return _shader;
     }
@@ -148,7 +144,7 @@ class Geometry
     inline function set_uniforms(_uniforms : GeometryUniforms) : GeometryUniforms {
         uniforms = _uniforms;
 
-        changed.dispatch();
+        (cast changed : Subject<Unit>).onNext(unit);
 
         return _uniforms;
     }
@@ -163,7 +159,7 @@ class Geometry
         {
             depth = _depth;
 
-            changed.dispatch();
+            (cast changed : Subject<Unit>).onNext(unit);
         }
 
         return _depth;
@@ -179,7 +175,7 @@ class Geometry
         {
             primitive = _primitive;
 
-            changed.dispatch();
+            (cast changed : Subject<Unit>).onNext(unit);
         }
 
         return _primitive;
@@ -220,8 +216,7 @@ class Geometry
     {
         id = Hash.uniqueHash();
 
-        changed        = new Signal0();
-        dropped        = new Signal1<Geometry>();
+        changed        = Subject.create();
         data           = _options.data;
         shader         = _options.shader    .or(None);
         uniforms       = _options.uniforms  .or(None);

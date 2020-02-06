@@ -1,5 +1,8 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import rx.Unit;
+import rx.Subscription;
+import rx.disposables.ISubscription;
 import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
@@ -10,6 +13,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.maths.Hash;
 
 using Safety;
+using rx.Observable;
 
 typedef BatcherOptions = {
     /**
@@ -102,14 +106,19 @@ class Batcher
     public var target : TargetState;
 
     /**
-     * If the batcher needs to sort all of its geometries.
-     */
-    var dirty : Bool;
-
-    /**
      * The state of the batcher.
      */
     final state : BatcherState;
+
+    /**
+     * Subscriptions to all of this batchers geometries changed observable.
+     */
+    final subscriptions : Map<Int, ISubscription>;
+
+    /**
+     * If the batcher needs to sort all of its geometries.
+     */
+    var dirty : Bool;
 
     /**
      * Creates an empty batcher.
@@ -120,6 +129,7 @@ class Batcher
         id = Hash.uniqueHash();
         
         geometry       = [];
+        subscriptions  = [];
         shader         = _options.shader;
         camera         = _options.camera;
         target         = _options.target.or(Backbuffer);
@@ -150,14 +160,6 @@ class Batcher
     }
 
     /**
-     * Flag the batcher to re-order its geometries.
-     */
-    public function setDirty()
-    {
-        dirty = true;
-    }
-
-    /**
      * Returns if this batcher is currently flagged as dirty.
      * @return Bool
      */
@@ -172,9 +174,8 @@ class Batcher
      */
     public function addGeometry(_geom : Geometry)
     {
-        _geom.changed.add(setDirty);
-
         geometry.push(_geom);
+        subscriptions[_geom.id] = _geom.changed.subscribeFunction(setDirty);
 
         dirty = true;
     }
@@ -185,9 +186,10 @@ class Batcher
      */
     public function removeGeometry(_geom : Geometry)
     {
-        _geom.changed.remove(setDirty);
-
         geometry.remove(_geom);
+
+        subscriptions[_geom.id].unsubscribe();
+        subscriptions.remove(_geom.id);
 
         dirty = true;
     }
@@ -285,7 +287,7 @@ class Batcher
      * Batchable geometry is of the 'Triangles', 'Lines', or 'Points' geometric primitive.
      * @param _geom Geometry to check.
      */
-    inline function batchablePrimitive(_geom : Geometry) : Bool
+    function batchablePrimitive(_geom : Geometry) : Bool
     {
         return _geom.primitive == Triangles || _geom.primitive == Lines || _geom.primitive == Points;
     }
@@ -296,7 +298,7 @@ class Batcher
      * @param _b Geometry b.
      * @return Int
      */
-    inline function sortGeometry(_a : Geometry, _b : Geometry) : Int
+    function sortGeometry(_a : Geometry, _b : Geometry) : Int
     {
         // Sort by depth.
         if (_a.depth < _b.depth) return -1;
@@ -373,5 +375,13 @@ class Batcher
         }
 
         return 0;
+    }
+
+    /**
+     * Flag the batcher to re-order its geometries.
+     */
+    function setDirty(_unit : Unit)
+    {
+        dirty = true;
     }
 }
