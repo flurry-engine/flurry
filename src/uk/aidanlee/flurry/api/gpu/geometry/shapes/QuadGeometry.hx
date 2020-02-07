@@ -1,9 +1,9 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
-import uk.aidanlee.flurry.api.maths.Transformation;
-import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.maths.Vector3;
+import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.maths.Transformation;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
@@ -145,6 +145,34 @@ class QuadGeometry extends Geometry
                 final uv_h = _normalized ? _w : _w / height;
 
                 updateUVs(uv_x, uv_y, uv_w, uv_h);
+        }
+    }
+
+    public function setColour(_r : Float, _g : Float, _b : Float, _a : Float)
+    {
+        switch data
+        {
+            case Indexed(_vertices, _):
+                _vertices.floatAccess[3] = _r;
+                _vertices.floatAccess[4] = _g;
+                _vertices.floatAccess[5] = _b;
+                _vertices.floatAccess[6] = _a;
+
+                _vertices.floatAccess[12] = _r;
+                _vertices.floatAccess[13] = _g;
+                _vertices.floatAccess[14] = _b;
+                _vertices.floatAccess[15] = _a;
+
+                _vertices.floatAccess[21] = _r;
+                _vertices.floatAccess[22] = _g;
+                _vertices.floatAccess[23] = _b;
+                _vertices.floatAccess[24] = _a;
+
+                _vertices.floatAccess[30] = _r;
+                _vertices.floatAccess[31] = _g;
+                _vertices.floatAccess[32] = _b;
+                _vertices.floatAccess[33] = _a;
+            case _:
         }
     }
 
