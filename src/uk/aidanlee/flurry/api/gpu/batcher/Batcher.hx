@@ -1,7 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
 import rx.Unit;
-import rx.Subscription;
 import rx.disposables.ISubscription;
 import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;

@@ -82,7 +82,7 @@ class DrawCommand
         _shader     : ShaderResource,
         _uniforms   : ReadOnlyArray<UniformBlob>,
         _textures   : ReadOnlyArray<ImageResource>,
-        _samplers   : ReadOnlyArray<Null<SamplerState>>,
+        _samplers   : ReadOnlyArray<SamplerState>,
         _depth      : DepthState,
         _stencil    : StencilState,
         _blending   : BlendState

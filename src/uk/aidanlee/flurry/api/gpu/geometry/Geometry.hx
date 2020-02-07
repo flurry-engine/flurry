@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
-import rx.Subject;
 import rx.Unit;
+import rx.Subject;
 import rx.Observable;
 import haxe.ds.ReadOnlyArray;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
@@ -214,9 +214,9 @@ class Geometry
      */
     public function new(_options : GeometryOptions)
     {
-        id = Hash.uniqueHash();
+        id      = Hash.uniqueHash();
+        changed = Subject.create();
 
-        changed        = Subject.create();
         data           = _options.data;
         shader         = _options.shader    .or(None);
         uniforms       = _options.uniforms  .or(None);
@@ -228,10 +228,9 @@ class Geometry
         transformation = _options.transform .or(new Transformation());
         blend          = _options.blend     .or(new BlendState());
 
-        // Add to batchers.
         if (_options.batchers != null)
         {
-            for (batcher in _options.batchers.unsafe())
+            for (batcher in _options.batchers)
             {
                 batcher.addGeometry(this);
             }
