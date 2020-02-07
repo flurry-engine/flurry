@@ -11,42 +11,7 @@ import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.maths.Hash;
 
-using Safety;
 using rx.Observable;
-
-typedef BatcherOptions = {
-    /**
-     * The initial camera this batcher will use.
-     */
-    var camera : Camera;
-
-    /**
-     * The initial shader this batcher will use.
-     */
-    var shader : ShaderResource;
-
-    /**
-     * Optional render target for this batcher.
-     * If not specified the backbuffer / default target will be used.
-     */
-    var ?target : TargetState;
-
-    /**
-     * Optional initial depth for this batcher.
-     * If not specified the depth starts at 0.
-     */
-    var ?depth : Float;
-
-    /**
-     * Depth testing options to be used by the batcher.
-     */
-    var ?depthOptions : DepthState;
-
-    /**
-     * Stencil testing options to be used by the batcher.
-     */
-    var ?stencilOptions : StencilState;
-}
 
 /**
  * A batcher is used to sort a set of geometries so that the renderer can draw them
@@ -131,28 +96,10 @@ class Batcher
         subscriptions  = [];
         shader         = _options.shader;
         camera         = _options.camera;
-        target         = _options.target.or(Backbuffer);
-        depth          = _options.depth.or(0);
-        depthOptions   = _options.depthOptions.or({
-            depthTesting  : false,
-            depthMasking  : false,
-            depthFunction : Always
-        });
-        stencilOptions = _options.stencilOptions.or({
-            stencilTesting : false,
-
-            stencilFrontMask          : 0xff,
-            stencilFrontFunction      : Always,
-            stencilFrontTestFail      : Keep,
-            stencilFrontDepthTestFail : Keep,
-            stencilFrontDepthTestPass : Keep,
-            
-            stencilBackMask          : 0xff,
-            stencilBackFunction      : Always,
-            stencilBackTestFail      : Keep,
-            stencilBackDepthTestFail : Keep,
-            stencilBackDepthTestPass : Keep
-        });
+        target         = _options.target;
+        depth          = _options.depth;
+        depthOptions   = _options.depthOptions;
+        stencilOptions = _options.stencilOptions;
 
         state = new BatcherState(this);
         dirty = false;
@@ -383,4 +330,57 @@ class Batcher
     {
         dirty = true;
     }
+}
+
+@:structInit class BatcherOptions
+{
+    /**
+     * The initial camera this batcher will use.
+     */
+    public var camera : Camera;
+
+    /**
+     * The initial shader this batcher will use.
+     */
+    public var shader : ShaderResource;
+
+    /**
+     * Optional render target for this batcher.
+     * If not specified the backbuffer / default target will be used.
+     */
+    public var target : TargetState = Backbuffer;
+
+    /**
+     * Optional initial depth for this batcher.
+     * If not specified the depth starts at 0.
+     */
+    public var depth = 0.0;
+
+    /**
+     * Depth testing options to be used by the batcher.
+     */
+    public var depthOptions : DepthState = {
+        depthTesting  : false,
+        depthMasking  : false,
+        depthFunction : Always
+    };
+
+    /**
+     * Stencil testing options to be used by the batcher.
+     */
+    public var stencilOptions : StencilState = {
+        stencilTesting : false,
+
+        stencilFrontMask          : 0xff,
+        stencilFrontFunction      : Always,
+        stencilFrontTestFail      : Keep,
+        stencilFrontDepthTestFail : Keep,
+        stencilFrontDepthTestPass : Keep,
+        
+        stencilBackMask          : 0xff,
+        stencilBackFunction      : Always,
+        stencilBackTestFail      : Keep,
+        stencilBackDepthTestFail : Keep,
+        stencilBackDepthTestPass : Keep
+    };
 }
