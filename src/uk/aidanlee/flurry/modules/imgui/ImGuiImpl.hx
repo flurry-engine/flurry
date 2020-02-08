@@ -1,5 +1,12 @@
 package uk.aidanlee.flurry.modules.imgui;
 
+import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
+import cpp.ConstPointer;
+import cpp.Stdlib;
+import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
+import uk.aidanlee.flurry.api.buffers.Float32BufferData;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import cpp.Star;
 import cpp.Pointer;
 import haxe.io.Bytes;
@@ -7,10 +14,11 @@ import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
 import rx.Unit;
 import uk.aidanlee.flurry.api.gpu.Renderer;
-import uk.aidanlee.flurry.api.gpu.DepthOptions;
-import uk.aidanlee.flurry.api.gpu.StencilOptions;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
-import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
+import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
+import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.state.DepthState;
+import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.input.Input;
 import uk.aidanlee.flurry.api.input.Keycodes;
 import uk.aidanlee.flurry.api.input.Scancodes;
@@ -23,6 +31,7 @@ import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import imgui.NativeImGui;
 
+using cpp.NativeArray;
 using rx.Observable;
 
 class ImGuiImpl
@@ -37,9 +46,9 @@ class ImGuiImpl
     final vtxData  : Float32Array;
     final idxData  : UInt16Array;
     final camera   : Camera2D;
-    final depth    : DepthOptions;
-    final stencil  : StencilOptions;
-    final model    : Matrix;
+    final depth    : DepthState;
+    final stencil  : StencilState;
+    final blend    : BlendState;
 
     public function new(_events : FlurryEvents, _display : Display, _resources : ResourceSystem, _input : Input, _renderer : Renderer)
     {
@@ -69,7 +78,7 @@ class ImGuiImpl
             stencilBackDepthTestFail : Keep,
             stencilBackDepthTestPass : Keep
         }
-        model = new Matrix();
+        blend = new BlendState();
 
         NativeImGui.createContext();
 
@@ -171,8 +180,8 @@ class ImGuiImpl
      */
     public function render(_unit : Unit)
     {
-        camera.viewport.set(0, 0, display.width, display.height);
-        camera.size.set(camera.viewport.w, camera.viewport.h);
+        camera.viewport = Viewport(0, 0, display.width, display.height);
+        camera.size.set(display.width, display.height);
         camera.update(1000 / 60);
 
         NativeImGui.render();
@@ -203,78 +212,64 @@ class ImGuiImpl
      */
     function onRender(_drawData : Star<ImDrawData>) : Void
     {
-        var commands  = [];
-        var vtxOffset = 0;
-        var idxOffset = 0;
-
-        var globalVtxOffset = 0;
-        var globalIdxOffset = 0;
-
         for (i in 0..._drawData.cmdListsCount)
         {
-            var cmdList   = _drawData.cmdLists[i];
-            var cmdBuffer = cmdList.cmdBuffer.data;
-            var vtxBuffer = cmdList.vtxBuffer.data;
-            var idxBuffer = cmdList.idxBuffer.data;
+            final cmdList   = _drawData.cmdLists[i];
+            final cmdBuffer = cmdList.cmdBuffer.data;
+            final vtxBuffer = cmdList.vtxBuffer.data;
+            final idxBuffer = cmdList.idxBuffer.data;
 
+            final vtxBytes = new Float32BufferData(cmdList.vtxBuffer.size() * 9);
+            final idxBytes = new UInt16BufferData(cmdList.idxBuffer.size());
+
+            var idx = 0;
             for (j in 0...cmdList.vtxBuffer.size())
             {
-                vtxData[vtxOffset++] = vtxBuffer[j].pos.x;
-                vtxData[vtxOffset++] = vtxBuffer[j].pos.y;
-                vtxData[vtxOffset++] = 0;
-                vtxData[vtxOffset++] = ((vtxBuffer[j].col) & 0xFF) / 255;
-                vtxData[vtxOffset++] = ((vtxBuffer[j].col >>  8) & 0xFF) / 255;
-                vtxData[vtxOffset++] = ((vtxBuffer[j].col >> 16) & 0xFF) / 255;
-                vtxData[vtxOffset++] = ((vtxBuffer[j].col >> 24) & 0xFF) / 255;
-                vtxData[vtxOffset++] = vtxBuffer[j].uv.x;
-                vtxData[vtxOffset++] = vtxBuffer[j].uv.y;
+                vtxBytes[idx++] = vtxBuffer[j].pos.x;
+                vtxBytes[idx++] = vtxBuffer[j].pos.y;
+                vtxBytes[idx++] = 0;
+                vtxBytes[idx++] = ((vtxBuffer[j].col) & 0xFF) / 255;
+                vtxBytes[idx++] = ((vtxBuffer[j].col >>  8) & 0xFF) / 255;
+                vtxBytes[idx++] = ((vtxBuffer[j].col >> 16) & 0xFF) / 255;
+                vtxBytes[idx++] = ((vtxBuffer[j].col >> 24) & 0xFF) / 255;
+                vtxBytes[idx++] = vtxBuffer[j].uv.x;
+                vtxBytes[idx++] = vtxBuffer[j].uv.y;
             }
 
-            for (j in 0...cmdList.idxBuffer.size())
-            {
-                idxData[idxOffset++] = idxBuffer[j];
-            }
+            Stdlib.memcpy(
+                idxBytes.bytes.getData().address(0),
+                ConstPointer.fromRaw(idxBuffer), cmdList.idxBuffer.size() * 2);
 
             for (j in 0...cmdList.cmdBuffer.size())
             {
                 var draw = cmdBuffer[j];
-                var clip = new Rectangle(
-                    draw.clipRect.x - _drawData.displayPos.x,
-                    draw.clipRect.y - _drawData.displayPos.y,
-                    draw.clipRect.z - draw.clipRect.x,
-                    draw.clipRect.w - draw.clipRect.y);
                 var t : Pointer<ImageResource> = Pointer.fromStar(draw.textureId).reinterpret();
 
-                commands.push(new BufferDrawCommand(
-                    vtxData, globalVtxOffset + draw.vtxOffset, vtxOffset,
-                    idxData, globalIdxOffset + draw.idxOffset, globalIdxOffset + draw.idxOffset + draw.elemCount,
-                    model,
-                    Hash.uniqueHash(),
-                    Stream,
-                    camera,
-                    clip,
-                    Triangles,
-                    null,
-                    resources.get('std-shader-textured.json', ShaderResource),
-                    null,
-                    [ t.value ],
-                    [ null ],
-                    depth,
-                    stencil,
-                    true,
-                    SrcAlpha,
-                    OneMinusSrcAlpha,
-                    One,
-                    Zero));
+                renderer.backend.queue(
+                    new DrawCommand(
+                        Hash.uniqueHash(),
+                        [
+                            new Geometry({
+                                data : Indexed(new VertexBlob(vtxBytes), new IndexBlob(idxBytes))
+                            })
+                        ],
+                        camera,
+                        Triangles,
+                        Clip(
+                            Std.int(draw.clipRect.x - _drawData.displayPos.x),
+                            Std.int(draw.clipRect.y - _drawData.displayPos.y),
+                            Std.int(draw.clipRect.z - draw.clipRect.x),
+                            Std.int(draw.clipRect.w - draw.clipRect.y)),
+                        Backbuffer,
+                        resources.get('std-shader-textured.json', ShaderResource),
+                        [],
+                        [ t.value ],
+                        [],
+                        depth,
+                        stencil,
+                        blend));
             }
-
-            globalIdxOffset += cmdList.idxBuffer.size();
-            globalVtxOffset += cmdList.vtxBuffer.size();
         }
-        
-        // Send commands to renderer backend.
-        renderer.backend.uploadBufferCommands(commands);
-        renderer.backend.submitCommands(cast commands, true);
     }
 
     // Callbacks

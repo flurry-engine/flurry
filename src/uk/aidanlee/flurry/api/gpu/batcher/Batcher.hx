@@ -269,6 +269,35 @@ class Batcher
                 }
         }
 
+        // sort by uniforms
+        switch _a.uniforms
+        {
+            case None:
+                switch _b.uniforms
+                {
+                    case None: // no op
+                    case Uniforms(_): return -1;
+                }
+            case Uniforms(_uniformsA):
+                switch _b.uniforms
+                {
+                    case None: return 1;
+                    case Uniforms(_uniformsB):
+                        if (_uniformsA.length == _uniformsB.length)
+                        {
+                            for (i in 0..._uniformsA.length)
+                            {
+                                if (_uniformsA[i].id < _uniformsB[i].id) return -1;
+                                if (_uniformsA[i].id > _uniformsB[i].id) return  1;
+                            }
+                        }
+                        else
+                        {
+                            return _uniformsA.length - _uniformsB.length;
+                        }
+                }
+        }
+
         // Sort by texture.
         switch _a.textures
         {
@@ -283,8 +312,18 @@ class Batcher
                 {
                     case None: return 1;
                     case Textures(_texturesB):
-                        if (_texturesA[0].id < _texturesB[0].id) return -1;
-                        if (_texturesA[0].id > _texturesB[0].id) return  1;
+                        if (_texturesA.length == _texturesB.length)
+                        {
+                            for (i in 0..._texturesA.length)
+                            {
+                                if (_texturesA[i].id < _texturesB[i].id) return -1;
+                                if (_texturesA[i].id > _texturesB[i].id) return  1;
+                            }
+                        }
+                        else
+                        {
+                            return _texturesA.length - _texturesB.length;
+                        }
                 }
         }
 
@@ -302,23 +341,53 @@ class Batcher
                 {
                     case None: return 1;
                     case Samplers(_samplersB):
-                        if (_samplersA[0].equal(_samplersB[0]))
+                        if (_samplersA.length == _samplersB.length)
+                        {
+                            for (i in 0..._samplersA.length)
+                            {
+                                if (!_samplersA[i].equal(_samplersB[i]))
+                                {
+                                    return -1;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            return _samplersA.length - _samplersB.length;
+                        }
+                }
+        }
+
+        // Sort by clip.
+        switch _a.clip
+        {
+            case None:
+                switch _b.clip
+                {
+                    case None: // no op
+                    case Clip(_, _, _, _): return -1;
+                }
+            case Clip(_x1, _y1, _width1, _height1):
+                switch _b.clip
+                {
+                    case None: return 1;
+                    case Clip(_x2, _y2, _width2, _height2):
+                        if (_x1 != _x2 || _y1 != _y2 || _width1 != _width2 || _height1 != _height2)
                         {
                             return -1;
                         }
                 }
         }
 
+        // Sort by blend
+        if (!_a.blend.equals(_b.blend))
+        {
+            return -1;
+        }
+
         // Sort by primitive.
         if ((cast _a.primitive : Int) < (cast _b.primitive : Int)) return -1;
         if ((cast _a.primitive : Int) > (cast _b.primitive : Int)) return  1;
-
-        // Sort by clip.
-        if (_a.clip != _b.clip)
-        {
-            if (_a.clip == null && _b.clip != null) return  1;
-            if (_a.clip != null && _b.clip == null) return -1;
-        }
 
         return 0;
     }

@@ -2,12 +2,15 @@ package uk.aidanlee.flurry.api.gpu.geometry;
 
 import haxe.io.Bytes;
 import haxe.io.BytesBuffer;
+import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.api.buffers.BufferData;
 
 class UniformBlob
 {
+    public final id : Int;
+
     public final name : String;
 
     public final buffer : BufferData;
@@ -16,6 +19,7 @@ class UniformBlob
 
     public function new(_name : String, _bytes : Bytes, _locations : Map<String, Int>)
     {
+        id        = Hash.hash(_name);
         name      = _name;
         buffer    = new BufferData(_bytes, 0, _bytes.length);
         locations = _locations;

@@ -21,17 +21,17 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 using Safety;
 
 typedef GeometryOptions = {
+    var data        : GeometryData;
     var ?transform  : Transformation;
-    var ?data       : GeometryData;
+    var ?depth      : Float;
     var ?shader     : GeometryShader;
     var ?uniforms   : GeometryUniforms;
     var ?textures   : GeometryTextures;
     var ?samplers   : GeometrySamplers;
-    var ?depth      : Float;
     var ?clip       : ClipState;
+    var ?blend      : BlendState;
     var ?primitive  : PrimitiveType;
     var ?batchers   : Array<Batcher>;
-    var ?blend      : BlendState;
 }
 
 enum GeometryData
@@ -83,46 +83,29 @@ class Geometry
     public final changed : Observable<Unit>;
 
     /**
-     * Transformation of this geometry.
-     */
-    public final transformation : Transformation;
-
-    /**
-     * The blend state for this geometry.
-     */
-    public final blend : BlendState;
-
-    /**
-     * Clipping rectangle for this geometry. Null if none.
-     */
-    public final clip : ClipState;
-
-    /**
      * Vertex data of this geometry.
      */
     public var data : GeometryData;
 
     /**
-     * All of the images this image will provide to the shader.
+     * Transformation of this geometry.
      */
-    public var textures (default, set) : GeometryTextures;
+    public final transformation : Transformation;
 
-    inline function set_textures(_textures : GeometryTextures) : GeometryTextures {
-        textures = _textures;
+    /**
+     * The depth of this mesh within the batcher.
+     */
+    public var depth (default, set) : Float;
 
-        (cast changed : Subject<Unit>).onNext(unit);
+    inline function set_depth(_depth : Float) : Float {
+        if (depth != _depth)
+        {
+            depth = _depth;
 
-        return _textures;
-    }
+            (cast changed : Subject<Unit>).onNext(unit);
+        }
 
-    public var samplers (default, set) : GeometrySamplers;
-
-    inline function set_samplers(_samplers : GeometrySamplers) : GeometrySamplers {
-        samplers = _samplers;
-
-        (cast changed : Subject<Unit>).onNext(unit);
-
-        return _samplers;
+        return _depth;
     }
 
     /**
@@ -150,19 +133,53 @@ class Geometry
     }
 
     /**
-     * The depth of this mesh within the batcher.
+     * All of the images this image will provide to the shader.
      */
-    public var depth (default, set) : Float;
+    public var textures (default, set) : GeometryTextures;
 
-    inline function set_depth(_depth : Float) : Float {
-        if (depth != _depth)
-        {
-            depth = _depth;
+    inline function set_textures(_textures : GeometryTextures) : GeometryTextures {
+        textures = _textures;
 
-            (cast changed : Subject<Unit>).onNext(unit);
-        }
+        (cast changed : Subject<Unit>).onNext(unit);
 
-        return _depth;
+        return _textures;
+    }
+
+    public var samplers (default, set) : GeometrySamplers;
+
+    inline function set_samplers(_samplers : GeometrySamplers) : GeometrySamplers {
+        samplers = _samplers;
+
+        (cast changed : Subject<Unit>).onNext(unit);
+
+        return _samplers;
+    }
+
+    /**
+     * Clipping rectangle for this geometry. Null if none.
+     */
+    public var clip (default, set) : ClipState;
+
+    inline function set_clip(_clip : ClipState) : ClipState {
+        clip = _clip;
+
+        (cast changed : Subject<Unit>).onNext(unit);
+
+        return _clip;
+    }
+
+    /**
+     * The blend state for this geometry.
+     */
+    public var blend (default, set) : BlendState;
+
+    inline function set_blend(_blend : BlendState) : BlendState
+    {
+        blend = _blend;
+
+        (cast changed : Subject<Unit>).onNext(unit);
+
+        return _blend;
     }
 
     /**
@@ -218,15 +235,15 @@ class Geometry
         changed = Subject.create();
 
         data           = _options.data;
+        transformation = _options.transform .or(new Transformation());
+        depth          = _options.depth     .or(0);
         shader         = _options.shader    .or(None);
         uniforms       = _options.uniforms  .or(None);
         textures       = _options.textures  .or(None);
         samplers       = _options.samplers  .or(None);
         clip           = _options.clip      .or(None);
-        primitive      = _options.primitive .or(Triangles);
-        depth          = _options.depth     .or(0);
-        transformation = _options.transform .or(new Transformation());
         blend          = _options.blend     .or(new BlendState());
+        primitive      = _options.primitive .or(Triangles);
 
         if (_options.batchers != null)
         {

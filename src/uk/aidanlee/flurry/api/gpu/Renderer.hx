@@ -60,7 +60,7 @@ class Renderer
                 //     new MockBackend(_resourceEvents);
                 // #end
 
-                new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
+                new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
             case _: new MockBackend(_resourceEvents);
         }
     }
