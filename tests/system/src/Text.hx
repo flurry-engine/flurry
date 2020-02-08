@@ -32,7 +32,7 @@ class Text extends Flurry
 
         new TextGeometry({
             batchers : [ batcher ],
-            textures : [ resources.get('ubuntu.png', ImageResource) ],
+            textures : Textures([ resources.get('ubuntu.png', ImageResource) ]),
             font     : font,
             text     : 'hello world',
             position : new Vector3(32, 32)
@@ -40,7 +40,7 @@ class Text extends Flurry
 
         new TextGeometry({
             batchers : [ batcher ],
-            textures : [ resources.get('ubuntu.png', ImageResource) ],
+            textures : Textures([ resources.get('ubuntu.png', ImageResource) ]),
             font     : font,
             text     : 'Lorem ipsum',
             position : new Vector3(32, 48)

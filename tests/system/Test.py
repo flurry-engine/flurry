@@ -11,7 +11,6 @@ class SystemTests(unittest.TestCase):
     def test_system_programs(self):
         xvfb_proc  = subprocess.Popen([ "Xvfb", ":99", "-screen", "0", "768x512x24", "-nolisten", "tcp", "-nolisten", "unix" ])
         test_cases = [
-            "Dummy",
             "Colourised",
             "DepthTesting",
             "BatcherDepth",
