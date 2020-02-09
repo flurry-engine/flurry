@@ -21,17 +21,17 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 using Safety;
 
 typedef GeometryOptions = {
-    var data        : GeometryData;
-    var ?transform  : Transformation;
-    var ?depth      : Float;
-    var ?shader     : GeometryShader;
-    var ?uniforms   : GeometryUniforms;
-    var ?textures   : GeometryTextures;
-    var ?samplers   : GeometrySamplers;
-    var ?clip       : ClipState;
-    var ?blend      : BlendState;
-    var ?primitive  : PrimitiveType;
-    var ?batchers   : Array<Batcher>;
+    var data       : GeometryData;
+    var ?transform : Transformation;
+    var ?depth     : Float;
+    var ?shader    : GeometryShader;
+    var ?uniforms  : GeometryUniforms;
+    var ?textures  : GeometryTextures;
+    var ?samplers  : GeometrySamplers;
+    var ?clip      : ClipState;
+    var ?blend     : BlendState;
+    var ?primitive : PrimitiveType;
+    var ?batchers  : Array<Batcher>;
 }
 
 enum GeometryData
@@ -90,7 +90,7 @@ class Geometry
     /**
      * Transformation of this geometry.
      */
-    public final transformation : Transformation;
+    public var transformation : Transformation;
 
     /**
      * The depth of this mesh within the batcher.

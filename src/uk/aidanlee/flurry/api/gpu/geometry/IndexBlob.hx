@@ -30,9 +30,16 @@ class IndexBlobBuilder
     {
         for (val in _array)
         {
-            builder.addByte(val & 0xff);
-            builder.addByte(val >> 8);
+            addInt(val);
         }
+
+        return this;
+    }
+
+    public function addInt(_val : Int) : IndexBlobBuilder
+    {
+        builder.addByte(_val & 0xff);
+        builder.addByte(_val >> 8);
 
         return this;
     }

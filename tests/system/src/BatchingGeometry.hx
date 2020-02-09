@@ -26,21 +26,21 @@ class BatchingGeometry extends Flurry
         final batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
 
         new QuadGeometry({
-            textures : Textures([ resources.get('tank2', ImageResource) ]),
+            texture  : resources.get('tank2', ImageResource),
             batchers : [ batcher ],
-            x : 0, y : 128, w : 256, h : 256
+            y : 128
         });
 
         new QuadGeometry({
-            textures : Textures([ resources.get('tank1', ImageResource) ]),
+            texture  : resources.get('tank1', ImageResource),
             batchers : [ batcher ],
-            x : 256, y : 128, w : 256, h : 256
+            x : 256, y : 128
         });
 
         new QuadGeometry({
-            textures : Textures([ resources.get('tank2', ImageResource) ]),
+            texture  : resources.get('tank2', ImageResource),
             batchers : [ batcher ],
-            x : 512, y : 128, w : 256, h : 256
+            x : 512, y : 128
         });
     }
 }

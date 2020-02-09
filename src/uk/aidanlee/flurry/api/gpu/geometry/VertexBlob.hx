@@ -29,6 +29,40 @@ class VertexBlobBuilder
         builder = new BytesBuffer();
     }
 
+    public function addFloat(_val : Float) : VertexBlobBuilder
+    {
+        builder.addFloat(_val);
+
+        return this;
+    }
+
+    public function addFloat2(_val1 : Float, _val2 : Float) : VertexBlobBuilder
+    {
+        builder.addFloat(_val1);
+        builder.addFloat(_val2);
+
+        return this;
+    }
+
+    public function addFloat3(_val1 : Float, _val2 : Float, _val3 : Float) : VertexBlobBuilder
+    {
+        builder.addFloat(_val1);
+        builder.addFloat(_val2);
+        builder.addFloat(_val3);
+
+        return this;
+    }
+
+    public function addFloat4(_val1 : Float, _val2 : Float, _val3 : Float, _val4 : Float) : VertexBlobBuilder
+    {
+        builder.addFloat(_val1);
+        builder.addFloat(_val2);
+        builder.addFloat(_val3);
+        builder.addFloat(_val4);
+
+        return this;
+    }
+
     public function addVector2(_vec : Vector2) : VertexBlobBuilder
     {
         builder.addFloat(_vec.x);

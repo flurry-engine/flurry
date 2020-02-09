@@ -1,29 +1,34 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
-import uk.aidanlee.flurry.api.maths.Vector2;
-import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Transformation;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
+import uk.aidanlee.flurry.api.gpu.state.ClipState;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
+import uk.aidanlee.flurry.api.gpu.textures.ImageRegion;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
-import uk.aidanlee.flurry.api.gpu.textures.ImageRegion;
+import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 
 using Safety;
 
 typedef QuadGeometryOptions = {
-    >GeometryOptions,
-
-    var x : Float;
-    var y : Float;
-    var w : Float;
-    var h : Float;
+    var texture : ImageResource;
+    var ?sampler : SamplerState;
+    var ?shader : GeometryShader;
+    var ?uniforms : GeometryUniforms;
+    var ?depth : Float;
+    var ?clip : ClipState;
+    var ?blend : BlendState;
+    var ?batchers : Array<Batcher>;
+    var ?x : Float;
+    var ?y : Float;
+    var ?width : Float;
+    var ?height : Float;
     var ?region : ImageRegion;
 }
 
-/**
- * Quad geometry for quickly displaying a UV'd texture using six vertices.
- */
 class QuadGeometry extends Geometry
 {
     public function new(_options : QuadGeometryOptions)
@@ -32,33 +37,32 @@ class QuadGeometry extends Geometry
         final v1 = _options.region!.v1.or(0);
         final u2 = _options.region!.u2.or(1);
         final v2 = _options.region!.v2.or(1);
-        final tf = new Transformation();
+        final width  = _options.width.or(_options.texture.width);
+        final height = _options.height.or(_options.texture.height);
 
-        tf.position.set_xy(_options.x, _options.y);
+        super({
+            data : Indexed(
+                new VertexBlobBuilder()
+                    .addFloat3(    0, height, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v2)
+                    .addFloat3(width, height, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v2)
+                    .addFloat3(    0,      0, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v1)
+                    .addFloat3(width,      0, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v1)
+                    .vertexBlob(),
+                new IndexBlobBuilder()
+                    .addInt(0).addInt(1).addInt(2).addInt(2).addInt(1).addInt(3)
+                    .indexBlob()
+            ),
+            textures : Textures([ _options.texture ]),
+            samplers : _options.sampler == null ? None : Samplers([ _options.sampler ]),
+            shader   : _options.shader,
+            uniforms : _options.uniforms,
+            depth    : _options.depth,
+            clip     : _options.clip,
+            blend    : _options.blend,
+            batchers : _options.batchers
+        });
 
-        _options.data = Indexed(
-            new VertexBlobBuilder()
-                .addVertex(new Vector3(         0, _options.h), new Color(), new Vector2(u1, v2))
-                .addVertex(new Vector3(_options.w, _options.h), new Color(), new Vector2(u2, v2))
-                .addVertex(new Vector3(         0,          0), new Color(), new Vector2(u1, v1))
-                .addVertex(new Vector3(_options.w,          0), new Color(), new Vector2(u2, v1))
-                .vertexBlob(),
-            new IndexBlobBuilder()
-                .addArray([ 0, 1, 2, 2, 1, 3 ])
-                .indexBlob()
-        );
-        _options.transform = tf;
-
-        super(_options);
-    }
-
-    /**
-     * Resize the quad according to a vector.
-     * @param _vector New width and height of the quad.
-     */
-    public function resize(_vector : Vector2)
-    {
-        updateSize(_vector.x, _vector.y);
+        position.set_xy(_options.x.or(0), _options.y.or(0));
     }
 
     /**
@@ -66,7 +70,7 @@ class QuadGeometry extends Geometry
      * @param _x New width of the quad.
      * @param _y New height of the quad.
      */
-    public function resize_xy(_x : Float, _y : Float)
+    public function resize(_x : Float, _y : Float)
     {
         updateSize(_x, _y);
     }
