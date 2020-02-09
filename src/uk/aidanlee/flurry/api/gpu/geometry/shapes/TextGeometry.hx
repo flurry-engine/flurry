@@ -1,30 +1,30 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
+import uk.aidanlee.flurry.api.gpu.state.ClipState;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
-import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
 import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontData;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
-import uk.aidanlee.flurry.api.maths.Vector2;
-import uk.aidanlee.flurry.api.maths.Vector3;
+
+using Safety;
 
 typedef TextGeometryOptions = {
-    > GeometryOptions,
-
-    /**
-     * The bitmap font to draw using.
-     */
     var font : BitmapFontData;
-
-    /**
-     * The string to draw.
-     */
     var text : String;
-
-    /**
-     * The starting (top left aligned) position.
-     */
-    var position : Vector3;
+    var texture : ImageResource;
+    var ?sampler : SamplerState;
+    var ?shader : GeometryShader;
+    var ?uniforms : GeometryUniforms;
+    var ?depth : Float;
+    var ?clip : ClipState;
+    var ?blend : BlendState;
+    var ?batchers : Array<Batcher>;
+    var ?x : Float;
+    var ?y : Float;
 }
 
 /**
@@ -40,9 +40,9 @@ class TextGeometry extends Geometry
     inline function set_font(_font : BitmapFontData) : BitmapFontData {
         font = _font;
 
-        if (autoUpdateGeometry)
+        if (!constructor)
         {
-            generateGeometry();
+            generateGeometry(font, text, position.x, position.y, fontTexture.width, fontTexture.height);
         }
 
         return font;
@@ -56,23 +56,17 @@ class TextGeometry extends Geometry
     inline function set_text(_text : String) : String {
         text = _text;
 
-        if (autoUpdateGeometry)
+        if (!constructor)
         {
-            generateGeometry();
+            generateGeometry(font, text, position.x, position.y, fontTexture.width, fontTexture.height);
         }
 
         return text;
     }
 
-    /**
-     * Cursors position for creating quads.
-     */
-    var cursorPosition : Vector3;
+    final fontTexture : ImageResource;
 
-    /**
-     * If the listeners should rebuild the geometry, is set to true for the constructor.
-     */
-    var autoUpdateGeometry : Bool;
+    var constructor = true;
 
     /**
      * Create a new geometry object which will display text.
@@ -80,25 +74,32 @@ class TextGeometry extends Geometry
      */
     public function new(_options : TextGeometryOptions)
     {
-        _options.data = UnIndexed(new VertexBlobBuilder().vertexBlob());
+        super({
+            data : generateGeometry(_options.font, _options.text, _options.x.or(0), _options.y.or(0), _options.texture.width, _options.texture.height),
+            textures : Textures([ _options.texture ]),
+            samplers : _options.sampler == null ? None : Samplers([ _options.sampler ]),
+            shader   : _options.shader,
+            uniforms : _options.uniforms,
+            depth    : _options.depth,
+            clip     : _options.clip,
+            blend    : _options.blend,
+            batchers : _options.batchers
+        });
 
-        super(_options);
+        font        = _options.font;
+        text        = _options.text;
+        fontTexture = _options.texture;
 
-        cursorPosition     = _options.position.clone();
-        autoUpdateGeometry = false;
-        text = _options.text;
-        font = _options.font;
-        autoUpdateGeometry = true;
-
-        generateGeometry();
+        constructor = false;
     }
 
     /**
      * Remove any vertices from this geometry and create it for the text.
      */
-    function generateGeometry()
+    function generateGeometry(_font : BitmapFontData, _text: String, _xPos : Float, _yPos : Float, _texWidth : Int, _texHeight : Int) : GeometryData
     {
-        final lines = text.split('\n');
+        final lines = _text.split('\n');
+        final baseX = _xPos;
 
         var count = 0;
         for (line in lines)
@@ -112,52 +113,42 @@ class TextGeometry extends Geometry
         var idxOffset = 0;
         var baseIndex = 0;
 
-        var texWidth  = 1;
-        var texHeight = 1;
-        switch textures
-        {
-            case Textures(_textures):
-                texWidth  = _textures[0].width;
-                texHeight = _textures[0].height;
-            case _:
-        }
-
         for (line in lines)
         {
             for (i in 0...line.length)
             {
-                final char = font.chars.get(line.charCodeAt(i));
+                final char = _font.chars.get(line.charCodeAt(i));
 
                 // Move the cursor by the kerning amount.
                 if (i != 0)
                 {
-                    if (font.kernings.exists(char.id))
+                    if (_font.kernings.exists(char.id))
                     {
-                        final map   = font.kernings.get(char.id);
+                        final map   = _font.kernings.get(char.id);
                         final value = map.get(line.charCodeAt(i - 1));
 
                         if (value != null)
                         {
-                            cursorPosition.x += value;
+                            _xPos += value;
                         }
                     }
                 }
 
                 // Add the character quad.
-                addCharacter(vtxBuffer, idxBuffer, vtxOffset, idxOffset, baseIndex, char, cursorPosition.x, cursorPosition.y, texWidth, texHeight);
+                addCharacter(vtxBuffer, idxBuffer, vtxOffset, idxOffset, baseIndex, char, _xPos, _yPos, _texWidth, _texHeight);
                 vtxOffset += 4 * 9;
                 idxOffset += 6;
                 baseIndex += 4;
 
                 // Move the cursor to the next characters position.
-                cursorPosition.x += char.xAdvance;
+                _xPos += char.xAdvance;
             }
 
-            cursorPosition.y += font.lineHeight;
-            cursorPosition.x  = position.x;
+            _yPos += _font.lineHeight;
+            _xPos  = baseX;
         }
 
-        data = Indexed(new VertexBlob(vtxBuffer), new IndexBlob(idxBuffer));
+        return Indexed(new VertexBlob(vtxBuffer), new IndexBlob(idxBuffer));
     }
 
     /**
