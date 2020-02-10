@@ -37,7 +37,7 @@ class RayCollision
      * @param _start The distance along the ray the collision starts.
      * @param _end   The distance from the end of the ray where the collision ends.
      */
-    public inline function new(_shape : Shape = null, _ray : Ray = null, _start : Float = 0, _end : Float = 0)
+    public function new(_shape : Shape = null, _ray : Ray = null, _start : Float = 0, _end : Float = 0)
     {
         shape = _shape;
         ray   = _ray;
@@ -53,7 +53,7 @@ class RayCollision
      * @param _end   The distance from the end of the ray where the collision ends.
      * @return RayCollision
      */
-    public inline function set(_shape : Shape, _ray : Ray, _start : Float, _end : Float) : RayCollision
+    public function set(_shape : Shape, _ray : Ray, _start : Float, _end : Float) : RayCollision
     {
         shape = _shape;
         ray   = _ray;
@@ -68,7 +68,7 @@ class RayCollision
      * @param _other The ray collision to copy.
      * @return RayCollision
      */
-    public inline function copyFrom(_other : RayCollision) : RayCollision
+    public function copyFrom(_other : RayCollision) : RayCollision
     {
         shape = _other.shape;
         ray   = _other.ray;
@@ -83,7 +83,7 @@ class RayCollision
      * The shape and ray in this collision are not cloned.
      * @return RayCollision
      */
-    public inline function clone() : RayCollision
+    public function clone() : RayCollision
     {
         return new RayCollision(shape, ray, start, end);
     }
@@ -110,7 +110,7 @@ class RayCollisionHelper
      * }
      * ```
      */
-    public static inline function hitStartX(_data : RayCollision) : Float
+    public static function hitStartX(_data : RayCollision) : Float
     {
         if (_data.ray != null)
         {
@@ -136,7 +136,7 @@ class RayCollisionHelper
      * }
      * ```
      */
-    public static inline function hitStartY(_data : RayCollision) : Float
+    public static function hitStartY(_data : RayCollision) : Float
     {
         if (_data.ray != null)
         {
@@ -162,7 +162,7 @@ class RayCollisionHelper
      * }
      * ```
      */
-    public static inline function hitEndX(_data : RayCollision) : Float
+    public static function hitEndX(_data : RayCollision) : Float
     {
         if (_data.ray != null)
         {
@@ -188,7 +188,7 @@ class RayCollisionHelper
      * }
      * ```
      */
-    public static inline function hitEndY(_data : RayCollision) : Float
+    public static function hitEndY(_data : RayCollision) : Float
     {
         if (_data.ray != null)
         {

@@ -88,7 +88,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _z The value of the z component. (default 0)
      * @param _w The value of the w component. (default 1)
      */
-    public inline function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 1)
+    public function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 1)
     {
         this = new Float32BufferData(4);
         
@@ -101,7 +101,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
     /**
      * Returns a formatted string representation of this quaternion.
      */
-    public inline function toString() : String
+    public function toString() : String
     {
         return ' { x : $x, y : $y, z : $z, w : $w } ';
     }
@@ -111,7 +111,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _q Quaternion to check with.
      * @return Bool
      */
-    public inline function equals(_q : Quaternion) : Bool
+    public function equals(_q : Quaternion) : Bool
     {
         return (_q.x == x) && (_q.y == y) && (_q.z == z) && (_q.w == w);
     }
@@ -121,7 +121,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _q Quaternion to copy.
      * @return Quaternion
      */
-    public inline function copy(_q : Quaternion) : Quaternion
+    public function copy(_q : Quaternion) : Quaternion
     {
         return set_xyzw(_q.x, _q.y, _q.z, _q.w);
     }
@@ -130,7 +130,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * Returns a new quaternion instance with the same component values as this.
      * @return Quaternion
      */
-    public inline function clone() : Quaternion
+    public function clone() : Quaternion
     {
         return new Quaternion(x, y, z, w);
     }
@@ -139,7 +139,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * Returns an array containing all four quaternion components.
      * @return Array<Float>
      */
-    public inline function toArray() : Array<Float>
+    public function toArray() : Array<Float>
     {
         return [ x, y, z, w ];
     }
@@ -149,7 +149,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _a Array containing four elements for the quaternion components. Expected XYZW order.
      * @return Quaternion
      */
-    public inline function fromArray(_a : Array<Float>) : Quaternion
+    public function fromArray(_a : Array<Float>) : Quaternion
     {
         return set_xyzw(_a[0], _a[1], _a[2], _a[3]);
     }
@@ -161,7 +161,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _z Value for the z component.
      * @param _w Value for the w component.
      */
-    public inline function set_xyzw(_x : Float, _y : Float, _z : Float, _w : Float) : Quaternion
+    public function set_xyzw(_x : Float, _y : Float, _z : Float, _w : Float) : Quaternion
     {
         x = _x;
         y = _y;
@@ -177,7 +177,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _y Value for the y component.
      * @param _z Value for the z component.
      */
-    public inline function set_xyz(_x : Float, _y : Float, _z : Float) : Quaternion
+    public function set_xyz(_x : Float, _y : Float, _z : Float) : Quaternion
     {
         x = _x;
         y = _y;
@@ -192,7 +192,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * Normalize the components in this quaternion.
      * @return Quaternion
      */
-    public inline function normalize() : Quaternion
+    public function normalize() : Quaternion
     {
         var l = length;
         if (l == 0)
@@ -212,7 +212,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * Conjugates this quaternion.
      * @return Quaternion
      */
-    public inline function conjugate() : Quaternion
+    public function conjugate() : Quaternion
     {
         return set_xyz(x * -1, y * -1, z * -1);
     }
@@ -221,7 +221,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * Inverses this quaternion.
      * @return Quaternion
      */
-    public inline function inverse() : Quaternion
+    public function inverse() : Quaternion
     {
         return conjugate().normalize();
     }
@@ -231,7 +231,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _other Other quaternion to use.
      * @return Float
      */
-    public inline function dot(_other : Quaternion) : Float
+    public function dot(_other : Quaternion) : Float
     {
         return x * _other.x + y * _other.y + z * _other.z + w * _other.w;
     }
@@ -245,7 +245,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _s Scalar to add.
      * @return Quaternion
      */
-    public inline function addScalar(_s : Float) : Quaternion
+    public function addScalar(_s : Float) : Quaternion
     {
         return set_xyzw(x + _s, y + _s, z + _s, w + _s);
     }
@@ -255,7 +255,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _q Quaternion to add.
      * @return Quaternion
      */
-    public inline function add(_q : Quaternion) : Quaternion
+    public function add(_q : Quaternion) : Quaternion
     {
         return set_xyzw(x + _q.x, y + _q.y, z + _q.z, w + _q.w);
     }
@@ -265,7 +265,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _s Scalar value to multiply by.
      * @return Quaternion
      */
-    public inline function multiplyScalar(_s : Float) : Quaternion
+    public function multiplyScalar(_s : Float) : Quaternion
     {
         return set_xyzw(x * _s, y * _s, z * _s, w * _s);
     }
@@ -275,7 +275,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _q The quaternion to multiply with.
      * @return Quaternion
      */
-    public inline function multiply(_q : Quaternion) : Quaternion
+    public function multiply(_q : Quaternion) : Quaternion
     {
         var qax = x;
         var qay = y;
@@ -305,7 +305,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _order Order of components.
      * @return Quaternion
      */
-    public inline function setFromEuler(_euler : Vector3, _order : ComponentOrder = XYZ) : Quaternion
+    public function setFromEuler(_euler : Vector3, _order : ComponentOrder = XYZ) : Quaternion
     {
         var _x = x;
         var _y = y;
@@ -363,7 +363,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _angle The angle value.
      * @return Quaternion
      */
-    public inline function setFromAxisAngle(_axis : Vector3, _angle : Float) : Quaternion
+    public function setFromAxisAngle(_axis : Vector3, _angle : Float) : Quaternion
     {
         var halfAngle = _angle / 2;
         var sin       = Maths.sin(halfAngle);
@@ -376,7 +376,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      * @param _m Matrix to copy from.
      * @return Quaternion
      */
-    public inline function setFromRotationMatrix(_m : Matrix) : Quaternion
+    public function setFromRotationMatrix(_m : Matrix) : Quaternion
     {
         var m11 = _m[0], m12 = _m[4], m13 = _m[8];
         var m21 = _m[1], m22 = _m[5], m23 = _m[9];

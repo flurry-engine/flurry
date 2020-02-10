@@ -135,7 +135,7 @@ class CircleGeometry extends Geometry
      * @param _smooth The circles smoothness.
      * @return Int
      */
-    inline function segmentsForSmoothCircle(_radius : Float, _smooth : Float = 5) : Int
+    function segmentsForSmoothCircle(_radius : Float, _smooth : Float = 5) : Int
     {
         return Std.int(_smooth * Maths.sqrt(_radius));
     }

@@ -76,42 +76,42 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
 
     // #region overloaded operators
 
-    @:op(A + B) inline public function opAdd(_rhs : Vector2) : Vector2
+    @:op(A + B) public inline function opAdd(_rhs : Vector2) : Vector2
     {
         return add(_rhs);
     }
 
-    @:op(A - B) inline public function opSubtract(_rhs : Vector2) : Vector2
+    @:op(A - B) public inline function opSubtract(_rhs : Vector2) : Vector2
     {
         return subtract(_rhs);
     }
 
-    @:op(A * B) inline public function opMultiply(_rhs : Vector2) : Vector2
+    @:op(A * B) public inline function opMultiply(_rhs : Vector2) : Vector2
     {
         return multiply(_rhs);
     }
 
-    @:op(A / B) inline public function opDivide(_rhs : Vector2) : Vector2
+    @:op(A / B) public inline function opDivide(_rhs : Vector2) : Vector2
     {
         return divide(_rhs);
     }
 
-    @:op(A + B) inline public function opAddScalar(_rhs : Float) : Vector2
+    @:op(A + B) public inline function opAddScalar(_rhs : Float) : Vector2
     {
         return addScalar(_rhs);
     }
 
-    @:op(A - B) inline public function opSubtractScalar(_rhs : Float) : Vector2
+    @:op(A - B) public inline function opSubtractScalar(_rhs : Float) : Vector2
     {
         return subtractScalar(_rhs);
     }
 
-    @:op(A * B) inline public function opMultiplyScalar(_rhs : Float) : Vector2
+    @:op(A * B) public inline function opMultiplyScalar(_rhs : Float) : Vector2
     {
         return multiplyScalar(_rhs);
     }
 
-    @:op(A / B) inline public function opDivideScalar(_rhs : Float) : Vector2
+    @:op(A / B) public inline function opDivideScalar(_rhs : Float) : Vector2
     {
         return divideScalar(_rhs);
     }
@@ -124,7 +124,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _y y value of the vector.
      * @return Vector2
      */
-    inline public function set(_x : Float, _y : Float) : Vector2
+    public function set(_x : Float, _y : Float) : Vector2
     {
         x = _x;
         y = _y;
@@ -137,7 +137,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _other The vector to copy.
      * @return Vector2
      */
-    inline public function copyFrom(_other : Vector2) : Vector2
+    public function copyFrom(_other : Vector2) : Vector2
     {
         set(_other.x, _other.y);
 
@@ -148,7 +148,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * Returns a string containing all four component values.
      * @return String
      */
-    inline public function toString() : String
+    public function toString() : String
     {
         return ' { x : $x, y : $y } ';
     }
@@ -158,7 +158,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _other The vector to check against.
      * @return Bool
      */
-    inline public function equals(_other : Vector2) : Bool
+    public function equals(_other : Vector2) : Bool
     {
         return x == _other.x && y == _other.y;
     }
@@ -167,7 +167,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * Returns a copy of this vector.
      * @return Vector
      */
-    inline public function clone() : Vector2
+    public function clone() : Vector2
     {
         return new Vector2(x, y);
     }
@@ -178,7 +178,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * Normalizes this vectors components.
      * @return Vector
      */
-    inline public function normalize() : Vector2
+    public function normalize() : Vector2
     {
         return divideScalar(length);
     }
@@ -187,7 +187,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * Inverts the x, y, and z components of this vector.
      * @return Vector
      */
-    inline public function invert() : Vector2
+    public function invert() : Vector2
     {
         return set(-x, -y);
     }
@@ -201,7 +201,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _other The vector to add.
      * @return Vector
      */
-    inline public function add(_other : Vector2) : Vector2
+    public function add(_other : Vector2) : Vector2
     {
         return set(x + _other.x, y + _other.y);
     }
@@ -212,7 +212,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _y The value to add to the y component.
      * @return Vector
      */
-    inline public function add_xy(_x : Float, _y : Float) : Vector2
+    public function add_xy(_x : Float, _y : Float) : Vector2
     {
         return set(x + _x, y + _y);
     }
@@ -222,7 +222,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _other The vector to subtract.
      * @return Vector
      */
-    inline public function subtract(_other : Vector2) : Vector2
+    public function subtract(_other : Vector2) : Vector2
     {
         return set(x - _other.x, y - _other.y);
     }
@@ -233,7 +233,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _z The value to subtract from the z component.
      * @return Vector
      */
-    inline public function subtract_xy(_x : Float, _y : Float) : Vector2
+    public function subtract_xy(_x : Float, _y : Float) : Vector2
     {
         return set(x - _x, y - _y);
     }
@@ -243,7 +243,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _other Vector to multiply by.
      * @return Vector
      */
-    inline public function multiply(_other : Vector2) : Vector2
+    public function multiply(_other : Vector2) : Vector2
     {
         return set(x * _other.x, y * _other.y);
     }
@@ -254,7 +254,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _y Value to multiply the y component by.
      * @return Vector
      */
-    inline public function multiply_xy(_x : Float, _y : Float) : Vector2
+    public function multiply_xy(_x : Float, _y : Float) : Vector2
     {
         return set(x * _x, y * _y);
     }
@@ -264,7 +264,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _other Vector to divide by.
      * @return Vector
      */
-    inline public function divide(_other : Vector2) : Vector2
+    public function divide(_other : Vector2) : Vector2
     {
         return set(x / _other.x, y / _other.y);
     }
@@ -275,7 +275,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _y Value to divide the y component by.
      * @return Vector
      */
-    inline public function divide_xy(_x : Float, _y : Float) : Vector2
+    public function divide_xy(_x : Float, _y : Float) : Vector2
     {
         return set(x / _x, y / _y);
     }
@@ -285,7 +285,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _v Constant scalar value.
      * @return Vector
      */
-    inline public function addScalar(_v : Float) : Vector2
+    public function addScalar(_v : Float) : Vector2
     {
         return set(x + _v, y + _v);
     }
@@ -295,7 +295,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _v Constant scalar value.
      * @return Vector
      */
-    inline public function subtractScalar(_v : Float) : Vector2
+    public function subtractScalar(_v : Float) : Vector2
     {
         return set(x - _v, y - _v);
     }
@@ -305,7 +305,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _v Scalar value to multiply by.
      * @return Vector
      */
-    inline public function multiplyScalar(_v : Float) : Vector2
+    public function multiplyScalar(_v : Float) : Vector2
     {
         return set(x * _v, y * _v);
     }
@@ -316,7 +316,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _v Scalar value to divide by.
      * @return Vector
      */
-    inline public function divideScalar(_v : Float) : Vector2
+    public function divideScalar(_v : Float) : Vector2
     {
         if (_v != 0)
         {
@@ -339,7 +339,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _m Matrix to transform by.
      * @return Vector
      */
-    inline public function transform(_m : Matrix) : Vector2
+    public function transform(_m : Matrix) : Vector2
     {
         return set(
             (x * _m.m11) + (y * _m.m12) + _m.m14,
@@ -357,7 +357,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _v2 Second vector.
      * @return Vector
      */
-    inline public static function Add(_v1 : Vector2, _v2 : Vector2) : Vector2
+    public static function Add(_v1 : Vector2, _v2 : Vector2) : Vector2
     {
         return new Vector2(_v1.x + _v2.x, _v1.y + _v2.y);
     }
@@ -369,7 +369,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _v2 Second vector.
      * @return Vector
      */
-    inline public static function Subtract(_v1 : Vector2, _v2 : Vector2) : Vector2
+    public static function Subtract(_v1 : Vector2, _v2 : Vector2) : Vector2
     {
         return new Vector2(_v1.x - _v2.x, _v1.y - _v2.y);
     }
@@ -381,7 +381,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _v2 Second vector.
      * @return Vector
      */
-    inline public static function Multiply(_v1 : Vector2, _v2 : Vector2) : Vector2
+    public static function Multiply(_v1 : Vector2, _v2 : Vector2) : Vector2
     {
         return new Vector2(_v1.x * _v2.x, _v1.y * _v2.y);
     }
@@ -393,7 +393,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _v2 Second vector.
      * @return Vector
      */
-    inline public static function Divide(_v1 : Vector2, _v2 : Vector2) : Vector2
+    public static function Divide(_v1 : Vector2, _v2 : Vector2) : Vector2
     {
         return new Vector2(_v1.x / _v2.x, _v1.y / _v2.y);
     }
@@ -405,7 +405,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _f Scalar value.
      * @return Vector
      */
-    inline public static function AddScalar(_v : Vector2, _f : Float) : Vector2
+    public static function AddScalar(_v : Vector2, _f : Float) : Vector2
     {
         return new Vector2(_v.x + _f, _v.y + _f);
     }
@@ -417,7 +417,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _f Scalar value.
      * @return Vector
      */
-    inline public static function SubtractScalar(_v : Vector2, _f : Float) : Vector2
+    public static function SubtractScalar(_v : Vector2, _f : Float) : Vector2
     {
         return new Vector2(_v.x - _f, _v.y - _f);
     }
@@ -429,7 +429,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _f Scalar value.
      * @return Vector
      */
-    inline public static function MultiplyScalar(_v : Vector2, _f : Float) : Vector2
+    public static function MultiplyScalar(_v : Vector2, _f : Float) : Vector2
     {
         return new Vector2(_v.x * _f, _v.y * _f);
     }
@@ -441,7 +441,7 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      * @param _f Scalar value.
      * @return Vector
      */
-    inline public static function DivideScalar(_v : Vector2, _f : Float) : Vector2
+    public static function DivideScalar(_v : Vector2, _f : Float) : Vector2
     {
         return new Vector2(_v.x / _f, _v.y / _f);
     }

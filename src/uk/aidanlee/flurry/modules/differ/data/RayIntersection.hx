@@ -34,7 +34,7 @@ class RayIntersection
      * @param _u1 u value for ray 1.
      * @param _u2 u value for ray 2.
      */
-    public inline function new(_ray1 : Ray = null, _ray2 : Ray = null, _u1 : Float = 0, _u2 : Float = 0)
+    public function new(_ray1 : Ray = null, _ray2 : Ray = null, _u1 : Float = 0, _u2 : Float = 0)
     {
         ray1 = _ray1;
         ray2 = _ray2;
@@ -47,7 +47,7 @@ class RayIntersection
      * @param _other The ray intersection to copy.
      * @return RayIntersection
      */
-    public inline function copyFrom(_other : RayIntersection) : RayIntersection
+    public function copyFrom(_other : RayIntersection) : RayIntersection
     {
         ray1 = _other.ray1;
         ray2 = _other.ray2;
@@ -65,7 +65,7 @@ class RayIntersection
      * @param _u2 u value for ray 2.
      * @return RayIntersection
      */
-    public inline function set(_ray1 : Ray, _ray2 : Ray, _u1 : Float, _u2 : Float) : RayIntersection
+    public function set(_ray1 : Ray, _ray2 : Ray, _u1 : Float, _u2 : Float) : RayIntersection
     {
         ray1 = _ray1;
         ray2 = _ray2;
@@ -80,7 +80,7 @@ class RayIntersection
      * The rays in this collision are not cloned.
      * @return RayIntersection
      */
-    public inline function clone() : RayIntersection
+    public function clone() : RayIntersection
     {
         return new RayIntersection(ray1, ray2, u1, u2);
     }

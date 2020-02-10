@@ -53,7 +53,7 @@ abstract Float32BufferData(BufferData) from BufferData to BufferData
         return this.subarray(_begin * BYTES_PER_FLOAT, _end * BYTES_PER_FLOAT);
     }
 
-    @:arrayAccess public inline function get(_idx : Int) : Float
+    @:arrayAccess public function get(_idx : Int) : Float
     {
 #if cpp
         return untyped __global__.__hxcpp_memory_get_float(this.bytes.getData(), (_idx << 2) + this.byteOffset);
@@ -62,7 +62,7 @@ abstract Float32BufferData(BufferData) from BufferData to BufferData
 #end
     }
 
-    @:arrayAccess public inline function set(_idx : Int, _val : Float) : Float
+    @:arrayAccess public function set(_idx : Int, _val : Float) : Float
     {
 #if cpp
         untyped __global__.__hxcpp_memory_set_float(this.bytes.getData(), (_idx << 2) + this.byteOffset, _val);

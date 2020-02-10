@@ -1393,7 +1393,7 @@ class DX11Backend implements IRendererBackend
         }
     }
 
-    inline function getBlend(_blend : BlendMode) : D3d11Blend
+    function getBlend(_blend : BlendMode) : D3d11Blend
     {
         return switch _blend
         {
@@ -1411,7 +1411,7 @@ class DX11Backend implements IRendererBackend
         }
     }
 
-    inline function getPrimitive(_primitive : PrimitiveType) : D3d11PrimitiveTopology
+    function getPrimitive(_primitive : PrimitiveType) : D3d11PrimitiveTopology
     {
         return switch _primitive
         {
@@ -1423,7 +1423,7 @@ class DX11Backend implements IRendererBackend
         }
     }
 
-    inline function getComparisonFunction(_function : ComparisonFunction) : D3d11ComparisonFunction
+    function getComparisonFunction(_function : ComparisonFunction) : D3d11ComparisonFunction
     {
         return switch _function
         {
@@ -1438,7 +1438,7 @@ class DX11Backend implements IRendererBackend
         }
     }
 
-    inline function getStencilOp(_stencil : StencilFunction) : D3d11StencilOp
+    function getStencilOp(_stencil : StencilFunction) : D3d11StencilOp
     {
         return switch _stencil
         {
@@ -1453,7 +1453,7 @@ class DX11Backend implements IRendererBackend
         }
     }
 
-    inline function getFilterType(_filter : Filtering) : D3d11Filter
+    function getFilterType(_filter : Filtering) : D3d11Filter
     {
         return switch _filter
         {
@@ -1462,7 +1462,7 @@ class DX11Backend implements IRendererBackend
         }
     }
 
-    inline function getEdgeClamping(_clamp : EdgeClamping) : D3d11TextureAddressMode
+    function getEdgeClamping(_clamp : EdgeClamping) : D3d11TextureAddressMode
     {
         return switch _clamp
         {
@@ -1632,7 +1632,7 @@ private class DrawCommandRange
      */
     public final indexOffset : Int;
 
-    inline public function new(_vertices : Int, _vertexOffset : Int, _indices : Int, _indexOffset)
+    public function new(_vertices : Int, _vertexOffset : Int, _indices : Int, _indexOffset)
     {
         vertices     = _vertices;
         vertexOffset = _vertexOffset;

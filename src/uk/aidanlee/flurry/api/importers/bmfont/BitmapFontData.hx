@@ -50,7 +50,7 @@ class Character
      */
     public final page : Int;
 
-    inline public function new(
+    public function new(
         _id       : Int,
         _x        : Float,
         _y        : Float,
@@ -131,7 +131,7 @@ class BitmapFontData
      */
     public var kernings : Map<Int, Map<Int, Float>>;
 
-    inline public function new(
+    public function new(
         _face : String,
         _pointSize : Float,
         _baseSize : Float,
