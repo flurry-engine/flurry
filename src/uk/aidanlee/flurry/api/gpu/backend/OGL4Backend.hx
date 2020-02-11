@@ -403,11 +403,20 @@ class OGL4Backend implements IRendererBackend
     }
 
     /**
-     * Clear the backbuffer and empty the command queue.
-     * Also waits until the range we will write to is ready. 
+     * Queue a command to be drawn this frame.
+     * @param _command Command to draw.
      */
-    public function preDraw()
+    public function queue(_command : DrawCommand)
     {
+        commandQueue.push(_command);
+    }
+
+    /**
+     * Uploads all data to the gpu then issues draw calls for all queued commands.
+     */
+    public function submit()
+    {
+        // waits until the range we will write to is ready and clears the backbuffer.
         if (rangeSyncPrimitives[currentRange].sync != null)
         {
             while (true)
@@ -423,51 +432,29 @@ class OGL4Backend implements IRendererBackend
                 }
             }
         }
-
-        commandQueue.resize(0);
-
         updateClip(0, 0, backbuffer.width, backbuffer.height);
-
         glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        // glClearNamedFramebufferfv(backbuffer.framebuffer, GL_COLOR, 0, clearColour);
-    }
 
-    /**
-     * Queue a command to be drawn this frame.
-     * @param _command Command to draw.
-     */
-    public function queue(_command : DrawCommand)
-    {
-        commandQueue.push(_command);
-    }
-
-    /**
-     * Uploads all data to the gpu then issues draw calls for all queued commands.
-     */
-    public function submit()
-    {
+        // Upload and draw all commands
         uploadData();
         drawCommands();
-    }
 
-    /**
-     * Once all commands have been drawn we blit and vertically flip our custom backbuffer into the windows backbuffer.
-     * We then call the SDL function to swap the window.
-     */
-    public function postDraw()
-    {
-        glDeleteSync(rangeSyncPrimitives[currentRange].sync);
-        rangeSyncPrimitives[currentRange].sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-
-        currentRange = (currentRange + 1) % BUFFERING_COUNT;
-
+        // Once all commands have been drawn we blit and vertically flip our custom backbuffer into the windows backbuffer.
+        // A new fence sync is setup for the commands just submitted.
+        // We then call the SDL function to swap the window.
         glBlitNamedFramebuffer(
             backbuffer.framebuffer, 0,
             0, 0, backbuffer.width, backbuffer.height,
             0, backbuffer.height, backbuffer.width, 0,
             GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
+        glDeleteSync(rangeSyncPrimitives[currentRange].sync);
+        rangeSyncPrimitives[currentRange].sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+
         SDL.GL_SwapWindow(window);
+
+        currentRange = (currentRange + 1) % BUFFERING_COUNT;
+        commandQueue.resize(0);
     }
 
     /**

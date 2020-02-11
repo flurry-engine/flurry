@@ -63,11 +63,6 @@ class Renderer
         }
     }
 
-    public function preRender()
-    {
-        backend.preDraw();
-    }
-
     /**
      * Sort and draw all the batchers.
      */
@@ -83,11 +78,6 @@ class Renderer
         }
 
         backend.submit();
-    }
-
-    public function postRender()
-    {
-        backend.postDraw();
     }
 
     /**

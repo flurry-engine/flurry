@@ -5,8 +5,6 @@ import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 
-using Lambda;
-
 class MockBackend implements IRendererBackend
 {
     final resourceEvents : ResourceEvents;
@@ -28,11 +26,6 @@ class MockBackend implements IRendererBackend
         resourceEvents.removed.add(onResourceRemoved);
     }
 
-    public function preDraw()
-    {
-        commands.resize(0);
-    }
-
     public function queue(_command : DrawCommand)
     {
         commands.push(_command);
@@ -44,21 +37,14 @@ class MockBackend implements IRendererBackend
         {
             checkCommand(command);
         }
-    }
 
-    public function postDraw()
-    {
-        //
-    }
-
-    public function resize(_width : Int, _height : Int)
-    {
-        //
+        commands.resize(0);
     }
 
     public function cleanup()
     {
-        //
+        resourceEvents.created.remove(onResourceCreated);
+        resourceEvents.removed.remove(onResourceRemoved);
     }
 
     function checkCommand(_command : DrawCommand)

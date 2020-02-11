@@ -125,9 +125,6 @@ class Flurry
             (cast events.preUpdate : Subject<Unit>).onNext(unit);
         }
 
-        // Pre-draw
-        renderer.preRender();
-
         // Our game specific logic, only do it if our default parcel has loaded.
         if (loaded)
         {
@@ -140,7 +137,6 @@ class Flurry
         renderer.render();
 
         // Post-draw
-
         if (loaded)
         {
             onPostUpdate();
@@ -149,8 +145,6 @@ class Flurry
 
             (cast events.postUpdate : Subject<Unit>).onNext(unit);
         }
-
-        renderer.postRender();
     }
 
     public final function shutdown()

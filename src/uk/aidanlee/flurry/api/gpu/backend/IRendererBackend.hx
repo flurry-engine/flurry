@@ -9,11 +9,6 @@ import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 interface IRendererBackend
 {
     /**
-     * Called before any draw() functions.
-     */
-    function preDraw() : Void;
-
-    /**
      * Upload geometries to the gpu VRAM.
      * @param _commands Array of commands to upload.
      */
@@ -25,11 +20,6 @@ interface IRendererBackend
      * @param _recordStats Record stats for this submit.
      */
     function submit() : Void;
-
-    /**
-     * Called after all draw() functions.
-     */
-    function postDraw() : Void;
 
     /**
      * Call when destroying the renderer. Will cleanup any resources used by the backend.

@@ -602,13 +602,6 @@ class DX11Backend implements IRendererBackend
         displayEvents.changeRequested.add(onSizeChangeRequest);
     }
 
-    public function preDraw()
-    {
-        commandQueue.resize(0);
-        context.clearRenderTargetView(backbuffer.renderTargetView, clearColour);
-        context.clearDepthStencilView(depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
-    }
-
     /**
      * Upload geometries to the gpu VRAM.
      * @param _commands Array of commands to upload.
@@ -625,17 +618,20 @@ class DX11Backend implements IRendererBackend
      */
     public function submit()
     {
+        // Clear the backbuffer before drawing.
+        context.clearRenderTargetView(backbuffer.renderTargetView, clearColour);
+        context.clearDepthStencilView(depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
+
+        // Upload and draw all commands
         uploadCommands();
         drawCommands();
-    }
 
-    /**
-     * Present our backbuffer to the window.
-     */
-    public function postDraw()
-    {
+        // Once we've submitted our draws present the backbuffer and clear the queue.
         swapchain.present1(0, 0, presentParameters);
 
+        commandQueue.resize(0);
+
+        // Set the backbuffer to the the target, this is required to get the next buffer in the flip present mode.
         context.omSetRenderTargets([ backbuffer.renderTargetView ], depthStencilView);
         target = Backbuffer;
     }

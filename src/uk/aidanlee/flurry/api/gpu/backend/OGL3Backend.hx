@@ -342,20 +342,6 @@ class OGL3Backend implements IRendererBackend
     }
 
     /**
-     * Clear the backbuffer and empty the command queue.
-     */
-    public function preDraw()
-    {
-        target = Backbuffer;
-
-        updateClip(0, 0, backbuffer.width, backbuffer.height);
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-        commandQueue.resize(0);
-    }
-
-    /**
      * Queue a command to be drawn this frame.
      * @param _command Command to draw.
      */
@@ -369,18 +355,18 @@ class OGL3Backend implements IRendererBackend
      */
     public function submit()
     {
+        target = Backbuffer;
+        updateClip(0, 0, backbuffer.width, backbuffer.height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+        // Upload and draw all commands
         uploadGeometryData();
         uploadMatrixData();
         uploadUniformData();
         drawCommands();
-    }
 
-    /**
-     * Once all commands have been drawn we blit and vertically flip our custom backbuffer into the windows backbuffer.
-     * We then call the SDL function to swap the window.
-     */
-    public function postDraw()
-    {
+        // Once all commands have been drawn we blit and vertically flip our custom backbuffer into the windows backbuffer.
+        // We then call the SDL function to swap the window.
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, backbuffer.framebuffer);
 
@@ -392,6 +378,8 @@ class OGL3Backend implements IRendererBackend
         glBindFramebuffer(GL_FRAMEBUFFER, backbuffer.framebuffer);
 
         SDL.GL_SwapWindow(window);
+
+        commandQueue.resize(0);
     }
 
     /**
