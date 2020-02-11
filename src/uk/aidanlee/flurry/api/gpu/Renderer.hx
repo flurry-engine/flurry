@@ -40,27 +40,25 @@ class Renderer
         backend        = switch api
         {
             #if cpp
-                case Ogl4: new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
-                case Ogl3: new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
+                case Ogl4: new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.ogl4);
+                case Ogl3: new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.ogl3);
 
                 case Dx11:
                     #if windows
-                        new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
+                        new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.dx11);
                     #else
                         throw new BackendNotAvailableException(api);
                     #end
             #end
 
             case Auto:
-                // #if (cpp && windows)
-                //     new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
-                // #elseif cpp
-                //     new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
-                // #else
-                //     new MockBackend(_resourceEvents);
-                // #end
-
-                new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
+                #if (cpp && windows)
+                    new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.dx11);
+                #elseif cpp
+                    new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.ogl3);
+                #else
+                    new MockBackend(_resourceEvents);
+                #end
             case _: new MockBackend(_resourceEvents);
         }
     }

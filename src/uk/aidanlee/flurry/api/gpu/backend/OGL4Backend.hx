@@ -1,18 +1,10 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
 import haxe.Exception;
-import opengl.GL.GLSync;
-import uk.aidanlee.flurry.api.maths.Maths;
-import uk.aidanlee.flurry.api.gpu.state.BlendState;
-import uk.aidanlee.flurry.api.gpu.state.StencilState;
-import uk.aidanlee.flurry.api.gpu.state.DepthState;
-import uk.aidanlee.flurry.api.gpu.state.TargetState;
-import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
+import haxe.io.Bytes;
 import haxe.ds.ReadOnlyArray;
 import cpp.RawConstPointer;
 import cpp.ConstCharStar;
-import haxe.io.Bytes;
-import haxe.ds.Map;
 import cpp.Float32;
 import cpp.UInt8;
 import cpp.Pointer;
@@ -21,9 +13,11 @@ import sdl.Window;
 import sdl.SDL;
 import glad.Glad;
 import opengl.GL.*;
+import opengl.GL.GLSync;
 import opengl.WebGL;
-import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
+import uk.aidanlee.flurry.FlurryConfig.FlurryRendererOgl4Config;
+import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
@@ -34,6 +28,10 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
+import uk.aidanlee.flurry.api.gpu.state.StencilState;
+import uk.aidanlee.flurry.api.gpu.state.DepthState;
+import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
@@ -225,7 +223,7 @@ class OGL4Backend implements IRendererBackend
      * @param _dynamicVertices    The maximum number of dynamic vertices in the buffer.
      * @param _unchangingVertices The maximum number of static vertices in the buffer.
      */
-    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
+    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererOgl4Config)
     {
         createWindow(_windowConfig);
 
@@ -246,11 +244,11 @@ class OGL4Backend implements IRendererBackend
 
         glUboAlignment = uboAlignment[0];
 
-        vertexRangeSize   = _rendererConfig.dynamicVertices * VERTEX_BYTE_SIZE;
-        indexRangeSize    = _rendererConfig.dynamicIndices * 2;
-        matrixRangeSize   = Maths.nextMultipleOff(_rendererConfig.dynamicVertices * 4, glUboAlignment);
-        uniformRangeSize  = _rendererConfig.dynamicVertices * 4;
-        indirectRangeSize = 100000;
+        vertexRangeSize   = _rendererConfig.vertexBufferSize;
+        indexRangeSize    = _rendererConfig.indexBufferSize;
+        uniformRangeSize  = _rendererConfig.uniformBufferSize;
+        indirectRangeSize = _rendererConfig.indirectBufferSize;
+        matrixRangeSize   = Maths.nextMultipleOff(_rendererConfig.matrixBufferSize, glUboAlignment);
 
         untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glVertexBuffer  , BUFFERING_COUNT * vertexRangeSize  , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
         untyped __cpp__("glNamedBufferStorage({0}, {1}, nullptr, {2})", glIndexbuffer   , BUFFERING_COUNT * indexRangeSize   , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);

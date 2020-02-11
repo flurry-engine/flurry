@@ -1,7 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import dxgi.structures.DxgiPresentParameters;
-import dxgi.constants.DxgiPresent;
 import haxe.Exception;
 import haxe.ds.ReadOnlyArray;
 import cpp.UInt8;
@@ -10,6 +8,7 @@ import cpp.Stdlib.memcpy;
 import sdl.Window;
 import sdl.SDL;
 import dxgi.Dxgi;
+import dxgi.structures.DxgiPresentParameters;
 import dxgi.structures.DxgiSwapChainDescription;
 import dxgi.interfaces.DxgiOutput;
 import dxgi.interfaces.DxgiAdapter;
@@ -55,8 +54,8 @@ import d3d11.interfaces.D3d11BlendState;
 import d3d11.interfaces.D3d11Buffer;
 import d3d11.interfaces.D3d11DeviceContext;
 import d3d11.interfaces.D3d11Device;
-import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
+import uk.aidanlee.flurry.FlurryConfig.FlurryRendererDx11Config;
 import uk.aidanlee.flurry.api.gpu.StencilFunction;
 import uk.aidanlee.flurry.api.gpu.ComparisonFunction;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
@@ -281,7 +280,7 @@ class DX11Backend implements IRendererBackend
 
     var window : Window;
 
-    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
+    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererDx11Config)
     {
         resourceEvents = _resourceEvents;
         displayEvents  = _displayEvents;
@@ -361,7 +360,10 @@ class DX11Backend implements IRendererBackend
         description.swapEffect  = FlipDiscard;
         description.alphaMode   = Unspecified;
 
-        final deviceCreationFlags = D3d11CreateDeviceFlags.None;
+        final deviceCreationFlags = if (_rendererConfig.debugDevice)
+            D3d11CreateDeviceFlags.Debug | D3d11CreateDeviceFlags.Debuggable | D3d11CreateDeviceFlags.SingleThreaded
+        else
+            D3d11CreateDeviceFlags.None | D3d11CreateDeviceFlags.SingleThreaded;
 
         // Create our actual device and swapchain
         if (D3d11.createDevice(adapter, Unknown, null, deviceCreationFlags, [ Level11_1 ], D3d11.SdkVersion, device, null, context) != Ok)
@@ -450,7 +452,7 @@ class DX11Backend implements IRendererBackend
 
         // Create the vertex buffer.
         final bufferDesc = new D3d11BufferDescription();
-        bufferDesc.byteWidth      = (_rendererConfig.dynamicVertices + _rendererConfig.unchangingVertices) * 9;
+        bufferDesc.byteWidth      = _rendererConfig.vertexBufferSize;
         bufferDesc.usage          = Dynamic;
         bufferDesc.bindFlags      = VertexBuffer;
         bufferDesc.cpuAccessFlags = Write;
@@ -462,7 +464,7 @@ class DX11Backend implements IRendererBackend
 
         // Create the index buffer
         final bufferDesc = new D3d11BufferDescription();
-        bufferDesc.byteWidth      = (_rendererConfig.dynamicIndices + _rendererConfig.unchangingIndices) * 2;
+        bufferDesc.byteWidth      = _rendererConfig.indexBufferSize;
         bufferDesc.usage          = Dynamic;
         bufferDesc.bindFlags      = IndexBuffer;
         bufferDesc.cpuAccessFlags = Write;
@@ -474,7 +476,7 @@ class DX11Backend implements IRendererBackend
 
         // Create the matrix buffer
         final bufferDesc = new D3d11BufferDescription();
-        bufferDesc.byteWidth      = _rendererConfig.dynamicVertices * 4;
+        bufferDesc.byteWidth      = _rendererConfig.matrixBufferSize;
         bufferDesc.usage          = Dynamic;
         bufferDesc.bindFlags      = ConstantBuffer;
         bufferDesc.cpuAccessFlags = Write;
@@ -486,7 +488,7 @@ class DX11Backend implements IRendererBackend
 
         // Create the uniform buffer
         final bufferDesc = new D3d11BufferDescription();
-        bufferDesc.byteWidth      = _rendererConfig.dynamicVertices * 4;
+        bufferDesc.byteWidth      = _rendererConfig.uniformBufferSize;
         bufferDesc.usage          = Dynamic;
         bufferDesc.bindFlags      = ConstantBuffer;
         bufferDesc.cpuAccessFlags = Write;

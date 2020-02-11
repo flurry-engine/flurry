@@ -15,8 +15,8 @@ import opengl.WebGL.shaderSource;
 import opengl.WebGL.getProgramParameter;
 import opengl.WebGL.getProgramInfoLog;
 import opengl.WebGL.getShaderInfoLog;
-import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
+import uk.aidanlee.flurry.FlurryConfig.FlurryRendererOgl3Config;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
@@ -24,7 +24,6 @@ import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
-import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Maths;
@@ -213,7 +212,7 @@ class OGL3Backend implements IRendererBackend
 
     var glContext : GLContext;
 
-    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
+    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererOgl3Config)
     {
         resourceEvents = _resourceEvents;
         displayEvents  = _displayEvents;
@@ -230,10 +229,10 @@ class OGL3Backend implements IRendererBackend
 
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
-        vertexBuffer  = Bytes.alloc(_rendererConfig.dynamicVertices * 9 * 4).getData();
-        indexBuffer   = Bytes.alloc(_rendererConfig.dynamicIndices * 2).getData();
-        matrixBuffer  = Bytes.alloc(_rendererConfig.dynamicVertices * 4).getData();
-        uniformBuffer = Bytes.alloc(_rendererConfig.dynamicVertices * 4).getData();
+        vertexBuffer  = Bytes.alloc(_rendererConfig.vertexBufferSize ).getData();
+        indexBuffer   = Bytes.alloc(_rendererConfig.indexBufferSize  ).getData();
+        matrixBuffer  = Bytes.alloc(_rendererConfig.matrixBufferSize ).getData();
+        uniformBuffer = Bytes.alloc(_rendererConfig.uniformBufferSize).getData();
 
         // Core OpenGL profiles require atleast one VAO is bound.
         var vao = [ 0 ];
