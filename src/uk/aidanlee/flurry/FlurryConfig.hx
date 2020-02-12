@@ -3,13 +3,13 @@ package uk.aidanlee.flurry;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelType;
 import uk.aidanlee.flurry.api.gpu.geometry.Color;
 
-enum RendererBackend
+enum abstract RendererBackend(Int)
 {
-    Ogl3;
-    Ogl4;
-    Dx11;
-    Mock;
-    Auto;
+    var Ogl3;
+    var Ogl4;
+    var Dx11;
+    var Mock;
+    var Auto;
 }
 
 class FlurryConfig

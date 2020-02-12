@@ -1,10 +1,10 @@
 package uk.aidanlee.flurry.api.gpu.camera;
 
-import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.gpu.camera.Camera.CameraNdcRange;
+import uk.aidanlee.flurry.api.gpu.camera.Camera.CameraOrigin;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.maths.Transformation;
 
 /**
  * All of the different camera size modes.
@@ -38,37 +38,6 @@ class Camera2D extends Camera
      */
     public final size : Vector2;
 
-    /**
-     * //
-     */
-    public final transformation : Transformation;
-
-    /**
-     * 
-     */
-    public var dirty : Bool;
-
-    /**
-     * 
-     */
-    public var position (get, never) : Vector3;
-
-    inline function get_position() : Vector3 return transformation.position;
-
-    /**
-     * 
-     */
-    public var scale (get, never) : Vector3;
-
-    inline function get_scale() : Vector3 return transformation.scale;
-
-    /**
-     * 
-     */
-    public var origin (get, never) : Vector3;
-
-    inline function get_origin() : Vector3 return transformation.origin;
-    
     /**
      * Size mode determines how the camera will scale the view.
      */
@@ -109,13 +78,12 @@ class Camera2D extends Camera
      * @param _width  Width of the camera.
      * @param _height Height of the camera.
      */
-    public function new(_width : Int, _height : Int)
+    public function new(_width : Int, _height : Int, _origin : CameraOrigin, _ndcRange : CameraNdcRange)
     {
-        super(Orthographic);
+        super(Orthographic, _origin, _ndcRange);
 
         viewport       = Viewport(0, 0, _width, _height);
         size           = new Vector2(_width, _height);
-        transformation = new Transformation();
         zoom           = 1;
         minimumZoom    = 0.01;
         sizeMode       = Fit;
@@ -123,7 +91,8 @@ class Camera2D extends Camera
         shakeAmount    = 0;
         shakeMinimum   = 0.1;
         shakeVector    = new Vector3();
-        dirty          = true;
+
+        rebuildCameraMatrices();
     }
 
     /**
@@ -187,18 +156,44 @@ class Camera2D extends Camera
             );
         }
 
-        dirty = true;
+        rebuildCameraMatrices();
     }
 
-    /**
-     * Returns a random unit vector.
-     * @return Vector
-     */
     function randomPointInUnitCircle(_v : Vector3) : Vector3
     {
         var r = Maths.sqrt(Maths.random());
         var t = (-1 + (2 * Maths.random())) * (Maths.PI * 2);
 
         return _v.set(r * Maths.cos(t), r * Maths.sin(t), 0);
+    }
+
+    override function rebuildCameraMatrices()
+    {
+        switch viewport
+        {
+            case None: throw 'new OGL3CameraViewportNotSetException()';
+            case Viewport(_x, _y, _width, _height):
+                switch screenOrigin
+                {
+                    case TopLeft:
+                        switch ndcRandge
+                        {
+                            case ZeroToNegativeOne:
+                                projection.makeHomogeneousOrthographic(_x, _width, _y, _height, -100, 100);
+                            case NegativeOneToNegativeOne:
+                                projection.makeHeterogeneousOrthographic(_x, _width, _y, _height, -100, 100);
+                        }
+                    case BottomLeft:
+                        switch ndcRandge
+                        {
+                            case ZeroToNegativeOne:
+                                projection.makeHomogeneousOrthographic(_x, _width, _height, _y, -100, 100);
+                            case NegativeOneToNegativeOne:
+                                projection.makeHeterogeneousOrthographic(_x, _width, _height, _y, -100, 100);
+                        }
+                }
+        }
+
+        view.copy(transformation.world.matrix).invert();
     }
 }

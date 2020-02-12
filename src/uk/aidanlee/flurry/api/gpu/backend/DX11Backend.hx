@@ -64,9 +64,6 @@ import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
-import uk.aidanlee.flurry.api.gpu.camera.Camera;
-import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
-import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
 import uk.aidanlee.flurry.api.gpu.textures.Filtering;
@@ -990,9 +987,6 @@ class DX11Backend implements IRendererBackend
                         vtxUploaded += _vertices.buffer.byteLength;
                 }
 
-                // Upload matrix data
-                buildCameraMatrices(command.camera);
-
                 final view       = command.camera.view;
                 final projection = command.camera.projection;
                 final model      = geometry.transformation.world.matrix;
@@ -1359,36 +1353,6 @@ class DX11Backend implements IRendererBackend
         }
 
         return sampler;
-    }
-
-    function buildCameraMatrices(_camera : Camera)
-    {
-        switch _camera.type
-        {
-            case Orthographic:
-                final orth = (cast _camera : Camera2D);
-                if (orth.dirty)
-                {
-                    switch orth.viewport
-                    {
-                        case None:
-                        case Viewport(_x, _y, _width, _height):
-                            orth.projection.makeHeterogeneousOrthographic(_x, _width, _y, _height, -100, 100);
-                            orth.view.copy(orth.transformation.world.matrix).invert();
-                            orth.dirty = false;
-                    }
-                }
-            case Projection:
-                final proj = (cast _camera : Camera3D);
-                if (proj.dirty)
-                {
-                    proj.projection.makeHeterogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
-                    proj.view.copy(proj.transformation.world.matrix).invert();
-                    proj.dirty = false;
-                }
-            case Custom:
-                // Do nothing, user is responsible for building their custom camera matrices.
-        }
     }
 
     function getBlend(_blend : BlendMode) : D3d11Blend

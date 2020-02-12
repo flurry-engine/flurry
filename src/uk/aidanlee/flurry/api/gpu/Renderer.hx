@@ -3,6 +3,10 @@ package uk.aidanlee.flurry.api.gpu;
 import haxe.Exception;
 import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.FlurryConfig;
+import uk.aidanlee.flurry.api.gpu.camera.Camera.CameraOrigin;
+import uk.aidanlee.flurry.api.gpu.camera.Camera.CameraNdcRange;
+import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
@@ -36,29 +40,35 @@ class Renderer
     {
         queuedCommands = [];
         batchers       = [];
-        api            = _rendererConfig.backend;
-        backend        = switch api
+        api            = switch _rendererConfig.backend
         {
-            #if cpp
-                case Ogl4: new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.ogl4);
-                case Ogl3: new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.ogl3);
-
-                case Dx11:
-                    #if windows
-                        new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.dx11);
-                    #else
-                        throw new BackendNotAvailableException(api);
-                    #end
-            #end
-
+            case Ogl3: Ogl3;
+            case Ogl4: Ogl4;
+            case Dx11: Dx11;
+            case Mock: Mock;
             case Auto:
-                #if (cpp && windows)
-                    new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.dx11);
-                #elseif cpp
-                    new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.ogl3);
-                #else
-                    new MockBackend(_resourceEvents);
-                #end
+#if (cpp && windows)
+                Dx11;
+#elseif cpp
+                Ogl3;
+#else
+                Mock;
+#end
+        };
+        backend = switch api
+        {
+#if cpp
+            case Ogl4:
+                new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.ogl4);
+            case Ogl3:
+                new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.ogl3);
+            case Dx11:
+#if windows
+                new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.dx11);
+#else
+                throw new BackendNotAvailableException(api);
+#end
+#end
             case _: new MockBackend(_resourceEvents);
         }
     }
@@ -68,7 +78,10 @@ class Renderer
      */
     public function render()
     {
-        if (batchers.length <= 0) return;
+        if (batchers.length <= 0)
+        {
+            return;
+        }
 
         ArraySort.sort(batchers, sortBatchers);
 
@@ -92,6 +105,16 @@ class Renderer
         batchers.push(batcher);
 
         return batcher;
+    }
+
+    public function createCamera2D(_width : Int, _height : Int) : Camera2D
+    {
+        return new Camera2D(_width, _height, getOrigin(), getNdcRange());
+    }
+
+    public function createCamera3D(_fov : Float, _aspect : Float, _near : Float, _far : Float) : Camera3D
+    {
+        return new Camera3D(_fov, _aspect, _near, _far, getOrigin(), getNdcRange());
     }
 
     /**
@@ -155,6 +178,18 @@ class Renderer
         if (_a.shader.id > _b.shader.id) return  1;
 
         return 0;
+    }
+
+    function getOrigin() return switch api {
+        case Ogl3, Ogl4 : BottomLeft;
+        case Dx11, Mock : TopLeft;
+        case Auto : throw 'Auto is not a valid api, this should not happen!';
+    }
+
+    function getNdcRange() return switch api {
+        case Ogl3 : NegativeOneToNegativeOne;
+        case Ogl4, Dx11, Mock : ZeroToNegativeOne;
+        case Auto : throw 'Auto is not a valid api, this should not happen!';
     }
 }
 

@@ -21,13 +21,9 @@ import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
-import uk.aidanlee.flurry.api.gpu.camera.Camera;
-import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
-import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Maths;
-import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
@@ -151,11 +147,6 @@ class OGL3Backend implements IRendererBackend
     final framebufferObjects : Map<String, Int>;
 
     /**
-     * Constant vector which will be used to flip perspective cameras on their y axis.
-     */
-    final perspectiveYFlipVector : Vector3;
-
-    /**
      * Array of opengl textures objects which are bound.
      * Size of this array is equal to the max number of texture bindings allowed.
      */
@@ -224,8 +215,6 @@ class OGL3Backend implements IRendererBackend
         textureObjects     = [];
         samplerObjects     = [];
         framebufferObjects = [];
-
-        perspectiveYFlipVector = new Vector3(1, -1, 1);
 
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
@@ -680,8 +669,6 @@ class OGL3Backend implements IRendererBackend
 
         for (command in commandQueue)
         {
-            buildCameraMatrices(command.camera);
-
             final view       = command.camera.view;
             final projection = command.camera.projection;
 
@@ -791,43 +778,6 @@ class OGL3Backend implements IRendererBackend
 
                 matOffset += matrixRangeSize;
             }
-        }
-    }
-
-    /**
-     * Calculate the view and projection matrix for the camera based on its type.
-     * Will only recaulate the matrix if the camera has been flagged as dirty.
-     * @param _camera Camera to update.
-     */
-    function buildCameraMatrices(_camera : Camera)
-    {
-        switch _camera.type
-        {
-            case Orthographic:
-                var orth = (cast _camera : Camera2D);
-                if (orth.dirty)
-                {
-                    switch orth.viewport
-                    {
-                        case None: throw new OGL3CameraViewportNotSetException();
-                        case Viewport(_, _, _width, _height):
-                            orth.projection.makeHomogeneousOrthographic(0, _width, _height, 0, -100, 100);
-                    }
-
-                    orth.view.copy(orth.transformation.world.matrix).invert();
-                    orth.dirty = false;
-                }
-            case Projection:
-                var proj = (cast _camera : Camera3D);
-                if (proj.dirty)
-                {
-                    proj.projection.makeHomogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
-                    proj.projection.scale(perspectiveYFlipVector);
-                    proj.view.copy(proj.transformation.world.matrix).invert();
-                    proj.dirty = false;
-                }
-            case Custom:
-                // Do nothing, user is responsible for building their custom camera matrices.
         }
     }
 

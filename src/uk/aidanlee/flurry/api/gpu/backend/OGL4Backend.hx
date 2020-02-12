@@ -18,7 +18,6 @@ import opengl.WebGL;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererOgl4Config;
 import uk.aidanlee.flurry.api.maths.Maths;
-import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
@@ -32,9 +31,6 @@ import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
-import uk.aidanlee.flurry.api.gpu.camera.Camera;
-import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
-import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import cpp.Stdlib.memcpy;
@@ -163,11 +159,6 @@ class OGL4Backend implements IRendererBackend
      * OpenGL sync objects used to lock writing into buffer ranges until they are visible to the GPU.
      */
     final rangeSyncPrimitives : Array<GLSyncWrapper>;
-
-    /**
-     * Constant vector which will be used to flip perspective cameras on their y axis.
-     */
-    final perspectiveYFlipVector : Vector3;
 
     /**
      * Colour RGBA normalised float array used to clear the display
@@ -301,7 +292,6 @@ class OGL4Backend implements IRendererBackend
         uniformBuffer  = Pointer.fromRaw(glMapNamedBufferRange(glUniformBuffer , 0, BUFFERING_COUNT * uniformRangeSize , GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
         indirectBuffer = Pointer.fromRaw(glMapNamedBufferRange(glIndirectBuffer, 0, BUFFERING_COUNT * indirectRangeSize, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT)).reinterpret();
 
-        perspectiveYFlipVector = new Vector3(1, -1, 1);
         rangeSyncPrimitives    = [ for (_ in 0...BUFFERING_COUNT) new GLSyncWrapper() ];
         currentRange           = 0;
         commandQueue           = [];
@@ -516,9 +506,6 @@ class OGL4Backend implements IRendererBackend
 
         for (command in commandQueue)
         {
-            // Add the commands view and projection matrices
-            buildCameraMatrices(command.camera);
-
             final proj : Float32BufferData = command.camera.projection;
             final view : Float32BufferData = command.camera.view;
 
@@ -1197,37 +1184,6 @@ class OGL4Backend implements IRendererBackend
         glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_T, _sampler.vClamping.getEdgeClamping());
 
         return samplers[0];
-    }
-
-    function buildCameraMatrices(_camera : Camera)
-    {
-        switch _camera.type
-        {
-            case Orthographic:
-                var orth = (cast _camera : Camera2D);
-                if (orth.dirty)
-                {
-                    switch orth.viewport
-                    {
-                        case None: throw new OGL4CameraViewportNotSetException();
-                        case Viewport(_x, _y, _width, _height):
-                            orth.projection.makeHeterogeneousOrthographic(_x, _width, _height, _y, -100, 100);
-                            orth.view.copy(orth.transformation.world.matrix).invert();
-                            orth.dirty = false;
-                    }
-                }
-            case Projection:
-                var proj = (cast _camera : Camera3D);
-                if (proj.dirty)
-                {
-                    proj.projection.makeHeterogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
-                    proj.projection.scale(perspectiveYFlipVector);
-                    proj.view.copy(proj.transformation.world.matrix).invert();
-                    proj.dirty = false;
-                }
-            case Custom:
-                // Do nothing, user is responsible for building their custom camera matrices.
-        }
     }
 
     function createBackbuffer(_width : Int, _height : Int, _remove : Bool = true) : BackBuffer
