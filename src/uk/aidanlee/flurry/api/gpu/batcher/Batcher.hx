@@ -148,7 +148,6 @@ class Batcher
             return;
         }
 
-        var commandName = 0;
         var commandGeom = [];
 
         // Sort all of the geometry held in this batcher.
@@ -171,7 +170,6 @@ class Batcher
             if (!batchablePrimitive(geom) || state.requiresChange(geom))
             {
                 _queue(new DrawCommand(
-                    commandName,
                     commandGeom,
                     camera,
                     state.primitive,
@@ -187,12 +185,10 @@ class Batcher
                 ));
 
                 commandGeom = [];
-                commandName = id;
 
                 state.change(geom);
             }
 
-            commandName += geom.id;
             commandGeom.push(geom);
         }
 
@@ -200,7 +196,6 @@ class Batcher
         if (commandGeom.length > 0)
         {
             _queue(new DrawCommand(
-                commandName,
                 commandGeom,
                 camera,
                 state.primitive,
