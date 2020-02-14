@@ -307,7 +307,7 @@ class OGL3Backend implements IRendererBackend
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
         // Set the clear colour
-        glClearColor(_rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a);
+        glClearColor(_rendererConfig.clearColour.x, _rendererConfig.clearColour.y, _rendererConfig.clearColour.z, _rendererConfig.clearColour.w);
 
         // Default scissor test
         glEnable(GL_SCISSOR_TEST);

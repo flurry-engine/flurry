@@ -35,6 +35,9 @@ class DrawCommand
      */
     public final primitive : PrimitiveType;
 
+    /**
+     * The clipping rectangle for this draw command.
+     */
     public final clip : ClipState;
 
     /**
@@ -53,16 +56,30 @@ class DrawCommand
     public final uniforms : ReadOnlyArray<UniformBlob>;
 
     /**
-     * Textures (if any) to draw with this data.
+     * Textures to be used with this draw command.
      */
     public final textures : ReadOnlyArray<ImageResource>;
 
+    /**
+     * Samples to be used with this draw command.
+     * 
+     * Less samplers than textures can be provided. Backends will use a default sampler when one is not explicitly provided.
+     */
     public final samplers : ReadOnlyArray<SamplerState>;
 
+    /**
+     * Depth testing options for this draw command.
+     */
     public final depth : DepthState;
 
+    /**
+     * Stencil testing options for this draw command.
+     */
     public final stencil : StencilState;
 
+    /**
+     * Blending options for this draw command.
+     */
     public final blending : BlendState;
 
     inline public function new(
@@ -77,8 +94,7 @@ class DrawCommand
         _samplers   : ReadOnlyArray<SamplerState>,
         _depth      : DepthState,
         _stencil    : StencilState,
-        _blending   : BlendState
-    )
+        _blending   : BlendState)
     {
         geometry   = _geometry;
         camera     = _camera;

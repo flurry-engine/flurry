@@ -2,7 +2,6 @@ package;
 
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
-import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -22,7 +21,7 @@ class BatchingGeometry extends Flurry
 
     override function onReady()
     {
-        final camera  = new Camera2D(display.width, display.height);
+        final camera  = renderer.createCamera2D(display.width, display.height);
         final batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
 
         new QuadGeometry({

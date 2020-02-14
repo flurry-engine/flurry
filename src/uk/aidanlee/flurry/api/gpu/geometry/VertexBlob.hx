@@ -7,10 +7,19 @@ import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.buffers.BufferData;
 
+/**
+ * Container class for vertex bytes data.
+ */
 class VertexBlob
 {
+    /**
+     * Underlying bytes data.
+     */
     public final buffer : BufferData;
 
+    /**
+     * Quick access to the underlying bytes data as a typed float buffer.
+     */
     public final floatAccess : Float32BufferData;
 
     public function new(_buffer : BufferData)
@@ -20,6 +29,10 @@ class VertexBlob
     }
 }
 
+/**
+ * Helper class which can construct a vertex blob without having to do all the manual byte management.
+ * Contains a series of chainable convenience functions for adding data to a vertex buffer.
+ */
 class VertexBlobBuilder
 {
     final builder : BytesBuffer;
@@ -90,16 +103,7 @@ class VertexBlobBuilder
         return this;
     }
 
-    public function addVertex(_pos : Vector3, _col : Vector4, _tex : Vector2) : VertexBlobBuilder
-    {
-        addVector3(_pos);
-        addVector4(_col);
-        addVector2(_tex);
-
-        return this;
-    }
-
-    public function addArray(_array : Array<Float>) : VertexBlobBuilder
+    public function addFloats(_array : Array<Float>) : VertexBlobBuilder
     {
         for (v in _array)
         {

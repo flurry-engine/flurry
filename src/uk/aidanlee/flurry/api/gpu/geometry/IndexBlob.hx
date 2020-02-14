@@ -4,10 +4,19 @@ import haxe.io.BytesBuffer;
 import uk.aidanlee.flurry.api.buffers.BufferData;
 import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
 
+/**
+ * Container class for index bytes data.
+ */
 class IndexBlob
 {
+    /**
+     * Underlying bytes data.
+     */
     public final buffer : BufferData;
 
+    /**
+     * Quick access to the underlying bytes data as a typed ushort buffer.
+     */
     public final shortAccess : UInt16BufferData;
 
     public function new(_buffer : BufferData)
@@ -17,6 +26,10 @@ class IndexBlob
     }
 }
 
+/**
+ * Helper class which can construct an index blob without having to do all the manual byte management.
+ * Contains a series of chainable convenience functions for adding data to an index buffer.
+ */
 class IndexBlobBuilder
 {
     final builder : BytesBuffer;
@@ -26,7 +39,7 @@ class IndexBlobBuilder
         builder = new BytesBuffer();
     }
 
-    public function addArray(_array : Array<Int>) : IndexBlobBuilder
+    public function addInts(_array : Array<Int>) : IndexBlobBuilder
     {
         for (val in _array)
         {

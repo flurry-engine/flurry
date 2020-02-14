@@ -559,10 +559,10 @@ class DX11Backend implements IRendererBackend
 
         commandQueue = [];
         clearColour  = [
-            _rendererConfig.clearColour.r,
-            _rendererConfig.clearColour.g,
-            _rendererConfig.clearColour.b,
-            _rendererConfig.clearColour.a ];
+            _rendererConfig.clearColour.x,
+            _rendererConfig.clearColour.y,
+            _rendererConfig.clearColour.z,
+            _rendererConfig.clearColour.w ];
         cmdClip      = new Rectangle();
         cmdViewport  = new Rectangle();
         blend        = new BlendState();

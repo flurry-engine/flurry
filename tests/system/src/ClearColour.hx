@@ -13,10 +13,10 @@ class ClearColour extends Flurry
 
         _config.resources.preload = PrePackaged('preload');
 
-        _config.renderer.clearColour.r = 0.34;
-        _config.renderer.clearColour.g = 0.10;
-        _config.renderer.clearColour.b = 0.94;
-        _config.renderer.clearColour.a = 1;
+        _config.renderer.ogl3.clearColour.x = 0.34;
+        _config.renderer.ogl3.clearColour.y = 0.10;
+        _config.renderer.ogl3.clearColour.z = 0.94;
+        _config.renderer.ogl3.clearColour.w = 1;
 
         return _config;
     }

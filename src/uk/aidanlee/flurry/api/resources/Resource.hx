@@ -7,8 +7,6 @@ enum ShaderType
 {
     Matrix4;
     Vector4;
-    Int;
-    Float;
 }
 
 enum ResourceType

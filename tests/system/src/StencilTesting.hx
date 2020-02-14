@@ -1,15 +1,12 @@
 package;
 
-import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
-import uk.aidanlee.flurry.api.gpu.geometry.Color;
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.Flurry;
 
@@ -28,7 +25,7 @@ class StencilTesting extends Flurry
 
     override function onReady()
     {
-        final camera = new Camera3D(45, display.width / display.height, 0.1, 100);
+        final camera = renderer.createCamera3D(45, display.width / display.height, 0.1, 100);
         camera.transformation.position.set(0, 0, 3);
 
         final batcher1 = renderer.createBatcher({
@@ -82,50 +79,51 @@ class StencilTesting extends Flurry
         });
 
         final data = UnIndexed(new VertexBlobBuilder()
-            .addVertex( new Vector3(-0.5, -0.5, -0.5), new Color(), new Vector2(0.0, 0.0) )
-            .addVertex( new Vector3( 0.5, -0.5, -0.5), new Color(), new Vector2(1.0, 0.0) )
-            .addVertex( new Vector3( 0.5,  0.5, -0.5), new Color(), new Vector2(1.0, 1.0) )
-            .addVertex( new Vector3( 0.5,  0.5, -0.5), new Color(), new Vector2(1.0, 1.0) )
-            .addVertex( new Vector3(-0.5,  0.5, -0.5), new Color(), new Vector2(0.0, 1.0) )
-            .addVertex( new Vector3(-0.5, -0.5, -0.5), new Color(), new Vector2(0.0, 0.0) )
+            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
+            .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
+            .addFloat3( 0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
+            .addFloat3( 0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
+            .addFloat3(-0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
+            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
 
-            .addVertex( new Vector3(-0.5, -0.5,  0.5), new Color(), new Vector2(0.0, 0.0) )
-            .addVertex( new Vector3( 0.5, -0.5,  0.5), new Color(), new Vector2(1.0, 0.0) )
-            .addVertex( new Vector3( 0.5,  0.5,  0.5), new Color(), new Vector2(1.0, 1.0) )
-            .addVertex( new Vector3( 0.5,  0.5,  0.5), new Color(), new Vector2(1.0, 1.0) )
-            .addVertex( new Vector3(-0.5,  0.5,  0.5), new Color(), new Vector2(0.0, 1.0) )
-            .addVertex( new Vector3(-0.5, -0.5,  0.5), new Color(), new Vector2(0.0, 0.0) )
+            .addFloat3(-0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
+            .addFloat3( 0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
+            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
+            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
+            .addFloat3(-0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
+            .addFloat3(-0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
 
-            .addVertex( new Vector3(-0.5,  0.5,  0.5), new Color(), new Vector2(1.0, 0.0) )
-            .addVertex( new Vector3(-0.5,  0.5, -0.5), new Color(), new Vector2(1.0, 1.0) )
-            .addVertex( new Vector3(-0.5, -0.5, -0.5), new Color(), new Vector2(0.0, 1.0) )
-            .addVertex( new Vector3(-0.5, -0.5, -0.5), new Color(), new Vector2(0.0, 1.0) )
-            .addVertex( new Vector3(-0.5, -0.5,  0.5), new Color(), new Vector2(0.0, 0.0) )
-            .addVertex( new Vector3(-0.5,  0.5,  0.5), new Color(), new Vector2(1.0, 0.0) )
+            .addFloat3(-0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
+            .addFloat3(-0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
+            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
+            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
+            .addFloat3(-0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
+            .addFloat3(-0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
 
-            .addVertex( new Vector3( 0.5,  0.5,  0.5), new Color(), new Vector2(1.0, 0.0) )
-            .addVertex( new Vector3( 0.5,  0.5, -0.5), new Color(), new Vector2(1.0, 1.0) )
-            .addVertex( new Vector3( 0.5, -0.5, -0.5), new Color(), new Vector2(0.0, 1.0) )
-            .addVertex( new Vector3( 0.5, -0.5, -0.5), new Color(), new Vector2(0.0, 1.0) )
-            .addVertex( new Vector3( 0.5, -0.5,  0.5), new Color(), new Vector2(0.0, 0.0) )
-            .addVertex( new Vector3( 0.5,  0.5,  0.5), new Color(), new Vector2(1.0, 0.0) )
+            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
+            .addFloat3( 0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
+            .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
+            .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
+            .addFloat3( 0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
+            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
 
-            .addVertex( new Vector3(-0.5, -0.5, -0.5), new Color(), new Vector2(0.0, 1.0) )
-            .addVertex( new Vector3( 0.5, -0.5, -0.5), new Color(), new Vector2(1.0, 1.0) )
-            .addVertex( new Vector3( 0.5, -0.5,  0.5), new Color(), new Vector2(1.0, 0.0) )
-            .addVertex( new Vector3( 0.5, -0.5,  0.5), new Color(), new Vector2(1.0, 0.0) )
-            .addVertex( new Vector3(-0.5, -0.5,  0.5), new Color(), new Vector2(0.0, 0.0) )
-            .addVertex( new Vector3(-0.5, -0.5, -0.5), new Color(), new Vector2(0.0, 1.0) )
+            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
+            .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
+            .addFloat3( 0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
+            .addFloat3( 0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
+            .addFloat3(-0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
+            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
 
-            .addVertex( new Vector3(-0.5,  0.5, -0.5), new Color(), new Vector2(0.0, 1.0) )
-            .addVertex( new Vector3( 0.5,  0.5, -0.5), new Color(), new Vector2(1.0, 1.0) )
-            .addVertex( new Vector3( 0.5,  0.5,  0.5), new Color(), new Vector2(1.0, 0.0) )
-            .addVertex( new Vector3( 0.5,  0.5,  0.5), new Color(), new Vector2(1.0, 0.0) )
-            .addVertex( new Vector3(-0.5,  0.5,  0.5), new Color(), new Vector2(0.0, 0.0) )
-            .addVertex( new Vector3(-0.5,  0.5, -0.5), new Color(), new Vector2(0.0, 1.0) )
+            .addFloat3(-0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
+            .addFloat3( 0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
+            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
+            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
+            .addFloat3(-0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
+            .addFloat3(-0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
 
             .vertexBlob());
 
+        final axis      = new Vector3(1.0, 0.3, 0.5);
         final positions = [
             new Vector3( 0.0,  0.0,   0.0),
             new Vector3( 2.0,  5.0, -15.0),
@@ -144,10 +142,10 @@ class StencilTesting extends Flurry
 
         for (i in 0...positions.length)
         {
-            cubes1[i].rotation.setFromAxisAngle(new Vector3(1.0, 0.3, 0.5), Maths.toRadians(20 * i));
+            cubes1[i].rotation.setFromAxisAngle(axis, Maths.toRadians(20 * i));
             cubes1[i].position.copyFrom(positions[i]);
 
-            cubes2[i].rotation.setFromAxisAngle(new Vector3(1.0, 0.3, 0.5), Maths.toRadians(20 * i));
+            cubes2[i].rotation.setFromAxisAngle(axis, Maths.toRadians(20 * i));
             cubes2[i].position.copyFrom(positions[i]);
             cubes2[i].scale.set_xy(1.2, 1.2);
         }

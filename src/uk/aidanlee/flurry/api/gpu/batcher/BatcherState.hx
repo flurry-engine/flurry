@@ -77,7 +77,7 @@ class BatcherState
     /**
      * Returns if batching the provided geometry will require a state change.
      * @param _geom Geometry to be batched.
-     * @return Bool
+     * @return True if a state change is required.
      */
     public function requiresChange(_geom : Geometry) : Bool
     {

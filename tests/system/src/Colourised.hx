@@ -2,7 +2,6 @@ package;
 
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
-import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -22,28 +21,28 @@ class Colourised extends Flurry
 
     override function onReady()
     {
-        final camera  = new Camera2D(display.width, display.height);
+        final camera  = renderer.createCamera2D(display.width, display.height);
         final batcher = renderer.createBatcher({
             shader : resources.get('textured', ShaderResource),
             camera : camera
         });
 
         new QuadGeometry({
-            textures : Textures([ resources.get('tank1', ImageResource) ]),
+            texture  : resources.get('tank1', ImageResource),
             batchers : [ batcher ],
-            x : 0, y : 128, w : 256, h : 256
+            x : 0, y : 128, width : 256, height : 256
         }).setColour(1, 0, 0, 1);
 
         new QuadGeometry({
-            textures : Textures([ resources.get('tank2', ImageResource) ]),
+            texture  : resources.get('tank2', ImageResource),
             batchers : [ batcher ],
-            x : 256, y : 128, w : 256, h : 256
+            x : 256, y : 128, width : 256, height : 256
         }).setColour(0, 1, 0, 1);
         
         new QuadGeometry({
-            textures : Textures([ resources.get('tank3', ImageResource) ]),
+            texture  : resources.get('tank3', ImageResource),
             batchers : [ batcher ],
-            x : 512, y : 129, w : 256, h : 256
+            x : 512, y : 129, width : 256, height : 256
         }).setColour(0, 0, 1, 1);
     }
 }

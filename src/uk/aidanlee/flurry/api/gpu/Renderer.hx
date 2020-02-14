@@ -78,16 +78,14 @@ class Renderer
      */
     public function render()
     {
-        if (batchers.length <= 0)
+        if (batchers.length > 0)
         {
-            return;
-        }
+            ArraySort.sort(batchers, sortBatchers);
 
-        ArraySort.sort(batchers, sortBatchers);
-
-        for (batcher in batchers)
-        {
-            batcher.batch(backend.queue);
+            for (batcher in batchers)
+            {
+                batcher.batch(backend.queue);
+            }
         }
 
         backend.submit();
@@ -107,11 +105,25 @@ class Renderer
         return batcher;
     }
 
+    /**
+     * Easily create a 2D camera with the correct backend options.
+     * @param _width Width of the camera.
+     * @param _height Height of the camera.
+     * @return Camera2D
+     */
     public function createCamera2D(_width : Int, _height : Int) : Camera2D
     {
         return new Camera2D(_width, _height, getOrigin(), getNdcRange());
     }
 
+    /**
+     * Easily create a 3D camera with the correct backend options.
+     * @param _fov Vertical field of view.
+     * @param _aspect Aspect ratio.
+     * @param _near Near clipping.
+     * @param _far Far clipping.
+     * @return Camera3D
+     */
     public function createCamera3D(_fov : Float, _aspect : Float, _near : Float, _far : Float) : Camera3D
     {
         return new Camera3D(_fov, _aspect, _near, _far, getOrigin(), getNdcRange());

@@ -1,13 +1,12 @@
 package;
 
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.Flurry;
+import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
-import uk.aidanlee.flurry.FlurryConfig;
-import uk.aidanlee.flurry.Flurry;
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 
 class Transformations extends Flurry
 {
@@ -24,12 +23,13 @@ class Transformations extends Flurry
 
     override function onReady()
     {
-        var camera  = new Camera2D(display.width, display.height);
-        var batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
+        final axis    = new Vector3(0, 0, 1);
+        final camera  = renderer.createCamera2D(display.width, display.height);
+        final batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
 
-        var g1 = new QuadGeometry({ textures : [ resources.get('tank1', ImageResource) ], batchers : [ batcher ] });
-        var g2 = new QuadGeometry({ textures : [ resources.get('tank2', ImageResource) ], batchers : [ batcher ] });
-        var g3 = new QuadGeometry({ textures : [ resources.get('tank3', ImageResource) ], batchers : [ batcher ] });
+        final g1 = new QuadGeometry({ texture : resources.get('tank1', ImageResource), batchers : [ batcher ] });
+        final g2 = new QuadGeometry({ texture : resources.get('tank2', ImageResource), batchers : [ batcher ] });
+        final g3 = new QuadGeometry({ texture : resources.get('tank3', ImageResource), batchers : [ batcher ] });
 
         g1.origin.set_xy(128, 128);
         g2.origin.set_xy(128, 128);
@@ -40,8 +40,8 @@ class Transformations extends Flurry
         g3.position.set_xy(640, 256);
 
         g1.scale.set_xy(1.25, 1.25);
-        g2.rotation.setFromAxisAngle(new Vector3(0, 0, 1), Maths.toRadians( 45));
-        g3.rotation.setFromAxisAngle(new Vector3(0, 0, 1), Maths.toRadians(-66));
+        g2.rotation.setFromAxisAngle(axis, Maths.toRadians( 45));
+        g3.rotation.setFromAxisAngle(axis, Maths.toRadians(-66));
         g3.scale.set_xy(0.75, 0.75);
     }
 }

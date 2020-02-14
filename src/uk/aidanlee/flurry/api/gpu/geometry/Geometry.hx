@@ -122,6 +122,9 @@ class Geometry
         return _shader;
     }
 
+    /**
+     * The uniform data provided to the vertex and fragment shader when drawing this geometry.
+     */
     public var uniforms (default, set) : GeometryUniforms;
 
     inline function set_uniforms(_uniforms : GeometryUniforms) : GeometryUniforms {
@@ -133,7 +136,7 @@ class Geometry
     }
 
     /**
-     * All of the images this image will provide to the shader.
+     * All of the textures this geometry will provide to the shader.
      */
     public var textures (default, set) : GeometryTextures;
 
@@ -145,6 +148,10 @@ class Geometry
         return _textures;
     }
 
+    /**
+     * All of the samplers this geometry will provide to the shader.
+     * If none (and textures are provided), or less than the number of textures are provided then a default sampler is used.
+     */
     public var samplers (default, set) : GeometrySamplers;
 
     inline function set_samplers(_samplers : GeometrySamplers) : GeometrySamplers {

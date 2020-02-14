@@ -1,37 +1,22 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import haxe.ds.ArraySort;
 import rx.Unit;
 import rx.disposables.ISubscription;
-import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.maths.Hash;
 
 using rx.Observable;
 
 /**
- * A batcher is used to sort a set of geometries so that the renderer can draw them
- * as effeciently as possible while retaining the user requested depth ordering.
- * 
- * Batchers must contain a camera and a shader. The attached camera is used to provided
- * the shader with a view matrix to transform all the geometry by the inverse of the cameras
- * position.
- * 
- * The batcher generates a set of draw commands which are then fed to the renderer for uploading
- * and drawing. The geometry instances call the setDirty() function to flag the batcher to
- * re-order all the contained geometry.
+ * Batchers sort geometry to preserve the visual order and reduce the amount of work the renderer backends need to do.
  */
 class Batcher
 {
-    /**
-     * Randomly generated ID for this batcher.
-     */
-    public final id : Int;
-
     /**
      * All of the geometry in this batcher.
      */
@@ -40,12 +25,12 @@ class Batcher
     /**
      * This batchers depth testing settings.
      */
-    public final depthOptions : DepthState;
+    public var depthOptions : DepthState;
 
     /**
      * This batchers stencil testing settings.
      */
-    public final stencilOptions : StencilState;
+    public var stencilOptions : StencilState;
 
     /**
      * The depth of the batcher is the deciding factor in which batchers get drawn first.
@@ -64,8 +49,6 @@ class Batcher
 
     /**
      * Target this batcher will be drawn to.
-     * 
-     * If null the backbuffer / default target will be used.
      */
     public var target : TargetState;
 
@@ -90,8 +73,6 @@ class Batcher
      */
     public function new(_options : BatcherOptions)
     {
-        id = Hash.uniqueHash();
-        
         geometry       = [];
         subscriptions  = [];
         shader         = _options.shader;
@@ -106,16 +87,8 @@ class Batcher
     }
 
     /**
-     * Returns if this batcher is currently flagged as dirty.
-     * @return Bool
-     */
-    public function isDirty() : Bool
-    {
-        return dirty;
-    }
-
-    /**
      * Add a geometry to this batcher.
+     * This causes the batcher to sort all geometry for the next drawn frame.
      * @param _geom Geometry to add.
      */
     public function addGeometry(_geom : Geometry)
@@ -128,6 +101,7 @@ class Batcher
 
     /**
      * Remove a geometry from this batcher.
+     * This causes the batcher to sort all geometry for the next drawn frame.
      * @param _geom Geometry to remove.
      */
     public function removeGeometry(_geom : Geometry)
@@ -140,6 +114,10 @@ class Batcher
         dirty = true;
     }
 
+    /**
+     * Generate a series of draw commands to optimally draw the contained geometry.
+     * @param _queue The function draw commands are sent to.
+     */
     public function batch(_queue : (_geometry : DrawCommand) -> Void)
     {
         // Exit early if there is no geometry to batch.
@@ -213,13 +191,21 @@ class Batcher
     }
 
     /**
-     * Remove this batcher from the renderer and clear any resources used.
+     * Removes all geometry in this batcher.
      */
     public function drop()
     {
         state.drop();
         
+        for (geom in geometry)
+        {
+            subscriptions[geom.id].unsubscribe();
+            subscriptions.remove(geom.id);
+        }
+
         geometry.resize(0);
+
+        dirty = true;
     }
 
     /**
@@ -233,12 +219,6 @@ class Batcher
         return _geom.primitive == Triangles || _geom.primitive == Lines || _geom.primitive == Points;
     }
 
-    /**
-     * Function used to sort the array of geometry.
-     * @param _a Geometry a.
-     * @param _b Geometry b.
-     * @return Int
-     */
     function sortGeometry(_a : Geometry, _b : Geometry) : Int
     {
         // Sort by depth.
@@ -399,18 +379,18 @@ class Batcher
 @:structInit class BatcherOptions
 {
     /**
-     * The initial camera this batcher will use.
+     * The camera this batcher will use.
      */
     public var camera : Camera;
 
     /**
-     * The initial shader this batcher will use.
+     * The shader this batcher will use.
      */
     public var shader : ShaderResource;
 
     /**
      * Optional render target for this batcher.
-     * If not specified the backbuffer / default target will be used.
+     * If not specified the backbuffer will be used.
      */
     public var target : TargetState = Backbuffer;
 
