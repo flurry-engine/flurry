@@ -1,35 +1,32 @@
 package uk.aidanlee.flurry.modules.imgui;
 
-import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
-import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
-import cpp.ConstPointer;
-import cpp.Stdlib;
-import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
-import uk.aidanlee.flurry.api.buffers.Float32BufferData;
-import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import cpp.Star;
+import cpp.Stdlib;
 import cpp.Pointer;
+import cpp.ConstPointer;
 import haxe.io.Bytes;
 import haxe.io.Float32Array;
 import haxe.io.UInt16Array;
-import rx.Unit;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.input.Input;
 import uk.aidanlee.flurry.api.input.Keycodes;
 import uk.aidanlee.flurry.api.input.Scancodes;
 import uk.aidanlee.flurry.api.input.InputEvents.InputEventTextInput;
-import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Matrix;
-import uk.aidanlee.flurry.api.maths.Hash;
+import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
+import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.display.Display;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import imgui.NativeImGui;
+import rx.Unit;
 
 using cpp.NativeArray;
 using rx.Observable;
@@ -57,7 +54,7 @@ class ImGuiImpl
         resources = _resources;
         input     = _input;
         renderer  = _renderer;
-        camera    = new Camera2D(display.width, display.height);
+        camera    = _renderer.createCamera2D(display.width, display.height);
         depth     = {
             depthTesting  : false,
             depthMasking  : false,
@@ -83,7 +80,8 @@ class ImGuiImpl
         NativeImGui.createContext();
 
         var io = NativeImGui.getIO();
-        io.configFlags = ImGuiConfigFlags.NavEnableKeyboard;
+        io.configFlags  = NavEnableKeyboard;
+        io.backendFlags = RendererHasVtxOffset;
         io.keyMap[ImGuiKey.Tab       ] = Scancodes.tab;
         io.keyMap[ImGuiKey.LeftArrow ] = Scancodes.left;
         io.keyMap[ImGuiKey.RightArrow] = Scancodes.right;
@@ -131,7 +129,7 @@ class ImGuiImpl
 
         // Hook into flurry events
         events.preUpdate.subscribeFunction(newFrame);
-        events.postUpdate.subscribeFunction(render);
+        events.update.subscribeFunction(render);
         events.shutdown.subscribeFunction(dispose);
         events.input.textInput.add(onTextInput);
     }
@@ -139,7 +137,7 @@ class ImGuiImpl
     /**
      * Populates the imgui fields with the latest screen, mouse, keyboard, and gamepad info.
      */
-    public function newFrame(_unit : Unit)
+    function newFrame(_unit : Unit)
     {
         var io = NativeImGui.getIO();
         io.displaySize  = ImVec2.create(display.width, display.height);
@@ -178,7 +176,7 @@ class ImGuiImpl
     /**
      * Builds the imgui draw data and renders it into its batcher.
      */
-    public function render(_unit : Unit)
+    function render(_dt : Float)
     {
         camera.viewport = Viewport(0, 0, display.width, display.height);
         camera.size.set(display.width, display.height);
@@ -191,7 +189,7 @@ class ImGuiImpl
     /**
      * Cleans up resources used by the batcher and texture.
      */
-    public function dispose(_unit : Unit)
+    function dispose(_unit : Unit)
     {
         resources.removeResource(texture);
     }
@@ -200,7 +198,7 @@ class ImGuiImpl
      * Add text to imgui.
      * @param _text Text to add.
      */
-    public function onTextInput(_text : InputEventTextInput)
+    function onTextInput(_text : InputEventTextInput)
     {
         var io = NativeImGui.getIO();
         io.addInputCharactersUTF8(_text.text);
@@ -242,26 +240,25 @@ class ImGuiImpl
 
             for (j in 0...cmdList.cmdBuffer.size())
             {
-                var draw = cmdBuffer[j];
-                var t : Pointer<ImageResource> = Pointer.fromStar(draw.textureId).reinterpret();
+                final draw = cmdBuffer[j];
+                final t : Pointer<ImageResource> = Pointer.fromStar(draw.textureId).reinterpret();
 
                 renderer.backend.queue(
                     new DrawCommand(
-                        Hash.uniqueHash(),
-                        [
-                            new Geometry({
-                                data : Indexed(new VertexBlob(vtxBytes), new IndexBlob(idxBytes))
-                            })
-                        ],
+                        [ new Geometry({
+                            data : Indexed(
+                                new VertexBlob(vtxBytes),
+                                new IndexBlob(idxBytes.sub(draw.idxOffset, draw.elemCount)))
+                            }) ],
                         camera,
                         Triangles,
                         Clip(
-                            Std.int(draw.clipRect.x - _drawData.displayPos.x),
-                            Std.int(draw.clipRect.y - _drawData.displayPos.y),
+                            Std.int(draw.clipRect.x),
+                            Std.int(draw.clipRect.y),
                             Std.int(draw.clipRect.z - draw.clipRect.x),
                             Std.int(draw.clipRect.w - draw.clipRect.y)),
                         Backbuffer,
-                        resources.get('std-shader-textured.json', ShaderResource),
+                        resources.get('textured', ShaderResource),
                         [],
                         [ t.value ],
                         [],

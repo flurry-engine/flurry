@@ -1,7 +1,7 @@
 {
     "app" : {
         "name"      : "SystemTests",
-        "main"      : "Text",
+        "main"      : "ImGuiDrawing",
         "output"    : "bin",
         "codepaths" : [ "src", "../../src" ],
         "namespace" : "uk.aidanlee.flurry.tests.system",

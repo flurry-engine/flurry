@@ -5,8 +5,6 @@ import time
 import subprocess
 import unittest
 
-# We need the dummy test as for some reason the initial test will cause Xvfb / mesa / whatever to render nothing on azures VMs
-# But after the first program has tried to render, all other will work fine...
 class SystemTests(unittest.TestCase):
     def test_system_programs(self):
         xvfb_proc  = subprocess.Popen([ "Xvfb", ":99", "-screen", "0", "768x512x24", "-nolisten", "tcp", "-nolisten", "unix" ])
@@ -23,7 +21,8 @@ class SystemTests(unittest.TestCase):
             "Text",
             "Transformations",
             "TransformationTree",
-            "ImageSamplers"
+            "ImageSamplers",
+            "ImGuiDrawing"
         ]
 
         myEnv = os.environ.copy()
