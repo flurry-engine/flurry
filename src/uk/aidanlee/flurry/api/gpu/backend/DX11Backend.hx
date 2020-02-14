@@ -545,6 +545,30 @@ class DX11Backend implements IRendererBackend
             throw new Dx11ResourceCreationException('ID3D11SamplerState');
         }
 
+        // Create the default depth and stencil testing
+        depthStencilDescription.depthEnable    = false;
+        depthStencilDescription.depthWriteMask = Zero;
+        depthStencilDescription.depthFunction  = Always;
+
+        depthStencilDescription.stencilEnable    = false;
+        depthStencilDescription.stencilReadMask  = 0xff;
+        depthStencilDescription.stencilWriteMask = 0xff;
+
+        depthStencilDescription.frontFace.stencilFailOp      = Keep;
+        depthStencilDescription.frontFace.stencilDepthFailOp = Keep;
+        depthStencilDescription.frontFace.stencilPassOp      = Keep;
+        depthStencilDescription.frontFace.stencilFunction    = Always;
+
+        depthStencilDescription.backFace.stencilFailOp      = Keep;
+        depthStencilDescription.backFace.stencilDepthFailOp = Keep;
+        depthStencilDescription.backFace.stencilPassOp      = Keep;
+        depthStencilDescription.backFace.stencilFunction    = Always;
+
+        if (device.createDepthStencilState(depthStencilDescription, depthStencilState) != Ok)
+        {
+            throw new Dx11ResourceCreationException('ID3D11DepthStencilState');
+        }
+
         // Set the initial context state.
         final stride = (9 * 4);
         final offset = 0;
@@ -556,6 +580,7 @@ class DX11Backend implements IRendererBackend
         context.rsSetState(rasterState);
         context.omSetRenderTargets([ backbuffer.renderTargetView ], depthStencilView);
         context.omSetBlendState(blendState, [ 1, 1, 1, 1 ], 0xffffffff);
+        context.omSetDepthStencilState(depthStencilState, 1);
 
         commandQueue = [];
         clearColour  = [
@@ -1212,6 +1237,8 @@ class DX11Backend implements IRendererBackend
     {
         if (!_newStencil.equals(stencil))
         {
+            depthStencilDescription.stencilEnable = _newStencil.stencilTesting;
+
             depthStencilDescription.frontFace.stencilFailOp      = getStencilOp(_newStencil.stencilFrontTestFail);
             depthStencilDescription.frontFace.stencilDepthFailOp = getStencilOp(_newStencil.stencilFrontDepthTestFail);
             depthStencilDescription.frontFace.stencilPassOp      = getStencilOp(_newStencil.stencilFrontDepthTestPass);
