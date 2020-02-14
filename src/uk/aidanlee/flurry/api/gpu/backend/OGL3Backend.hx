@@ -345,7 +345,6 @@ class OGL3Backend implements IRendererBackend
     public function submit()
     {
         target = Backbuffer;
-        updateClip(0, 0, backbuffer.width, backbuffer.height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         // Upload and draw all commands
@@ -359,6 +358,7 @@ class OGL3Backend implements IRendererBackend
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, backbuffer.framebuffer);
 
+        updateClip(0, 0, backbuffer.width, backbuffer.height);
         glBlitFramebuffer(
             0, 0, backbuffer.width, backbuffer.height,
             0, backbuffer.height, backbuffer.width, 0,

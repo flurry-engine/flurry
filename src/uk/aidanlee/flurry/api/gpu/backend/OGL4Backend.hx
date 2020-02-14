@@ -416,7 +416,6 @@ class OGL4Backend implements IRendererBackend
                 }
             }
         }
-        updateClip(0, 0, backbuffer.width, backbuffer.height);
         glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Upload and draw all commands
@@ -426,6 +425,7 @@ class OGL4Backend implements IRendererBackend
         // Once all commands have been drawn we blit and vertically flip our custom backbuffer into the windows backbuffer.
         // A new fence sync is setup for the commands just submitted.
         // We then call the SDL function to swap the window.
+        updateClip(0, 0, backbuffer.width, backbuffer.height);
         glBlitNamedFramebuffer(
             backbuffer.framebuffer, 0,
             0, 0, backbuffer.width, backbuffer.height,
