@@ -14,11 +14,6 @@
 -L json2object
 -L RxHaxe
 
--D HXCPP_GC_GENERATIONAL
--D HXCPP_GC_MOVING
--D HXCPP_GC_DYNAMIC_SIZE
--D HXCPP_GC_BIG_BLOCKS
-
 -r assets/atlas/cavesofgallet.atlas@atlas-data
 -r assets/fonts/ubuntu.fnt@font-data
 -r assets/images/dots.png@dots-data
