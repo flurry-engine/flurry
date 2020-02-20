@@ -1,8 +1,6 @@
 package tests.api.gpu.geometry.shapes;
 
 import uk.aidanlee.flurry.api.gpu.textures.ImageRegion;
-import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
@@ -19,63 +17,56 @@ class QuadGeometryTests extends BuddySuite
     public function new()
     {
         describe('QuadGeometry', {
-
-            var texture = mock(ImageResource);
-            var batcher = new Batcher({
-                camera : mock(Camera),
-                shader : mock(ShaderResource)
-            });
-
-            texture.width.returns(256);
-            texture.height.returns(128);
-
             it('Creates an indexed quad with the textures size by default', {
-                var quad = new QuadGeometry({
-                    textures : [ texture ],
+                final texture = mock(ImageResource);
+                texture.width.returns(256);
+                texture.height.returns(128);
+
+                final batcher = new Batcher({
+                    camera : mock(Camera),
+                    shader : mock(ShaderResource)
+                });
+
+                final quad = new QuadGeometry({
+                    texture  : texture,
                     batchers : [ batcher ]
                 });
 
-                quad.vertices.length.should.be(4);
-                
-                quad.vertices[0].position.x.should.be(0);
-                quad.vertices[0].position.y.should.be(texture.height);
-                quad.vertices[1].position.x.should.be(texture.width);
-                quad.vertices[1].position.y.should.be(texture.height);
-                quad.vertices[2].position.x.should.be(0);
-                quad.vertices[2].position.y.should.be(0);
-                quad.vertices[3].position.x.should.be(texture.width);
-                quad.vertices[3].position.y.should.be(0);
-
-                quad.vertices[0].texCoord.x.should.be(0);
-                quad.vertices[0].texCoord.y.should.be(1);
-                quad.vertices[1].texCoord.x.should.be(1);
-                quad.vertices[1].texCoord.y.should.be(1);
-                quad.vertices[2].texCoord.x.should.be(0);
-                quad.vertices[2].texCoord.y.should.be(0);
-                quad.vertices[3].texCoord.x.should.be(1);
-                quad.vertices[3].texCoord.y.should.be(0);
-
-                for (i in 0...quad.vertices.length)
+                switch quad.data
                 {
-                    quad.vertices[i].color.r.should.be(1);
-                    quad.vertices[i].color.r.should.be(1);
-                    quad.vertices[i].color.r.should.be(1);
-                    quad.vertices[i].color.r.should.be(1);
-                }
+                    case Indexed(_vertices, _indices):
+                        _vertices.buffer.byteLength.should.be(144);
 
-                quad.indices.length.should.be(6);
-                quad.indices.should.containExactly([ 0, 1, 2, 2, 1, 3 ]);
+                        _indices.buffer.byteLength.should.be(12);
+                        _indices.shortAccess[0] = 0;
+                        _indices.shortAccess[1] = 1;
+                        _indices.shortAccess[2] = 2;
+                        _indices.shortAccess[3] = 2;
+                        _indices.shortAccess[4] = 0;
+                        _indices.shortAccess[5] = 3;
+                    case UnIndexed(_):
+                        fail('quad data should be indexed');
+                }
             });
 
             it('Can create a quad at a specific position', {
-                var x = 128;
-                var y =  64;
+                final x = 128;
+                final y =  64;
 
-                var quad = new QuadGeometry({
+                final texture = mock(ImageResource);
+                texture.width.returns(256);
+                texture.height.returns(128);
+
+                final batcher = new Batcher({
+                    camera : mock(Camera),
+                    shader : mock(ShaderResource)
+                });
+
+                final quad = new QuadGeometry({
+                    texture  : texture,
+                    batchers : [ batcher ],
                     x : x,
-                    y : y,
-                    textures : [ texture ],
-                    batchers : [ batcher ]
+                    y : y
                 });
 
                 quad.transformation.position.x.should.be(x);
@@ -83,232 +74,333 @@ class QuadGeometryTests extends BuddySuite
             });
 
             it('Can create a quad with a specific size', {
-                var width  = 128;
-                var height =  64;
+                final texture = mock(ImageResource);
+                texture.width.returns(256);
+                texture.height.returns(128);
 
-                var quad = new QuadGeometry({
-                    w : width,
-                    h : height,
-                    textures : [ texture ],
-                    batchers : [ batcher ]
+                final batcher = new Batcher({
+                    camera : mock(Camera),
+                    shader : mock(ShaderResource)
                 });
 
-                quad.vertices.length.should.be(4);
-                quad.vertices[0].position.x.should.be(0);
-                quad.vertices[0].position.y.should.be(height);
-                quad.vertices[1].position.x.should.be(width);
-                quad.vertices[1].position.y.should.be(height);
-                quad.vertices[2].position.x.should.be(0);
-                quad.vertices[2].position.y.should.be(0);
-                quad.vertices[3].position.x.should.be(width);
-                quad.vertices[3].position.y.should.be(0);
+                final width  = 128;
+                final height =  64;
+
+                final quad = new QuadGeometry({
+                    texture  : texture,
+                    batchers : [ batcher ],
+                    width    : width,
+                    height   : height
+                });
+
+                switch quad.data
+                {
+                    case Indexed(_vertices, _):
+                        // vertex 1
+                        // x, y, z
+                        _vertices.floatAccess[(0 * 9) + 0].should.be(0);
+                        _vertices.floatAccess[(0 * 9) + 1].should.be(height);
+
+                        // vertex 2
+                        // x, y, z
+                        _vertices.floatAccess[(1 * 9) + 0].should.be(width);
+                        _vertices.floatAccess[(1 * 9) + 1].should.be(height);
+
+                        // vertex 3
+                        // x, y, z
+                        _vertices.floatAccess[(2 * 9) + 0].should.be(0);
+                        _vertices.floatAccess[(2 * 9) + 1].should.be(0);
+
+                        // vertex 4
+                        // x, y, z
+                        _vertices.floatAccess[(3 * 9) + 0].should.be(width);
+                        _vertices.floatAccess[(3 * 9) + 1].should.be(0);
+                    case UnIndexed(_):
+                        fail('quad data should be indexed');
+                }
             });
 
             it('Will UV the entire texture by default', {
-                var quad = new QuadGeometry({
-                    textures : [ texture ],
+                final texture = mock(ImageResource);
+                texture.width.returns(256);
+                texture.height.returns(128);
+
+                final batcher = new Batcher({
+                    camera : mock(Camera),
+                    shader : mock(ShaderResource)
+                });
+
+                final quad = new QuadGeometry({
+                    texture  : texture,
                     batchers : [ batcher ]
                 });
 
-                quad.vertices.length.should.be(4);
-                quad.vertices[0].texCoord.x.should.be(0);
-                quad.vertices[0].texCoord.y.should.be(1);
-                quad.vertices[1].texCoord.x.should.be(1);
-                quad.vertices[1].texCoord.y.should.be(1);
-                quad.vertices[2].texCoord.x.should.be(0);
-                quad.vertices[2].texCoord.y.should.be(0);
-                quad.vertices[3].texCoord.x.should.be(1);
-                quad.vertices[3].texCoord.y.should.be(0);
+                switch quad.data
+                {
+                    case Indexed(_vertices, _):
+                        // vertex 1
+                        // u, v
+                        _vertices.floatAccess[(0 * 9) + 7].should.be(0);
+                        _vertices.floatAccess[(0 * 9) + 8].should.be(1);
+
+                        // vertex 2
+                        // u, v
+                        _vertices.floatAccess[(1 * 9) + 7].should.be(1);
+                        _vertices.floatAccess[(1 * 9) + 8].should.be(1);
+
+                        // vertex 3
+                        // u, v
+                        _vertices.floatAccess[(2 * 9) + 7].should.be(0);
+                        _vertices.floatAccess[(2 * 9) + 8].should.be(0);
+
+                        // vertex 4
+                        // u, v
+                        _vertices.floatAccess[(3 * 9) + 7].should.be(1);
+                        _vertices.floatAccess[(3 * 9) + 8].should.be(0);
+                    case UnIndexed(_):
+                        fail('quad data should be indexed');
+                }
             });
 
             it('Allows a custom UV region to be specified', {
-                var uv = new Rectangle(
-                    16 / texture.width,
-                    48 / texture.height,
-                    (16 + 32) / texture.width,
-                    (48 + 64) / texture.height);
+                final texture = mock(ImageResource);
+                texture.width.returns(256);
+                texture.height.returns(128);
 
-                var quad = new QuadGeometry({
-                    textures : [ texture ],
+                final batcher = new Batcher({
+                    camera : mock(Camera),
+                    shader : mock(ShaderResource)
+                });
+
+                final region = new ImageRegion(texture, 16, 48, 32, 64);
+                final quad   = new QuadGeometry({
+                    texture  : texture,
                     batchers : [ batcher ],
-                    region   : new ImageRegion(texture, 16, 48, 32, 64)
+                    region   : region
                 });
 
-                quad.vertices.length.should.be(4);
-                quad.vertices[0].texCoord.x.should.beCloseTo(uv.x);
-                quad.vertices[0].texCoord.y.should.beCloseTo(uv.h);
-                quad.vertices[1].texCoord.x.should.beCloseTo(uv.w);
-                quad.vertices[1].texCoord.y.should.beCloseTo(uv.h);
-                quad.vertices[2].texCoord.x.should.beCloseTo(uv.x);
-                quad.vertices[2].texCoord.y.should.beCloseTo(uv.y);
-                quad.vertices[3].texCoord.x.should.beCloseTo(uv.w);
-                quad.vertices[3].texCoord.y.should.beCloseTo(uv.y);
-            });
+                switch quad.data
+                {
+                    case Indexed(_vertices, _):
+                        // vertex 1
+                        // u, v
+                        _vertices.floatAccess[(0 * 9) + 7].should.be(region.u1);
+                        _vertices.floatAccess[(0 * 9) + 8].should.be(region.v2);
 
-            it('Allows resizing the quad using a vector', {
-                var size = new Vector2(128, 512);
-                var quad = new QuadGeometry({
-                    textures : [ texture ],
-                    batchers : [ batcher ]
-                });
+                        // vertex 2
+                        // u, v
+                        _vertices.floatAccess[(1 * 9) + 7].should.be(region.u2);
+                        _vertices.floatAccess[(1 * 9) + 8].should.be(region.v2);
 
-                quad.resize(size);
-                quad.vertices.length.should.be(4);
-                quad.vertices[0].position.x.should.beCloseTo(0);
-                quad.vertices[0].position.y.should.beCloseTo(size.y);
-                quad.vertices[1].position.x.should.beCloseTo(size.x);
-                quad.vertices[1].position.y.should.beCloseTo(size.y);
-                quad.vertices[2].position.x.should.beCloseTo(0);
-                quad.vertices[2].position.y.should.beCloseTo(0);
-                quad.vertices[3].position.x.should.beCloseTo(size.x);
-                quad.vertices[3].position.y.should.beCloseTo(0);
+                        // vertex 3
+                        // u, v
+                        _vertices.floatAccess[(2 * 9) + 7].should.be(region.u1);
+                        _vertices.floatAccess[(2 * 9) + 8].should.be(region.v1);
+
+                        // vertex 4
+                        // u, v
+                        _vertices.floatAccess[(3 * 9) + 7].should.be(region.u2);
+                        _vertices.floatAccess[(3 * 9) + 8].should.be(region.v1);
+                    case UnIndexed(_):
+                        fail('quad data should be indexed');
+                }
             });
 
             it('Allows resizing the quad using two floats', {
-                var size = new Vector2(128, 512);
-                var quad = new QuadGeometry({
-                    textures : [ texture ],
+                final width = 128;
+                final height = 512;
+
+                final texture = mock(ImageResource);
+                texture.width.returns(256);
+                texture.height.returns(128);
+
+                final batcher = new Batcher({
+                    camera : mock(Camera),
+                    shader : mock(ShaderResource)
+                });
+
+                final quad = new QuadGeometry({
+                    texture  : texture,
                     batchers : [ batcher ]
                 });
 
-                quad.resize_xy(size.x, size.y);
-                quad.vertices.length.should.be(4);
-                quad.vertices[0].position.x.should.beCloseTo(0);
-                quad.vertices[0].position.y.should.beCloseTo(size.y);
-                quad.vertices[1].position.x.should.beCloseTo(size.x);
-                quad.vertices[1].position.y.should.beCloseTo(size.y);
-                quad.vertices[2].position.x.should.beCloseTo(0);
-                quad.vertices[2].position.y.should.beCloseTo(0);
-                quad.vertices[3].position.x.should.beCloseTo(size.x);
-                quad.vertices[3].position.y.should.beCloseTo(0);
-            });
+                quad.resize(width, height);
 
-            it('Allows resizing and setting the position of the quad using a rectangle', {
-                var rect = new Rectangle(32, 64, 128, 512);
-                var quad = new QuadGeometry({
-                    textures : [ texture ],
-                    batchers : [ batcher ]
-                });
+                switch quad.data
+                {
+                    case Indexed(_vertices, _):
+                        // vertex 1
+                        // x, y, z
+                        _vertices.floatAccess[(0 * 9) + 0].should.be(0);
+                        _vertices.floatAccess[(0 * 9) + 1].should.be(height);
 
-                quad.set(rect);
-                quad.vertices.length.should.be(4);
-                quad.vertices[0].position.x.should.beCloseTo(0);
-                quad.vertices[0].position.y.should.beCloseTo(rect.h);
-                quad.vertices[1].position.x.should.beCloseTo(rect.w);
-                quad.vertices[1].position.y.should.beCloseTo(rect.h);
-                quad.vertices[2].position.x.should.beCloseTo(0);
-                quad.vertices[2].position.y.should.beCloseTo(0);
-                quad.vertices[3].position.x.should.beCloseTo(rect.w);
-                quad.vertices[3].position.y.should.beCloseTo(0);
+                        // vertex 2
+                        // x, y, z
+                        _vertices.floatAccess[(1 * 9) + 0].should.be(width);
+                        _vertices.floatAccess[(1 * 9) + 1].should.be(height);
 
-                quad.transformation.position.x.should.beCloseTo(rect.x);
-                quad.transformation.position.y.should.beCloseTo(rect.y);
+                        // vertex 3
+                        // x, y, z
+                        _vertices.floatAccess[(2 * 9) + 0].should.be(0);
+                        _vertices.floatAccess[(2 * 9) + 1].should.be(0);
+
+                        // vertex 4
+                        // x, y, z
+                        _vertices.floatAccess[(3 * 9) + 0].should.be(width);
+                        _vertices.floatAccess[(3 * 9) + 1].should.be(0);
+                    case UnIndexed(_):
+                        fail('quad data should be indexed');
+                }
             });
 
             it('Allows resizing and setting the position of the quad using four floats', {
-                var rect = new Rectangle(32, 64, 128, 512);
-                var quad = new QuadGeometry({
-                    textures : [ texture ],
+                final x = 32;
+                final y = 48;
+                final width = 128;
+                final height = 512;
+
+                final texture = mock(ImageResource);
+                texture.width.returns(256);
+                texture.height.returns(128);
+
+                final batcher = new Batcher({
+                    camera : mock(Camera),
+                    shader : mock(ShaderResource)
+                });
+
+                final quad = new QuadGeometry({
+                    texture  : texture,
                     batchers : [ batcher ]
                 });
 
-                quad.set_xywh(rect.x, rect.y, rect.w, rect.h);
-                quad.vertices.length.should.be(4);
-                quad.vertices[0].position.x.should.beCloseTo(0);
-                quad.vertices[0].position.y.should.beCloseTo(rect.h);
-                quad.vertices[1].position.x.should.beCloseTo(rect.w);
-                quad.vertices[1].position.y.should.beCloseTo(rect.h);
-                quad.vertices[2].position.x.should.beCloseTo(0);
-                quad.vertices[2].position.y.should.beCloseTo(0);
-                quad.vertices[3].position.x.should.beCloseTo(rect.w);
-                quad.vertices[3].position.y.should.beCloseTo(0);
+                quad.set(x, y, width, height);
 
-                quad.transformation.position.x.should.beCloseTo(rect.x);
-                quad.transformation.position.y.should.beCloseTo(rect.y);
-            });
+                switch quad.data
+                {
+                    case Indexed(_vertices, _):
+                        // vertex 1
+                        // x, y, z
+                        _vertices.floatAccess[(0 * 9) + 0].should.be(0);
+                        _vertices.floatAccess[(0 * 9) + 1].should.be(height);
 
-            it('Allows setting normalized UV coordinates using a rectangle', {
-                var rect = new Rectangle(0.2, 0.3, 0.8, 0.95);
-                var quad = new QuadGeometry({
-                    textures : [ texture ],
-                    batchers : [ batcher ]
-                });
+                        // vertex 2
+                        // x, y, z
+                        _vertices.floatAccess[(1 * 9) + 0].should.be(width);
+                        _vertices.floatAccess[(1 * 9) + 1].should.be(height);
 
-                quad.uv(rect);
-                quad.vertices.length.should.be(4);
+                        // vertex 3
+                        // x, y, z
+                        _vertices.floatAccess[(2 * 9) + 0].should.be(0);
+                        _vertices.floatAccess[(2 * 9) + 1].should.be(0);
 
-                quad.vertices[0].texCoord.x.should.beCloseTo(rect.x);
-                quad.vertices[0].texCoord.y.should.beCloseTo(rect.h);
+                        // vertex 4
+                        // x, y, z
+                        _vertices.floatAccess[(3 * 9) + 0].should.be(width);
+                        _vertices.floatAccess[(3 * 9) + 1].should.be(0);
+                    case UnIndexed(_):
+                        fail('quad data should be indexed');
+                }
 
-                quad.vertices[1].texCoord.x.should.beCloseTo(rect.w);
-                quad.vertices[1].texCoord.y.should.beCloseTo(rect.h);
-
-                quad.vertices[2].texCoord.x.should.beCloseTo(rect.x);
-                quad.vertices[2].texCoord.y.should.beCloseTo(rect.y);
-
-                quad.vertices[3].texCoord.x.should.beCloseTo(rect.w);
-                quad.vertices[3].texCoord.y.should.beCloseTo(rect.y);
+                quad.transformation.position.x.should.be(x);
+                quad.transformation.position.y.should.be(y);
             });
 
             it('Allows setting normalized coordinates using four floats', {
-                var rect = new Rectangle(0.2, 0.3, 0.8, 0.95);
-                var quad = new QuadGeometry({
-                    textures : [ texture ],
+                final x = 0.2;
+                final y = 0.3;
+                final w = 0.8;
+                final h = 0.95;
+
+                final texture = mock(ImageResource);
+                texture.width.returns(256);
+                texture.height.returns(128);
+
+                final batcher = new Batcher({
+                    camera : mock(Camera),
+                    shader : mock(ShaderResource)
+                });
+
+                final quad = new QuadGeometry({
+                    texture  : texture,
                     batchers : [ batcher ]
                 });
 
-                quad.uv_xyzw(rect.x, rect.y, rect.w, rect.h);
-                quad.vertices.length.should.be(4);
+                quad.uv(x, y, w, h);
 
-                quad.vertices[0].texCoord.x.should.beCloseTo(rect.x);
-                quad.vertices[0].texCoord.y.should.beCloseTo(rect.h);
+                switch quad.data
+                {
+                    case Indexed(_vertices, _):
+                        // vertex 1
+                        // u, v
+                        _vertices.floatAccess[(0 * 9) + 7].should.beCloseTo(x);
+                        _vertices.floatAccess[(0 * 9) + 8].should.beCloseTo(h);
 
-                quad.vertices[1].texCoord.x.should.beCloseTo(rect.w);
-                quad.vertices[1].texCoord.y.should.beCloseTo(rect.h);
+                        // vertex 2
+                        // u, v
+                        _vertices.floatAccess[(1 * 9) + 7].should.beCloseTo(w);
+                        _vertices.floatAccess[(1 * 9) + 8].should.beCloseTo(h);
 
-                quad.vertices[2].texCoord.x.should.beCloseTo(rect.x);
-                quad.vertices[2].texCoord.y.should.beCloseTo(rect.y);
+                        // vertex 3
+                        // u, v
+                        _vertices.floatAccess[(2 * 9) + 7].should.beCloseTo(x);
+                        _vertices.floatAccess[(2 * 9) + 8].should.beCloseTo(y);
 
-                quad.vertices[3].texCoord.x.should.beCloseTo(rect.w);
-                quad.vertices[3].texCoord.y.should.beCloseTo(rect.y);
-            });
-
-            it('Allows setting texture space UV coordinates using a rectangle', {
-                var rect = new Rectangle(32, 48, 96, 64);
-                var quad = new QuadGeometry({
-                    textures : [ texture ],
-                    batchers : [ batcher ]
-                });
-
-                quad.uv(rect, false);
-                quad.vertices.length.should.be(4);
-
-                quad.vertices[0].texCoord.x.should.beCloseTo(rect.x / texture.width);
-                quad.vertices[0].texCoord.y.should.beCloseTo(rect.h / texture.height);
-
-                quad.vertices[1].texCoord.x.should.beCloseTo(rect.w / texture.width);
-                quad.vertices[1].texCoord.y.should.beCloseTo(rect.h / texture.height);
-
-                quad.vertices[2].texCoord.x.should.beCloseTo(rect.x / texture.width);
-                quad.vertices[2].texCoord.y.should.beCloseTo(rect.y / texture.height);
-
-                quad.vertices[3].texCoord.x.should.beCloseTo(rect.w / texture.width);
-                quad.vertices[3].texCoord.y.should.beCloseTo(rect.y / texture.height);
+                        // vertex 4
+                        // u, v
+                        _vertices.floatAccess[(3 * 9) + 7].should.beCloseTo(w);
+                        _vertices.floatAccess[(3 * 9) + 8].should.beCloseTo(y);
+                    case UnIndexed(_):
+                        fail('quad data should be indexed');
+                }
             });
 
             it('Allows setting texture space coordinates using four floats', {
-                var rect = new Rectangle(32, 48, 96, 64);
-                var quad = new QuadGeometry({
-                    textures : [ texture ],
+                final x = 32;
+                final y = 48;
+                final w = 96;
+                final h = 64;
+
+                final texture = mock(ImageResource);
+                texture.width.returns(256);
+                texture.height.returns(128);
+
+                final batcher = new Batcher({
+                    camera : mock(Camera),
+                    shader : mock(ShaderResource)
+                });
+
+                final quad = new QuadGeometry({
+                    texture  : texture,
                     batchers : [ batcher ]
                 });
 
-                quad.uv_xyzw(rect.x, rect.y, rect.w, rect.h, false);
-                quad.vertices.length.should.be(4);
-                quad.vertices[0].texCoord.equals(new Vector2(rect.x / texture.width, rect.h / texture.height)).should.be(true);
-                quad.vertices[1].texCoord.equals(new Vector2(rect.w / texture.width, rect.h / texture.height)).should.be(true);
-                quad.vertices[2].texCoord.equals(new Vector2(rect.x / texture.width, rect.y / texture.height)).should.be(true);
-                quad.vertices[3].texCoord.equals(new Vector2(rect.w / texture.width, rect.y / texture.height)).should.be(true);
+                quad.uv(x, y, w, h, false);
+
+                switch quad.data
+                {
+                    case Indexed(_vertices, _):
+                        // vertex 1
+                        // u, v
+                        _vertices.floatAccess[(0 * 9) + 7].should.beCloseTo(x / texture.width);
+                        _vertices.floatAccess[(0 * 9) + 8].should.beCloseTo(h / texture.height);
+
+                        // vertex 2
+                        // u, v
+                        _vertices.floatAccess[(1 * 9) + 7].should.beCloseTo(w / texture.width);
+                        _vertices.floatAccess[(1 * 9) + 8].should.beCloseTo(h / texture.height);
+
+                        // vertex 3
+                        // u, v
+                        _vertices.floatAccess[(2 * 9) + 7].should.beCloseTo(x / texture.width);
+                        _vertices.floatAccess[(2 * 9) + 8].should.beCloseTo(y / texture.height);
+
+                        // vertex 4
+                        // u, v
+                        _vertices.floatAccess[(3 * 9) + 7].should.beCloseTo(w / texture.width);
+                        _vertices.floatAccess[(3 * 9) + 8].should.beCloseTo(y / texture.height);
+                    case UnIndexed(_):
+                        fail('quad data should be indexed');
+                }
             });
         });
     }

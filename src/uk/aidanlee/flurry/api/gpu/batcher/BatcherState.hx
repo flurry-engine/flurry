@@ -144,7 +144,7 @@ class BatcherState
                 }
                 for (i in 0...samplers.length)
                 {
-                    if (!samplers[i].equal(_samplers[i]))
+                    if (samplers[i] != _samplers[i])
                     {
                         return true;
                     }

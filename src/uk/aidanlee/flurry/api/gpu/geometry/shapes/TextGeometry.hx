@@ -42,7 +42,7 @@ class TextGeometry extends Geometry
 
         if (!constructor)
         {
-            generateGeometry(font, text, position.x, position.y, fontTexture.width, fontTexture.height);
+            data = generateGeometry(font, text, position.x, position.y, fontTexture.width, fontTexture.height);
         }
 
         return font;
@@ -58,7 +58,7 @@ class TextGeometry extends Geometry
 
         if (!constructor)
         {
-            generateGeometry(font, text, position.x, position.y, fontTexture.width, fontTexture.height);
+            data = generateGeometry(font, text, position.x, position.y, fontTexture.width, fontTexture.height);
         }
 
         return text;

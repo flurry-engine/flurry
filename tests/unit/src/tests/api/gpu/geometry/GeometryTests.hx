@@ -1,23 +1,21 @@
 package tests.api.gpu.geometry;
 
-import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.maths.Quaternion;
-import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
-import uk.aidanlee.flurry.api.gpu.camera.Camera;
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
-import uk.aidanlee.flurry.api.gpu.geometry.Vertex;
-import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
-import uk.aidanlee.flurry.api.gpu.geometry.Color;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
+import uk.aidanlee.flurry.api.gpu.state.ClipState;
+import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import buddy.BuddySuite;
 import mockatoo.Mockatoo.*;
 
 using buddy.Should;
-using mockatoo.Mockatoo;
+using rx.Observable;
 
 class GeometryTests extends BuddySuite
 {
@@ -26,9 +24,9 @@ class GeometryTests extends BuddySuite
         describe('Geometry', {
             
             it('Has a unique identifier for each geometry instance', {
-                var g1 = new Geometry({});
-                var g2 = new Geometry({});
-                var g3 = new Geometry({});
+                final g1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                final g2 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                final g3 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
 
                 g1.id.should.not.be(g2.id);
                 g1.id.should.not.be(g3.id);
@@ -41,7 +39,7 @@ class GeometryTests extends BuddySuite
             });
             
             it('Has a transformation instance to modify its vertices', {
-                var g = new Geometry({});
+                final g = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                 g.transformation.position.equals(new Vector3()).should.be(true);
                 g.transformation.origin.equals(new Vector3()).should.be(true);
                 g.transformation.scale.equals(new Vector3(1, 1, 1)).should.be(true);
@@ -49,215 +47,158 @@ class GeometryTests extends BuddySuite
             });
 
             it('Has shortcut properties to access transformation data', {
-                var g = new Geometry({});
+                final g = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                 g.position.equals(g.transformation.position).should.be(true);
                 g.origin.equals(g.transformation.origin).should.be(true);
                 g.scale.equals(g.transformation.scale).should.be(true);
                 g.rotation.equals(g.transformation.rotation).should.be(true);
             });
 
-            it('Contains an array of vertices which makes up the geometry', {
-                var v = [
-                    new Vertex(new Vector3(), new Color(), new Vector2()),
-                    new Vertex(new Vector3(), new Color(), new Vector2()),
-                    new Vertex(new Vector3(), new Color(), new Vector2())
-                ];
-
-                var g = new Geometry({});
-                g.vertices.should.containExactly([]);
-
-                var g = new Geometry({ vertices : v });
-                g.vertices.should.containExactly(v);
-            });
-
-            it('Contains an array of indices for indexed drawing', {
-                var i = [ 0, 1, 2 ];
-
-                var g = new Geometry({});
-                g.indices.should.containExactly([]);
-
-                var g = new Geometry({ indices : i });
-                g.indices.should.containExactly(i);
-            });
-
-            it('Has a colour which the geometry is tinted by', {
-                var c = new Color(0.5, 0.2, 0.8, 0.9);
-
-                var g = new Geometry({});
-                g.color.equals(new Color()).should.be(true);
-
-                var g = new Geometry({ color : c });
-                g.color.equals(c).should.be(true);
-            });
-
             it('Has a clip rectangle for cutting off part of the geometry', {
-                var r = new Rectangle(12, 4, 20, 7);
+                final clipRect  = Clip(12, 4, 20, 7);
+                final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), clip : clipRect });
 
-                var g = new Geometry({});
-                g.clip.should.be(null);
-
-                var g = new Geometry({ clip : r });
-                g.clip.equals(r).should.be(true);
+                geometry1.shader.getIndex().should.be(0);
+                geometry2.clip.should.equal(clipRect);
             });
 
             it('Has an array of textures to draw the geometry with', {
-                var t = mock(ImageResource);
+                final textures  = Textures([ mock(ImageResource) ]);
+                final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), textures : textures });
 
-                var g = new Geometry({});
-                g.textures.should.containExactly([]);
-
-                var g = new Geometry({ textures : [ t ] });
-                g.textures.should.containExactly([ t ]);
+                geometry1.shader.getIndex().should.be(0);
+                geometry2.textures.should.equal(textures);
             });
 
             it('Has a shader for overriding the batchers shader', {
-                var s = mock(ShaderResource);
+                final shader    = Shader(mock(ShaderResource));
+                final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), shader : shader });
 
-                var g = new Geometry({});
-                g.shader.should.be(null);
-
-                var g = new Geometry({ shader : s });
-                g.shader.should.be(s);
+                geometry1.shader.getIndex().should.be(0);
+                geometry2.shader.should.equal(shader);
             });
 
             it('Has a uniform for overriding the shaders default', {
-                var u = mock(Uniforms);
-
-                var g = new Geometry({});
-                g.uniforms.should.be(null);
-
-                var g = new Geometry({ uniforms : u });
-                g.uniforms.should.be(u);
+                final uniforms  = Uniforms([ mock(UniformBlob) ]);
+                final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), uniforms : uniforms });
+                
+                geometry1.uniforms.getIndex().should.be(0);
+                geometry2.uniforms.should.equal(uniforms);
             });
 
             it('Has a depth to decide when it should be drawn', {
-                var g = new Geometry({});
-                g.depth.should.be(0);
-
-                var g = new Geometry({ depth : 5.2 });
-                g.depth.should.be(5.2);
+                final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), depth : 5.2 });
+                
+                geometry1.depth.should.be(0);
+                geometry2.depth.should.be(5.2);
             });
 
             it('Has a primitive type to tell the renderer how to interpret the vertex data', {
-                var g = new Geometry({});
-                g.primitive.should.equal(Triangles);
-
-                var g = new Geometry({ primitive : Points });
-                g.primitive.should.equal(Points);
+                final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), primitive : Points });
+                
+                geometry1.primitive.should.be(Triangles);
+                geometry2.primitive.should.be(Points);
             });
 
-            // it('Will dirty any batchers its in when adding a texture', {
-            //     var u = mock(Uniforms);
-            //     var s = mock(ShaderResource);
-                
-            //     u.id.returns(0);
-            //     s.id.returns(0);
-            //     s.uniforms.returns(u);
+            describe('Changed observable is invoked when a state related property is changed', {
+                it('will publish a new onNext event when the depth changes', {
+                    var count = 0;
 
-            //     var b = new Batcher({ shader : s, camera : mock(Camera) });
-            //     var g = new Geometry({ batchers : [ b ] });
+                    final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                    geometry.changed.subscribeFunction(_ -> count++);
 
-            //     // Batching is required to clear the dirty state set when the geometry was added.
-            //     b.batch();
-            //     g.addTexture(mock(ImageResource));
+                    geometry.depth = 10;
+                    count.should.be(1);
 
-            //     b.isDirty().should.be(true);
-            // });
-
-            // it('Will dirty any batchers its in when removing a texture', {
-            //     var u = mock(Uniforms);
-            //     var s = mock(ShaderResource);
-            //     var t = mock(ImageResource);
-                
-            //     u.id.returns(0);
-            //     s.id.returns(0);
-            //     s.uniforms.returns(u);
-                
-            //     var b = new Batcher({ shader : s, camera : mock(Camera) });
-            //     var g = new Geometry({ batchers : [ b ], textures: [ t ] });
-
-            //     // Batching is required to clear the dirty state set when the geometry was added.
-            //     b.batch();
-            //     g.removeTexture(t);
-
-            //     b.isDirty().should.be(true);
-            // });
-
-            it('Will remove itself from any batchers when dropped', {
-                var b = new Batcher({ shader : mock(ShaderResource), camera : mock(Camera) });
-
-                var g1 = new Geometry({ batchers : [ b ] });
-                var g2 = new Geometry({ batchers : [ b ] });
-
-                b.geometry.should.containExactly([ g1, g2 ]);
-                g1.drop();
-                b.geometry.should.containExactly([ g2 ]);
-            });
-
-            it('Contains a convenience function to dirty all the batchers it is in', {
-                var u = mock(Uniforms);
-                var s = mock(ShaderResource);
-                
-                u.id.returns(0);
-                s.id.returns(0);
-                s.uniforms.returns(u);
-
-                var b1 = new Batcher({ shader : s, camera : mock(Camera) });
-                var b2 = new Batcher({ shader : s, camera : mock(Camera) });
-
-                var g = new Geometry({ batchers : [ b1, b2 ] });
-
-                // Batching is required to clear the dirty state set when the geometry was added.
-                b1.batch();
-                b2.batch();
-                g.changed.dispatch();
-
-                b1.isDirty().should.be(true);
-                b2.isDirty().should.be(true);
-            });
-
-            it('Contains a convenience function to check if the geometry is indexed', {
-                var g = new Geometry({ indices : [ 0, 1, 2 ] });
-                g.isIndexed().should.be(true);
-
-                var g = new Geometry({});
-                g.isIndexed().should.be(false);
-            });
-
-            describe('firing the dirty signal when properties change', {
-                it('will fire the signal when the shader is changed', {
-                    var c = 0;
-                    var s = mock(ShaderResource);
-                    var g = new Geometry({});
-                    g.changed.add(() -> c++);
-
-                    g.shader = s;
-                    c.should.be(1);
+                    geometry.depth = 10;
+                    count.should.be(1);
                 });
-                it('will fire the signal when the unfiroms are changed', {
-                    var c = 0;
-                    var u = mock(Uniforms);
-                    var g = new Geometry({});
-                    g.changed.add(() -> c++);
+                it('will publish a new onNext event when a shader is assigned', {
+                    var count = 0;
 
-                    g.uniforms = u;
-                    c.should.be(1);
+                    final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                    geometry.changed.subscribeFunction(_ -> count++);
+
+                    geometry.shader = Shader(mock(ShaderResource));
+                    count.should.be(1);
+
+                    geometry.shader = None;
+                    count.should.be(2);
                 });
-                it('will fire the signal when the depth is changed', {
-                    var c = 0;
-                    var g = new Geometry({});
-                    g.changed.add(() -> c++);
+                it('will publish a new onNext event when uniforms are assigned', {
+                    var count = 0;
 
-                    g.depth = 8;
-                    c.should.be(1);
+                    final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                    geometry.changed.subscribeFunction(_ -> count++);
+
+                    geometry.uniforms = Uniforms([ mock(UniformBlob) ]);
+                    count.should.be(1);
+
+                    geometry.uniforms = None;
+                    count.should.be(2);
                 });
-                it('will fire the signal when the primitive is changed', {
-                    var c = 0;
-                    var g = new Geometry({});
-                    g.changed.add(() -> c++);
+                it('will publish a new onNext event when textures are assigned', {
+                    var count = 0;
 
-                    g.primitive = Points;
-                    c.should.be(1);
+                    final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                    geometry.changed.subscribeFunction(_ -> count++);
+
+                    geometry.textures = Textures([ mock(ImageResource) ]);
+                    count.should.be(1);
+
+                    geometry.textures = None;
+                    count.should.be(2);
+                });
+                it('will publish a new onNext event when samplers are assigned', {
+                    var count = 0;
+
+                    final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                    geometry.changed.subscribeFunction(_ -> count++);
+
+                    geometry.samplers = Samplers([ mock(SamplerState) ]);
+                    count.should.be(1);
+
+                    geometry.samplers = None;
+                    count.should.be(2);
+                });
+                it('will publish a new onNext event when the clip state is assigned', {
+                    var count = 0;
+
+                    final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                    geometry.changed.subscribeFunction(_ -> count++);
+
+                    geometry.uniforms = Uniforms([ mock(UniformBlob) ]);
+                    count.should.be(1);
+
+                    geometry.uniforms = None;
+                    count.should.be(2);
+                });
+                it('will publish a new onNext event when the blend state is assigned', {
+                    var count = 0;
+
+                    final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                    geometry.changed.subscribeFunction(_ -> count++);
+
+                    geometry.blend = new BlendState();
+                    count.should.be(1);
+                });
+                it('will publish a new onNext event when the primitive is changed', {
+                    var count = 0;
+
+                    final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                    geometry.changed.subscribeFunction(_ -> count++);
+
+                    geometry.primitive = Lines;
+                    count.should.be(1);
+
+                    geometry.primitive = Lines;
+                    count.should.be(1);
                 });
             });
         });

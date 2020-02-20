@@ -76,53 +76,17 @@ class QuadGeometry extends Geometry
     }
 
     /**
-     * Set the position and size of the quad from a rectangle.
-     * @param _rectangle Rectangle containing the new position and size.
-     */
-    public function set(_rectangle : Rectangle)
-    {
-        updateSize(_rectangle.w, _rectangle.h);
-
-        transformation.position.set_xy(_rectangle.x, _rectangle.y);
-    }
-
-    /**
      * Set the position and size of the quad from four floats.
      * @param _x New x position of the quad.
      * @param _y New y position of the quad.
      * @param _w New width of the quad.
      * @param _h New height of the quad.
      */
-    public function set_xywh(_x : Float, _y : Float, _width : Float, _height : Float)
+    public function set(_x : Float, _y : Float, _width : Float, _height : Float)
     {
         updateSize(_width, _height);
 
         transformation.position.set_xy(_x, _y);
-    }
-
-    /**
-     * Set the UV coordinates of the quad from a rectangle.
-     * The w and h components make the bottom right point of the UV rectangle. They are not used as offsets from the x and y position.
-     * Normalized and texture space coordinates are supported. Texture space coordinates will be converted to normalized coordinates.
-     * @param _uv         UV rectangle.
-     * @param _normalized If the values are already normalized. (defaults true)
-     */
-    public function uv(_uv : Rectangle, _normalized : Bool = true)
-    {
-        switch textures
-        {
-            case None: //
-            case Textures(_textures):
-                final width  = _textures[0].width;
-                final height = _textures[0].height;
-
-                final uv_x = _normalized ? _uv.x : _uv.x / width;
-                final uv_y = _normalized ? _uv.y : _uv.y / height;
-                final uv_w = _normalized ? _uv.w : _uv.w / width;
-                final uv_h = _normalized ? _uv.h : _uv.h / height;
-
-                updateUVs(uv_x, uv_y, uv_w, uv_h);
-        }
     }
 
     /**
@@ -134,7 +98,7 @@ class QuadGeometry extends Geometry
      * @param _w Bottom right y coordinate.
      * @param _normalized 
      */
-    public function uv_xyzw(_x : Float, _y : Float, _z : Float, _w : Float, _normalized : Bool = true)
+    public function uv(_x : Float, _y : Float, _z : Float, _w : Float, _normalized : Bool = true)
     {
         switch textures
         {
