@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import haxe.io.Bytes;
 import haxe.io.BytesBuffer;
 import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Matrix;
@@ -113,6 +114,10 @@ class UniformBlobBuilder
 
             writer.addBytes(buffer.bytes, buffer.byteOffset, buffer.byteLength);
         }
+        else
+        {
+            writer.addBytes(Bytes.alloc(64), 0, 64);
+        }
 
         return this;
     }
@@ -128,6 +133,10 @@ class UniformBlobBuilder
             final buffer = (cast _vector : BufferData);
 
             writer.addBytes(buffer.bytes, buffer.byteOffset, buffer.byteLength);
+        }
+        else
+        {
+            writer.addBytes(Bytes.alloc(16), 0, 16);
         }
 
         return this;

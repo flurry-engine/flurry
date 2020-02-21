@@ -25,6 +25,9 @@ class Main implements Buddy<[
 
     tests.api.gpu.geometry.BlendingTests,
     tests.api.gpu.geometry.GeometryTests,
+    tests.api.gpu.geometry.VertexBlobTests,
+    tests.api.gpu.geometry.IndexBlobTests,
+    tests.api.gpu.geometry.UniformBlobTests,
     tests.api.gpu.geometry.shapes.QuadGeometryTests,
     tests.api.gpu.geometry.shapes.TextGeometryTests,
     tests.api.gpu.batcher.BatcherStateTests,
