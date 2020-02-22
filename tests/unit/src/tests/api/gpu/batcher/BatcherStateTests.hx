@@ -1,15 +1,17 @@
 package tests.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
-import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
+import uk.aidanlee.flurry.api.gpu.state.ClipState;
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
+import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.batcher.BatcherState;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
-import uk.aidanlee.flurry.api.gpu.geometry.Blending;
-import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.resources.Resource;
-import uk.aidanlee.flurry.api.maths.Rectangle;
 import buddy.BuddySuite;
 import mockatoo.Mockatoo.*;
 
@@ -21,445 +23,436 @@ class BatcherStateTests extends BuddySuite
     public function new()
     {
         describe('BatcherState', {
-            it('Can create a state for a batcher', {
-                var state = new BatcherState(mock(Batcher));
-                state.textures.should.containExactly([]);
-                state.blend.equals(new Blending()).should.be(true);
-                state.clip.should.be(null);
-            });
+            it('can detect changes in the geometries primitive type', {
+                final shader = mock(ShaderResource);
+                shader.id.returns('shader');
 
-            it('Can set its state to that of a geometry', {
-                var shader = mock(ShaderResource);
-                shader.id.returns('0');
-
-                var batcher = mock(Batcher);
+                final batcher = mock(Batcher);
+                batcher.camera.returns(mock(Camera2D));
                 batcher.shader.returns(shader);
 
-                var uniforms = mock(Uniforms);
-                uniforms.id.returns(0);
+                final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)), primitive : Lines });
+                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), primitive : TriangleStrip });
+                final geometry3 = new Geometry({ data : UnIndexed(mock(VertexBlob)), primitive : Points });
 
-                var clip  = new Rectangle();
-                var blend = new Blending();
+                final state = new BatcherState(batcher);
+                state.change(geometry1);
+                state.requiresChange(geometry1).should.be(false);
 
-                var geometry = mock(Geometry);
-                geometry.shader.returns(shader);
-                geometry.uniforms.returns(uniforms);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(TriangleStrip);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
+                state.requiresChange(geometry2).should.be(true);
+                state.change(geometry2);
+                state.requiresChange(geometry2).should.be(false);
 
-                var state = new BatcherState(batcher);
-                state.change(geometry);
-                state.shader.should.be(batcher.shader);
-                state.uniforms.should.be(uniforms);
-                state.textures.should.containExactly(geometry.textures);
-                state.samplers.should.containExactly(geometry.samplers);
-                state.primitive.should.equal(geometry.primitive);
-                state.clip.equals(clip).should.be(true);
-                state.blend.equals(blend).should.be(true);
-                state.indexed.should.be(geometry.isIndexed());
+                state.requiresChange(geometry3).should.be(true);
+                state.change(geometry3);
+                state.requiresChange(geometry3).should.be(false);
             });
 
-            it('Can check if a change is required to batch a default geometry', {
-                var uniforms = mock(Uniforms);
-                uniforms.id.returns(0);
+            it('can detect when geometries data changes between indexed and unindexed', {
+                final shader = mock(ShaderResource);
+                shader.id.returns('shader');
 
-                var shader = mock(ShaderResource);
-                shader.id.returns('0');
-                shader.uniforms.returns(uniforms);
-
-                var batcher = mock(Batcher);
+                final batcher = mock(Batcher);
+                batcher.camera.returns(mock(Camera2D));
                 batcher.shader.returns(shader);
 
-                var clip  = new Rectangle();
-                var blend = new Blending();
+                final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                final geometry2 = new Geometry({ data : Indexed(mock(VertexBlob), mock(IndexBlob)) });
+                final geometry3 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
 
-                var geometry = mock(Geometry);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
+                final state = new BatcherState(batcher);
+                state.change(geometry1);
+                state.requiresChange(geometry1).should.be(false);
 
-                var state = new BatcherState(batcher);
-                state.requiresChange(geometry).should.be(true);
-                state.change(geometry);
-                state.requiresChange(geometry).should.be(false);
+                state.requiresChange(geometry2).should.be(true);
+                state.change(geometry2);
+                state.requiresChange(geometry2).should.be(false);
+
+                state.requiresChange(geometry3).should.be(true);
+                state.change(geometry3);
+                state.requiresChange(geometry3).should.be(false);
             });
 
-            it('Will return that the state needs changing when a geometry has a different shader', {
-                var uniforms = mock(Uniforms);
-                uniforms.id.returns(0);
+            it('can detect when geometries blend state changes', {
+                final blend1 = new BlendState(false);
+                final blend2 = new BlendState(true, One, Zero, OneMinusDstColor, SrcAlphaSaturate);
 
-                var shader1 = mock(ShaderResource);
-                var shader2 = mock(ShaderResource);
-                shader1.id.returns('1');
-                shader2.id.returns('2');
-                shader1.uniforms.returns(uniforms);
-                shader2.uniforms.returns(uniforms);
+                final shader = mock(ShaderResource);
+                shader.id.returns('shader');
 
-                var batcher = mock(Batcher);
-                batcher.shader.returns(shader1);
-
-                var clip  = new Rectangle();
-                var blend = new Blending();
-                var state = new BatcherState(batcher);
-
-                var geometry = mock(Geometry);
-                geometry.shader.returns(shader1);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.change(geometry);
-
-                var geometry = mock(Geometry);
-                geometry.shader.returns(shader2);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.requiresChange(geometry).should.be(true);
-            });
-
-            it('will return that the state needs changing when a geometry has a different number of textures', {
-                var uniforms = mock(Uniforms);
-                uniforms.id.returns(0);
-
-                var shader = mock(ShaderResource);
-                shader.id.returns('1');
-                shader.uniforms.returns(uniforms);
-
-                var batcher = mock(Batcher);
+                final batcher = mock(Batcher);
+                batcher.camera.returns(mock(Camera2D));
                 batcher.shader.returns(shader);
 
-                var clip  = new Rectangle();
-                var blend = new Blending();
-                var state = new BatcherState(batcher);
+                final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), blend: blend1 });
+                final geometry3 = new Geometry({ data : UnIndexed(mock(VertexBlob)), blend: blend2 });
 
-                var geometry = mock(Geometry);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.change(geometry);
+                final state = new BatcherState(batcher);
+                state.change(geometry1);
+                state.requiresChange(geometry1).should.be(false);
 
-                var geometry = mock(Geometry);
-                geometry.textures.returns([ mock(ImageResource) ]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.requiresChange(geometry).should.be(true);
+                state.requiresChange(geometry2).should.be(true);
+                state.change(geometry2);
+                state.blend.equals(blend1).should.be(true);
+                state.requiresChange(geometry2).should.be(false);
+
+                state.requiresChange(geometry3).should.be(true);
+                state.change(geometry3);
+                state.blend.equals(blend2).should.be(true);
+                state.requiresChange(geometry3).should.be(false);
             });
 
-            it('will return that the state needs changing when a geometry has the same number of textures but different textures', {
-                var texture1 = mock(ImageResource);
-                var texture2 = mock(ImageResource);
-                texture1.id.returns('1');
-                texture2.id.returns('2');
+            describe('shader changing', {
+                it('can detect changes when one geometry provides a shader and the other provides none', {
+                    final shader1 = mock(ShaderResource);
+                    shader1.id.returns('shader1');
+    
+                    final shader2 = mock(ShaderResource);
+                    shader2.id.returns('shader2');
+    
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader1);
+    
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), shader : Shader(shader2) });
+    
+                    state.change(geometry1);
+                    state.shader.should.be(shader1);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(true);
+    
+                    state.change(geometry2);
+                    state.shader.should.be(shader2);
+                });
+                it('can detect changes when both geometries provide different shaders', {
+                    final shader1 = mock(ShaderResource);
+                    shader1.id.returns('shader1');
+    
+                    final shader2 = mock(ShaderResource);
+                    shader2.id.returns('shader2');
 
-                var uniforms = mock(Uniforms);
-                uniforms.id.returns(0);
-
-                var shader = mock(ShaderResource);
-                shader.id.returns('1');
-                shader.uniforms.returns(uniforms);
-
-                var batcher = mock(Batcher);
-                batcher.shader.returns(shader);
-
-                var clip  = new Rectangle();
-                var blend = new Blending();
-                var state = new BatcherState(batcher);
-
-                var geometry = mock(Geometry);
-                geometry.textures.returns([ texture1 ]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.change(geometry);
-
-                var geometry = mock(Geometry);
-                geometry.textures.returns([ texture2 ]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.requiresChange(geometry).should.be(true);
+                    final shader3 = mock(ShaderResource);
+                    shader3.id.returns('shader3');
+    
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader1);
+    
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)), shader : Shader(shader2) });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), shader : Shader(shader3) });
+    
+                    state.change(geometry1);
+                    state.shader.should.be(shader2);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(true);
+    
+                    state.change(geometry2);
+                    state.shader.should.be(shader3);
+                });
             });
 
-            it('will return that the state needs changing when the `primitive` properties do not match', {
-                var uniforms = mock(Uniforms);
-                uniforms.id.returns(0);
+            describe('uniform changing', {
+                it('can detect changes when one geometry provides uniforms and the other provides none', {
+                    final uniforms = mock(UniformBlob);
 
-                var shader = mock(ShaderResource);
-                shader.id.returns('1');
-                shader.uniforms.returns(uniforms);
+                    final shader = mock(ShaderResource);
+                    shader.id.returns('shader');
 
-                var batcher = mock(Batcher);
-                batcher.shader.returns(shader);
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader);
+    
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), uniforms : Uniforms([ uniforms ]) });
 
-                var clip  = new Rectangle();
-                var blend = new Blending();
-                var state = new BatcherState(batcher);
+                    state.change(geometry1);
+                    (cast state.uniforms : Array<UniformBlob>).should.containExactly([ ]);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(true);
+    
+                    state.change(geometry2);
+                    (cast state.uniforms : Array<UniformBlob>).should.containExactly([ uniforms ]);
+                });
+                it('can detect changes when geometries provide different number of uniforms', {
+                    final uniforms = mock(UniformBlob);
 
-                var geometry = mock(Geometry);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.change(geometry);
+                    final shader = mock(ShaderResource);
+                    shader.id.returns('shader');
 
-                var geometry = mock(Geometry);
-                geometry.shader.returns(shader);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(LineStrip);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.requiresChange(geometry).should.be(true);
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader);
+    
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)), uniforms : Uniforms([ uniforms ]) });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), uniforms : Uniforms([ uniforms, uniforms ]) });
+
+                    state.change(geometry1);
+                    (cast state.uniforms : Array<UniformBlob>).should.containExactly([ uniforms ]);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(true);
+    
+                    state.change(geometry2);
+                    (cast state.uniforms : Array<UniformBlob>).should.containExactly([ uniforms, uniforms ]);
+                });
+                it('can detect changes when geometries provide the same number of uniforms but are different objects', {
+                    final uniforms1 = mock(UniformBlob);
+                    uniforms1.id.returns(0);
+
+                    final uniforms2 = mock(UniformBlob);
+                    uniforms2.id.returns(0);
+
+                    final shader = mock(ShaderResource);
+                    shader.id.returns('shader');
+
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader);
+    
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)), uniforms : Uniforms([ uniforms1 ]) });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), uniforms : Uniforms([ uniforms2 ]) });
+
+                    state.change(geometry1);
+                    (cast state.uniforms : Array<UniformBlob>).should.containExactly([ uniforms1 ]);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(true);
+    
+                    state.change(geometry2);
+                    (cast state.uniforms : Array<UniformBlob>).should.containExactly([ uniforms2 ]);
+                });
             });
 
-            it('will return that the state needs changing when the `isIndexed()` values do not match', {
-                var uniforms = mock(Uniforms);
-                uniforms.id.returns(0);
+            describe('texture changing', {
+                it('can detect changes when one geometry provides textures and the other provides none', {
+                    final texture = mock(ImageResource);
 
-                var shader = mock(ShaderResource);
-                shader.id.returns('1');
-                shader.uniforms.returns(uniforms);
+                    final shader = mock(ShaderResource);
+                    shader.id.returns('shader');
 
-                var batcher = mock(Batcher);
-                batcher.shader.returns(shader);
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader);
+    
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), textures : Textures([ texture ]) });
 
-                var clip  = new Rectangle();
-                var blend = new Blending();
-                var state = new BatcherState(batcher);
+                    state.change(geometry1);
+                    (cast state.textures : Array<ImageResource>).should.containExactly([ ]);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(true);
+    
+                    state.change(geometry2);
+                    (cast state.textures : Array<ImageResource>).should.containExactly([ texture ]);
+                });
+                it('can detect changes when geometries provide different number of textures', {
+                    final texture = mock(ImageResource);
 
-                var geometry = mock(Geometry);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.change(geometry);
+                    final shader = mock(ShaderResource);
+                    shader.id.returns('shader');
 
-                var geometry = mock(Geometry);
-                geometry.shader.returns(shader);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(false);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.requiresChange(geometry).should.be(true);
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader);
+    
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)), textures : Textures([ texture ]) });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), textures : Textures([ texture, texture ]) });
+
+                    state.change(geometry1);
+                    (cast state.textures : Array<ImageResource>).should.containExactly([ texture ]);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(true);
+    
+                    state.change(geometry2);
+                    (cast state.textures : Array<ImageResource>).should.containExactly([ texture, texture ]);
+                });
+                it ('can detect changes when geometries provide the same number of textures but are different objects', {
+                    final texture1 = mock(ImageResource);
+                    texture1.id.returns('texture1');
+
+                    final texture2 = mock(ImageResource);
+                    texture2.id.returns('texture1');
+
+                    final shader = mock(ShaderResource);
+                    shader.id.returns('shader');
+
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader);
+    
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)), textures : Textures([ texture1 ]) });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), textures : Textures([ texture2 ]) });
+
+                    state.change(geometry1);
+                    (cast state.textures : Array<ImageResource>).should.containExactly([ texture1 ]);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(true);
+    
+                    state.change(geometry2);
+                    (cast state.textures : Array<ImageResource>).should.containExactly([ texture2 ]);
+                });
             });
 
-            it('will return that the state needs changing when the clip rectangles do not match', {
-                var uniforms = mock(Uniforms);
-                uniforms.id.returns(0);
+            describe('sampler changing', {
+                it('can detect changes when one geometry provides samplers and the other provides none', {
+                    final sampler = mock(SamplerState);
 
-                var shader = mock(ShaderResource);
-                shader.id.returns('1');
-                shader.uniforms.returns(uniforms);
+                    final shader = mock(ShaderResource);
+                    shader.id.returns('shader');
 
-                var batcher = mock(Batcher);
-                batcher.shader.returns(shader);
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader);
+    
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), samplers : Samplers([ sampler ]) });
 
-                var clip1 = new Rectangle(0, 0, 0, 0);
-                var clip2 = new Rectangle(1, 2, 3, 4);
-                var blend = new Blending();
-                var state = new BatcherState(batcher);
+                    state.change(geometry1);
+                    (cast state.samplers : Array<SamplerState>).should.containExactly([ ]);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(true);
+    
+                    state.change(geometry2);
+                    (cast state.samplers : Array<SamplerState>).should.containExactly([ sampler ]);
+                });
+                it('can detect changes when geometries provide different number of samplers', {
+                    final sampler = mock(SamplerState);
 
-                var geometry = mock(Geometry);
-                geometry.shader.returns(shader);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip1);
-                geometry.blend.returns(blend);
-                state.change(geometry);
+                    final shader = mock(ShaderResource);
+                    shader.id.returns('shader');
 
-                var geometry = mock(Geometry);
-                geometry.shader.returns(shader);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip2);
-                geometry.blend.returns(blend);
-                state.requiresChange(geometry).should.be(true);
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader);
+    
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)), samplers : Samplers([ sampler ]) });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), samplers : Samplers([ sampler, sampler ]) });
+
+                    state.change(geometry1);
+                    (cast state.samplers : Array<SamplerState>).should.containExactly([ sampler ]);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(true);
+    
+                    state.change(geometry2);
+                    (cast state.samplers : Array<SamplerState>).should.containExactly([ sampler, sampler ]);
+                });
+                it('can detect changes when geometries provide the same number of samplers but are different objects', {
+                    final sampler1 = mock(SamplerState);
+                    final sampler2 = mock(SamplerState);
+
+                    final shader = mock(ShaderResource);
+                    shader.id.returns('shader');
+
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader);
+    
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)), samplers : Samplers([ sampler1 ]) });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), samplers : Samplers([ sampler2 ]) });
+
+                    state.change(geometry1);
+                    (cast state.samplers : Array<SamplerState>).should.containExactly([ sampler1 ]);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(true);
+    
+                    state.change(geometry2);
+                    (cast state.samplers : Array<SamplerState>).should.containExactly([ sampler2 ]);
+                });
             });
 
-            it('will return that the state needs changing when the blend states do not match', {
-                var uniforms = mock(Uniforms);
-                uniforms.id.returns(0);
+            describe('clip changing', {
+                it('can detect changes when one geometry procides a clip region and the other doesnt', {
+                    final clipNone = ClipState.None;
+                    final clipRect = Clip(32, 48, 128, 64);
 
-                var shader = mock(ShaderResource);
-                shader.id.returns('1');
-                shader.uniforms.returns(uniforms);
+                    final shader = mock(ShaderResource);
+                    shader.id.returns('shader');
 
-                var batcher = mock(Batcher);
-                batcher.shader.returns(shader);
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader);
 
-                var clip   = new Rectangle();
-                var blend1 = new Blending();
-                var blend2 = new Blending(false);
-                var state  = new BatcherState(batcher);
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)), clip : clipNone });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), clip : clipRect });
 
-                var geometry = mock(Geometry);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend1);
-                state.change(geometry);
+                    state.change(geometry1);
+                    state.clip.should.equal(clipNone);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(true);
+    
+                    state.change(geometry2);
+                    state.clip.should.equal(clipRect);
+                });
+                it('can detect changes when both geometries provide different clip regions', {
+                    final clip1 = Clip(32, 48, 128, 64);
+                    final clip2 = Clip(16,  8, 48, 96);
 
-                var geometry = mock(Geometry);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend2);
-                state.requiresChange(geometry).should.be(true);
-            });
+                    final shader = mock(ShaderResource);
+                    shader.id.returns('shader');
 
-            it('will return that the state needs changing when the uniforms do not match', {
-                var uniforms1 = mock(Uniforms);
-                uniforms1.id.returns(0);
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader);
 
-                var uniforms2 = mock(Uniforms);
-                uniforms2.id.returns(1);
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)), clip : clip1 });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), clip : clip2 });
 
-                var shader = mock(ShaderResource);
-                shader.id.returns('1');
-                shader.uniforms.returns(uniforms1);
+                    state.change(geometry1);
+                    state.clip.should.equal(clip1);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(true);
+    
+                    state.change(geometry2);
+                    state.clip.should.equal(clip2);
+                });
+                it('can detect when both geometries provide clip regions of the same size', {
+                    final clip1 = Clip(32, 48, 128, 64);
+                    final clip2 = Clip(32, 48, 128, 64);
 
-                var batcher = mock(Batcher);
-                batcher.shader.returns(shader);
+                    final shader = mock(ShaderResource);
+                    shader.id.returns('shader');
 
-                var clip  = new Rectangle();
-                var blend = new Blending();
-                var state = new BatcherState(batcher);
+                    final batcher = mock(Batcher);
+                    batcher.camera.returns(mock(Camera2D));
+                    batcher.shader.returns(shader);
 
-                var geometry = mock(Geometry);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.change(geometry);
+                    final state     = new BatcherState(batcher);
+                    final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)), clip : clip1 });
+                    final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), clip : clip2 });
 
-                var geometry = mock(Geometry);
-                geometry.textures.returns([]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                geometry.uniforms.returns(uniforms2);
-                state.requiresChange(geometry).should.be(true);
-            });
-
-            it('will return that the state needs changing when there are different number of samplers', {
-                var uniforms = mock(Uniforms);
-                uniforms.id.returns(0);
-
-                var shader = mock(ShaderResource);
-                shader.id.returns('1');
-                shader.uniforms.returns(uniforms);
-
-                var batcher = mock(Batcher);
-                batcher.shader.returns(shader);
-
-                var clip  = new Rectangle();
-                var blend = new Blending();
-                var state = new BatcherState(batcher);
-
-                var geometry = mock(Geometry);
-                geometry.textures.returns([ mock(ImageResource) ]);
-                geometry.samplers.returns([ mock(SamplerState) ]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.change(geometry);
-
-                var geometry = mock(Geometry);
-                geometry.textures.returns([ mock(ImageResource) ]);
-                geometry.samplers.returns([]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.requiresChange(geometry).should.be(true);
-            });
-
-            it('will return that the state needs changing when there are equal samplers but they do not match', {
-                var uniforms = mock(Uniforms);
-                uniforms.id.returns(0);
-
-                var shader = mock(ShaderResource);
-                shader.id.returns('1');
-                shader.uniforms.returns(uniforms);
-
-                var batcher = mock(Batcher);
-                batcher.shader.returns(shader);
-
-                var clip  = new Rectangle();
-                var blend = new Blending();
-                var state = new BatcherState(batcher);
-
-                var t1 = mock(ImageResource);
-                var s1 = mock(SamplerState);
-                s1.uClamping.returns(EdgeClamping.Wrap);
-                var s2 = mock(SamplerState);
-                s2.uClamping.returns(EdgeClamping.Mirror);
-
-                var geometry = mock(Geometry);
-                geometry.textures.returns([ t1 ]);
-                geometry.samplers.returns([ s1 ]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.change(geometry);
-
-                var geometry = mock(Geometry);
-                geometry.textures.returns([ t1 ]);
-                geometry.samplers.returns([ s2 ]);
-                geometry.primitive.returns(Triangles);
-                geometry.isIndexed().returns(true);
-                geometry.clip.returns(clip);
-                geometry.blend.returns(blend);
-                state.requiresChange(geometry).should.be(true);
+                    state.change(geometry1);
+                    state.clip.should.equal(clip1);
+    
+                    state.requiresChange(geometry1).should.be(false);
+                    state.requiresChange(geometry2).should.be(false);
+                });
             });
         });
-    }
-
-    function shader(_id : String) : ShaderResource
-    {
-        return new ShaderResource(_id, new ShaderLayout([], []), null, null, null);
     }
 }

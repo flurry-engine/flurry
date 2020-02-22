@@ -4,16 +4,12 @@ import haxe.Exception;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
-
-using Lambda;
 
 class MockBackend implements IRendererBackend
 {
     final resourceEvents : ResourceEvents;
 
-    final commands : Array<Int>;
+    final commands : Array<DrawCommand>;
 
     final textures : Map<String, ImageResource>;
 
@@ -30,78 +26,37 @@ class MockBackend implements IRendererBackend
         resourceEvents.removed.add(onResourceRemoved);
     }
 
-    public function preDraw()
+    public function queue(_command : DrawCommand)
     {
+        commands.push(_command);
+    }
+
+    public function submit()
+    {
+        for (command in commands)
+        {
+            checkCommand(command);
+        }
+
         commands.resize(0);
-    }
-
-    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>)
-    {
-        for (command in _commands)
-        {
-            checkCommand(command);
-
-            if (!commands.has(command.id))
-            {
-                commands.push(command.id);
-            }
-            else
-            {
-                throw new CommandAlreadyUploadedException();
-            }
-        }
-    }
-
-    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>)
-    {
-        for (command in _commands)
-        {
-            checkCommand(command);
-
-            if (!commands.has(command.id))
-            {
-                commands.push(command.id);
-            }
-            else
-            {
-                throw new CommandAlreadyUploadedException();
-            }
-        }
-    }
-
-    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true)
-    {
-        for (command in _commands)
-        {
-            if (!commands.has(command.id))
-            {
-                throw new CommandNotUploadedException();
-            }
-
-            checkCommand(command);
-        }        
-    }
-
-    public function postDraw()
-    {
-        //
-    }
-
-    public function resize(_width : Int, _height : Int)
-    {
-        //
     }
 
     public function cleanup()
     {
-        //
+        resourceEvents.created.remove(onResourceCreated);
+        resourceEvents.removed.remove(onResourceRemoved);
     }
 
     function checkCommand(_command : DrawCommand)
     {
-        if (_command.target != null && !textures.exists(_command.target.id))
+        switch _command.target
         {
-            throw new FramebufferNotFoundException();
+            case Backbuffer:
+            case Texture(_image):
+                if (textures.exists(_image.id))
+                {
+                    throw new FramebufferNotFoundException();
+                }
         }
 
         if (!shaders.exists(_command.shader.id))

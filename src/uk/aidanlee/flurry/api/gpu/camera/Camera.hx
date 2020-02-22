@@ -1,13 +1,20 @@
 package uk.aidanlee.flurry.api.gpu.camera;
 
-import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Matrix;
+import uk.aidanlee.flurry.api.maths.Transformation;
+import uk.aidanlee.flurry.api.gpu.state.ViewportState;
 
-enum CameraType
+enum abstract CameraOrigin(Int)
 {
-    Orthographic;
-    Projection;
-    Custom;
+    var TopLeft;
+    var BottomLeft;
+}
+
+enum abstract CameraNdcRange(Int)
+{
+    var ZeroToNegativeOne;
+    var NegativeOneToNegativeOne;
 }
 
 /**
@@ -28,12 +35,51 @@ class Camera
      */
     public final view : Matrix;
 
-    public var viewport : Null<Rectangle>;
+    /**
+     * Viewport of the camera.
+     */
+    public var viewport : ViewportState;
 
-    public function new(_type : CameraType)
+    /**
+     * Position of this camera in the world.
+     */
+    public var transformation : Transformation;
+
+    public var position (get, never) : Vector3;
+
+    inline function get_position() : Vector3 return transformation.position;
+
+    public var scale (get, never) : Vector3;
+
+    inline function get_scale() : Vector3 return transformation.scale;
+
+    public var origin (get, never) : Vector3;
+
+    inline function get_origin() : Vector3 return transformation.origin;
+
+    /**
+     * Where the current renderer considers the origin of the screen to be.
+     */
+    final screenOrigin : CameraOrigin;
+
+    /**
+     * The ndc range of the z axis for the current renderer.
+     */
+    final ndcRandge : CameraNdcRange;
+
+    public function new(_type : CameraType, _origin : CameraOrigin, _ndcRange : CameraNdcRange)
     {
-        type       = _type;
-        projection = new Matrix();
-        view       = new Matrix();
+        type           = _type;
+        screenOrigin   = _origin;
+        ndcRandge      = _ndcRange;
+        projection     = new Matrix();
+        view           = new Matrix();
+        transformation = new Transformation();
+        viewport       = None;
+    }
+
+    function rebuildCameraMatrices()
+    {
+        //
     }
 }

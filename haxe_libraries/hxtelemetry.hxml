@@ -1,0 +1,3 @@
+-D hxtelemetry=0.4.0
+# @install: lix --silent download "gh://github.com/jcward/hxtelemetry#bf65bf46a670d881f9816a520bcd9fd2fbe0b4f2" into hxtelemetry/0.4.0/github/bf65bf46a670d881f9816a520bcd9fd2fbe0b4f2
+-cp ${HAXE_LIBCACHE}/hxtelemetry/0.4.0/github/bf65bf46a670d881f9816a520bcd9fd2fbe0b4f2/

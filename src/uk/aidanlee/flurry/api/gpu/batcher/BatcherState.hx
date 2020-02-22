@@ -1,25 +1,19 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.maths.Rectangle;
+import haxe.ds.ReadOnlyArray;
+import uk.aidanlee.flurry.api.gpu.state.ClipState;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
-import uk.aidanlee.flurry.api.gpu.geometry.Blending;
-import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-
-using Safety;
 
 /**
  * Stores all of the state properties for a batcher.
  */
 class BatcherState
 {
-    /**
-     * Provides a hint to the backend on how to store the vertex data.
-     */
-    public var uploadType (default, null) : UploadType;
-
     /**
      * Geometric primitive currently active in this batcher.
      */
@@ -33,7 +27,7 @@ class BatcherState
     /**
      * The uniform values currently active in this batcher.
      */
-    public var uniforms (default, null) : Uniforms;
+    public var uniforms (default, null) : ReadOnlyArray<UniformBlob>;
 
     /**
      * The textures currently active in this batcher.
@@ -43,22 +37,17 @@ class BatcherState
     /**
      * The samplers currently active in this batcher.
      */
-    public var samplers (default, null) : Array<Null<SamplerState>>;
+    public var samplers (default, null) : Array<SamplerState>;
 
     /**
      * The clipping box currently active in this batcher.
      */
-    public var clip (default, null) : Null<Rectangle>;
+    public var clip (default, null) : ClipState;
 
     /**
      * The blend state of the batcher.
      */
-    public var blend (default, null) : Blending;
-
-    /**
-     * If the current batch is indexed.
-     */
-    public var indexed (default, null) : Bool;
+    public var blend (default, null) : BlendState;
 
     /**
      * The batcher this state belongs to.
@@ -67,9 +56,9 @@ class BatcherState
     final batcher : Batcher;
 
     /**
-     * 
+     * If the current state is for indexed geometry.
      */
-    final internalClip : Rectangle;
+    var indexed : Bool;
 
     /**
      * Creates a batcher state.
@@ -79,51 +68,114 @@ class BatcherState
     {
         textures     = [];
         samplers     = [];
+        uniforms     = [];
         batcher      = _batcher;
-        blend        = new Blending();
-        internalClip = new Rectangle();
+        indexed      = false;
+        blend        = new BlendState();
     }
 
     /**
      * Returns if batching the provided geometry will require a state change.
      * @param _geom Geometry to be batched.
-     * @return Bool
+     * @return True if a state change is required.
      */
     public function requiresChange(_geom : Geometry) : Bool
     {
-        if (shader == null)
+        // Check shader ID
+        final usedShader = switch _geom.shader
+        {
+            case None : batcher.shader;
+            case Shader(_shader) : _shader;
+        }
+        if (usedShader.id != shader.id)
         {
             return true;
         }
 
-        var usedShader = _geom.shader.or(batcher.shader);
-
-        if (usedShader.id != shader.id) return true;
-
-        if (_geom.uniforms.or(usedShader.uniforms).id != uniforms.id) return true;
-
-        if (_geom.textures.length != textures.length) return true;
-        for (i in 0...textures.length)
+        // Check uniforms
+        final usedUniforms = switch _geom.uniforms
         {
-            if (textures[i].id != _geom.textures[i].id) return true;
+            case None : [];
+            case Uniforms(_uniforms) : _uniforms;
+        }
+        if (usedUniforms.length != uniforms.length)
+        {
+            return true;
+        }
+        for (i in 0...uniforms.length)
+        {
+            if (uniforms[i] != usedUniforms[i]) return true;
         }
 
-        if (_geom.samplers.length != samplers.length) return true;
-        for (i in 0...samplers.length)
+        // Check textures
+        switch _geom.textures
         {
-            if (samplers[i] == null && _geom.samplers[i] != null) return true;
-            if (samplers[i] != null && _geom.samplers[i] == null) return true;
-            if (samplers[i] != null && _geom.samplers[i] != null && !samplers[i].equal(_geom.samplers[i])) return true;
+            case None:
+                if (textures.length != 0)
+                {
+                    return true;
+                }
+            case Textures(_textures):
+                if (textures.length != _textures.length)
+                {
+                    return true;
+                }
+                for (i in 0...textures.length)
+                {
+                    if (textures[i] != _textures[i])
+                    {
+                        return true;
+                    }
+                }
         }
 
-        if (_geom.uploadType  != uploadType) return true;
-        if (_geom.primitive   != primitive ) return true;
-        if (_geom.isIndexed() != indexed   ) return true;
+        // Check samplers
+        switch _geom.samplers
+        {
+            case None:
+                if (samplers.length != 0)
+                {
+                    return true;
+                }
+            case Samplers(_samplers):
+                if (samplers.length != _samplers.length)
+                {
+                    return true;
+                }
+                for (i in 0...samplers.length)
+                {
+                    if (samplers[i] != _samplers[i])
+                    {
+                        return true;
+                    }
+                }
+        }
+
+        // Check clip rectangle
+        switch _geom.clip
+        {
+            case None:
+                switch clip
+                {
+                    case None: // no op
+                    case Clip(_, _, _, _): return true;
+                }
+            case Clip(_x1, _y1, _width1, _height1):
+                switch clip
+                {
+                    case None: return true;
+                    case Clip(_x2, _y2, _width2, _height2):
+                        if (_x1 != _x2 || _y1 != _y2 || _width1 != _width2 || _height1 != _height2)
+                        {
+                            return true;
+                        }
+                }
+        }
+
+        // Check other small bits.
+        if (_geom.primitive != primitive ) return true;
+        if ((_geom.data.getIndex() == 0) != indexed) return true;
         if (!_geom.blend.equals(blend)) return true;
-
-        if (_geom.clip == null && clip != null) return true;
-        if (_geom.clip != null && clip == null) return true;
-        if (_geom.clip != null && clip != null && !_geom.clip.equals(clip)) return true;
 
         return false;
     }
@@ -134,53 +186,47 @@ class BatcherState
      */
     public function change(_geom : Geometry)
     {
-        var usedShader = _geom.shader.or(batcher.shader);
-
-        shader   = usedShader;
-        uniforms = _geom.uniforms.or(usedShader.uniforms);
-
-        if (_geom.textures.length != textures.length)
+        shader = switch _geom.shader
         {
-            textures.resize(_geom.textures.length);
+            case None : batcher.shader;
+            case Shader(_shader) : _shader;
         }
-        for (i in 0...textures.length)
+        uniforms = switch _geom.uniforms
         {
-            textures[i] = _geom.textures[i];
+            case None : [];
+            case Uniforms(_uniforms) : _uniforms;
         }
 
-        if (_geom.samplers.length != samplers.length)
+        switch _geom.textures
         {
-            samplers.resize(_geom.samplers.length);
-        }
-        for (i in 0...samplers.length)
-        {
-            samplers[i] = _geom.samplers[i];
+            case None:
+                textures.resize(0);
+            case Textures(_textures):
+                textures.resize(_textures.length);
+
+                for (i in 0...textures.length)
+                {
+                    textures[i] = _textures[i];
+                }
         }
 
-        uploadType = _geom.uploadType;
-        primitive  = _geom.primitive;
-        indexed    = _geom.isIndexed();
+        switch _geom.samplers
+        {
+            case None:
+                samplers.resize(0);
+            case Samplers(_samplers):
+                samplers.resize(_samplers.length);
+
+                for (i in 0...samplers.length)
+                {
+                    samplers[i] = _samplers[i];
+                }
+        }
+
+        primitive      = _geom.primitive;
+        clip           = _geom.clip;
+        indexed        = (_geom.data.getIndex() == 0);
         blend.copyFrom(_geom.blend);
-
-        if (clip == null)
-        {
-            if (_geom.clip != null)
-            {
-                clip = internalClip;
-                clip.copyFrom(_geom.clip);
-            }
-        }
-        else
-        {
-            if (_geom.clip != null)
-            {
-                clip.copyFrom(_geom.clip);
-            }
-            else
-            {
-                clip = null;
-            }
-        }
     }
 
     public function drop()

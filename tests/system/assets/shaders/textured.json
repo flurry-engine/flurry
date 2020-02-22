@@ -2,12 +2,12 @@
     "textures" : [ "defaultTexture" ],
     "blocks"   : [
         {
-            "name"    : "defaultMatrices",
+            "name"    : "flurry_matrices",
             "binding" : 0,
             "values"  : [
                 { "type" : "Matrix4", "name" : "projection" },
                 { "type" : "Matrix4", "name" : "view" },
-                { "type" : "Matrix4", "name" : "models" }
+                { "type" : "Matrix4", "name" : "model" }
             ]
         }
     ]

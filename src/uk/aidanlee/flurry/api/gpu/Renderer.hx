@@ -3,6 +3,10 @@ package uk.aidanlee.flurry.api.gpu;
 import haxe.Exception;
 import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.FlurryConfig;
+import uk.aidanlee.flurry.api.gpu.camera.Camera.CameraOrigin;
+import uk.aidanlee.flurry.api.gpu.camera.Camera.CameraNdcRange;
+import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
@@ -23,11 +27,6 @@ class Renderer
     public final api : RendererBackend;
 
     /**
-     * Class which will store information about the previous frame.
-     */
-    public final stats : RendererStats;
-
-    /**
      * Batcher manager, responsible for creating, deleteing, and sorting batchers.
      */
     final batchers : Array<Batcher>;
@@ -41,39 +40,37 @@ class Renderer
     {
         queuedCommands = [];
         batchers       = [];
-        api            = _rendererConfig.backend;
-        stats          = new RendererStats();
-        backend         = switch api
+        api            = switch _rendererConfig.backend
         {
-            #if cpp
-                case Ogl4: new uk.aidanlee.flurry.api.gpu.backend.ogl4.OGL4Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
-                case Ogl3: new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
-
-                case Dx11:
-                    #if windows
-                        new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
-                    #else
-                        throw new BackendNotAvailableException(api);
-                    #end
-            #end
-
+            case Ogl3: Ogl3;
+            case Ogl4: Ogl4;
+            case Dx11: Dx11;
+            case Mock: Mock;
             case Auto:
-                #if (cpp && windows)
-                    new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
-                #elseif cpp
-                    new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, stats, _windowConfig, _rendererConfig);
-                #else
-                    new MockBackend(_resourceEvents);
-                #end
+#if (cpp && windows)
+                Dx11;
+#elseif cpp
+                Ogl3;
+#else
+                Mock;
+#end
+        };
+        backend = switch api
+        {
+#if cpp
+            case Ogl4:
+                new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.ogl4);
+            case Ogl3:
+                new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.ogl3);
+            case Dx11:
+#if windows
+                new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.dx11);
+#else
+                throw new BackendNotAvailableException(api);
+#end
+#end
             case _: new MockBackend(_resourceEvents);
         }
-    }
-
-    public function preRender()
-    {
-        backend.preDraw();
-
-        stats.reset();
     }
 
     /**
@@ -81,25 +78,17 @@ class Renderer
      */
     public function render()
     {
-        if (batchers.length <= 0) return;
-
-        ArraySort.sort(batchers, sortBatchers);
-
-        stats.totalBatchers += batchers.length;
-
-        queuedCommands.resize(0);
-        for (batcher in batchers)
+        if (batchers.length > 0)
         {
-            batcher.batch(cast queuedCommands);
+            ArraySort.sort(batchers, sortBatchers);
+
+            for (batcher in batchers)
+            {
+                batcher.batch(backend.queue);
+            }
         }
 
-        backend.uploadGeometryCommands(cast queuedCommands);
-        backend.submitCommands(queuedCommands);
-    }
-
-    public function postRender()
-    {
-        backend.postDraw();
+        backend.submit();
     }
 
     /**
@@ -114,6 +103,30 @@ class Renderer
         batchers.push(batcher);
 
         return batcher;
+    }
+
+    /**
+     * Easily create a 2D camera with the correct backend options.
+     * @param _width Width of the camera.
+     * @param _height Height of the camera.
+     * @return Camera2D
+     */
+    public function createCamera2D(_width : Int, _height : Int) : Camera2D
+    {
+        return new Camera2D(_width, _height, getOrigin(), getNdcRange());
+    }
+
+    /**
+     * Easily create a 3D camera with the correct backend options.
+     * @param _fov Vertical field of view.
+     * @param _aspect Aspect ratio.
+     * @param _near Near clipping.
+     * @param _far Far clipping.
+     * @return Camera3D
+     */
+    public function createCamera3D(_fov : Float, _aspect : Float, _near : Float, _far : Float) : Camera3D
+    {
+        return new Camera3D(_fov, _aspect, _near, _far, getOrigin(), getNdcRange());
     }
 
     /**
@@ -149,27 +162,46 @@ class Renderer
      */
     function sortBatchers(_a : Batcher, _b : Batcher) : Int
     {
-        // Sort by framebuffer
-        if (_a.target != null && _b.target != null)
-        {
-            if (_a.target.id < _b.target.id) return -1;
-            if (_a.target.id > _b.target.id) return  1;
-        }
-        else
-        {
-            if (_a.target != null && _b.target == null) return -1;
-            if (_a.target == null && _b.target != null) return  1;
-        }
-
-        // Then depth
+        // Sort by depth
         if (_a.depth < _b.depth) return -1;
         if (_a.depth > _b.depth) return  1;
+
+        // Then target
+        switch _a.target
+        {
+            case Backbuffer:
+                switch _b.target
+                {
+                    case Backbuffer: // no op
+                    case Texture(_): return 1;
+                }
+            case Texture(_imageA):
+                switch _b.target
+                {
+                    case Backbuffer: return -1;
+                    case Texture(_imageB):
+                        if (_imageA.id < _imageB.id) return -1;
+                        if (_imageA.id < _imageB.id) return  1;
+                }
+        }
 
         // Lastly shader
         if (_a.shader.id < _b.shader.id) return -1;
         if (_a.shader.id > _b.shader.id) return  1;
 
         return 0;
+    }
+
+    function getOrigin() return switch api {
+        case Ogl3, Ogl4 : BottomLeft;
+        case Dx11, Mock : TopLeft;
+        case Auto : throw 'Auto is not a valid api, this should not happen!';
+    }
+
+    function getNdcRange() return switch api {
+        case Ogl3 : NegativeOneToNegativeOne;
+        case Ogl4, Dx11, Mock : ZeroToNegativeOne;
+        case Auto : throw 'Auto is not a valid api, this should not happen!';
     }
 }
 

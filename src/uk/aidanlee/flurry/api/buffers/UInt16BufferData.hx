@@ -53,7 +53,7 @@ abstract UInt16BufferData(BufferData) from BufferData to BufferData
         return this.subarray(_begin * BYTES_PER_UINT, _end * BYTES_PER_UINT);
     }
 
-    public function get(_idx : Int) : Int
+    @:arrayAccess public function get(_idx : Int) : Int
     {
 #if cpp
         return untyped __global__.__hxcpp_memory_get_ui16(this.bytes.getData(), (_idx << 1) + this.byteOffset);
@@ -62,7 +62,7 @@ abstract UInt16BufferData(BufferData) from BufferData to BufferData
 #end
     }
 
-    public function set(_idx : Int, _val : Int) : Int
+    @:arrayAccess public function set(_idx : Int, _val : Int) : Int
     {
 #if cpp
         untyped __global__.__hxcpp_memory_set_ui16(this.bytes.getData(), (_idx << 1) + this.byteOffset, _val);

@@ -1,16 +1,16 @@
 package uk.aidanlee.flurry.api.gpu;
 
-enum BlendMode
+enum abstract BlendMode(Int)
 {
-    Zero;
-    One;
-    SrcAlphaSaturate;
-    SrcColor;
-    OneMinusSrcColor;
-    SrcAlpha;
-    OneMinusSrcAlpha;
-    DstAlpha;
-    OneMinusDstAlpha;
-    DstColor;
-    OneMinusDstColor;
+    var Zero;
+    var One;
+    var SrcAlphaSaturate;
+    var SrcColor;
+    var OneMinusSrcColor;
+    var SrcAlpha;
+    var OneMinusSrcAlpha;
+    var DstAlpha;
+    var OneMinusDstAlpha;
+    var DstColor;
+    var OneMinusDstColor;
 }

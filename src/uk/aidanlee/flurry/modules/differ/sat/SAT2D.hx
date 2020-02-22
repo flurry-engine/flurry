@@ -537,41 +537,41 @@ class SAT2D
      * Internal helper for ray overlaps
      */
 
-    static inline function rayU(_uDelta : Float, _aX : Float, _aY : Float, _bX : Float, _bY : Float, _dX : Float, _dY : Float) : Float
+    static function rayU(_uDelta : Float, _aX : Float, _aY : Float, _bX : Float, _bY : Float, _dX : Float, _dY : Float) : Float
     {
         return (_dX * (_aY - _bY) - _dY * (_aX - _bX)) / _uDelta;
     }
 
-    static inline function findNormalAxisX(_verts : Array<Vector2>, _index : Int) : Float
+    static function findNormalAxisX(_verts : Array<Vector2>, _index : Int) : Float
     {
         var v2 = (_index >= _verts.length - 1) ? _verts[0] : _verts[_index + 1];
 
         return -(v2.y - _verts[_index].y);
     }
 
-    static inline function findNormalAxisY(_verts : Array<Vector2>, _index : Int) : Float
+    static function findNormalAxisY(_verts : Array<Vector2>, _index : Int) : Float
     {
         var v2 = (_index >= _verts.length - 1) ? _verts[0] : _verts[_index + 1];
 
         return (v2.x - _verts[_index].x);
     }
 
-    static inline function vecLengthsq(_x : Float, _y : Float) : Float
+    static function vecLengthsq(_x : Float, _y : Float) : Float
     {
         return _x * _x + _y * _y;
     }
 
-    static inline function vecLength(_x : Float, _y : Float) : Float
+    static function vecLength(_x : Float, _y : Float) : Float
     {
         return Math.sqrt(vecLengthsq(_x, _y));
     }
 
-    static inline function vecNormalize(_length : Float, _component : Float) : Float
+    static function vecNormalize(_length : Float, _component : Float) : Float
     {
         return _length == 0 ? 0 : _component / _length;
     }
 
-    static inline function vecDot(_x1 : Float, _y1 : Float, _x2 : Float, _y2 : Float) : Float
+    static function vecDot(_x1 : Float, _y1 : Float, _x2 : Float, _y2 : Float) : Float
     {
         return _x1 * _x2 + _y1 * _y2;
     }
@@ -602,7 +602,7 @@ private class PolygonCollisionData
 
     public var otherUnitVectorY (default, null) : Float;
 
-    public inline function new(
+    public function new(
         _overlap : Float,
         _separationX : Float,
         _separationY : Float,
@@ -627,7 +627,7 @@ private class PolygonCollisionData
         otherUnitVectorY = _otherUnitVectorY;
     }
 
-    public inline function set(
+    public function set(
         _overlap : Float,
         _separationX : Float,
         _separationY : Float,
@@ -654,7 +654,7 @@ private class PolygonCollisionData
         return this;
     }
 
-    public inline function clone() : PolygonCollisionData
+    public function clone() : PolygonCollisionData
     {
         return new PolygonCollisionData(
             overlap,
@@ -669,7 +669,7 @@ private class PolygonCollisionData
             otherUnitVectorY);
     }
 
-    public inline function copyFrom(_other : PolygonCollisionData)
+    public function copyFrom(_other : PolygonCollisionData)
     {
         overlap          = _other.overlap;
         separationX      = _other.separationX;

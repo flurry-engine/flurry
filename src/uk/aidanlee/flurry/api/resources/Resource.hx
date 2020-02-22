@@ -1,14 +1,11 @@
 package uk.aidanlee.flurry.api.resources;
 
 import haxe.io.Bytes;
-import uk.aidanlee.flurry.api.gpu.shader.Uniforms;
 
 enum ShaderType
 {
     Matrix4;
     Vector4;
-    Int;
-    Float;
 }
 
 enum ResourceType
@@ -84,8 +81,6 @@ class ShaderResource extends Resource
     public var ogl4 (default, null) : Null<ShaderSource>;
 
     public var hlsl (default, null) : Null<ShaderSource>;
-
-    public var uniforms (default, null) : Uniforms = new Uniforms();
 
     public function new(_id : String, _layout : ShaderLayout, _ogl3 : Null<ShaderSource>, _ogl4 : Null<ShaderSource>, _hlsl : Null<ShaderSource>)
     {

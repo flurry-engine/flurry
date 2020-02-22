@@ -29,7 +29,7 @@ class Rectangle
      * @param _w Width of the rectangle.
      * @param _w Height of the rectangle.
      */
-    public inline function new(_x : Float = 0, _y : Float = 0, _w : Float = 0, _h : Float = 0)
+    public function new(_x : Float = 0, _y : Float = 0, _w : Float = 0, _h : Float = 0)
     {
         x = _x;
         y = _y;
@@ -47,7 +47,7 @@ class Rectangle
      * @param _h Height.
      * @return Rectangle
      */
-    public inline function set(_x : Float, _y : Float, _w : Float, _h : Float) : Rectangle
+    public function set(_x : Float, _y : Float, _w : Float, _h : Float) : Rectangle
     {
         x = _x;
         y = _y;
@@ -62,7 +62,7 @@ class Rectangle
      * @param _other Rectangle to copy.
      * @return Rectangle
      */
-    public inline function copyFrom(_other : Rectangle) : Rectangle
+    public function copyFrom(_other : Rectangle) : Rectangle
     {
         x = _other.x;
         y = _other.y;
@@ -77,7 +77,7 @@ class Rectangle
      * @param _other Rectangle to check against.
      * @return Bool
      */
-    public inline function equals(_other : Rectangle) : Bool
+    public function equals(_other : Rectangle) : Bool
     {
         return x == _other.x && y == _other.y && w == _other.w && h == _other.h;
     }
@@ -86,7 +86,7 @@ class Rectangle
      * Clone this rectangle.
      * @return Rectangle
      */
-    public inline function clone() : Rectangle
+    public function clone() : Rectangle
     {
         return new Rectangle(x, y, w, h);
     }
@@ -95,7 +95,7 @@ class Rectangle
      * Set the rectangle to have an area of 0 at 0x0.
      * @return Rectangle
      */
-    public inline function clear() : Rectangle
+    public function clear() : Rectangle
     {
         return set(0, 0, 0, 0);
     }
@@ -104,7 +104,7 @@ class Rectangle
      * Return a string representation of this rectangle.
      * @return String
      */
-    public inline function toString() : String
+    public function toString() : String
     {
         return ' { x : $x, y : $y, w : $w, h : $h } ';
     }
@@ -118,7 +118,7 @@ class Rectangle
      * @param _p Vector to check.
      * @return Bool
      */
-    public inline function containsPoint(_p : Vector2) : Bool
+    public function containsPoint(_p : Vector2) : Bool
     {
         return _p.x > x && _p.y > y && _p.x < (x + w) && _p.y < (y + h);
     }
@@ -128,7 +128,7 @@ class Rectangle
      * @param _other Rectangle to check.
      * @return Bool
      */
-    public inline function overlaps(_other : Rectangle) : Bool
+    public function overlaps(_other : Rectangle) : Bool
     {
         return x < (_other.x + _other.w) && y < (_other.y + _other.h) && (x + w) > _other.x && (y + h) > _other.y;
     }
@@ -138,7 +138,7 @@ class Rectangle
      * @param _other Rectangle to check.
      * @return Bool
      */
-    public inline function contains(_other : Rectangle) : Bool
+    public function contains(_other : Rectangle) : Bool
     {
         return _other.x > x && _other.y > y && (_other.x + _other.w) < (x + w) && (_other.y + _other.h) < (y + h);
     }
@@ -147,7 +147,7 @@ class Rectangle
      * Returns the area of this rectangle.
      * @return Float
      */
-    public inline function area() : Float
+    public function area() : Float
     {
         return w * h;
     }

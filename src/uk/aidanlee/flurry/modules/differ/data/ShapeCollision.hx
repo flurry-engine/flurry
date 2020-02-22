@@ -53,7 +53,7 @@ class ShapeCollision
 
     public var otherUnitVectorY (default, null) : Float;
 
-    public inline function new(
+    public function new(
         _shape1 : Shape = null,
         _shape2 : Shape = null,
         _overlap : Float = 0,
@@ -82,7 +82,7 @@ class ShapeCollision
         otherUnitVectorY = _otherUnitVectorY;
     }
 
-    public inline function set(
+    public function set(
         _shape1 : Shape,
         _shape2 : Shape,
         _overlap : Float,
@@ -118,7 +118,7 @@ class ShapeCollision
      * The shapes in this collision are not cloned.
      * @return ShapeCollision
      */
-    public inline function clone() : ShapeCollision
+    public function clone() : ShapeCollision
     {
         return new ShapeCollision(
             shape1,
@@ -140,7 +140,7 @@ class ShapeCollision
      * @param _other The shape collision to copy.
      * @return ShapeCollision
      */
-    public inline function copyFrom(_other : ShapeCollision)
+    public function copyFrom(_other : ShapeCollision)
     {
         shape1           = _other.shape1;
         shape2           = _other.shape2;

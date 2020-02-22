@@ -1,7 +1,7 @@
 Texture2D    defaultTexture : register(t0);
 SamplerState defaultSampler : register(s0);
 
-cbuffer defaultMatrices : register(b0)
+cbuffer flurry_matrices : register(b0)
 {
 	matrix projection;
 	matrix view;

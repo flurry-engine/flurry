@@ -137,7 +137,7 @@ class Polygon extends Shape
      * 
      * Returns a ready made `Polygon` collision `Shape`
      */
-    public static inline function square(_x : Float, _y : Float, _width : Float, _centered : Bool = true) : Polygon
+    public static function square(_x : Float, _y : Float, _width : Float, _centered : Bool = true) : Polygon
     {
         return rectangle(_x, _y, _width, _width, _centered);
     }

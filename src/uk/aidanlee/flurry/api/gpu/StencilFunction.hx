@@ -1,13 +1,13 @@
 package uk.aidanlee.flurry.api.gpu;
 
-enum StencilFunction
+enum abstract StencilFunction(Int)
 {
-    Keep;
-    Zero;
-    Replace;
-    Invert;
-    Increment;
-    IncrementWrap;
-    Decrement;
-    DecrementWrap;
+    var Keep;
+    var Zero;
+    var Replace;
+    var Invert;
+    var Increment;
+    var IncrementWrap;
+    var Decrement;
+    var DecrementWrap;
 }

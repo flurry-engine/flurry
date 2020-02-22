@@ -1,10 +1,10 @@
 package uk.aidanlee.flurry.api.gpu;
 
-enum PrimitiveType
+enum abstract PrimitiveType(Int)
 {
-    Points;
-    Lines;
-    LineStrip;
-    Triangles;
-    TriangleStrip;
+    var Points;
+    var Lines;
+    var LineStrip;
+    var Triangles;
+    var TriangleStrip;
 }

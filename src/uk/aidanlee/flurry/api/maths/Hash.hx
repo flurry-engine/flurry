@@ -17,7 +17,7 @@ class Hash
      * @param _val Value to generate uniqueID for. If null a random value is used.
      * @return String
      */
-    public static inline function uniqueID(?_val : Int) : String
+    public static function uniqueID(?_val : Int) : String
     {
         if (_val == null)
         {
@@ -59,7 +59,7 @@ class Hash
      * @param _in String to hash.
      * @return Int
      */
-    public static inline function hash(_in : String) : Int
+    public static function hash(_in : String) : Int
     {
         var hash = 5381;
         for (i in 0..._in.length)
@@ -75,7 +75,7 @@ class Hash
      * Hashes a random base62 encoded string.
      * @return Int
      */
-    public static inline function uniqueHash() : Int
+    public static function uniqueHash() : Int
     {
         return random.get();
     }

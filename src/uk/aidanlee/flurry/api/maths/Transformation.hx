@@ -130,30 +130,30 @@ class Transformation
 
         if (parent != null)
         {
-            parent.unsafe().propagate();
+            parent.propagate();
         }
 
-        matrixRotation.makeRotationFromQuaternion(local.rotation);
-        matrixOriginUndo.makeTranslation(-origin.x, -origin.y, -origin.z);
+        inline matrixRotation.makeRotationFromQuaternion(local.rotation);
+        inline matrixOriginUndo.makeTranslation(-origin.x, -origin.y, -origin.z);
 
-        local.matrix.makeTranslation(origin.x, origin.y, origin.z);
+        inline local.matrix.makeTranslation(origin.x, origin.y, origin.z);
 
-        local.matrix.multiply(matrixRotation);
-        local.matrix.scale(scale);
-        local.matrix.setPosition(position);
+        inline local.matrix.multiply(matrixRotation);
+        inline local.matrix.scale(scale);
+        inline local.matrix.setPosition(position);
 
-        local.matrix.multiply(matrixOriginUndo);
+        inline local.matrix.multiply(matrixOriginUndo);
 
         if (parent != null)
         {
-            world.matrix.multiplyMatrices(parent.unsafe().world.matrix, local.matrix);
+            world.matrix.multiplyMatrices(parent.world.matrix, local.matrix);
         }
         else
         {
             world.matrix.copy(local.matrix);
         }
 
-        world.decompose();
+        inline world.decompose();
 
         ignore = false;
         dirty  = false;

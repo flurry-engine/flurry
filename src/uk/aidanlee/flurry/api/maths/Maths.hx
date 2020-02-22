@@ -12,7 +12,7 @@ class Maths
      * @param _p Precision.
      * @return Float
      */
-    public static inline function fixed(_v : Float, _p : Int) : Float
+    public static function fixed(_v : Float, _p : Int) : Float
     {
         var n = Maths.pow(10, _p);
         return Std.int(_v * n) / n;
@@ -25,7 +25,7 @@ class Maths
      * @param _b     Upper limit of the range.
      * @return Float
      */
-    public static inline function clamp(_value : Float, _a : Float, _b : Float) : Float
+    public static function clamp(_value : Float, _a : Float, _b : Float) : Float
     {
         return (_value < _a) ? _a : ((_value > _b) ? _b : _value);
     }
@@ -37,7 +37,7 @@ class Maths
      * @param _time   Interpolation time.
      * @return Float
      */
-    public static inline function lerp(_value : Float, _target : Float, _time : Float) : Float
+    public static function lerp(_value : Float, _target : Float, _time : Float) : Float
     {
         _time = clamp(_time, 0, 1);
 
@@ -49,7 +49,7 @@ class Maths
      * @param _degrees Degrees value to radians.
      * @return Float
      */
-    public static inline function toRadians(_degrees : Float) : Float
+    public static function toRadians(_degrees : Float) : Float
     {
         return _degrees * PI / 180;
     }
@@ -59,19 +59,24 @@ class Maths
      * @param _radians Radians value to convert.
      * @return Float
      */
-    public static inline function toDegrees(_radians : Float) : Float
+    public static function toDegrees(_radians : Float) : Float
     {
         return _radians * 180 / PI;
     }
 
-    public static inline function lengthdir_x(_length : Float, _direction : Float) : Float
+    public static function lengthdir_x(_length : Float, _direction : Float) : Float
     {
         return Maths.cos(Maths.toRadians(_direction)) * _length;
     }
 
-    public static inline function lengthdir_y(_length : Float, _direction : Float) : Float
+    public static function lengthdir_y(_length : Float, _direction : Float) : Float
     {
         return Maths.sin(Maths.toRadians(_direction)) * _length;
+    }
+
+    public static function nextMultipleOff(_number : Float, _multiple : Int) : Int
+    {
+        return Maths.ceil(_number / _multiple) * _multiple;
     }
 
     // Wrapper functions around std Math for consistent access. 

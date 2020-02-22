@@ -1,35 +1,29 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import haxe.io.Bytes;
 import haxe.Exception;
-import haxe.io.Float32Array;
-import haxe.io.UInt16Array;
-import cpp.UInt16;
-import cpp.Float32;
-import cpp.Int32;
-import cpp.Pointer;
+import haxe.io.BytesData;
+import haxe.io.Bytes;
+import haxe.ds.ReadOnlyArray;
 import cpp.Stdlib.memcpy;
+import sdl.Window;
+import sdl.GLContext;
+import sdl.SDL;
+import glad.Glad;
 import opengl.GL.*;
 import opengl.WebGL.getShaderParameter;
 import opengl.WebGL.shaderSource;
 import opengl.WebGL.getProgramParameter;
 import opengl.WebGL.getProgramInfoLog;
 import opengl.WebGL.getShaderInfoLog;
-import sdl.Window;
-import sdl.GLContext;
-import sdl.SDL;
-import uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
-import uk.aidanlee.flurry.api.gpu.camera.Camera;
-import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
-import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
+import uk.aidanlee.flurry.FlurryConfig.FlurryRendererOgl3Config;
+import uk.aidanlee.flurry.api.gpu.state.TargetState;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
+import uk.aidanlee.flurry.api.gpu.state.StencilState;
+import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.BufferDrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.GeometryDrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Maths;
-import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
@@ -39,25 +33,16 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
-import uk.aidanlee.flurry.api.thread.JobQueue;
 
-using Safety;
 using cpp.NativeArray;
-using uk.aidanlee.flurry.utils.opengl.GLConverters;
+using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
 
-/**
- * WebGL backend written against the webGL 1.0 spec (openGL ES 2.0).
- * Uses snows openGL module so it can run on desktops and web platforms.
- * Allows targeting web, osx, and older integrated GPUs (anywhere where openGL 4.5 isn't supported).
- */
 class OGL3Backend implements IRendererBackend
 {
-    static final RENDERER_THREADS = #if flurry_ogl3_no_multithreading 1 #else Std.int(Maths.max(SDL.getCPUCount() - 2, 1)) #end;
-
     /**
      * The number of floats in each vertex.
      */
-    static final VERTEX_FLOAT_SIZE = 9;
+    static final VERTEX_BYTE_SIZE = 36;
 
     /**
      * The byte offset for the position in each vertex.
@@ -67,12 +52,22 @@ class OGL3Backend implements IRendererBackend
     /**
      * The byte offset for the colour in each vertex.
      */
-    static final VERTEX_OFFSET_COL = 3;
+    static final VERTEX_OFFSET_COL = 12;
 
     /**
      * The byte offset for the texture coordinates in each vertex.
      */
-    static final VERTEX_OFFSET_TEX = 7;
+    static final VERTEX_OFFSET_TEX = 28;
+
+    /**
+     * Number of bytes in a 4x4 float matrix
+     */
+    static final BYTES_PER_MATRIX = 4 * 4 * 4;
+
+    /**
+     * Number of bytes needed to store the model, view, and projection matrix for each draw command.
+     */
+    static final BYTES_PER_DRAW_MATRICES = 4 * 4 * 4 * 3;
 
     /**
      * Signals for when shaders and images are created and removed.
@@ -85,34 +80,44 @@ class OGL3Backend implements IRendererBackend
     final displayEvents : DisplayEvents;
 
     /**
-     * Access to the renderer who owns this backend.
-     */
-    final rendererStats : RendererStats;
-
-    /**
      * The single VBO used by the backend.
      */
-    final glVbo : Int;
+    final glVertexBuffer : Int;
 
     /**
      * The single index buffer used by the backend.
      */
-    final glIbo : Int;
+    final glIndexbuffer : Int;
+
+    /**
+     * The ubo used to store all matrix data.
+     */
+    final glMatrixBuffer : Int;
+
+    /**
+     * The ubo used to store all uniform data.
+     */
+    final glUniformBuffer : Int;
 
     /**
      * Vertex buffer used by this backend.
      */
-    final vertexBuffer : Float32Array;
+    final vertexBuffer : BytesData;
 
     /**
      * Index buffer used by this backend.
      */
-    final indexBuffer : UInt16Array;
+    final indexBuffer : BytesData;
 
     /**
-     * Transformation vector used for transforming geometry vertices by a matrix.
+     * Buffer used to store model, view, and projection matrices for all draws.
      */
-    final transformationVectors : Array<Vector3>;
+    final matrixBuffer : BytesData;
+
+    /**
+     * Buffer used to store all uniform data for draws.
+     */
+    final uniformBuffer : BytesData;
 
     /**
      * Shader programs keyed by their associated shader resource IDs.
@@ -142,40 +147,16 @@ class OGL3Backend implements IRendererBackend
     final framebufferObjects : Map<String, Int>;
 
     /**
-     * Job queue for multi-threaded geometry uploading.
-     */
-    final jobQueue : JobQueue;
-
-    /**
-     * dummy identity matrix for passing into shaders so they have parity with OGL4 shaders.
-     */
-    final dummyModelMatrix : Matrix;
-
-    /**
-     * Constant vector which will be used to flip perspective cameras on their y axis.
-     */
-    final perspectiveYFlipVector : Vector3;
-
-    /**
-     * Array of opengl textures objects which will be bound.
-     * Size of this array is equal to the max number of texture bindings allowed .
+     * Array of opengl textures objects which are bound.
+     * Size of this array is equal to the max number of texture bindings allowed.
      */
     final textureSlots : Array<Int>;
 
     /**
-     * Map of command IDs and the vertex offset into the buffer.
+     * Array of opengl sampler objects which are bound.
+     * Size of this array is equal to the max number of texture bindings allowed.
      */
-    final commandVtxOffsets : Map<Int, Int>;
-
-    /**
-     * Map of command IDs and the index offset into the buffer.
-     */
-    final commandIdxOffsets : Map<Int, Int>;
-
-    /**
-     * Map of all the model matices to transform buffer commands.
-     */
-    final bufferModelMatrix : Map<Int, Matrix>;
+    final samplerSlots : Array<Int>;
 
     /**
      * The default sampler object to use if no sampler is provided.
@@ -183,31 +164,38 @@ class OGL3Backend implements IRendererBackend
     final defaultSampler : Int;
 
     /**
+     * The bytes alignment for ubos.
+     */
+    final glUboAlignment : Int;
+
+    /**
+     * Number of bytes for each mvp matrix range.
+     * Includes padding for ubo alignment.
+     */
+    final matrixRangeSize : Int;
+
+    /**
+     * Queue all draw commands will be placed into.
+     */
+    final commandQueue : Array<DrawCommand>;
+
+    /**
      * Backbuffer display, default target if none is specified.
      */
     var backbuffer : BackBuffer;
 
-    /**
-     * The number of vertices that have been written into the vertex buffer this frame.
-     */
-    var vertexOffset : Int;
-
-    /**
-     * The number of 32bit floats that have been written into the vertex buffer this frame.
-     */
-    var vertexFloatOffset : Int;
-
-    /**
-     * The number of indices that have been written into the index buffer this frame.
-     */
-    var indexOffset : Int;
-
     // GL state variables
+    // Making redundent GL state changes can be very expensive
+    // Querying the current state with glGet is also very expensive
+    // So we track the current state with the equivilent flurry sturctures.
 
-    var target   : ImageResource;
-    var shader   : ShaderResource;
-    var clip     : Rectangle;
-    var viewport : Rectangle;
+    var target     : TargetState;
+    var shader     : ShaderResource;
+    final clip     : Rectangle;
+    final viewport : Rectangle;
+    final blend    : BlendState;
+    final depth    : DepthState;
+    final stencil  : StencilState;
 
     // SDL Window and GL Context
 
@@ -215,11 +203,10 @@ class OGL3Backend implements IRendererBackend
 
     var glContext : GLContext;
 
-    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _rendererStats : RendererStats, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
+    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererOgl3Config)
     {
         resourceEvents = _resourceEvents;
         displayEvents  = _displayEvents;
-        rendererStats  = _rendererStats;
 
         createWindow(_windowConfig);
 
@@ -229,48 +216,48 @@ class OGL3Backend implements IRendererBackend
         samplerObjects     = [];
         framebufferObjects = [];
 
-        perspectiveYFlipVector = new Vector3(1, -1, 1);
-        dummyModelMatrix       = new Matrix();
-        jobQueue               = new JobQueue(RENDERER_THREADS);
-        transformationVectors  = [ for (_ in 0...RENDERER_THREADS) new Vector3() ];
-        commandVtxOffsets      = [];
-        commandIdxOffsets      = [];
-        bufferModelMatrix      = [];
-
-        vertexOffset      = 0;
-        vertexFloatOffset = 0;
-        indexOffset       = 0;
-
         // Create and bind a singular VBO.
         // Only needs to be bound once since it is used for all drawing.
-        vertexBuffer = new Float32Array((_rendererConfig.dynamicVertices + _rendererConfig.unchangingVertices) * VERTEX_FLOAT_SIZE);
-        indexBuffer  = new UInt16Array(_rendererConfig.dynamicIndices + _rendererConfig.unchangingIndices);
+        vertexBuffer  = Bytes.alloc(_rendererConfig.vertexBufferSize ).getData();
+        indexBuffer   = Bytes.alloc(_rendererConfig.indexBufferSize  ).getData();
+        matrixBuffer  = Bytes.alloc(_rendererConfig.matrixBufferSize ).getData();
+        uniformBuffer = Bytes.alloc(_rendererConfig.uniformBufferSize).getData();
 
         // Core OpenGL profiles require atleast one VAO is bound.
         var vao = [ 0 ];
         glGenVertexArrays(1, vao);
         glBindVertexArray(vao[0]);
 
-        var vbos = [ 0 ];
-        glGenBuffers(1, vbos);
-        glVbo = vbos[0];
+        // Create two vertex buffers
+        var vbos = [ 0, 0, 0, 0 ];
+        glGenBuffers(vbos.length, vbos);
+        glVertexBuffer  = vbos[0];
+        glIndexbuffer   = vbos[1];
+        glMatrixBuffer  = vbos[2];
+        glUniformBuffer = vbos[3];
 
-        glBindBuffer(GL_ARRAY_BUFFER, glVbo);
-        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.view.byteLength, vertexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
+        // Allocate the matrix buffer.
+        glBindBuffer(GL_UNIFORM_BUFFER, glMatrixBuffer);
+        glBufferData(GL_UNIFORM_BUFFER, matrixBuffer.length, matrixBuffer, GL_DYNAMIC_DRAW);
 
-        var ibos = [ 0 ];
-        glGenBuffers(1, ibos);
-        glIbo = ibos[0];
+        glBindBuffer(GL_UNIFORM_BUFFER, glUniformBuffer);
+        glBufferData(GL_UNIFORM_BUFFER, uniformBuffer.length, uniformBuffer, GL_DYNAMIC_DRAW);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIbo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer.view.byteLength, indexBuffer.view.buffer.getData(), GL_DYNAMIC_DRAW);
+        // Vertex data will be interleaved, sourced from the first vertex buffer.
+        glBindBuffer(GL_ARRAY_BUFFER, glVertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.length, vertexBuffer, GL_DYNAMIC_DRAW);
 
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glEnableVertexAttribArray(2);
-        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 0, 3, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_POS);
-        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 1, 4, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_COL);
-        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 2, 2, GL_FLOAT, false, VERTEX_FLOAT_SIZE * Float32Array.BYTES_PER_ELEMENT, Float32Array.BYTES_PER_ELEMENT * VERTEX_OFFSET_TEX);
+
+        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 0, 3, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_POS);
+        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 1, 4, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_COL);
+        untyped __cpp__('glVertexAttribPointer({0}, {1}, {2}, {3}, {4}, (void*)(intptr_t){5})', 2, 2, GL_FLOAT, false, VERTEX_BYTE_SIZE, VERTEX_OFFSET_TEX);
+
+        // Setup index buffer.
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIndexbuffer);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer.length, indexBuffer, GL_DYNAMIC_DRAW);
 
         var samplers = [ 0 ];
         glGenSamplers(1, samplers);
@@ -281,205 +268,97 @@ class OGL3Backend implements IRendererBackend
         glSamplerParameteri(defaultSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         // default state
-        viewport     = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
-        clip         = new Rectangle(0, 0, _windowConfig.width, _windowConfig.height);
+        viewport     = new Rectangle();
+        clip         = new Rectangle();
+        blend        = new BlendState();
+        depth        = {
+            depthTesting  : false,
+            depthMasking  : false,
+            depthFunction : Always
+        };
+        stencil      = {
+            stencilTesting : false,
+
+            stencilFrontMask          : 0xff,
+            stencilFrontFunction      : Always,
+            stencilFrontTestFail      : Keep,
+            stencilFrontDepthTestFail : Keep,
+            stencilFrontDepthTestPass : Keep,
+            
+            stencilBackMask          : 0xff,
+            stencilBackFunction      : Always,
+            stencilBackTestFail      : Keep,
+            stencilBackDepthTestFail : Keep,
+            stencilBackDepthTestPass : Keep
+        };
         shader       = null;
-        target       = null;
+        target       = Backbuffer;
         textureSlots = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
+        samplerSlots = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
 
         // Create our own custom backbuffer.
         // we blit a flipped version to the actual backbuffer before swapping.
         backbuffer = createBackbuffer(_windowConfig.width, _windowConfig.height, false);
 
         // Default blend mode
-        // TODO : Move this to be a settable property in the geometry or renderer or something
+        // Blend equation is not currently changable
+        glEnable(GL_BLEND);
         glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
         // Set the clear colour
-        glClearColor(_rendererConfig.clearColour.r, _rendererConfig.clearColour.g, _rendererConfig.clearColour.b, _rendererConfig.clearColour.a);
+        glClearColor(_rendererConfig.clearColour.x, _rendererConfig.clearColour.y, _rendererConfig.clearColour.z, _rendererConfig.clearColour.w);
 
         // Default scissor test
         glEnable(GL_SCISSOR_TEST);
-        glScissor(0, 0, backbuffer.width, backbuffer.height);
+
+        updateClip(0, 0, backbuffer.width, backbuffer.height);
+        updateViewport(0, 0, backbuffer.width, backbuffer.height);
+        updateDepth(depth);
+        updateStencil(stencil);
 
         resourceEvents.created.add(onResourceCreated);
         resourceEvents.removed.add(onResourceRemoved);
         displayEvents.sizeChanged.add(onSizeChanged);
         displayEvents.changeRequested.add(onChangeRequest);
+
+        var uboAlignment = [ 0 ];
+        glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, uboAlignment);
+
+        glUboAlignment  = uboAlignment[0];
+        matrixRangeSize = BYTES_PER_DRAW_MATRICES + Std.int(Maths.max(glUboAlignment - BYTES_PER_DRAW_MATRICES, 0));
+        commandQueue    = [];
     }
 
-    public function preDraw()
+    /**
+     * Queue a command to be drawn this frame.
+     * @param _command Command to draw.
+     */
+    public function queue(_command : DrawCommand)
     {
-        target = null;
-        clip.set(0, 0, backbuffer.width, backbuffer.height);
+        commandQueue.push(_command);
+    }
 
-        glScissor(0, 0, backbuffer.width, backbuffer.height);
+    /**
+     * Uploads all data to the gpu then issues draw calls for all queued commands.
+     */
+    public function submit()
+    {
+        target = Backbuffer;
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-        vertexOffset      = 0;
-        vertexFloatOffset = 0;
-        indexOffset       = 0;
-        commandVtxOffsets.clear();
-        commandIdxOffsets.clear();
-        bufferModelMatrix.clear();
-    }
+        // Upload and draw all commands
+        uploadGeometryData();
+        uploadMatrixData();
+        uploadUniformData();
+        drawCommands();
 
-    /**
-     * Upload geometries to the gpu VRAM.
-     * @param _commands Array of commands to upload.
-     */
-    public function uploadGeometryCommands(_commands : Array<GeometryDrawCommand>) : Void
-    {
-        var vtxDst : Pointer<Float32> = Pointer.fromRaw(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
-        var idxDst : Pointer<UInt16>  = Pointer.fromRaw(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
-
-        for (command in _commands)
-        {
-            commandVtxOffsets.set(command.id, vertexOffset);
-            commandIdxOffsets.set(command.id, indexOffset);
-
-            var split     = Maths.floor(command.geometry.length / RENDERER_THREADS);
-            var remainder = command.geometry.length % RENDERER_THREADS;
-            var range     = command.geometry.length < RENDERER_THREADS ? command.geometry.length : RENDERER_THREADS;
-            for (i in 0...range)
-            {
-                var geomStartIdx   = split * i;
-                var geomEndIdx     = geomStartIdx + (i != range - 1 ? split : split + remainder);
-                var idxValueOffset = 0;
-                var idxWriteOffset = indexOffset;
-                var vtxWriteOffset = vertexFloatOffset;
-
-                for (j in 0...geomStartIdx)
-                {
-                    idxValueOffset += command.geometry[j].vertices.length;
-                    idxWriteOffset += command.geometry[j].indices.length;
-                    vtxWriteOffset += command.geometry[j].vertices.length * VERTEX_FLOAT_SIZE;
-                }
-
-                jobQueue.queue(() -> {
-                    for (j in geomStartIdx...geomEndIdx)
-                    {
-                        for (index in command.geometry[j].indices)
-                        {
-                            idxDst[idxWriteOffset++] = idxValueOffset + index;
-                        }
-
-                        for (vertex in command.geometry[j].vertices)
-                        {
-                            // Copy the vertex into another vertex.
-                            // This allows us to apply the transformation without permanently modifying the original geometry.
-                            transformationVectors[i].copyFrom(vertex.position);
-                            transformationVectors[i].transform(command.geometry[j].transformation.world.matrix);
-
-                            vtxDst[vtxWriteOffset++] = transformationVectors[i].x;
-                            vtxDst[vtxWriteOffset++] = transformationVectors[i].y;
-                            vtxDst[vtxWriteOffset++] = transformationVectors[i].z;
-                            vtxDst[vtxWriteOffset++] = vertex.color.r;
-                            vtxDst[vtxWriteOffset++] = vertex.color.g;
-                            vtxDst[vtxWriteOffset++] = vertex.color.b;
-                            vtxDst[vtxWriteOffset++] = vertex.color.a;
-                            vtxDst[vtxWriteOffset++] = vertex.texCoord.x;
-                            vtxDst[vtxWriteOffset++] = vertex.texCoord.y;
-                        }
-
-                        idxValueOffset += command.geometry[j].vertices.length;
-                    }
-                });
-            }
-
-            for (geom in command.geometry)
-            {
-                vertexOffset      += geom.vertices.length;
-                vertexFloatOffset += geom.vertices.length * VERTEX_FLOAT_SIZE;
-                indexOffset       += geom.indices.length;
-            }
-
-            jobQueue.wait();
-        }
-
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-    }
-
-    /**
-     * Upload buffer data to the gpu VRAM.
-     * @param _commands Array of commands to upload.
-     */
-    public function uploadBufferCommands(_commands : Array<BufferDrawCommand>) : Void
-    {
-        var idxDst : Pointer<UInt16>  = Pointer.fromRaw(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
-        var vtxDst : Pointer<Float32> = Pointer.fromRaw(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY)).reinterpret();
-
-        idxDst.incBy(indexOffset);
-        vtxDst.incBy(vertexOffset * 9);
-
-        for (command in _commands)
-        {
-            commandIdxOffsets.set(command.id, indexOffset);
-            commandVtxOffsets.set(command.id, vertexOffset);
-            bufferModelMatrix.set(command.id, command.model);
-
-            memcpy(
-                idxDst,
-                Pointer.arrayElem(command.idxData.view.buffer.getData(), command.idxStartIndex * 2),
-                command.indices * 2);
-            memcpy(
-                vtxDst,
-                Pointer.arrayElem(command.vtxData.view.buffer.getData(), command.vtxStartIndex * 9 * 4),
-                command.vertices * 9 * 4);
-
-            indexOffset       += command.indices;
-            vertexOffset      += command.vertices;
-            vertexFloatOffset += command.vertices * 9;
-
-            idxDst.incBy(command.indices);
-            vtxDst.incBy(command.vertices * 9);
-        }
-
-        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-    }
-
-    /**
-     * Draw an array of commands. Command data must be uploaded to the GPU before being used.
-     * @param _commands    Commands to draw.
-     * @param _recordStats Record stats for this submit.
-     */
-    public function submitCommands(_commands : Array<DrawCommand>, _recordStats : Bool = true) : Void
-    {
-        for (command in _commands)
-        {
-            // Change the state so the vertices are drawn correctly.
-            setState(command, !_recordStats);
-
-            // Draw the actual vertices
-            if (command.indices > 0)
-            {
-                var idxOffset = commandIdxOffsets.get(command.id) * 2;
-                var vtxOffset = commandVtxOffsets.get(command.id);
-                untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})', command.primitive.getPrimitiveType(), command.indices, GL_UNSIGNED_SHORT, idxOffset, vtxOffset);
-            }
-            else
-            {
-                var vtxOffset = commandVtxOffsets.get(command.id);
-                glDrawArrays(command.primitive.getPrimitiveType(), vtxOffset, command.vertices);
-            }      
-
-            // Record stats about this draw call.
-            if (_recordStats)
-            {
-                rendererStats.dynamicDraws++;
-                rendererStats.totalVertices += command.vertices;
-            }
-        }
-    }
-
-    public function postDraw()
-    {
+        // Once all commands have been drawn we blit and vertically flip our custom backbuffer into the windows backbuffer.
+        // We then call the SDL function to swap the window.
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, backbuffer.framebuffer);
 
+        updateClip(0, 0, backbuffer.width, backbuffer.height);
         glBlitFramebuffer(
             0, 0, backbuffer.width, backbuffer.height,
             0, backbuffer.height, backbuffer.width, 0,
@@ -488,6 +367,8 @@ class OGL3Backend implements IRendererBackend
         glBindFramebuffer(GL_FRAMEBUFFER, backbuffer.framebuffer);
 
         SDL.GL_SwapWindow(window);
+
+        commandQueue.resize(0);
     }
 
     /**
@@ -500,25 +381,36 @@ class OGL3Backend implements IRendererBackend
         displayEvents.sizeChanged.remove(onSizeChanged);
         displayEvents.changeRequested.remove(onChangeRequest);
 
-        for (shaderID in shaderPrograms.keys())
+        for (_ => shader in shaderPrograms)
         {
-            glDeleteProgram(shaderPrograms.get(shaderID));
-
-            shaderPrograms.remove(shaderID);
-            shaderUniforms.remove(shaderID);
+            glDeleteProgram(shader);
         }
 
-        for (textureID in textureObjects.keys())
+        for (_ => texture in textureObjects)
         {
-            glDeleteTextures(1, [ textureObjects.get(textureID) ]);
-            textureObjects.remove(textureID);
+            glDeleteTextures(1, [ texture ]);
+        }
 
-            if (framebufferObjects.exists(textureID))
+        for (_ => samplers in samplerObjects)
+        {
+            for (_ => sampler in samplers)
             {
-                glDeleteFramebuffers(1, [ framebufferObjects.get(textureID) ]);
-                framebufferObjects.remove(textureID);
+                glDeleteSamplers(1, [ sampler ]);
             }
         }
+
+        for (_ => framebuffer in framebufferObjects)
+        {
+            glDeleteFramebuffers(1, [ framebuffer ]);
+        }
+
+        glDeleteFramebuffers(1, [ backbuffer.framebuffer ]);
+
+        shaderPrograms.clear();
+        shaderUniforms.clear();
+        textureObjects.clear();
+        samplerObjects.clear();
+        framebufferObjects.clear();
 
         SDL.GL_DeleteContext(glContext);
         SDL.destroyWindow(window);
@@ -526,6 +418,12 @@ class OGL3Backend implements IRendererBackend
 
     // #region SDL Window Management
 
+    /**
+     * Create an SDL window and request a core 3.3 openGL context with it.
+     * Then bind that content to the current thread.
+     * GLAD is used to load all OpenGL functions with the SDL process address function.
+     * @param _options Initial window options.
+     */
     function createWindow(_options : FlurryWindowConfig)
     {        
         SDL.GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -537,12 +435,18 @@ class OGL3Backend implements IRendererBackend
 
         SDL.GL_MakeCurrent(window, glContext);
 
-        if (glad.Glad.gladLoadGLLoader(untyped __cpp__('&SDL_GL_GetProcAddress')) == 0)
+        if (Glad.gladLoadGLLoader(untyped __cpp__('&SDL_GL_GetProcAddress')) == 0)
         {
-            throw 'failed to load gl library';
+            throw new OGL3FailedToLoad();
         }
     }
 
+    /**
+     * When a size request comes in we call the appropriate SDL functions to set the size and state of the window and swap interval.
+     * We do not re-create the backbuffer here as resizing may fail for some reason.
+     * When a resize it successful a size changed event will be published through the engine which we listen to and resize the backbuffer then.
+     * @param _event Event containing the request details.
+     */
     function onChangeRequest(_event : DisplayEventChangeRequest)
     {
         SDL.setWindowSize(window, _event.width, _event.height);
@@ -550,6 +454,11 @@ class OGL3Backend implements IRendererBackend
         SDL.GL_SetSwapInterval(_event.vsync ? 1 : 0);
     }
 
+    /**
+     * When the window has been resized we need to recreate our backbuffer representation to match the new size.
+     * Since our backbuffer is custom we can't just update the viewport and be done.
+     * @param _event Event containing the new window size.
+     */
     function onSizeChanged(_event : DisplayEventData)
     {
         backbuffer = createBackbuffer(_event.width, _event.height);
@@ -579,13 +488,6 @@ class OGL3Backend implements IRendererBackend
         }
     }
 
-    /**
-     * Creates a shader from a vertex and fragment source.
-     * @param _vert   Vertex shader source.
-     * @param _frag   Fragment shader source.
-     * @param _layout Shader layout JSON description.
-     * @return Shader
-     */
     function createShader(_resource : ShaderResource)
     {
         if (shaderPrograms.exists(_resource.id))
@@ -595,7 +497,7 @@ class OGL3Backend implements IRendererBackend
 
         if (_resource.ogl3 == null)
         {
-            throw new GL32NoShaderSourceException(_resource.id);
+            throw new OGL3NoShaderSourceException(_resource.id);
         }
 
         // Create vertex shader.
@@ -605,7 +507,7 @@ class OGL3Backend implements IRendererBackend
 
         if (getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
         {
-            throw new GL32VertexCompilationError(_resource.id, getShaderInfoLog(vertex));
+            throw new OGL3VertexCompilationError(_resource.id, getShaderInfoLog(vertex));
         }
 
         // Create fragment shader.
@@ -615,7 +517,7 @@ class OGL3Backend implements IRendererBackend
 
         if (getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
         {
-            throw new GL32FragmentCompilationError(_resource.id, getShaderInfoLog(vertex));
+            throw new OGL3FragmentCompilationError(_resource.id, getShaderInfoLog(vertex));
         }
 
         // Link the shaders into a program.
@@ -626,7 +528,7 @@ class OGL3Backend implements IRendererBackend
 
         if (getProgramParameter(program, GL_LINK_STATUS) == 0)
         {
-            throw new GL32ShaderLinkingException(_resource.id, getProgramInfoLog(program));
+            throw new OGL3ShaderLinkingException(_resource.id, getProgramInfoLog(program));
         }
 
         // Delete the shaders now that they're linked
@@ -643,36 +545,18 @@ class OGL3Backend implements IRendererBackend
             glUniformBlockBinding(program, blockLocations[i], blockBindings[i]);
         }
 
-        // Generate gl buffers and haxe byte objects for all our blocks
-
-        var blockBuffers = [ for (i in 0..._resource.layout.blocks.length) 0 ];
-        glGenBuffers(blockBuffers.length, blockBuffers);
-        var blockSizes = [ for (i in 0..._resource.layout.blocks.length) generateUniformBlock(_resource.layout.blocks[i], blockBuffers[i], blockBindings[i]) ];
-
         shaderPrograms.set(_resource.id, program);
-        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings, blockBuffers, blockSizes));
+        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings));
     }
 
-    /**
-     * Removes and frees the resources used by a shader.
-     * @param _name Name of the shader.
-     */
     function removeShader(_resource : ShaderResource)
     {
-        glDeleteProgram(shaderPrograms.get(_resource.id));
+        glDeleteProgram(shaderPrograms[_resource.id]);
 
         shaderPrograms.remove(_resource.id);
         shaderUniforms.remove(_resource.id);
     }
 
-    /**
-     * Creates a new texture given an array of pixel data.
-     * @param _name   Name of the texture/
-     * @param _pixels Pixel data.
-     * @param _width  Width of the texture.
-     * @param _height Height of the texture.
-     * @return Texture
-     */
     function createTexture(_resource : ImageResource)
     {
         var id = [ 0 ];
@@ -691,362 +575,527 @@ class OGL3Backend implements IRendererBackend
         samplerObjects[_resource.id] = new Map();
     }
 
-    /**
-     * Removes and frees the resources used by a texture.
-     * @param _name Name of the texture.
-     */
     function removeTexture(_resource : ImageResource)
     {
-        var samplers = [];
-        for (sampler in samplerObjects[_resource.id])
+        glDeleteTextures(1, [ textureObjects[_resource.id] ]);
+
+        for (_ => sampler in samplerObjects[_resource.id])
         {
-            samplers.push(sampler);
+            glDeleteSamplers(1, [ sampler ]);
         }
-        glDeleteSamplers(samplers.length, samplers);
-        glDeleteTextures(1, [ textureObjects.get(_resource.id) ]);
+
+        if (framebufferObjects.exists(_resource.id))
+        {
+            glDeleteFramebuffers(1, [ framebufferObjects[_resource.id] ]);
+        }
 
         textureObjects.remove(_resource.id);
         samplerObjects.remove(_resource.id);
-    }
-
-    /**
-     * Calculates the size of a shader block, creates the OpenGL object, and returns haxe bytes of the needed size.
-     * @param _block   Shader block to initialise.
-     * @param _buffer  OpenGL UBO buffer ID.
-     * @param _binding OpenGL UBO binding position.
-     * @return Bytes
-     */
-    function generateUniformBlock(_block : ShaderBlock, _buffer : Int, _binding : Int) : Int
-    {
-        var blockSize = 0;
-        for (val in _block.values)
-        {
-            switch val.type
-            {
-                case Matrix4: blockSize += 64;
-                case Vector4: blockSize += 16;
-                case Int, Float: blockSize += 4;
-            }
-        }
-
-        glBindBuffer(GL_UNIFORM_BUFFER, _buffer);
-        untyped __cpp__('glBufferData(GL_UNIFORM_BUFFER, {0}, nullptr, GL_DYNAMIC_DRAW)', blockSize);
-
-        return blockSize;
+        framebufferObjects.remove(_resource.id);
     }
 
     //  #endregion
 
+    // #region Command Submission
+
     /**
-     * Update the openGL state so it can draw the provided command.
-     * @param _command      Command to set the state for.
-     * @param _disableStats If stats are to be recorded.
+     * Iterate over all queued commands and upload their vertex data.
+     * 
+     * We use `glBufferSubData` to avoid poor performance with mapping buffer ranges.
+     * Best range mapping performance is to invalidate the requested range, but if you then write that entire range you kill your performance.
+     * To save having to iterate over all objects to count byte size, then iterate again to copy, we just copy and add up size as we go along and then use `glBufferSubData` instead.
      */
-    function setState(_command : DrawCommand, _disableStats : Bool)
+    function uploadGeometryData()
     {
-        // Set the render target.
-        // If the target is null then the backbuffer is used.
-        // Render targets are created on the fly as and when needed since most textures probably won't be used as targets.
-        if (_command.target != target)
+        final vtxDst = vertexBuffer.address(0);
+        final idxDst = indexBuffer.address(0);
+
+        var vtxUploaded = 0;
+        var idxUploaded = 0;
+
+        for (command in commandQueue)
         {
-            target = _command.target;
-
-            if (target != null && !framebufferObjects.exists(target.id))
+            for (geometry in command.geometry)
             {
-                // Create the framebuffer
-                var fbo = [ 0 ];
-                glGenFramebuffers(1, fbo);
-                glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureObjects.get(target.id), 0);
-
-                if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                switch geometry.data
                 {
-                    throw new GL32IncompleteFramebufferException(target.id);
+                    case Indexed(_vertices, _indices):
+                        memcpy(
+                            idxDst.add(idxUploaded),
+                            _indices.buffer.bytes.getData().address(_indices.buffer.byteOffset),
+                            _indices.buffer.byteLength);
+
+                        memcpy(
+                            vtxDst.add(vtxUploaded),
+                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
+                            _vertices.buffer.byteLength);
+
+                        vtxUploaded += _vertices.buffer.byteLength;
+                        idxUploaded += _indices.buffer.byteLength;
+
+                    case UnIndexed(_vertices):
+                        memcpy(
+                            vtxDst.add(vtxUploaded),
+                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
+                            _vertices.buffer.byteLength);
+
+                        vtxUploaded += _vertices.buffer.byteLength;
                 }
-
-                framebufferObjects.set(target.id, fbo[0]);
-
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            }
-
-            glBindFramebuffer(GL_FRAMEBUFFER, target != null ? framebufferObjects.get(target.id) : backbuffer.framebuffer);
-
-            if (!_disableStats)
-            {
-                rendererStats.targetSwaps++;
             }
         }
 
-        // Apply shader changes.
-        if (shader != _command.shader)
+        if (vtxUploaded > 0)
         {
-            shader = _command.shader;
-            glUseProgram(shaderPrograms.get(shader.id));
-
-            if (!_disableStats)
-            {
-                rendererStats.shaderSwaps++;
-            }
+            glBufferSubData(GL_ARRAY_BUFFER, 0, vtxUploaded, vertexBuffer);
         }
-
-        // Apply depth and stencil settings.
-        if (_command.depth.depthTesting)
+        if (idxUploaded > 0)
         {
-            glEnable(GL_DEPTH_TEST);
-            glDepthMask(_command.depth.depthMasking);
-            glDepthFunc(_command.depth.depthFunction.getComparisonFunc());
+            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, idxUploaded, indexBuffer);
         }
-        else
-        {
-            glDisable(GL_DEPTH_TEST);
-        }
-
-        if (_command.stencil.stencilTesting)
-        {
-            glEnable(GL_STENCIL_TEST);
-            
-            glStencilMaskSeparate(GL_FRONT, _command.stencil.stencilFrontMask);
-            glStencilFuncSeparate(GL_FRONT, _command.stencil.stencilFrontFunction.getComparisonFunc(), 1, 0xff);
-            glStencilOpSeparate(
-                GL_FRONT,
-                _command.stencil.stencilFrontTestFail.getStencilFunc(),
-                _command.stencil.stencilFrontDepthTestFail.getStencilFunc(),
-                _command.stencil.stencilFrontDepthTestPass.getStencilFunc());
-
-            glStencilMaskSeparate(GL_BACK, _command.stencil.stencilBackMask);
-            glStencilFuncSeparate(GL_BACK, _command.stencil.stencilBackFunction.getComparisonFunc(), 1, 0xff);
-            glStencilOpSeparate(
-                GL_BACK,
-                _command.stencil.stencilBackTestFail.getStencilFunc(),
-                _command.stencil.stencilBackDepthTestFail.getStencilFunc(),
-                _command.stencil.stencilBackDepthTestPass.getStencilFunc());
-        }
-        else
-        {
-            glDisable(GL_STENCIL_TEST);
-        }
-
-        // Set the viewport.
-        var cmdViewport = _command.camera.viewport;
-        if (cmdViewport == null)
-        {
-            if (target == null)
-            {
-                cmdViewport = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-            }
-            else
-            {
-                cmdViewport = new Rectangle(0, 0, target.width, target.height);
-            }
-        }
-
-        if (!viewport.equals(cmdViewport))
-        {
-            viewport.copyFrom(cmdViewport);
-            
-            var x = viewport.x *= target == null ? backbuffer.scale : 1;
-            var y = viewport.y *= target == null ? backbuffer.scale : 1;
-            var w = viewport.w *= target == null ? backbuffer.scale : 1;
-            var h = viewport.h *= target == null ? backbuffer.scale : 1;
-
-            glViewport(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
-
-            if (!_disableStats)
-            {
-                rendererStats.viewportSwaps++;
-            }
-        }
-
-        // Set the scissor region.
-        var cmdClip = _command.clip;
-        if (cmdClip == null)
-        {
-            if (target == null)
-            {
-                cmdClip = new Rectangle(0, 0, backbuffer.width, backbuffer.height);
-            }
-            else
-            {
-                cmdClip = new Rectangle(0, 0, target.width, target.height);
-            }
-        }
-
-        if (!clip.equals(cmdClip))
-        {
-            clip.copyFrom(cmdClip);
-
-            var x = cmdClip.x * (target == null ? backbuffer.scale : 1);
-            var y = cmdClip.y * (target == null ? backbuffer.scale : 1);
-            var w = cmdClip.w * (target == null ? backbuffer.scale : 1);
-            var h = cmdClip.h * (target == null ? backbuffer.scale : 1);
-
-            glScissor(Std.int(x), Std.int(y), Std.int(w), Std.int(h));
-
-            if (!_disableStats)
-            {
-                rendererStats.scissorSwaps++;
-            }
-        }
-
-        // Set the blending
-        if (_command.blending)
-        {
-            glEnable(GL_BLEND);
-            glBlendFuncSeparate(
-                _command.srcRGB.getBlendMode(),
-                _command.dstRGB.getBlendMode(),
-                _command.srcAlpha.getBlendMode(),
-                _command.dstAlpha.getBlendMode());
-
-            if (!_disableStats)
-            {
-                rendererStats.blendSwaps++;
-            }
-        }
-        else
-        {
-            glDisable(GL_BLEND);
-
-            if (!_disableStats)
-            {
-                rendererStats.blendSwaps++;
-            }
-        }
-
-        // Apply the shaders uniforms
-        // TODO : Only set uniforms if the value has changed.
-        setUniforms(_command);
     }
 
     /**
-     * Apply all of a shaders uniforms.
-     * @param _combined Only required uniform. VP combined matrix.
+     * Update the projection, model, and view matrix for each queued command.
+     * Unfortunately there's no way to re-use the same projection and view matrix and all three must be copied per command.
+     * The most common UBO alignment value is also 256, meaning there's a very good chance 64 bytes (enough for another matrix) will be wasted per command.
      */
-    function setUniforms(_command : DrawCommand)
+    function uploadMatrixData()
     {
-        // Find this shaders location cache.
-        var cache = shaderUniforms.get(_command.shader.id);
-        var preferedUniforms = _command.uniforms.or(_command.shader.uniforms);
+        glBindBuffer(GL_UNIFORM_BUFFER, glMatrixBuffer);
 
-        // Bind textures and samplers.
-        if (cache.layout.textures.length <= _command.textures.length)
+        final matDst = matrixBuffer.address(0);
+
+        var bytesUploaded = 0;
+
+        for (command in commandQueue)
+        {
+            final view       = command.camera.view;
+            final projection = command.camera.projection;
+
+            for (geometry in command.geometry)
+            {
+                final model = geometry.transformation.world.matrix;
+
+                memcpy(matDst.add(bytesUploaded)      , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
+                memcpy(matDst.add(bytesUploaded +  64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
+                memcpy(matDst.add(bytesUploaded + 128), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
+
+                bytesUploaded += matrixRangeSize;
+            }
+        }
+
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, bytesUploaded, matrixBuffer);
+    }
+
+    /**
+     * Iterate over all uniform blobs provided by the command and update its UBO.
+     * Uniform blobs and their blocks are matched by their name.
+     * An exception will be thrown if it cannot find a matching block.
+     */
+    function uploadUniformData()
+    {
+        glBindBuffer(GL_UNIFORM_BUFFER, glUniformBuffer);
+
+        final dst = uniformBuffer.address(0);
+
+        var byteIndex  = 0;
+
+        for (command in commandQueue)
+        {
+            for (block in command.uniforms)
+            {
+                memcpy(
+                    dst.add(byteIndex),
+                    block.buffer.bytes.getData().address(block.buffer.byteOffset),
+                    block.buffer.byteLength);
+
+                byteIndex = Maths.nextMultipleOff(byteIndex + block.buffer.byteLength, glUboAlignment);
+            }
+        }
+
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, byteIndex, uniformBuffer);
+    }
+
+    /**
+     * Loop over all commands and issue draw calls for them.
+     */
+    function drawCommands()
+    {
+        var matOffset = 0;
+        var idxOffset = 0;
+        var vtxOffset = 0;
+        var unfOffset = 0;
+
+        // Draw the queued commands
+        for (command in commandQueue)
+        {
+            // Change the state so the vertices are drawn correctly.
+            updateState(command);
+
+            // Bind the correct range for all uniforms
+            for (block in command.uniforms)
+            {
+                glBindBufferRange(
+                    GL_UNIFORM_BUFFER,
+                    findBlockIndexByName(block.name, command.shader.layout.blocks),
+                    glUniformBuffer,
+                    unfOffset,
+                    block.buffer.byteLength);
+    
+                unfOffset = Maths.nextMultipleOff(unfOffset + block.buffer.byteLength, glUboAlignment);
+            }
+
+            for (geometry in command.geometry)
+            {
+                // Bind the correct range for the matrix buffer
+                glBindBufferRange(
+                    GL_UNIFORM_BUFFER,
+                    findBlockIndexByName("flurry_matrices", command.shader.layout.blocks),
+                    glMatrixBuffer,
+                    matOffset,
+                    192);
+
+                switch geometry.data
+                {
+                    case Indexed(_vertices, _indices):
+                        untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})',
+                            command.primitive.getPrimitiveType(),
+                            _indices.shortAccess.length,
+                            GL_UNSIGNED_SHORT,
+                            idxOffset,
+                            vtxOffset);
+
+                        idxOffset += _indices.buffer.byteLength;
+                        vtxOffset += Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
+                    case UnIndexed(_vertices):
+                        final numOfVerts = Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
+                        final primitive  = command.primitive.getPrimitiveType();
+
+                        glDrawArrays(primitive, vtxOffset, numOfVerts);
+
+                        vtxOffset += numOfVerts;
+                }
+
+                matOffset += matrixRangeSize;
+            }
+        }
+    }
+
+    // #endregion
+
+    // #region State Management
+
+    /**
+     * Setup the required openGL state to draw a command.
+     * The current state is stored in this class, to reduce expensive state changes we check to see
+     * if the provided command has a different set to whats currently set.
+     * @param _command Command to set the state for.
+     */
+    function updateState(_command : DrawCommand)
+    {
+        updateFramebuffer(_command.target);
+        updateShader(_command.shader);
+        updateTextures(_command.shader.layout.textures.length, _command.textures, _command.samplers);
+        updateDepth(_command.depth);
+        updateStencil(_command.stencil);
+        updateBlending(_command.blending);
+
+        // If the camera does not specify a viewport (non orthographic) then the full size of the target is used.
+        switch _command.camera.viewport
+        {
+            case None:
+                switch target
+                {
+                    case Backbuffer:
+                        updateViewport(0, 0, backbuffer.width, backbuffer.height);
+                    case Texture(_image):
+                        updateViewport(0, 0, _image.width, _image.height);
+                }
+            case Viewport(_x, _y, _width, _height):
+                updateViewport(_x, _y, _width, _height);
+        }
+
+        // If the camera does not specify a clip rectangle then the full size of the target is used.
+        switch _command.clip
+        {
+            case None:
+                switch target
+                {
+                    case Backbuffer:
+                        updateClip(0, 0, backbuffer.width, backbuffer.height);
+                    case Texture(_image):
+                        updateClip(0, 0, _image.width, _image.height);
+                }
+            case Clip(_x, _y, _width, _height):
+                updateClip(_x, _y, _width, _height);
+        }
+    }
+
+    /**
+     * Enables and binds all textures and samplers for drawing a command.
+     * The currently bound textures are tracked to stop re-binding the same textures.
+     * @param _command Command to bind textures and samplers for.
+     */
+    function updateTextures(_expectedTextures : Int, _textures : ReadOnlyArray<ImageResource>, _samplers : ReadOnlyArray<SamplerState>)
+    {
+        // If the shader description specifies more textures than the command provides throw an exception.
+        // If less is specified than provided we just ignore the extra, maybe we should throw as well?
+        if (_expectedTextures >= _textures.length)
         {
             // then go through each texture and bind it if it isn't already.
-            for (i in 0..._command.textures.length)
+            for (i in 0..._textures.length)
             {
-                // Bind the texture if its not already bound.
-                var glTextureID  = textureObjects.get(_command.textures[i].id);
+                // Bind and activate the texture if its not already bound.
+                final glTextureID = textureObjects.get(_textures[i].id);
+
                 if (glTextureID != textureSlots[i])
                 {
                     glActiveTexture(GL_TEXTURE0 + i);
                     glBindTexture(GL_TEXTURE_2D, glTextureID);
 
                     textureSlots[i] = glTextureID;
-
-                    rendererStats.textureSwaps++;
                 }
 
-                // Get / create and bind the sampler for the current texture.
+                // Fetch the custom sampler (first create it if a hash of the sampler is not found).
                 var currentSampler = defaultSampler;
-                if (_command.samplers[i] != null)
+                if (i < _samplers.length)
                 {
-                    var samplerHash     = _command.samplers[i].hash();
-                    var textureSamplers = samplerObjects[_command.textures[i].id];
+                    final samplerHash     = _samplers[i].hash();
+                    final textureSamplers = samplerObjects[_textures[i].id];
 
                     if (!textureSamplers.exists(samplerHash))
                     {
-                        textureSamplers[samplerHash] = createSamplerObject(_command.samplers[i]);
+                        textureSamplers[samplerHash] = createSamplerObject(_samplers[i]);
                     }
 
                     currentSampler = textureSamplers[samplerHash];
                 }
-                
-                glBindSampler(i, currentSampler);
+
+                // If its not already bound bind it and update the bound sampler array.
+                if (currentSampler != samplerSlots[i])
+                {
+                    glBindSampler(i, currentSampler);
+
+                    samplerSlots[i] = currentSampler;
+                }
             }
         }
         else
         {
-            throw new GL32NotEnoughTexturesException(_command.shader.id, _command.id, cache.layout.textures.length, _command.textures.length);
+            throw new OGL3NotEnoughTexturesException(_expectedTextures, _textures.length);
+        }
+    }
+
+    /**
+     * Either sets the framebuffer to the backbuffer or to an uploaded texture.
+     * If the texture has not yet had a framebuffer generated for it, it is done on demand.
+     * This could be something which is done on texture creation in the future.
+     * @param _newTarget New target
+     */
+    function updateFramebuffer(_newTarget : TargetState)
+    {
+        switch _newTarget
+        {
+            case Backbuffer:
+                switch target
+                {
+                    case Backbuffer: // no change in target
+                    case Texture(_):
+                        glBindFramebuffer(GL_FRAMEBUFFER, backbuffer.framebuffer);
+                }
+            case Texture(_requested):
+                switch target
+                {
+                    case Backbuffer:
+                        updateTextureFramebuffer(_requested);
+                    case Texture(_current):
+                        if (_current.id != _requested.id)
+                        {
+                            updateTextureFramebuffer(_requested);
+                        }
+                }
         }
 
-        // Upload and bind all buffer data.
-        for (i in 0...cache.layout.blocks.length)
+        target = _newTarget;
+    }
+
+    function updateShader(_newShader : ShaderResource)
+    {
+        if (_newShader != shader)
         {
-            glBindBufferBase(GL_UNIFORM_BUFFER, cache.blockBindings[i], cache.blockBuffers[i]);
+            glUseProgram(shaderPrograms.get(_newShader.id));
 
-            final src : Pointer<cpp.UInt8> = Pointer.fromRaw(glMapBufferRange(GL_UNIFORM_BUFFER, 0, cache.blockSizes[i], GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT)).reinterpret();
+            shader = _newShader;
+        }
+    }
 
-            if (cache.layout.blocks[i].name == 'defaultMatrices')
+    function updateClip(_x : Int, _y : Int, _width : Int, _height : Int)
+    {
+        if (clip.x != _x || clip.y != _y || clip.w != _width || clip.h != _width)
+        {
+            glScissor(_x, _y, _width, _height);
+
+            clip.set(_x, _y, _width, _height);
+        }
+    }
+
+    function updateViewport(_x : Int, _y : Int, _width : Int, _height : Int)
+    {
+        if (viewport.x != _x || viewport.y != _y || viewport.w != _width || viewport.h != _height)
+        {
+            glViewport(_x, _y, _width, _height);
+
+            viewport.set(_x, _y, _width, _height);
+        }
+    }
+
+    function updateDepth(_newDepth : DepthState)
+    {
+        if (!_newDepth.equals(depth))
+        {
+            if (!_newDepth.depthTesting)
             {
-                buildCameraMatrices(_command.camera);
-
-                var model      = bufferModelMatrix.exists(_command.id) ? bufferModelMatrix.get(_command.id) : dummyModelMatrix;
-                var view       = _command.camera.view;
-                var projection = _command.camera.projection;
-
-                memcpy(src          , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
-                memcpy(src.incBy(64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
-                memcpy(src.incBy(64), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
+                glDisable(GL_DEPTH_TEST);
             }
             else
             {
-                // Otherwise upload all user specified uniform values.
-                // TODO : We should have some sort of error checking if the expected uniforms are not found.
-                var pos = 0;
-                for (val in cache.layout.blocks[i].values)
+                if (_newDepth.depthTesting != depth.depthTesting)
                 {
-                    switch val.type
-                    {
-                        case Matrix4:
-                            var mat : Float32BufferData = preferedUniforms.matrix4.exists(val.name) ? preferedUniforms.matrix4.get(val.name) : _command.shader.uniforms.matrix4.get(val.name);
-                            memcpy(src.incBy(pos), mat.bytes.getData().address(mat.byteOffset), 64);
-                            pos += 64;
-                        case Vector4:
-                            var vec : Float32BufferData = preferedUniforms.vector4.exists(val.name) ? preferedUniforms.vector4.get(val.name) : _command.shader.uniforms.vector4.get(val.name);
-                            memcpy(src.incBy(pos), vec.bytes.getData().address(vec.byteOffset), 16);
-                            pos += 16;
-                        case Int:
-                            var dst : Pointer<Int32> = src.reinterpret();
-                            dst.setAt(Std.int(pos / 4), preferedUniforms.int.exists(val.name) ? preferedUniforms.int.get(val.name) : _command.shader.uniforms.int.get(val.name));
-                            pos += 4;
-                        case Float:
-                            var dst : Pointer<Float32> = src.reinterpret();
-                            dst.setAt(Std.int(pos / 4), preferedUniforms.float.exists(val.name) ? preferedUniforms.float.get(val.name) : _command.shader.uniforms.float.get(val.name));
-                            pos += 4;
-                    }
+                    glEnable(GL_DEPTH_TEST);
+                }
+                if (_newDepth.depthMasking != depth.depthMasking)
+                {
+                    glDepthMask(_newDepth.depthMasking);
+                }
+                if (_newDepth.depthFunction != depth.depthFunction)
+                {
+                    glDepthFunc(_newDepth.depthFunction.getComparisonFunc());
                 }
             }
-            
-            glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+            depth.copyFrom(_newDepth);
         }
     }
 
-    function buildCameraMatrices(_camera : Camera)
+    function updateStencil(_newStencil : StencilState)
     {
-        switch _camera.type
+        if (!_newStencil.equals(stencil))
         {
-            case Orthographic:
-                var orth = (cast _camera : Camera2D);
-                if (orth.dirty)
+            if (!_newStencil.stencilTesting)
+            {
+                glDisable(GL_STENCIL_TEST);
+            }
+            else
+            {
+                if (_newStencil.stencilTesting != stencil.stencilTesting)
                 {
-                    orth.projection.makeHomogeneousOrthographic(0, orth.viewport.w, orth.viewport.h, 0, -100, 100);
-                    orth.view.copy(orth.transformation.world.matrix).invert();
-                    orth.dirty = false;
+                    glEnable(GL_STENCIL_TEST);
                 }
-            case Projection:
-                var proj = (cast _camera : Camera3D);
-                if (proj.dirty)
+
+                // Front tests
+                if (_newStencil.stencilFrontMask != stencil.stencilFrontMask)
                 {
-                    proj.projection.makeHomogeneousPerspective(proj.fov, proj.aspect, proj.near, proj.far);
-                    proj.projection.scale(perspectiveYFlipVector);
-                    proj.view.copy(proj.transformation.world.matrix).invert();
-                    proj.dirty = false;
+                    glStencilMaskSeparate(GL_FRONT, _newStencil.stencilFrontMask);
                 }
-            case Custom:
-                // Do nothing, user is responsible for building their custom camera matrices.
+                if (_newStencil.stencilFrontFunction != stencil.stencilFrontFunction)
+                {
+                    glStencilFuncSeparate(GL_FRONT, _newStencil.stencilFrontFunction.getComparisonFunc(), 1, 0xff);
+                }
+                if (_newStencil.stencilFrontTestFail != stencil.stencilFrontTestFail ||
+                    _newStencil.stencilFrontDepthTestFail != stencil.stencilFrontDepthTestFail ||
+                    _newStencil.stencilFrontDepthTestPass != stencil.stencilFrontDepthTestPass)
+                {
+                    glStencilOpSeparate(
+                        GL_FRONT,
+                        _newStencil.stencilFrontTestFail.getStencilFunc(),
+                        _newStencil.stencilFrontDepthTestFail.getStencilFunc(),
+                        _newStencil.stencilFrontDepthTestPass.getStencilFunc());
+                }
+
+                // Back tests
+                if (_newStencil.stencilBackMask != stencil.stencilBackMask)
+                {
+                    glStencilMaskSeparate(GL_BACK, _newStencil.stencilBackMask);
+                }
+                if (_newStencil.stencilBackFunction != stencil.stencilBackFunction)
+                {
+                    glStencilFuncSeparate(GL_BACK, _newStencil.stencilBackFunction.getComparisonFunc(), 1, 0xff);
+                }
+                if (_newStencil.stencilBackTestFail != stencil.stencilBackTestFail ||
+                    _newStencil.stencilBackDepthTestFail != stencil.stencilBackDepthTestFail ||
+                    _newStencil.stencilBackDepthTestPass != stencil.stencilBackDepthTestPass)
+                {
+                    glStencilOpSeparate(
+                        GL_BACK,
+                        _newStencil.stencilBackTestFail.getStencilFunc(),
+                        _newStencil.stencilBackDepthTestFail.getStencilFunc(),
+                        _newStencil.stencilBackDepthTestPass.getStencilFunc());
+                }
+            }
+
+            stencil.copyFrom(_newStencil);
         }
     }
 
+    function updateBlending(_newBlend : BlendState)
+    {
+        if (!_newBlend.equals(blend))
+        {
+            if (_newBlend.enabled)
+            {
+                if (!blend.enabled)
+                {
+                    glEnable(GL_BLEND);
+                }
+
+                glBlendFuncSeparate(
+                    _newBlend.srcRGB.getBlendMode(),
+                    _newBlend.dstRGB.getBlendMode(),
+                    _newBlend.srcAlpha.getBlendMode(),
+                    _newBlend.dstAlpha.getBlendMode());
+            }
+            else
+            {
+                glDisable(GL_BLEND);
+            }
+
+            blend.copyFrom(_newBlend);
+        }
+    }
+
+    /**
+     * Bind a framebuffer from the provided image resource.
+     * If a framebuffer does not exist for the image, create one and store it.
+     * @param _image Image to bind a framebuffer for.
+     */
+    function updateTextureFramebuffer(_image : ImageResource)
+    {
+        if (!framebufferObjects.exists(_image.id))
+        {
+            // Create the framebuffer
+            var fbo = [ 0 ];
+            glGenFramebuffers(1, fbo);
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureObjects.get(_image.id), 0);
+
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            {
+                throw new OGL3IncompleteFramebufferException(_image.id);
+            }
+
+            framebufferObjects.set(_image.id, fbo[0]);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects.get(_image.id));
+    }
+
+    /**
+     * Creates a new openGL sampler object from a flurry sampler state instance.
+     * @param _sampler State to create an openGL sampler from.
+     * @return OpenGL sampler object.
+     */
     function createSamplerObject(_sampler : SamplerState) : Int
     {
         var samplers = [ 0 ];
@@ -1059,6 +1108,18 @@ class OGL3Backend implements IRendererBackend
         return samplers[0];
     }
 
+    // #endregion
+
+    /**
+     * Creates a new backbuffer representation.
+     * Can optionally remove the existing custom backbuffer.
+     * This is an expensive function as it makes two framebuffer binding calls
+     * and wipes the state of all bound textures and samplers.
+     * @param _width Width of the new backbuffer.
+     * @param _height Height of the new backbuffer.
+     * @param _remove If the existing backbuffer should be removed.
+     * @return BackBuffer instance.
+     */
     function createBackbuffer(_width : Int, _height : Int, _remove : Bool = true) : BackBuffer
     {
         // Cleanup previous backbuffer
@@ -1092,22 +1153,45 @@ class OGL3Backend implements IRendererBackend
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         {
-            throw new GL32IncompleteFramebufferException('backbuffer');
+            throw new OGL3IncompleteFramebufferException('backbuffer');
         }
 
         // Cleanup / reset state after setting up new framebuffer.
-        if (target == null)
+        switch target
         {
-            glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
-        }
-        else
-        {
-            glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects.get(target.id));
+            case Backbuffer:
+                glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
+            case Texture(_image):
+                glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects.get(_image.id));
         }
 
-        for (i in 0...textureSlots.length) textureSlots[i] = 0;
+        for (i in 0...GL_MAX_TEXTURE_IMAGE_UNITS)
+        {
+            textureSlots[i] = 0;
+            samplerSlots[i] = 0;
+        }
 
         return new BackBuffer(_width, _height, 1, tex[0], rbo[0], fbo[0]);
+    }
+
+    /**
+     * Finds the first shader block with the provided name.
+     * If no matching block is found an exception is thrown.
+     * @param _name Name to look for.
+     * @param _blocks Array of all shader blocks.
+     * @return Index into the array of blocks to the first matching block.
+     */
+    function findBlockIndexByName(_name : String, _blocks : ReadOnlyArray<ShaderBlock>) : Int
+    {
+        for (i in 0..._blocks.length)
+        {
+            if (_blocks[i].name == _name)
+            {
+                return i;
+            }
+        }
+
+        throw new OGL3UniformBlockNotFoundException(_name);
     }
 }
 
@@ -1159,61 +1243,23 @@ private class ShaderLocations
      */
     public final blockBindings : Array<Int>;
 
-    /**
-     * SSBO buffer objects.
-     */
-    public final blockBuffers : Array<Int>;
-
-    /**
-     * Size in bytes of all blocks.
-     */
-    public final blockSizes : Array<Int>;
-
-    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockBindings : Array<Int>, _blockBuffers : Array<Int>, _blockSizes : Array<Int>)
+    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockBindings : Array<Int>)
     {
         layout           = _layout;
         textureLocations = _textureLocations;
         blockBindings    = _blockBindings;
-        blockBuffers     = _blockBuffers;
-        blockSizes       = _blockSizes;
     }
 }
 
-/**
- * Stores the range of a draw command.
- */
-private class DrawCommandRange
+private class OGL3FailedToLoad extends Exception
 {
-    /**
-     * The number of vertices in this draw command.
-     */
-    public final vertices : Int;
-
-    /**
-     * The number of vertices this command is offset into the current range.
-     */
-    public final vertexOffset : Int;
-
-    /**
-     * The number of indices in this draw command.
-     */
-    public final indices : Int;
-
-    /**
-     * The number of bytes this command is offset into the current range.
-     */
-    public final indexByteOffset : Int;
-
-    inline public function new(_vertices : Int, _vertexOffset : Int, _indices : Int, _indexByteOffset)
+    public function new()
     {
-        vertices        = _vertices;
-        vertexOffset    = _vertexOffset;
-        indices         = _indices;
-        indexByteOffset = _indexByteOffset;
+        super('Failed to load OpenGL library');
     }
 }
 
-private class GL32NoShaderSourceException extends Exception
+private class OGL3NoShaderSourceException extends Exception
 {
     public function new(_id : String)
     {
@@ -1221,7 +1267,7 @@ private class GL32NoShaderSourceException extends Exception
     }
 }
 
-private class GL32VertexCompilationError extends Exception
+private class OGL3VertexCompilationError extends Exception
 {
     public function new(_id : String, _error : String)
     {
@@ -1229,7 +1275,7 @@ private class GL32VertexCompilationError extends Exception
     }
 }
 
-private class GL32FragmentCompilationError extends Exception
+private class OGL3FragmentCompilationError extends Exception
 {
     public function new(_id : String, _error : String)
     {
@@ -1237,7 +1283,7 @@ private class GL32FragmentCompilationError extends Exception
     }
 }
 
-private class GL32ShaderLinkingException extends Exception
+private class OGL3ShaderLinkingException extends Exception
 {
     public function new(_id : String, _error : String)
     {
@@ -1245,7 +1291,7 @@ private class GL32ShaderLinkingException extends Exception
     }
 }
 
-private class GL32IncompleteFramebufferException extends Exception
+private class OGL3IncompleteFramebufferException extends Exception
 {
     public function new(_error : String)
     {
@@ -1253,10 +1299,26 @@ private class GL32IncompleteFramebufferException extends Exception
     }
 }
 
-private class GL32NotEnoughTexturesException extends Exception
+private class OGL3NotEnoughTexturesException extends Exception
 {
-    public function new(_shaderID : String, _drawCommandID : Int, _expected : Int, _actual : Int)
+    public function new(_expected : Int, _actual : Int)
     {
-        super('Shader $_shaderID expects $_expected textures but the draw command $_drawCommandID only provided $_actual');
+        super('Shader expects $_expected textures but the draw command only provided $_actual');
+    }
+}
+
+private class OGL3UniformBlockNotFoundException extends Exception
+{
+    public function new(_blockName)
+    {
+        super('Unable to find a uniform block with the name $_blockName');
+    }
+}
+
+private class OGL3CameraViewportNotSetException extends Exception
+{
+    public function new()
+    {
+        super('A viewport must be defined for orthographic cameras');
     }
 }

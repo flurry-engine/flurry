@@ -1,13 +1,13 @@
 package uk.aidanlee.flurry.api.gpu;
 
-enum ComparisonFunction
+enum abstract ComparisonFunction(Int)
 {
-    Always;
-    Never;
-    Equal;
-    LessThan;
-    LessThanOrEqual;
-    GreaterThan;
-    GreaterThanOrEqual;
-    NotEqual;
+    var Always;
+    var Never;
+    var Equal;
+    var LessThan;
+    var LessThanOrEqual;
+    var GreaterThan;
+    var GreaterThanOrEqual;
+    var NotEqual;
 }

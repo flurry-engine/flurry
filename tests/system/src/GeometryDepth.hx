@@ -1,11 +1,10 @@
 package;
 
+import uk.aidanlee.flurry.Flurry;
+import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
-import uk.aidanlee.flurry.FlurryConfig;
-import uk.aidanlee.flurry.Flurry;
 
 class GeometryDepth extends Flurry
 {
@@ -22,11 +21,26 @@ class GeometryDepth extends Flurry
 
     override function onReady()
     {
-        var camera  = new Camera2D(display.width, display.height);
-        var batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
+        final camera  = renderer.createCamera2D(display.width, display.height);
+        final batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
 
-        new QuadGeometry({ textures : [ resources.get('tank1', ImageResource) ], batchers : [ batcher ], depth : 1 }).position.set_xy(192,  64);
-        new QuadGeometry({ textures : [ resources.get('tank2', ImageResource) ], batchers : [ batcher ], depth : 0 }).position.set_xy(256, 128);
-        new QuadGeometry({ textures : [ resources.get('tank3', ImageResource) ], batchers : [ batcher ], depth : 2 }).position.set_xy(320, 192);
+        new QuadGeometry({
+            texture  : resources.get('tank1', ImageResource),
+            batchers : [ batcher ],
+            depth    : 1,
+            x : 192, y :  64, width : 256, height : 256
+        });
+        new QuadGeometry({
+            texture  : resources.get('tank2', ImageResource),
+            batchers : [ batcher ],
+            depth : 0,
+            x : 256, y : 128, width : 256, height : 256
+        });
+        new QuadGeometry({
+            texture  : resources.get('tank3', ImageResource),
+            batchers : [ batcher ],
+            depth : 2,
+            x : 320, y : 192, width : 256, height : 256
+        });
     }
 }

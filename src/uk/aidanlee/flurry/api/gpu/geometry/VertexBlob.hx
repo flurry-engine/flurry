@@ -1,78 +1,122 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import haxe.io.BytesBuffer;
+import uk.aidanlee.flurry.api.maths.Vector4;
+import uk.aidanlee.flurry.api.maths.Vector3;
+import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
+import uk.aidanlee.flurry.api.buffers.BufferData;
 
+/**
+ * Container class for vertex bytes data.
+ */
 class VertexBlob
 {
-    final FLOATS_PER_VERTEX = 9;
+    /**
+     * Underlying bytes data.
+     */
+    public final buffer : BufferData;
 
-    final buffer : Float32BufferData;
+    /**
+     * Quick access to the underlying bytes data as a typed float buffer.
+     */
+    public final floatAccess : Float32BufferData;
 
-    final vertices : Int;
-
-    final cachedIterator : VertexBlobIterator;
-
-    public function new(_vertices : Int)
+    public function new(_buffer : BufferData)
     {
-        vertices       = _vertices;
-        buffer         = new Float32BufferData(vertices * FLOATS_PER_VERTEX);
-        cachedIterator = new VertexBlobIterator(vertices, buffer);
-    }
-
-    public function iterator(_reuse : Bool = true) : VertexBlobIterator
-    {
-        return _reuse ? cachedIterator.reset() : new VertexBlobIterator(vertices, buffer);
+        buffer      = _buffer;
+        floatAccess = _buffer;
     }
 }
 
-private class VertexBlobIterator
+/**
+ * Helper class which can construct a vertex blob without having to do all the manual byte management.
+ * Contains a series of chainable convenience functions for adding data to a vertex buffer.
+ */
+class VertexBlobBuilder
 {
-    final buffer : Float32BufferData;
+    final builder : BytesBuffer;
 
-    final vertices : Int;
-
-    final position : Float32BufferData;
-
-    final colour : Float32BufferData;
-
-    final texcoord : Float32BufferData;
-
-    final vertex : Vertex;
-
-    var current : Int;
-
-    public function new(_vertices : Int, _buffer : Float32BufferData)
+    public function new()
     {
-        vertices = _vertices;
-        buffer   = _buffer;
-        current  = 0;
-
-        position = buffer.sub(0, 3);
-        colour   = buffer.sub(3, 4);
-        texcoord = buffer.sub(7, 2);
-        vertex   = new Vertex(position, colour, texcoord);
+        builder = new BytesBuffer();
     }
 
-    public function reset() : VertexBlobIterator
+    public function addFloat(_val : Float) : VertexBlobBuilder
     {
-        current = 0;
+        builder.addFloat(_val);
 
         return this;
     }
 
-    public function hasNext() : Bool
+    public function addFloat2(_val1 : Float, _val2 : Float) : VertexBlobBuilder
     {
-        return current < vertices;
+        builder.addFloat(_val1);
+        builder.addFloat(_val2);
+
+        return this;
     }
 
-    public function next() : Vertex
+    public function addFloat3(_val1 : Float, _val2 : Float, _val3 : Float) : VertexBlobBuilder
     {
-        final baseOffset = current++ * 9;
+        builder.addFloat(_val1);
+        builder.addFloat(_val2);
+        builder.addFloat(_val3);
 
-        position.offset = baseOffset + 0;
-        colour.offset   = baseOffset + 3;
-        texcoord.offset = baseOffset + 7;
+        return this;
+    }
 
-        return vertex;
+    public function addFloat4(_val1 : Float, _val2 : Float, _val3 : Float, _val4 : Float) : VertexBlobBuilder
+    {
+        builder.addFloat(_val1);
+        builder.addFloat(_val2);
+        builder.addFloat(_val3);
+        builder.addFloat(_val4);
+
+        return this;
+    }
+
+    public function addVector2(_vec : Vector2) : VertexBlobBuilder
+    {
+        builder.addFloat(_vec.x);
+        builder.addFloat(_vec.y);
+
+        return this;
+    }
+
+    public function addVector3(_vec : Vector3) : VertexBlobBuilder
+    {
+        builder.addFloat(_vec.x);
+        builder.addFloat(_vec.y);
+        builder.addFloat(_vec.z);
+
+        return this;
+    }
+
+    public function addVector4(_vec : Vector4) : VertexBlobBuilder
+    {
+        builder.addFloat(_vec.x);
+        builder.addFloat(_vec.y);
+        builder.addFloat(_vec.z);
+        builder.addFloat(_vec.w);
+
+        return this;
+    }
+
+    public function addFloats(_array : Array<Float>) : VertexBlobBuilder
+    {
+        for (v in _array)
+        {
+            builder.addFloat(v);
+        }
+
+        return this;
+    }
+
+    public function vertexBlob()
+    {
+        final bytes = builder.getBytes();
+
+        return new VertexBlob(new BufferData(bytes, 0, bytes.length));
     }
 }

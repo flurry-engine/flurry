@@ -1,7 +1,6 @@
 package tests.api.gpu.geometry.shapes;
 
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.TextGeometry;
 import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontParser;
 import buddy.BuddySuite;
@@ -16,29 +15,22 @@ class TextGeometryTests extends BuddySuite
     {
         describe('TextGeometry', {
             it('Can create a text geometry from an initial string and bitmap font data', {
-                var ubuntuFont = haxe.Resource.getString('font-data');
-                var fontData   = BitmapFontParser.parse(ubuntuFont);
-                var string     = 'hello world!';
-                var texture    = mock(ImageResource);
+                final ubuntuFont = haxe.Resource.getString('font-data');
+                final fontData   = BitmapFontParser.parse(ubuntuFont);
+                final string     = 'hello world!';
+                final texture    = mock(ImageResource);
                 texture.width.returns(512);
                 texture.height.returns(512);
 
-                var geometry = new TextGeometry({ font : fontData, text : string, position : new Vector3(0, 0), textures : [ texture ] });
-                geometry.vertices.length.should.be(string.length * 6);
-            });
-
-            it('Will re-create the geometry when the bitmap font has changed', {
-                var ubuntuFont = haxe.Resource.getString('font-data');
-                var fontData   = BitmapFontParser.parse(ubuntuFont);
-                var string     = 'hello world!';
-                var texture    = mock(ImageResource);
-                texture.width.returns(512);
-                texture.height.returns(512);
-
-                var geometry = new TextGeometry({ font : fontData, text : string, position : new Vector3(0, 0), textures : [ texture ] });
-                geometry.vertices.length.should.be(string.length * 6);
-                geometry.font = fontData;
-                geometry.vertices.length.should.be(string.length * 6);
+                final geometry = new TextGeometry({ font : fontData, text : string, texture : texture });
+                switch geometry.data
+                {
+                    case Indexed(_vertices, _indices):
+                        _vertices.buffer.byteLength.should.be(string.length * 144);
+                        _indices.buffer.byteLength.should.be(string.length * 12);
+                    case UnIndexed(_):
+                        fail('data should be indexed');
+                }
             });
 
             it('Will re-create the geometry when the text has changed', {
@@ -50,10 +42,25 @@ class TextGeometryTests extends BuddySuite
                 texture.width.returns(512);
                 texture.height.returns(512);
 
-                var geometry = new TextGeometry({ font : fontData, text : oldString, position : new Vector3(0, 0), textures : [ texture ] });
-                geometry.vertices.length.should.be(oldString.length * 6);
+                var geometry = new TextGeometry({ font : fontData, text : oldString, texture : texture });
+                switch geometry.data
+                {
+                    case Indexed(_vertices, _indices):
+                        _vertices.buffer.byteLength.should.be(oldString.length * 144);
+                        _indices.buffer.byteLength.should.be(oldString.length * 12);
+                    case UnIndexed(_):
+                        fail('data should be indexed');
+                }
+
                 geometry.text = newString;
-                geometry.vertices.length.should.be(newString.length * 6);
+                switch geometry.data
+                {
+                    case Indexed(_vertices, _indices):
+                        _vertices.buffer.byteLength.should.be(newString.length * 144);
+                        _indices.buffer.byteLength.should.be(newString.length * 12);
+                    case UnIndexed(_):
+                        fail('data should be indexed');
+                }
             });
         });
     }

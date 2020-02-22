@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.textures;
 
-enum Filtering
+enum abstract Filtering(Int)
 {
-    Nearest;
-    Linear;
+    var Nearest;
+    var Linear;
 }

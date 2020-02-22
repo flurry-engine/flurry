@@ -1,9 +1,9 @@
 package uk.aidanlee.flurry.api.gpu.textures;
 
-enum Flip
+enum abstract Flip(Int)
 {
-    None;
-    Horizontal;
-    Vertical;
-    Diagonal;
+    var None;
+    var Horizontal;
+    var Vertical;
+    var Diagonal;
 }

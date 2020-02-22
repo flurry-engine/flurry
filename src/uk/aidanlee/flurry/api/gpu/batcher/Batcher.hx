@@ -1,67 +1,22 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
 import haxe.ds.ArraySort;
+import rx.Unit;
+import rx.disposables.ISubscription;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.state.TargetState;
+import uk.aidanlee.flurry.api.gpu.state.StencilState;
+import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.maths.Hash;
 
-using Safety;
-
-typedef BatcherOptions = {
-    /**
-     * The initial camera this batcher will use.
-     */
-    var camera : Camera;
-
-    /**
-     * The initial shader this batcher will use.
-     */
-    var shader : ShaderResource;
-
-    /**
-     * Optional render target for this batcher.
-     * If not specified the backbuffer / default target will be used.
-     */
-    var ?target : ImageResource;
-
-    /**
-     * Optional initial depth for this batcher.
-     * If not specified the depth starts at 0.
-     */
-    var ?depth : Float;
-
-    /**
-     * Depth testing options to be used by the batcher.
-     */
-    var ?depthOptions : DepthOptions;
-
-    /**
-     * Stencil testing options to be used by the batcher.
-     */
-    var ?stencilOptions : StencilOptions;
-}
+using rx.Observable;
 
 /**
- * A batcher is used to sort a set of geometries so that the renderer can draw them
- * as effeciently as possible while retaining the user requested depth ordering.
- * 
- * Batchers must contain a camera and a shader. The attached camera is used to provided
- * the shader with a view matrix to transform all the geometry by the inverse of the cameras
- * position.
- * 
- * The batcher generates a set of draw commands which are then fed to the renderer for uploading
- * and drawing. The geometry instances call the setDirty() function to flag the batcher to
- * re-order all the contained geometry.
+ * Batchers sort geometry to preserve the visual order and reduce the amount of work the renderer backends need to do.
  */
 class Batcher
 {
-    /**
-     * Randomly generated ID for this batcher.
-     */
-    public final id : Int;
-
     /**
      * All of the geometry in this batcher.
      */
@@ -70,12 +25,12 @@ class Batcher
     /**
      * This batchers depth testing settings.
      */
-    public final depthOptions : DepthOptions;
+    public var depthOptions : DepthState;
 
     /**
      * This batchers stencil testing settings.
      */
-    public final stencilOptions : StencilOptions;
+    public var stencilOptions : StencilState;
 
     /**
      * The depth of the batcher is the deciding factor in which batchers get drawn first.
@@ -94,20 +49,8 @@ class Batcher
 
     /**
      * Target this batcher will be drawn to.
-     * 
-     * If null the backbuffer / default target will be used.
      */
-    public var target : ImageResource;
-
-    /**
-     * If the batcher needs to sort all of its geometries.
-     */
-    var dirty : Bool;
-
-    /**
-     * All of the geometry to remove after batching.
-     */
-    final geometryToDrop : Array<Geometry>;
+    public var target : TargetState;
 
     /**
      * The state of the batcher.
@@ -115,116 +58,74 @@ class Batcher
     final state : BatcherState;
 
     /**
+     * Subscriptions to all of this batchers geometries changed observable.
+     */
+    final subscriptions : Map<Int, ISubscription>;
+
+    /**
+     * If the batcher needs to sort all of its geometries.
+     */
+    var dirty : Bool;
+
+    /**
      * Creates an empty batcher.
      * @param _options All of the options for this batcher.
      */
     public function new(_options : BatcherOptions)
     {
-        id = Hash.uniqueHash();
-        
         geometry       = [];
-        geometryToDrop = [];
+        subscriptions  = [];
         shader         = _options.shader;
         camera         = _options.camera;
         target         = _options.target;
-        depth          = _options.depth.or(0);
-        depthOptions   = _options.depthOptions.or({
-            depthTesting  : false,
-            depthMasking  : false,
-            depthFunction : Always
-        });
-        stencilOptions = _options.stencilOptions.or({
-            stencilTesting : false,
-
-            stencilFrontMask          : 0xff,
-            stencilFrontFunction      : Always,
-            stencilFrontTestFail      : Keep,
-            stencilFrontDepthTestFail : Keep,
-            stencilFrontDepthTestPass : Keep,
-            
-            stencilBackMask          : 0xff,
-            stencilBackFunction      : Always,
-            stencilBackTestFail      : Keep,
-            stencilBackDepthTestFail : Keep,
-            stencilBackDepthTestPass : Keep
-        });
+        depth          = _options.depth;
+        depthOptions   = _options.depthOptions;
+        stencilOptions = _options.stencilOptions;
 
         state = new BatcherState(this);
         dirty = false;
     }
 
     /**
-     * Flag the batcher to re-order its geometries.
-     */
-    public function setDirty()
-    {
-        dirty = true;
-    }
-
-    /**
-     * Returns if this batcher is currently flagged as dirty.
-     * @return Bool
-     */
-    public function isDirty() : Bool
-    {
-        return dirty;
-    }
-
-    /**
      * Add a geometry to this batcher.
+     * This causes the batcher to sort all geometry for the next drawn frame.
      * @param _geom Geometry to add.
      */
     public function addGeometry(_geom : Geometry)
     {
-        _geom.changed.add(setDirty);
-        _geom.dropped.add(removeGeometry);
-
         geometry.push(_geom);
+        subscriptions[_geom.id] = _geom.changed.subscribeFunction(setDirty);
 
         dirty = true;
     }
 
     /**
      * Remove a geometry from this batcher.
+     * This causes the batcher to sort all geometry for the next drawn frame.
      * @param _geom Geometry to remove.
      */
     public function removeGeometry(_geom : Geometry)
     {
-        _geom.changed.remove(setDirty);
-        _geom.dropped.remove(removeGeometry);
-
         geometry.remove(_geom);
+
+        subscriptions[_geom.id].unsubscribe();
+        subscriptions.remove(_geom.id);
 
         dirty = true;
     }
 
     /**
-     * Generates a series of geometry draw commands from the geometry in this batcher.
-     * @param _output Optional existing array to put all the draw commands in.
-     * @return Array<GeometryDrawCommand>
+     * Generate a series of draw commands to optimally draw the contained geometry.
+     * @param _queue The function draw commands are sent to.
      */
-    public function batch(_output : Array<GeometryDrawCommand> = null) : Array<GeometryDrawCommand>
+    public function batch(_queue : (_geometry : DrawCommand) -> Void)
     {
-        // Clear the array of geometry to drop.
-        geometryToDrop.resize(0);
-
-        // If we are not provided an array, create a new one which we will return.
-        if (_output == null)
-        {
-            _output = [];
-        }
-
         // Exit early if there is no geometry to batch.
         if (geometry.length == 0)
         {
-            return _output;
+            return;
         }
 
-        var startIndex  = 0;
-        var endIndex    = 0;
-        var vertices    = 0;
-        var indices     = 0;
-        var commandName = 0;
         var commandGeom = [];
 
         // Sort all of the geometry held in this batcher.
@@ -243,96 +144,68 @@ class Batcher
         {
             // Only triangles, lines, and points can be batched.
             // Line lists and triangle lists cannot (yet).
+            // We make copies of the texture and sampler array as otherwise all commands have the textures and samplers of the last batched geometry.
             if (!batchablePrimitive(geom) || state.requiresChange(geom))
             {
-                _output.push(new GeometryDrawCommand(
+                _queue(new DrawCommand(
                     commandGeom,
-                    commandName,
-                    state.uploadType,
                     camera,
-                    state.clip,
-                    vertices,
-                    indices,
                     state.primitive,
+                    state.clip,
                     target,
                     state.shader,
                     state.uniforms,
-                    [ for (texture in state.textures) texture ],
-                    [ for (i in 0...state.textures.length) i >= state.samplers.length ? null : state.samplers[i] ],
+                    state.textures.copy(),
+                    state.samplers.copy(),
                     depthOptions,
                     stencilOptions,
-                    true,
-                    state.blend.srcRGB,
-                    state.blend.dstRGB,
-                    state.blend.srcAlpha,
-                    state.blend.dstAlpha
+                    state.blend.clone()
                 ));
-                startIndex  = endIndex;
-                vertices    = 0;
-                indices     = 0;
 
                 commandGeom = [];
-                commandName = id;
 
                 state.change(geom);
             }
 
-            vertices    += geom.vertices.length;
-            indices     += geom.indices.length;
-            commandName += geom.id;
             commandGeom.push(geom);
-
-            if (geom.uploadType == Immediate)
-            {
-                geometryToDrop.push(geom);
-            }
         }
 
         // Push any remaining verticies.
-        if (vertices > 0)
+        if (commandGeom.length > 0)
         {
-            _output.push(new GeometryDrawCommand(
+            _queue(new DrawCommand(
                 commandGeom,
-                commandName,
-                state.uploadType,
                 camera,
-                state.clip,
-                vertices,
-                indices,
                 state.primitive,
+                state.clip,
                 target,
                 state.shader,
                 state.uniforms,
-                [ for (texture in state.textures) texture ],
-                [ for (i in 0...state.textures.length) i >= state.samplers.length ? null : state.samplers[i] ],
+                state.textures.copy(),
+                state.samplers.copy(),
                 depthOptions,
                 stencilOptions,
-                true,
-                state.blend.srcRGB,
-                state.blend.dstRGB,
-                state.blend.srcAlpha,
-                state.blend.dstAlpha
+                state.blend.clone()
             ));
         }
-
-        // Filter out any immediate geometry.
-        for (geom in geometryToDrop)
-        {
-            removeGeometry(geom);
-        }
-
-        return _output;
     }
 
     /**
-     * Remove this batcher from the renderer and clear any resources used.
+     * Removes all geometry in this batcher.
      */
     public function drop()
     {
         state.drop();
         
+        for (geom in geometry)
+        {
+            subscriptions[geom.id].unsubscribe();
+            subscriptions.remove(geom.id);
+        }
+
         geometry.resize(0);
-        geometryToDrop.resize(0);
+
+        dirty = true;
     }
 
     /**
@@ -341,60 +214,217 @@ class Batcher
      * Batchable geometry is of the 'Triangles', 'Lines', or 'Points' geometric primitive.
      * @param _geom Geometry to check.
      */
-    inline function batchablePrimitive(_geom : Geometry) : Bool
+    function batchablePrimitive(_geom : Geometry) : Bool
     {
         return _geom.primitive == Triangles || _geom.primitive == Lines || _geom.primitive == Points;
     }
 
-    /**
-     * Function used to sort the array of geometry.
-     * @param _a Geometry a.
-     * @param _b Geometry b.
-     * @return Int
-     */
-    inline function sortGeometry(_a : Geometry, _b : Geometry) : Int
+    function sortGeometry(_a : Geometry, _b : Geometry) : Int
     {
         // Sort by depth.
         if (_a.depth < _b.depth) return -1;
         if (_a.depth > _b.depth) return  1;
 
-        // Sort by texture.
-        if (_a.shader != null && _b.shader != null)
+        // Sort by shader.
+        switch _a.shader
         {
-            if (_a.shader.id < _b.shader.id) return -1;
-            if (_a.shader.id > _b.shader.id) return  1;
+            case None:
+                switch _b.shader
+                {
+                    case None: // no op
+                    case _: return -1;
+                }
+            case Shader(_shaderA):
+                switch _b.shader
+                {
+                    case None: return 1;
+                    case Shader(_shaderB):
+                        if (_shaderA.id < _shaderB.id) return -1;
+                        if (_shaderA.id > _shaderB.id) return  1;
+                }
         }
+
+        // sort by uniforms
+        switch _a.uniforms
         {
-            if (_a.shader != null && _b.shader == null) return  1;
-            if (_a.shader == null && _b.shader != null) return -1;
+            case None:
+                switch _b.uniforms
+                {
+                    case None: // no op
+                    case Uniforms(_): return -1;
+                }
+            case Uniforms(_uniformsA):
+                switch _b.uniforms
+                {
+                    case None: return 1;
+                    case Uniforms(_uniformsB):
+                        if (_uniformsA.length == _uniformsB.length)
+                        {
+                            for (i in 0..._uniformsA.length)
+                            {
+                                if (_uniformsA[i].id < _uniformsB[i].id) return -1;
+                                if (_uniformsA[i].id > _uniformsB[i].id) return  1;
+                            }
+                        }
+                        else
+                        {
+                            return _uniformsA.length - _uniformsB.length;
+                        }
+                }
         }
 
         // Sort by texture.
-        if (_a.textures.length != 0 && _b.textures.length != 0)
+        switch _a.textures
         {
-            if (_a.textures[0].id < _b.textures[0].id) return -1;
-            if (_a.textures[0].id > _b.textures[0].id) return  1;
+            case None:
+                switch _b.textures
+                {
+                    case None: // no op
+                    case _: return -1;
+                }
+            case Textures(_texturesA):
+                switch _b.textures
+                {
+                    case None: return 1;
+                    case Textures(_texturesB):
+                        if (_texturesA.length == _texturesB.length)
+                        {
+                            for (i in 0..._texturesA.length)
+                            {
+                                if (_texturesA[i].id < _texturesB[i].id) return -1;
+                                if (_texturesA[i].id > _texturesB[i].id) return  1;
+                            }
+                        }
+                        else
+                        {
+                            return _texturesA.length - _texturesB.length;
+                        }
+                }
         }
-        else
+
+        // Sort by sampler.
+        switch _a.samplers
         {
-            if (_a.textures.length != 0 && _b.textures.length == 0) return  1;
-            if (_a.textures.length == 0 && _b.textures.length != 0) return -1;
+            case None:
+                switch _b.samplers
+                {
+                    case None: // no op
+                    case _: return -1;
+                }
+            case Samplers(_samplersA):
+                switch _b.samplers
+                {
+                    case None: return 1;
+                    case Samplers(_samplersB):
+                        if (_samplersA.length == _samplersB.length)
+                        {
+                            for (i in 0..._samplersA.length)
+                            {
+                                if (!_samplersA[i].equal(_samplersB[i]))
+                                {
+                                    return -1;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            return _samplersA.length - _samplersB.length;
+                        }
+                }
+        }
+
+        // Sort by clip.
+        switch _a.clip
+        {
+            case None:
+                switch _b.clip
+                {
+                    case None: // no op
+                    case Clip(_, _, _, _): return -1;
+                }
+            case Clip(_x1, _y1, _width1, _height1):
+                switch _b.clip
+                {
+                    case None: return 1;
+                    case Clip(_x2, _y2, _width2, _height2):
+                        if (_x1 != _x2 || _y1 != _y2 || _width1 != _width2 || _height1 != _height2)
+                        {
+                            return -1;
+                        }
+                }
+        }
+
+        // Sort by blend
+        if (!_a.blend.equals(_b.blend))
+        {
+            return -1;
         }
 
         // Sort by primitive.
-        var aPrimitiveIndex = _a.primitive.getIndex();
-        var bPrimitiveIndex = _b.primitive.getIndex();
-
-        if (aPrimitiveIndex < bPrimitiveIndex) return -1;
-        if (aPrimitiveIndex > bPrimitiveIndex) return  1;
-
-        // Sort by clip.
-        if (_a.clip != _b.clip)
-        {
-            if (_a.clip == null && _b.clip != null) return  1;
-            if (_a.clip != null && _b.clip == null) return -1;
-        }
+        if ((cast _a.primitive : Int) < (cast _b.primitive : Int)) return -1;
+        if ((cast _a.primitive : Int) > (cast _b.primitive : Int)) return  1;
 
         return 0;
     }
+
+    /**
+     * Flag the batcher to re-order its geometries.
+     */
+    function setDirty(_unit : Unit)
+    {
+        dirty = true;
+    }
+}
+
+@:structInit class BatcherOptions
+{
+    /**
+     * The camera this batcher will use.
+     */
+    public var camera : Camera;
+
+    /**
+     * The shader this batcher will use.
+     */
+    public var shader : ShaderResource;
+
+    /**
+     * Optional render target for this batcher.
+     * If not specified the backbuffer will be used.
+     */
+    public var target : TargetState = Backbuffer;
+
+    /**
+     * Optional initial depth for this batcher.
+     * If not specified the depth starts at 0.
+     */
+    public var depth = 0.0;
+
+    /**
+     * Depth testing options to be used by the batcher.
+     */
+    public var depthOptions : DepthState = {
+        depthTesting  : false,
+        depthMasking  : false,
+        depthFunction : Always
+    };
+
+    /**
+     * Stencil testing options to be used by the batcher.
+     */
+    public var stencilOptions : StencilState = {
+        stencilTesting : false,
+
+        stencilFrontMask          : 0xff,
+        stencilFrontFunction      : Always,
+        stencilFrontTestFail      : Keep,
+        stencilFrontDepthTestFail : Keep,
+        stencilFrontDepthTestPass : Keep,
+        
+        stencilBackMask          : 0xff,
+        stencilBackFunction      : Always,
+        stencilBackTestFail      : Keep,
+        stencilBackDepthTestFail : Keep,
+        stencilBackDepthTestPass : Keep
+    };
 }
