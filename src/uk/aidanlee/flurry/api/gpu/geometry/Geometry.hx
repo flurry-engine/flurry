@@ -1,9 +1,9 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import haxe.ds.ReadOnlyArray;
 import rx.Unit;
 import rx.Subject;
-import rx.Observable;
-import haxe.ds.ReadOnlyArray;
+import rx.observables.IObservable;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
@@ -80,7 +80,7 @@ class Geometry
     /**
      * Signal which is dispatched when some property of this geometry is changed.
      */
-    public final changed : Observable<Unit>;
+    public final changed : IObservable<Unit>;
 
     /**
      * Vertex data of this geometry.

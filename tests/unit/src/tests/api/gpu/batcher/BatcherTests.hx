@@ -1,12 +1,11 @@
 package tests.api.gpu.batcher;
 
-import rx.Subject;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
-import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
-import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
+import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import buddy.BuddySuite;
@@ -58,21 +57,19 @@ class BatcherTests extends BuddySuite
             });
 
             it('Has a function to add geometry and dirty the batcher', {
-                final geometry = mock(Geometry);
-                geometry.changed.returns(Subject.create());
-
+                final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                 final batcher  = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
                 batcher.addGeometry(geometry);
+
                 batcher.geometry.should.contain(geometry);
             });
 
             it('Has a function to remove geometry and dirty the batcher', {
-                final geometry = mock(Geometry);
-                geometry.changed.returns(Subject.create());
-
+                final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                 final batcher  = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
                 batcher.addGeometry(geometry);
                 batcher.removeGeometry(geometry);
+
                 batcher.geometry.should.not.contain(geometry);
             });
 

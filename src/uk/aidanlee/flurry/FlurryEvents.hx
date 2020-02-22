@@ -2,7 +2,7 @@ package uk.aidanlee.flurry;
 
 import rx.Unit;
 import rx.Subject;
-import rx.Observable;
+import rx.observables.IObservable;
 import rx.subjects.Replay;
 import uk.aidanlee.flurry.api.input.InputEvents;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
@@ -10,17 +10,17 @@ import uk.aidanlee.flurry.api.display.DisplayEvents;
 
 class FlurryEvents
 {
-    public final init : Observable<Unit>;
+    public final init : IObservable<Unit>;
 
-    public final ready : Observable<Unit>;
+    public final ready : IObservable<Unit>;
 
-    public final preUpdate : Observable<Unit>;
+    public final preUpdate : IObservable<Unit>;
 
-    public final update : Observable<Float>;
+    public final update : IObservable<Float>;
 
-    public final postUpdate : Observable<Unit>;
+    public final postUpdate : IObservable<Unit>;
 
-    public final shutdown : Observable<Unit>;
+    public final shutdown : IObservable<Unit>;
 
     public final input : InputEvents;
 
