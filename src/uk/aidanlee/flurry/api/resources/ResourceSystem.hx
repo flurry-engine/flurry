@@ -199,7 +199,7 @@ class ResourceSystem
 
             resourceCache[_resource.id] = _resource;
 
-            events.created.dispatch(_resource);
+            events.created.onNext(_resource);
         }
     }
 
@@ -216,7 +216,7 @@ class ResourceSystem
             {
                 if (resourceCache.exists(_resource.id))
                 {
-                    events.removed.dispatch(resourceCache[_resource.id].unsafe());
+                    events.removed.onNext(resourceCache[_resource.id].unsafe());
                     resourceCache.remove(_resource.id);
                 }
 

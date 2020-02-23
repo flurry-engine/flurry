@@ -1,16 +1,16 @@
 package uk.aidanlee.flurry.api.resources;
 
-import signals.Signal1;
+import rx.Subject;
 
 class ResourceEvents
 {
-    public final created : Signal1<Resource>;
+    public final created : Subject<Resource>;
 
-    public final removed : Signal1<Resource>;
+    public final removed : Subject<Resource>;
 
     public function new()
     {
-        created = new Signal1<Resource>();
-        removed = new Signal1<Resource>();
+        created = Subject.create();
+        removed = Subject.create();
     }
 }

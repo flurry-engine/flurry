@@ -5,7 +5,6 @@ import haxe.io.Bytes;
 import haxe.ds.ReadOnlyArray;
 import cpp.RawConstPointer;
 import cpp.ConstCharStar;
-import cpp.Float32;
 import cpp.UInt8;
 import cpp.Pointer;
 import sdl.GLContext;
@@ -15,6 +14,7 @@ import glad.Glad;
 import opengl.GL.*;
 import opengl.GL.GLSync;
 import opengl.WebGL;
+import rx.disposables.ISubscription;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererOgl4Config;
 import uk.aidanlee.flurry.api.maths.Maths;
@@ -35,6 +35,7 @@ import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import cpp.Stdlib.memcpy;
 
+using rx.Observable;
 using cpp.NativeArray;
 using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
 
@@ -162,18 +163,29 @@ class OGL4Backend implements IRendererBackend
 
     /**
      * Array of opengl textures objects which will be bound.
-     * Size of this array is equal to the max number of texture bindings allowed .
+     * Size of this array is equal to the max number of texture bindings allowed.
      */
     final textureSlots : Array<Int>;
 
+    /**
+     * Array of opengl sampler objects which will be bound.
+     * Size of this array is equal to the max number of texture bindings allowed.
+     */
     final samplerSlots : Array<Int>;
 
+    /**
+     * All the commands queued for uploading and drawing.
+     */
     final commandQueue : Array<DrawCommand>;
 
     /**
      * The bytes alignment for ubos.
      */
     final glUboAlignment : Int;
+
+    final resourceCreatedSubscription : ISubscription;
+
+    final resourceRemovedSubscription : ISubscription;
 
     /**
      * Backbuffer display, default target if none is specified.
@@ -345,8 +357,8 @@ class OGL4Backend implements IRendererBackend
         samplerObjects     = [];
         framebufferObjects = [];
 
-        resourceEvents.created.add(onResourceCreated);
-        resourceEvents.removed.add(onResourceRemoved);
+        resourceCreatedSubscription = resourceEvents.created.subscribeFunction(onResourceCreated);
+        resourceRemovedSubscription = resourceEvents.removed.subscribeFunction(onResourceRemoved);
         displayEvents.sizeChanged.add(onSizeChanged);
         displayEvents.changeRequested.add(onChangeRequest);
     }
@@ -446,8 +458,8 @@ class OGL4Backend implements IRendererBackend
      */
     public function cleanup()
     {
-        resourceEvents.created.remove(onResourceCreated);
-        resourceEvents.removed.remove(onResourceRemoved);
+        resourceCreatedSubscription.unsubscribe();
+        resourceRemovedSubscription.unsubscribe();
         displayEvents.sizeChanged.remove(onSizeChanged);
         displayEvents.changeRequested.remove(onChangeRequest);
 

@@ -15,6 +15,7 @@ import opengl.WebGL.shaderSource;
 import opengl.WebGL.getProgramParameter;
 import opengl.WebGL.getProgramInfoLog;
 import opengl.WebGL.getShaderInfoLog;
+import rx.disposables.ISubscription;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererOgl3Config;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
@@ -34,6 +35,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
+using rx.Observable;
 using cpp.NativeArray;
 using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
 
@@ -175,9 +177,13 @@ class OGL3Backend implements IRendererBackend
     final matrixRangeSize : Int;
 
     /**
-     * Queue all draw commands will be placed into.
+     * All the commands queued for uploading and drawing.
      */
     final commandQueue : Array<DrawCommand>;
+
+    final resourceCreatedSubscription : ISubscription;
+
+    final resourceRemovedSubscription : ISubscription;
 
     /**
      * Backbuffer display, default target if none is specified.
@@ -317,8 +323,9 @@ class OGL3Backend implements IRendererBackend
         updateDepth(depth);
         updateStencil(stencil);
 
-        resourceEvents.created.add(onResourceCreated);
-        resourceEvents.removed.add(onResourceRemoved);
+        resourceCreatedSubscription = resourceEvents.created.subscribeFunction(onResourceCreated);
+        resourceRemovedSubscription = resourceEvents.removed.subscribeFunction(onResourceRemoved);
+
         displayEvents.sizeChanged.add(onSizeChanged);
         displayEvents.changeRequested.add(onChangeRequest);
 
@@ -376,8 +383,9 @@ class OGL3Backend implements IRendererBackend
      */
     public function cleanup()
     {
-        resourceEvents.created.remove(onResourceCreated);
-        resourceEvents.removed.remove(onResourceRemoved);
+        resourceCreatedSubscription.unsubscribe();
+        resourceRemovedSubscription.unsubscribe();
+
         displayEvents.sizeChanged.remove(onSizeChanged);
         displayEvents.changeRequested.remove(onChangeRequest);
 

@@ -54,6 +54,7 @@ import d3d11.interfaces.D3d11BlendState;
 import d3d11.interfaces.D3d11Buffer;
 import d3d11.interfaces.D3d11DeviceContext;
 import d3d11.interfaces.D3d11Device;
+import rx.disposables.ISubscription;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererDx11Config;
 import uk.aidanlee.flurry.api.gpu.StencilFunction;
@@ -78,6 +79,7 @@ import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 
+using rx.Observable;
 using cpp.NativeArray;
 
 @:headerCode('#include <D3Dcompiler.h>
@@ -261,7 +263,14 @@ class DX11Backend implements IRendererBackend
      */
     final cmdViewport : Rectangle;
 
+    /**
+     * All the commands queued for uploading and drawing.
+     */
     final commandQueue : Array<DrawCommand>;
+
+    final resourceCreatedSubscription : ISubscription;
+
+    final resourceRemovedSubscription : ISubscription;
 
     // State trackers
 
@@ -618,8 +627,9 @@ class DX11Backend implements IRendererBackend
         shader   = '';
         texture  = '';
 
-        resourceEvents.created.add(onResourceCreated);
-        resourceEvents.removed.add(onResourceRemoved);
+        resourceCreatedSubscription = resourceEvents.created.subscribeFunction(onResourceCreated);
+        resourceRemovedSubscription = resourceEvents.removed.subscribeFunction(onResourceRemoved);
+        
         displayEvents.sizeChanged.add(onSizeChanged);
         displayEvents.changeRequested.add(onSizeChangeRequest);
     }
@@ -743,8 +753,9 @@ class DX11Backend implements IRendererBackend
      */
     public function cleanup()
     {
-        resourceEvents.created.remove(onResourceCreated);
-        resourceEvents.removed.remove(onResourceRemoved);
+        resourceCreatedSubscription.unsubscribe();
+        resourceRemovedSubscription.unsubscribe();
+
         displayEvents.sizeChanged.remove(onSizeChanged);
         displayEvents.changeRequested.remove(onSizeChangeRequest);
 

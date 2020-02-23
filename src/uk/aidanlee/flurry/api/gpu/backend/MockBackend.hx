@@ -1,9 +1,12 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
 import haxe.Exception;
+import rx.disposables.ISubscription;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
+
+using rx.Observable;
 
 class MockBackend implements IRendererBackend
 {
@@ -15,6 +18,10 @@ class MockBackend implements IRendererBackend
 
     final shaders : Map<String, ShaderResource>;
 
+    final resourceCreatedSubscription : ISubscription;
+
+    final resourceRemovedSubscription : ISubscription;
+
     public function new(_events : ResourceEvents)
     {
         resourceEvents = _events;
@@ -22,8 +29,8 @@ class MockBackend implements IRendererBackend
         textures       = [];
         shaders        = [];
 
-        resourceEvents.created.add(onResourceCreated);
-        resourceEvents.removed.add(onResourceRemoved);
+        resourceCreatedSubscription = resourceEvents.created.subscribeFunction(onResourceCreated);
+        resourceRemovedSubscription = resourceEvents.removed.subscribeFunction(onResourceRemoved);
     }
 
     public function queue(_command : DrawCommand)
@@ -43,8 +50,8 @@ class MockBackend implements IRendererBackend
 
     public function cleanup()
     {
-        resourceEvents.created.remove(onResourceCreated);
-        resourceEvents.removed.remove(onResourceRemoved);
+        resourceCreatedSubscription.unsubscribe();
+        resourceRemovedSubscription.unsubscribe();
     }
 
     function checkCommand(_command : DrawCommand)

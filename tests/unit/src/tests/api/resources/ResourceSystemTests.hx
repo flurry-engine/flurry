@@ -130,7 +130,7 @@ class ResourceSystemTests extends SingleSuite
                     '/home/user/hlsl_fragment.txt' => MockFileData.fromText('hlsl_fragment')
                 ];
                 final events = new ResourceEvents();
-                events.created.add(_created -> {
+                events.created.subscribeFunction(_created -> {
                     switch _created.type
                     {
                         case Image:
@@ -177,7 +177,7 @@ class ResourceSystemTests extends SingleSuite
                     '/home/user/hlsl_fragment.txt' => MockFileData.fromText('hlsl_fragment')
                 ];
                 final events = new ResourceEvents();
-                events.removed.add(_removed -> {
+                events.removed.subscribeFunction(_removed -> {
                     switch _removed.type
                     {
                         case Image:
