@@ -2,7 +2,7 @@ package uk.aidanlee.flurry.api.buffers;
 
 import haxe.io.Bytes;
 
-@:forward(changed, bytes, byteOffset, byteLength)
+@:forward(bytes, byteOffset, byteLength, subscribe, changed)
 abstract Float32BufferData(BufferData) from BufferData to BufferData
 {
     /**
@@ -70,7 +70,7 @@ abstract Float32BufferData(BufferData) from BufferData to BufferData
         this.bytes.setFloat((_idx << 2) + this.byteOffset, _val);
 #end
 
-        this.changed.dispatch();
+        this.changed.onNext(unit);
 
         return _val;
     }

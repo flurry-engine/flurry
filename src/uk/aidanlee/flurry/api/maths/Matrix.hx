@@ -5,6 +5,7 @@ import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 /**
  * 4x4 matrix class for transformations and perspective.
  */
+@:forward(subscribe)
 abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
 {
     public var m11 (get, set) : Float;
@@ -257,7 +258,6 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
         if (det == 0)
         {
             identity();
-
         }
 
         multiplyScalar( 1 / det );
