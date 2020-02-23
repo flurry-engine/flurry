@@ -5,6 +5,7 @@ import uk.aidanlee.flurry.api.buffers.BufferData;
 import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
 import buddy.BuddySuite;
 
+using rx.Observable;
 using buddy.Should;
 
 class UInt16BufferDataTests extends BuddySuite
@@ -37,7 +38,7 @@ class UInt16BufferDataTests extends BuddySuite
                 var count  = 0;
                 final size   = 4;
                 final buffer = new UInt16BufferData(size);
-                buffer.changed.add(() -> count++);
+                buffer.subscribeFunction(_ -> count++);
 
                 for (i in 0...buffer.length)
                 {

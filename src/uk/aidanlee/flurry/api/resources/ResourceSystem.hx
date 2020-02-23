@@ -1,18 +1,19 @@
 package uk.aidanlee.flurry.api.resources;
 
-import rx.subjects.Replay;
-import uk.aidanlee.flurry.api.resources.Resource;
-import rx.schedulers.MakeScheduler;
-import rx.subjects.Behavior;
-import rx.observers.IObserver;
-import rx.Subscription;
 import haxe.Exception;
 import haxe.Unserializer;
 import haxe.io.Path;
 import haxe.zip.Uncompress;
+import rx.Subscription;
+import rx.subjects.Replay;
+import rx.subjects.Behavior;
+import rx.observers.IObserver;
+import rx.schedulers.MakeScheduler;
+import rx.observables.IObservable;
 import format.png.Tools;
 import format.png.Reader;
 import json2object.JsonParser;
+import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelList;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelType;
 import uk.aidanlee.flurry.api.resources.Parcel.ShaderInfoLayout;
@@ -97,7 +98,7 @@ class ResourceSystem
      * @param _parcel Parcel definition.
      * @return Observable<Float> Observable of loading progress (normalised 0 - 1)
      */
-    public function load(_parcel : ParcelType) : Observable<Float>
+    public function load(_parcel : ParcelType) : IObservable<Float>
     {
         final name = switch _parcel {
             case Definition(_name, _) : _name;

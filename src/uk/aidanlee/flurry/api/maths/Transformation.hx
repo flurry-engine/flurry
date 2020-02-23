@@ -1,17 +1,15 @@
 package uk.aidanlee.flurry.api.maths;
 
-import signals.Signal.Signal0;
-import uk.aidanlee.flurry.api.buffers.Float32BufferData;
+import rx.Unit;
+import rx.Subject;
+import rx.observers.IObserver;
+import rx.disposables.ISubscription;
+import rx.observables.IObservable;
 
-using Safety;
+using rx.Observable;
 
-class Transformation
+class Transformation implements IObservable<Unit>
 {
-    /**
-     * Signal which is dispatched when the transformation needs to be re-calculated.
-     */
-    public final dirtied : Signal0;
-
     /**
      * Origin for all transformations.
      */
@@ -29,16 +27,17 @@ class Transformation
 
     inline function set_parent(_p : Null<Transformation>) : Null<Transformation>
     {
-        if (parent != null)
+        if (parentSubscription != null)
         {
-            parent.unsafe().dirtied.remove(setDirty);
+            parentSubscription.unsubscribe();
+            parentSubscription = null;
         }
 
         parent = _p;
 
         if (parent != null)
         {
-            parent.unsafe().dirtied.add(setDirty);
+            parentSubscription = parent.subscribeFunction(setDirty);
         }
 
         return _p;
@@ -81,6 +80,11 @@ class Transformation
     inline function get_scale() : Vector3 return local.scale;
 
     /**
+     * Subject which will emit values if the transformation will need to be re-calculated.
+     */
+    final dirtied : Subject<Unit>;
+
+    /**
      * Holds the local rotation matrix for multiplying against the local transformation matrix.
      */
     final matrixRotation : Matrix;
@@ -103,9 +107,14 @@ class Transformation
      */
     var dirty : Bool;
 
+    /**
+     * Subscription to the parents dirty observable.
+     */
+    var parentSubscription : Null<ISubscription>;
+
     public function new()
     {
-        dirtied = new Signal0();
+        dirtied = Subject.create();
         local   = new Spatial();
         world   = new Spatial();
         origin  = new Vector3();
@@ -116,9 +125,9 @@ class Transformation
         ignore = false;
         dirty  = true;
 
-        local.position.changed.add(setDirty);
-        local.scale.changed.add(setDirty);
-        local.rotation.changed.add(setDirty);
+        local.position.subscribeFunction(setDirty);
+        local.rotation.subscribeFunction(setDirty);
+        local.scale.subscribeFunction(setDirty);
     }
 
     /**
@@ -133,16 +142,16 @@ class Transformation
             parent.propagate();
         }
 
-        inline matrixRotation.makeRotationFromQuaternion(local.rotation);
-        inline matrixOriginUndo.makeTranslation(-origin.x, -origin.y, -origin.z);
+        matrixRotation.makeRotationFromQuaternion(local.rotation);
+        matrixOriginUndo.makeTranslation(-origin.x, -origin.y, -origin.z);
 
-        inline local.matrix.makeTranslation(origin.x, origin.y, origin.z);
+        local.matrix.makeTranslation(origin.x, origin.y, origin.z);
 
-        inline local.matrix.multiply(matrixRotation);
-        inline local.matrix.scale(scale);
-        inline local.matrix.setPosition(position);
+        local.matrix.multiply(matrixRotation);
+        local.matrix.scale(scale);
+        local.matrix.setPosition(position);
 
-        inline local.matrix.multiply(matrixOriginUndo);
+        local.matrix.multiply(matrixOriginUndo);
 
         if (parent != null)
         {
@@ -153,15 +162,26 @@ class Transformation
             world.matrix.copy(local.matrix);
         }
 
-        inline world.decompose();
+        world.decompose();
 
         ignore = false;
         dirty  = false;
     }
 
-    function setDirty()
+    /**
+     * Subscribe to the dirty event of the transformation.
+     * When the transformation is dirtied the next access to the `world` property will re-calculate the matrix.
+     * @param _observer 
+     * @return ISubscription
+     */
+    public function subscribe(_observer : IObserver<Unit>) : ISubscription
+    {
+        return dirtied.subscribe(_observer);
+    }
+
+    function setDirty(_)
     {
         dirty = true;
-        dirtied.dispatch();
+        dirtied.onNext(_);
     }
 }

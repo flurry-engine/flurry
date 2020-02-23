@@ -5,7 +5,7 @@ import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 /**
  * 
  */
-@:forward(offset, changed)
+@:forward(subscribe)
 abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferData
 {
     /**

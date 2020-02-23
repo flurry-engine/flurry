@@ -6,7 +6,7 @@ import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 /**
  * Vector class which contains an x, y, and z component.
  */
-@:forward(offset, changed)
+@:forward(subscribe)
 abstract Vector3(Float32BufferData) from Float32BufferData to Float32BufferData from Vector4
 {
     /**

@@ -5,6 +5,7 @@ import uk.aidanlee.flurry.api.buffers.BufferData;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import buddy.BuddySuite;
 
+using rx.Observable;
 using buddy.Should;
 
 class Float32BufferDataTests extends BuddySuite
@@ -37,7 +38,7 @@ class Float32BufferDataTests extends BuddySuite
                 var count  = 0;
                 final size   = 4;
                 final buffer = new Float32BufferData(size);
-                buffer.changed.add(() -> count++);
+                buffer.subscribeFunction(_ -> count++);
 
                 for (i in 0...buffer.length)
                 {
