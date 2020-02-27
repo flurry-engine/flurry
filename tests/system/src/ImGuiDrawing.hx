@@ -3,7 +3,7 @@ package;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.modules.imgui.ImGuiImpl;
-import imgui.NativeImGui;
+import imgui.ImGui;
 
 class ImGuiDrawing extends Flurry
 {
@@ -25,6 +25,6 @@ class ImGuiDrawing extends Flurry
 
     override function onUpdate(_dt : Float)
     {
-        NativeImGui.showDemoWindow();
+        ImGui.showDemoWindow();
     }
 }

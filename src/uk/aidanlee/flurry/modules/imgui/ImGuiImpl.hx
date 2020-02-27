@@ -25,9 +25,10 @@ import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.display.Display;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
-import imgui.NativeImGui;
+import imgui.ImGui;
 import rx.Unit;
 
+using cpp.Native;
 using cpp.NativeArray;
 using rx.Observable;
 
@@ -77,9 +78,9 @@ class ImGuiImpl
         }
         blend = new BlendState();
 
-        NativeImGui.createContext();
+        ImGui.createContext();
 
-        var io = NativeImGui.getIO();
+        final io = ImGui.getIO();
         io.configFlags  = NavEnableKeyboard;
         io.backendFlags = RendererHasVtxOffset;
         io.keyMap[ImGuiKey.Tab       ] = Scancodes.tab;
@@ -106,24 +107,21 @@ class ImGuiImpl
         io.setClipboardTextFn = cpp.Callable.fromStaticFunction(setClipboard);
         io.getClipboardTextFn = cpp.Callable.fromStaticFunction(getClipboard);
 
-        var data : cpp.Star<cpp.UInt8> = null;
-        var width  = 0;
-        var height = 0;
-        var bpp    = 0;
+        final width  = [ 0 ];
+        final height = [ 0 ];
+        final bpp    = [ 0 ];
+        final pixels : cpp.Star<cpp.UInt8> = null;
+        final pixelPtr : cpp.Star<cpp.Star<cpp.UInt8>> = pixels.addressOf();
 
-        io.fonts.getTexDataAsRGBA32(
-            cpp.Native.addressOf(data),
-            cpp.Native.addressOf(width),
-            cpp.Native.addressOf(height),
-            cpp.Native.addressOf(bpp));
+        io.fonts.getTexDataAsRGBA32(pixelPtr, width, height, bpp);
 
         vtxData = new Float32Array(1000000);
         idxData = new UInt16Array(1000000);
 
-        var bytes = @:privateAccess new Bytes(width * height * bpp, Pointer.fromStar(data).toUnmanagedArray(width * height * bpp));
+        final bytes = @:privateAccess new Bytes(width[0] * height[0] * 4, Pointer.fromStar(pixels).toUnmanagedArray(width[0] * height[0] * bpp[0]));
 
-        texture = new ImageResource('imgui_texture', width, height, bytes);
-        io.fonts.texID = cast cpp.Native.addressOf(texture);
+        texture = new ImageResource('imgui_texture', width[0], height[0], bytes);
+        io.fonts.texID = cast Pointer.addressOf(texture).raw;
 
         resources.addResource(texture);
 
@@ -139,7 +137,7 @@ class ImGuiImpl
      */
     function newFrame(_unit : Unit)
     {
-        var io = NativeImGui.getIO();
+        var io = ImGui.getIO();
         io.displaySize  = ImVec2.create(display.width, display.height);
         io.mousePos.x   = display.mouseX;
         io.mousePos.y   = display.mouseY;
@@ -170,7 +168,7 @@ class ImGuiImpl
         io.keysDown[Scancodes.key_y    ] = input.isKeyDown(Keycodes.key_y);
         io.keysDown[Scancodes.key_z    ] = input.isKeyDown(Keycodes.key_z);
 
-        NativeImGui.newFrame();
+        ImGui.newFrame();
     }
 
     /**
@@ -182,8 +180,8 @@ class ImGuiImpl
         camera.size.set(display.width, display.height);
         camera.update(1000 / 60);
 
-        NativeImGui.render();
-        onRender(NativeImGui.getDrawData());
+        ImGui.render();
+        onRender(ImGui.getDrawData());
     }
 
     /**
@@ -200,7 +198,7 @@ class ImGuiImpl
      */
     function onTextInput(_text : InputEventTextInput)
     {
-        var io = NativeImGui.getIO();
+        var io = ImGui.getIO();
         io.addInputCharactersUTF8(_text.text);
     }
 
@@ -212,7 +210,7 @@ class ImGuiImpl
     {
         for (i in 0..._drawData.cmdListsCount)
         {
-            final cmdList   = _drawData.cmdLists[i];
+            final cmdList = _drawData.cmdLists[i];
             final cmdBuffer = cmdList.cmdBuffer.data;
             final vtxBuffer = cmdList.vtxBuffer.data;
             final idxBuffer = cmdList.idxBuffer.data;
@@ -241,7 +239,7 @@ class ImGuiImpl
             for (j in 0...cmdList.cmdBuffer.size())
             {
                 final draw = cmdBuffer[j];
-                final t : Pointer<ImageResource> = Pointer.fromStar(draw.textureId).reinterpret();
+                final t : Pointer<ImageResource> = Pointer.fromRaw(draw.textureId).reinterpret();
 
                 renderer.backend.queue(
                     new DrawCommand(
@@ -271,12 +269,12 @@ class ImGuiImpl
 
     // Callbacks
 
-    static function getClipboard(_data : cpp.Star<cpp.Void>) : cpp.ConstCharStar
+    static function getClipboard(_data : imgui.VoidPointer) : cpp.ConstCharStar
     {
         return sdl.SDL.getClipboardText();
     }
 
-    static function setClipboard(_data : cpp.Star<cpp.Void>, _text : cpp.ConstCharStar)
+    @:void static function setClipboard(_data : imgui.VoidPointer, _text : cpp.ConstCharStar)
     {
         sdl.SDL.setClipboardText(_text);
     }
