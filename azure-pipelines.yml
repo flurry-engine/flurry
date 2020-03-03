@@ -72,8 +72,8 @@ jobs:
       env:
         AGENT_OS: $(Agent.OS)
     - bash: |
-        curl https://github.com/HaxeFoundation/hashlink/releases/download/1.10/hl-1.10.0-win.zip
-        tar -xzf hl-1.10.0-win.zip
+        wget https://github.com/HaxeFoundation/hashlink/releases/download/1.10/hl-1.10.0-win.zip
+        unzip hl-1.10.0-win.zip
         export PATH=$PWD/hl-1.10.0-win:$PATH
         npx haxe build-hl.hxml -D reporter=XUnit2Reporter -D report-name=Engine-Tests-Hashlink --debug --no-traces
         hl bin/hl/main.hl
