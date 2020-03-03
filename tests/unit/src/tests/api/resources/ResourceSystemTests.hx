@@ -84,12 +84,12 @@ class ResourceSystemTests extends SingleSuite
                 res.id.should.be('shdr');
                 res.layout.textures.should.containExactly([ 'defaultTexture' ]);
                 res.layout.blocks.should.containExactly([ ]);
-                res.ogl3.vertex.should.be('ogl3_vertex');
-                res.ogl3.fragment.should.be('ogl3_fragment');
-                res.ogl4.vertex.should.be('ogl4_vertex');
-                res.ogl4.fragment.should.be('ogl4_fragment');
-                res.hlsl.vertex.should.be('hlsl_vertex');
-                res.hlsl.fragment.should.be('hlsl_fragment');
+                res.ogl3.vertex.toString().should.be('ogl3_vertex');
+                res.ogl3.fragment.toString().should.be('ogl3_fragment');
+                res.ogl4.vertex.toString().should.be('ogl4_vertex');
+                res.ogl4.fragment.toString().should.be('ogl4_fragment');
+                res.hlsl.vertex.toString().should.be('hlsl_vertex');
+                res.hlsl.fragment.toString().should.be('hlsl_fragment');
             });
 
             it('can load a pre-packaged parcels resources', {
@@ -143,12 +143,12 @@ class ResourceSystemTests extends SingleSuite
                             res.id.should.be('shdr');
                             res.layout.textures.should.containExactly([ 'defaultTexture' ]);
                             res.layout.blocks.should.containExactly([ ]);
-                            res.ogl3.vertex.should.be('ogl3_vertex');
-                            res.ogl3.fragment.should.be('ogl3_fragment');
-                            res.ogl4.vertex.should.be('ogl4_vertex');
-                            res.ogl4.fragment.should.be('ogl4_fragment');
-                            res.hlsl.vertex.should.be('hlsl_vertex');
-                            res.hlsl.fragment.should.be('hlsl_fragment');
+                            res.ogl3.vertex.toString().should.be('ogl3_vertex');
+                            res.ogl3.fragment.toString().should.be('ogl3_fragment');
+                            res.ogl4.vertex.toString().should.be('ogl4_vertex');
+                            res.ogl4.fragment.toString().should.be('ogl4_fragment');
+                            res.hlsl.vertex.toString().should.be('hlsl_vertex');
+                            res.hlsl.fragment.toString().should.be('hlsl_fragment');
                         case _:
                             fail('no other resource type should have been created');
                     }
@@ -190,12 +190,12 @@ class ResourceSystemTests extends SingleSuite
                             res.id.should.be('shdr');
                             res.layout.textures.should.containExactly([ 'defaultTexture' ]);
                             res.layout.blocks.should.containExactly([ ]);
-                            res.ogl3.vertex.should.be('ogl3_vertex');
-                            res.ogl3.fragment.should.be('ogl3_fragment');
-                            res.ogl4.vertex.should.be('ogl4_vertex');
-                            res.ogl4.fragment.should.be('ogl4_fragment');
-                            res.hlsl.vertex.should.be('hlsl_vertex');
-                            res.hlsl.fragment.should.be('hlsl_fragment');
+                            res.ogl3.vertex.toString().should.be('ogl3_vertex');
+                            res.ogl3.fragment.toString().should.be('ogl3_fragment');
+                            res.ogl4.vertex.toString().should.be('ogl4_vertex');
+                            res.ogl4.fragment.toString().should.be('ogl4_fragment');
+                            res.hlsl.vertex.toString().should.be('hlsl_vertex');
+                            res.hlsl.fragment.toString().should.be('hlsl_fragment');
                         case _:
                             fail('no other resource type should have been created');
                     }
@@ -225,8 +225,8 @@ class ResourceSystemTests extends SingleSuite
                 }));
                 system.free('myParcel');
                 
-                system.get.bind('text', TextResource).should.throwType(ResourceNotFoundException);
-                system.get.bind('byte', BytesResource).should.throwType(ResourceNotFoundException);
+                system.get.bind('text', Resource).should.throwType(ResourceNotFoundException);
+                system.get.bind('byte', Resource).should.throwType(ResourceNotFoundException);
             });
 
             it('will reference count resources so they are only removed when no parcels reference them', {
@@ -271,7 +271,7 @@ class ResourceSystemTests extends SingleSuite
 
                 system.free('images.parcel');
 
-                system.get.bind('dots', ImageResource).should.throwType(ResourceNotFoundException);
+                system.get.bind('dots', Resource).should.throwType(ResourceNotFoundException);
             });
 
             it('will decrement the resources in all pre-packaged parcels dependencies', {
@@ -288,9 +288,9 @@ class ResourceSystemTests extends SingleSuite
 
                 system.free('preload.parcel');
 
-                system.get.bind('ubuntu'       , TextResource).should.throwType(ResourceNotFoundException);
-                system.get.bind('cavesofgallet', TextResource).should.throwType(ResourceNotFoundException);
-                system.get.bind('dots'         , ImageResource).should.throwType(ResourceNotFoundException);
+                system.get.bind('ubuntu'       , Resource).should.throwType(ResourceNotFoundException);
+                system.get.bind('cavesofgallet', Resource).should.throwType(ResourceNotFoundException);
+                system.get.bind('dots'         , Resource).should.throwType(ResourceNotFoundException);
             });
 
             it('will throw an exception trying to fetch a resource which does not exist', {
@@ -324,7 +324,16 @@ class ResourceSystemTests extends SingleSuite
                     texts: [ { id : 'text', path : '/home/user/text.txt' } ]
                 }));
 
-                system.get.bind('text', BytesResource).should.throwType(InvalidResourceTypeException);
+                try
+                {
+                    system.get('text', BytesResource);
+
+                    fail('expected InvalidResourceTypeException to be thrown');
+                }
+                catch (e : InvalidResourceTypeException)
+                {
+                    // pass!
+                }
             });
 
             it('contains a callback for when the parcel has finished loading', {

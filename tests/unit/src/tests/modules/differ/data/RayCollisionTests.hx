@@ -56,7 +56,7 @@ class RayCollisionTests extends BuddySuite
 
             it('can get the start position along the line', {
                 var ray = new Ray(new Vector2(2, 2), new Vector2(12, 12));
-                var col = new RayCollision(mock(Shape), ray, 2, 6);
+                var col = new RayCollision(new Shape(0, 0), ray, 2, 6);
 
                 RayCollisionHelper.hitStartX(col).should.be(22);
                 RayCollisionHelper.hitStartY(col).should.be(22);
@@ -64,7 +64,7 @@ class RayCollisionTests extends BuddySuite
 
             it('can get the end position along the line', {
                 var ray = new Ray(new Vector2(2, 2), new Vector2(12, 12));
-                var col = new RayCollision(mock(Shape), ray, 2, 6);
+                var col = new RayCollision(new Shape(0, 0), ray, 2, 6);
 
                 RayCollisionHelper.hitEndX(col).should.be(62);
                 RayCollisionHelper.hitEndY(col).should.be(62);

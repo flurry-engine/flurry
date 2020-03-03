@@ -1,5 +1,6 @@
 package tests.api.gpu.geometry.shapes;
 
+import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.TextGeometry;
 import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontParser;
@@ -18,9 +19,7 @@ class TextGeometryTests extends BuddySuite
                 final ubuntuFont = haxe.Resource.getString('font-data');
                 final fontData   = BitmapFontParser.parse(ubuntuFont);
                 final string     = 'hello world!';
-                final texture    = mock(ImageResource);
-                texture.width.returns(512);
-                texture.height.returns(512);
+                final texture    = new ImageResource('', 512, 512, Bytes.alloc(0));
 
                 final geometry = new TextGeometry({ font : fontData, text : string, texture : texture });
                 switch geometry.data
@@ -38,9 +37,7 @@ class TextGeometryTests extends BuddySuite
                 var fontData   = BitmapFontParser.parse(ubuntuFont);
                 var oldString  = 'hello world!';
                 var newString  = 'hello from flurry!';
-                var texture    = mock(ImageResource);
-                texture.width.returns(512);
-                texture.height.returns(512);
+                final texture  = new ImageResource('', 512, 512, Bytes.alloc(0));
 
                 var geometry = new TextGeometry({ font : fontData, text : oldString, texture : texture });
                 switch geometry.data

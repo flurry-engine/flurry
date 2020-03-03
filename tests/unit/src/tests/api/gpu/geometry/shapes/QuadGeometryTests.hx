@@ -1,7 +1,8 @@
 package tests.api.gpu.geometry.shapes;
 
+import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.gpu.textures.ImageRegion;
-import uk.aidanlee.flurry.api.gpu.camera.Camera;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -18,12 +19,9 @@ class QuadGeometryTests extends BuddySuite
     {
         describe('QuadGeometry', {
             it('Creates an indexed quad with the textures size by default', {
-                final texture = mock(ImageResource);
-                texture.width.returns(256);
-                texture.height.returns(128);
-
+                final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
-                    camera : mock(Camera),
+                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
                     shader : mock(ShaderResource)
                 });
 
@@ -53,12 +51,9 @@ class QuadGeometryTests extends BuddySuite
                 final x = 128;
                 final y =  64;
 
-                final texture = mock(ImageResource);
-                texture.width.returns(256);
-                texture.height.returns(128);
-
+                final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
-                    camera : mock(Camera),
+                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
                     shader : mock(ShaderResource)
                 });
 
@@ -74,12 +69,9 @@ class QuadGeometryTests extends BuddySuite
             });
 
             it('Can create a quad with a specific size', {
-                final texture = mock(ImageResource);
-                texture.width.returns(256);
-                texture.height.returns(128);
-
+                final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
-                    camera : mock(Camera),
+                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
                     shader : mock(ShaderResource)
                 });
 
@@ -121,12 +113,9 @@ class QuadGeometryTests extends BuddySuite
             });
 
             it('Will UV the entire texture by default', {
-                final texture = mock(ImageResource);
-                texture.width.returns(256);
-                texture.height.returns(128);
-
+                final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
-                    camera : mock(Camera),
+                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
                     shader : mock(ShaderResource)
                 });
 
@@ -163,12 +152,9 @@ class QuadGeometryTests extends BuddySuite
             });
 
             it('Allows a custom UV region to be specified', {
-                final texture = mock(ImageResource);
-                texture.width.returns(256);
-                texture.height.returns(128);
-
+                final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
-                    camera : mock(Camera),
+                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
                     shader : mock(ShaderResource)
                 });
 
@@ -210,12 +196,9 @@ class QuadGeometryTests extends BuddySuite
                 final width = 128;
                 final height = 512;
 
-                final texture = mock(ImageResource);
-                texture.width.returns(256);
-                texture.height.returns(128);
-
+                final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
-                    camera : mock(Camera),
+                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
                     shader : mock(ShaderResource)
                 });
 
@@ -259,12 +242,9 @@ class QuadGeometryTests extends BuddySuite
                 final width = 128;
                 final height = 512;
 
-                final texture = mock(ImageResource);
-                texture.width.returns(256);
-                texture.height.returns(128);
-
+                final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
-                    camera : mock(Camera),
+                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
                     shader : mock(ShaderResource)
                 });
 
@@ -311,12 +291,9 @@ class QuadGeometryTests extends BuddySuite
                 final w = 0.8;
                 final h = 0.95;
 
-                final texture = mock(ImageResource);
-                texture.width.returns(256);
-                texture.height.returns(128);
-
+                final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
-                    camera : mock(Camera),
+                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
                     shader : mock(ShaderResource)
                 });
 
@@ -360,12 +337,9 @@ class QuadGeometryTests extends BuddySuite
                 final w = 96;
                 final h = 64;
 
-                final texture = mock(ImageResource);
-                texture.width.returns(256);
-                texture.height.returns(128);
-
+                final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
-                    camera : mock(Camera),
+                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
                     shader : mock(ShaderResource)
                 });
 

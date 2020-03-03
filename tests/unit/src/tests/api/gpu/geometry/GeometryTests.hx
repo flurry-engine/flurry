@@ -1,5 +1,6 @@
 package tests.api.gpu.geometry;
 
+import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Vector3;
@@ -16,6 +17,7 @@ import mockatoo.Mockatoo.*;
 
 using buddy.Should;
 using rx.Observable;
+using mockatoo.Mockatoo;
 
 class GeometryTests extends BuddySuite
 {
@@ -64,7 +66,9 @@ class GeometryTests extends BuddySuite
             });
 
             it('Has an array of textures to draw the geometry with', {
-                final textures  = Textures([ mock(ImageResource) ]);
+                final image = new ImageResource('', 0, 0, Bytes.alloc(0));
+
+                final textures  = Textures([ image ]);
                 final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                 final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), textures : textures });
 
@@ -149,7 +153,7 @@ class GeometryTests extends BuddySuite
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                     geometry.changed.subscribeFunction(_ -> count++);
 
-                    geometry.textures = Textures([ mock(ImageResource) ]);
+                    geometry.textures = Textures([ new ImageResource('', 0, 0, Bytes.alloc(0)) ]);
                     count.should.be(1);
 
                     geometry.textures = None;
@@ -161,7 +165,7 @@ class GeometryTests extends BuddySuite
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                     geometry.changed.subscribeFunction(_ -> count++);
 
-                    geometry.samplers = Samplers([ mock(SamplerState) ]);
+                    geometry.samplers = Samplers([ new SamplerState(Border, Border, Linear, Linear) ]);
                     count.should.be(1);
 
                     geometry.samplers = None;

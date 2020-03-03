@@ -1,7 +1,8 @@
 package tests.api.gpu.batcher;
 
+import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
-import uk.aidanlee.flurry.api.gpu.camera.Camera;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
@@ -20,21 +21,21 @@ class BatcherTests extends BuddySuite
     {
         describe('Batcher', {
             it('Has a depth which decides when the batcher contents is drawn', {
-                final batcher1 = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
-                final batcher2 = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource), depth : 3.2 });
+                final batcher1 = new Batcher({ camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne), shader : mock(ShaderResource) });
+                final batcher2 = new Batcher({ camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne), shader : mock(ShaderResource), depth : 3.2 });
 
                 batcher1.depth.should.be(0);
                 batcher2.depth.should.be(3.2);
             });
 
             it('Has an array of geometry which it will batch', {
-                final batcher = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
+                final batcher = new Batcher({ camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne), shader : mock(ShaderResource) });
 
                 batcher.geometry.should.containExactly([]);
             });
 
             it('Has a camera which it will get view and projection matrices from', {
-                final camera  = mock(Camera);
+                final camera  = new Camera2D(0, 0, TopLeft, ZeroToNegativeOne);
                 final batcher = new Batcher({ camera : camera, shader : mock(ShaderResource) });
 
                 batcher.camera.should.be(camera);
@@ -42,15 +43,15 @@ class BatcherTests extends BuddySuite
 
             it('Has a shader which it will draw the geometry with', {
                 final shader  = mock(ShaderResource);
-                final batcher = new Batcher({ camera : mock(Camera), shader : shader });
+                final batcher = new Batcher({ camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne), shader : shader });
 
                 batcher.shader.should.be(shader);
             });
 
             it('Has a target to allow drawing to a texture', {
-                final target   = Texture(mock(ImageResource));
-                final batcher1 = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
-                final batcher2 = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource), target : target });
+                final target   = Texture(new ImageResource('', 0, 0, Bytes.alloc(0)));
+                final batcher1 = new Batcher({ camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne), shader : mock(ShaderResource) });
+                final batcher2 = new Batcher({ camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne), shader : mock(ShaderResource), target : target });
 
                 batcher1.target.should.equal(Backbuffer);
                 batcher2.target.should.equal(target);
@@ -58,7 +59,7 @@ class BatcherTests extends BuddySuite
 
             it('Has a function to add geometry and dirty the batcher', {
                 final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
-                final batcher  = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
+                final batcher  = new Batcher({ camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne), shader : mock(ShaderResource) });
                 batcher.addGeometry(geometry);
 
                 batcher.geometry.should.contain(geometry);
@@ -66,7 +67,7 @@ class BatcherTests extends BuddySuite
 
             it('Has a function to remove geometry and dirty the batcher', {
                 final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
-                final batcher  = new Batcher({ camera : mock(Camera), shader : mock(ShaderResource) });
+                final batcher  = new Batcher({ camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne), shader : mock(ShaderResource) });
                 batcher.addGeometry(geometry);
                 batcher.removeGeometry(geometry);
 
@@ -78,10 +79,9 @@ class BatcherTests extends BuddySuite
                     final shader = mock(ShaderResource);
                     shader.id.returns('1');
 
-                    final texture = mock(ImageResource);
-                    texture.id.returns('1');
+                    final texture = new ImageResource('1', 0, 0, Bytes.alloc(0));
 
-                    final batcher   = new Batcher({ shader: shader, camera: mock(Camera) });
+                    final batcher   = new Batcher({ shader: shader, camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne) });
                     final geometry1 = new Geometry({ batchers : [ batcher ], textures : Textures([ texture ]), data : unindexedData() });
                     final geometry2 = new Geometry({ batchers : [ batcher ], textures : Textures([ texture ]), data : unindexedData() });
                     final geometry3 = new Geometry({ batchers : [ batcher ], textures : Textures([ texture ]), data : unindexedData() });
@@ -108,12 +108,10 @@ class BatcherTests extends BuddySuite
                     final shader = mock(ShaderResource);
                     shader.id.returns('1');
 
-                    final texture1 = mock(ImageResource);
-                    final texture2 = mock(ImageResource);
-                    texture1.id.returns('1');
-                    texture2.id.returns('2');
+                    final texture1 = new ImageResource('1', 0, 0, Bytes.alloc(0));
+                    final texture2 = new ImageResource('2', 0, 0, Bytes.alloc(0));
 
-                    final batcher   = new Batcher({ shader: shader, camera: mock(Camera) });
+                    final batcher   = new Batcher({ shader: shader, camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne) });
                     final geometry1 = new Geometry({ batchers : [ batcher ], textures : Textures([ texture1 ]), data : unindexedData() });
                     final geometry2 = new Geometry({ batchers : [ batcher ], textures : Textures([ texture2 ]), data : unindexedData() });
                     final geometry3 = new Geometry({ batchers : [ batcher ], textures : Textures([ texture1 ]), data : unindexedData() });
@@ -146,10 +144,9 @@ class BatcherTests extends BuddySuite
                     final shader = mock(ShaderResource);
                     shader.id.returns('1');
 
-                    final texture = mock(ImageResource);
-                    texture.id.returns('1');
+                    final texture = new ImageResource('', 0, 0, Bytes.alloc(0));
 
-                    final batcher   = new Batcher({ shader: shader, camera: mock(Camera) });
+                    final batcher   = new Batcher({ shader: shader, camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne) });
                     final geometry1 = new Geometry({ batchers : [ batcher ], textures : Textures([ texture ]), data : unindexedData() });
                     final geometry2 = new Geometry({ batchers : [ batcher ], textures : Textures([ texture ]), data : indexedData() });
 
