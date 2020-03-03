@@ -77,6 +77,8 @@ jobs:
         export PATH=$PWD/hl-1.10.0-win:$PATH
         npx haxe build-hl.hxml -D reporter=XUnit2Reporter -D report-name=Engine-Tests-Hashlink --debug --no-traces
         hl bin/hl/main.hl
+      displayName: Engine Tests Hashlink
+      workingDirectory: $(Build.SourcesDirectory)/tests/unit
     - task: PublishTestResults@2
       condition: succeededOrFailed()
       inputs:
