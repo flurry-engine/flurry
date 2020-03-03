@@ -4,5 +4,6 @@
         "osx": "node_modules/.bin/haxe",
         "linux": "node_modules/.bin/haxe"
     },
-    "haxe.enableExtendedIndentation": true
+    "haxe.enableExtendedIndentation": true,
+    "editor.formatOnSave": false
 }

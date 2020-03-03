@@ -1,5 +1,6 @@
 package tests.api.gpu.geometry;
 
+import haxe.io.BytesBuffer;
 import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
@@ -24,7 +25,7 @@ class UniformBlobTests extends BuddySuite
                 final buffer = new UniformBlobBuilder('uniforms').addMatrix('matrix', matrix).uniformBlob();
 
                 buffer.buffer.byteLength.should.be(64);
-                buffer.buffer.bytes.getData().should.containExactly((matrix : Float32BufferData).bytes.getData());
+                buffer.buffer.bytes.compare((matrix : Float32BufferData).bytes).should.be(0);
             });
             it('can define a vector4 in the uniform blob', {
                 final buffer = new UniformBlobBuilder('uniforms').addVector4('vector').uniformBlob();
@@ -36,7 +37,7 @@ class UniformBlobTests extends BuddySuite
                 final buffer = new UniformBlobBuilder('uniforms').addVector4('vector', vector).uniformBlob();
 
                 buffer.buffer.byteLength.should.be(16);
-                buffer.buffer.bytes.getData().should.containExactly((vector : Float32BufferData).bytes.getData());
+                buffer.buffer.bytes.compare((vector : Float32BufferData).bytes).should.be(0);
             });
         });
 
@@ -47,7 +48,7 @@ class UniformBlobTests extends BuddySuite
 
                 buffer.setMatrix('matrix', matrix);
                 buffer.buffer.byteLength.should.be(64);
-                buffer.buffer.bytes.getData().should.containExactly((matrix : Float32BufferData).bytes.getData());
+                buffer.buffer.bytes.compare((matrix : Float32BufferData).bytes).should.be(0);
             });
             it('can update a uniforms vector4', {
                 final vector = new Vector4(7, 14, 8.64, 9);
@@ -55,7 +56,7 @@ class UniformBlobTests extends BuddySuite
 
                 buffer.setVector4('vector', vector);
                 buffer.buffer.byteLength.should.be(16);
-                buffer.buffer.bytes.getData().should.containExactly((vector : Float32BufferData).bytes.getData());
+                buffer.buffer.bytes.compare((vector : Float32BufferData).bytes).should.be(0);
             });
             it('can correctly update multiple uniforms at their offset', {
                 final matrix1 = new Matrix().makeHomogeneousOrthographic(0, 1280, 720, 0, 0, 100);
@@ -70,16 +71,14 @@ class UniformBlobTests extends BuddySuite
                     .addVector4('vector2', vector2)
                     .uniformBlob();
 
+                final concat = new BytesBuffer();
+                concat.addBytes((matrix1 : Float32BufferData).bytes, 0, 64);
+                concat.addBytes((vector1 : Float32BufferData).bytes, 0, 16);
+                concat.addBytes((matrix2 : Float32BufferData).bytes, 0, 64);
+                concat.addBytes((vector2 : Float32BufferData).bytes, 0, 16);
+
                 buffer.buffer.byteLength.should.be(160);
-                buffer.buffer.bytes.getData().should.containExactly(
-                    (matrix1 : Float32BufferData).bytes.getData().concat(
-                        (vector1 : Float32BufferData).bytes.getData().concat(
-                            (matrix2 : Float32BufferData).bytes.getData().concat(
-                                (vector2 : Float32BufferData).bytes.getData()
-                            )
-                        )
-                    )
-                );
+                buffer.buffer.bytes.compare(concat.getBytes()).should.be(0);
             });
             it('contains an integer hash of the uniform blob name', {
                 final buffer = new UniformBlobBuilder('uniforms').uniformBlob();

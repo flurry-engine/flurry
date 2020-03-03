@@ -21,8 +21,8 @@ jobs:
       env:
         AGENT_OS: $(Agent.OS)
     - bash: |
-        npx haxe build.hxml -D reporter=XUnit2Reporter -D report-name=Engine-Tests-$(Agent.OS) --debug --no-traces
-        ./bin/Main-debug
+        npx haxe build-cpp.hxml -D reporter=XUnit2Reporter -D report-name=Engine-Tests-$(Agent.OS) --debug --no-traces
+        ./bin/cpp/Main-debug
       displayName: Engine Tests
       workingDirectory: $(Build.SourcesDirectory)/tests/unit
     - task: PublishTestResults@2

@@ -30,6 +30,8 @@ class Display
         height        = _config.window.height;
         fullscreen    = _config.window.fullscreen;
         vsync         = _config.window.vsync;
+        mouseX        = 0;
+        mouseY        = 0;
 
         displayEvents.sizeChanged.add(onResizeEvent);
         inputEvents.mouseMove.add(onMouseMoveEvent);

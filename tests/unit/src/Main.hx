@@ -33,7 +33,11 @@ class Main implements Buddy<[
     tests.api.gpu.batcher.BatcherStateTests,
     tests.api.gpu.batcher.BatcherTests,
 
+#if (target.threaded)
+
     tests.api.resources.ResourceSystemTests,
+
+#end
 
     tests.modules.differ.shapes.CircleTests,
     tests.modules.differ.shapes.PolygonTests,

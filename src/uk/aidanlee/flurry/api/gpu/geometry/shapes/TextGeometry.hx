@@ -40,7 +40,7 @@ class TextGeometry extends Geometry
     inline function set_font(_font : BitmapFontData) : BitmapFontData {
         font = _font;
 
-        if (!constructor)
+        if (!ignore)
         {
             data = generateGeometry(font, text, position.x, position.y, fontTexture.width, fontTexture.height);
         }
@@ -56,7 +56,7 @@ class TextGeometry extends Geometry
     inline function set_text(_text : String) : String {
         text = _text;
 
-        if (!constructor)
+        if (!ignore)
         {
             data = generateGeometry(font, text, position.x, position.y, fontTexture.width, fontTexture.height);
         }
@@ -66,7 +66,7 @@ class TextGeometry extends Geometry
 
     final fontTexture : ImageResource;
 
-    var constructor = true;
+    var ignore = true;
 
     /**
      * Create a new geometry object which will display text.
@@ -90,7 +90,7 @@ class TextGeometry extends Geometry
         text        = _options.text;
         fontTexture = _options.texture;
 
-        constructor = false;
+        ignore = false;
     }
 
     /**
