@@ -61,6 +61,31 @@ jobs:
         testRunTitle: Engine Tests Js
         buildPlatform: Js
         failTaskOnFailedTests: true
+  - job: HashlinkUnitTests
+    displayName: Hashlink Unit Tests
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - bash: ci/install.sh
+      displayName: Install Dependencies
+      workingDirectory: $(Build.SourcesDirectory)
+      env:
+        AGENT_OS: $(Agent.OS)
+    - bash: |
+        curl https://github.com/HaxeFoundation/hashlink/releases/download/1.10/hl-1.10.0-win.zip
+        tar -xzf hl-1.10.0-win.zip
+        export PATH=$PWD/hl-1.10.0-win:$PATH
+        npx haxe build-hl.hxml -D reporter=XUnit2Reporter -D report-name=Engine-Tests-Hashlink --debug --no-traces
+        hl bin/hl/main.hl
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: xUnit
+        testResultsFiles: test-engine.xml
+        searchFolder: $(Build.SourcesDirectory)/tests/unit
+        testRunTitle: Engine Tests Hashlink
+        buildPlatform: Hashlink
+        failTaskOnFailedTests: true
   # - job: SystemTestsOgl3
   #   displayName: System Tests (OpenGL 3 Backend)
   #   dependsOn: UnitTests

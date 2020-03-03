@@ -1,5 +1,5 @@
 build.hxml
 
---hl bin/hl/out.hl
+--hl bin/hl/main.hl
 
 --cmd lix run parcel pack --input=assets/assets.json --output=bin/
