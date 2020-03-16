@@ -3,15 +3,6 @@ package uk.aidanlee.flurry;
 import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.api.resources.Parcel.ParcelType;
 
-enum abstract RendererBackend(Int)
-{
-    var Ogl3;
-    var Ogl4;
-    var Dx11;
-    var Mock;
-    var Auto;
-}
-
 class FlurryConfig
 {
     /**
@@ -92,12 +83,6 @@ class FlurryWindowConfig
 class FlurryRendererConfig
 {
     /**
-     * Force the renderer to use a specific backend.
-     * If left unchanged it will attempt to auto-select the best backend for the platform.
-     */
-    public var backend : RendererBackend;
-
-    /**
      * Config options for the OpenGL 3 renderer.
      */
     public var ogl3 : FlurryRendererOgl3Config;
@@ -114,7 +99,6 @@ class FlurryRendererConfig
 
     public function new()
     {
-        backend = Auto;
         ogl3    = new FlurryRendererOgl3Config();
         ogl4    = new FlurryRendererOgl4Config();
         dx11    = new FlurryRendererDx11Config();

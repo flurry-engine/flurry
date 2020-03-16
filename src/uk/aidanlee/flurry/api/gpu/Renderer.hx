@@ -3,6 +3,7 @@ package uk.aidanlee.flurry.api.gpu;
 import haxe.Exception;
 import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.FlurryConfig;
+import uk.aidanlee.flurry.macros.ApiSelector;
 import uk.aidanlee.flurry.api.gpu.camera.Camera.CameraOrigin;
 import uk.aidanlee.flurry.api.gpu.camera.Camera.CameraNdcRange;
 import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
@@ -10,7 +11,6 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
-import uk.aidanlee.flurry.api.gpu.backend.MockBackend;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 
@@ -19,12 +19,12 @@ class Renderer
     /**
      * Holds the global render state.
      */
-    public final backend : IRendererBackend;
+    public var backend : IRendererBackend;
 
     /**
      * API backend used by the renderer.
      */
-    public final api : RendererBackend;
+    public var api : RendererBackend;
 
     /**
      * Batcher manager, responsible for creating, deleteing, and sorting batchers.
@@ -40,37 +40,8 @@ class Renderer
     {
         queuedCommands = [];
         batchers       = [];
-        api            = switch _rendererConfig.backend
-        {
-            case Ogl3: Ogl3;
-            case Ogl4: Ogl4;
-            case Dx11: Dx11;
-            case Mock: Mock;
-            case Auto:
-#if (cpp && windows)
-                Dx11;
-#elseif cpp
-                Ogl3;
-#else
-                Mock;
-#end
-        };
-        backend = switch api
-        {
-#if cpp
-            case Ogl4:
-                new uk.aidanlee.flurry.api.gpu.backend.OGL4Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.ogl4);
-            case Ogl3:
-                new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.ogl3);
-            case Dx11:
-#if windows
-                new uk.aidanlee.flurry.api.gpu.backend.DX11Backend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig.dx11);
-#else
-                throw new BackendNotAvailableException(api);
-#end
-#end
-            case _: new MockBackend(_resourceEvents);
-        }
+        backend        = ApiSelector.getGraphicsBackend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
+        api            = ApiSelector.getGraphicsApi();
     }
 
     /**
@@ -195,13 +166,11 @@ class Renderer
     function getOrigin() return switch api {
         case Ogl3, Ogl4 : BottomLeft;
         case Dx11, Mock : TopLeft;
-        case Auto : throw 'Auto is not a valid api, this should not happen!';
     }
 
     function getNdcRange() return switch api {
         case Ogl3 : NegativeOneToNegativeOne;
         case Ogl4, Dx11, Mock : ZeroToNegativeOne;
-        case Auto : throw 'Auto is not a valid api, this should not happen!';
     }
 }
 
