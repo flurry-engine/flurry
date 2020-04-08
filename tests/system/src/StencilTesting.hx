@@ -27,6 +27,7 @@ class StencilTesting extends Flurry
     {
         final camera = renderer.createCamera3D(45, display.width / display.height, 0.1, 100);
         camera.transformation.position.set(0, 0, 3);
+        camera.update(0);
 
         final batcher1 = renderer.createBatcher({
             shader : resources.get('textured', ShaderResource),

@@ -25,6 +25,6 @@ class ImGuiDrawing extends Flurry
 
     override function onUpdate(_dt : Float)
     {
-        ImGui.showDemoWindow();
+        ImGui.showAboutWindow();
     }
 }

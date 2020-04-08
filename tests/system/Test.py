@@ -51,11 +51,9 @@ class SystemTests(unittest.TestCase):
                 test_proc.terminate()
                 test_proc.wait()
 
-                imagemagick = subprocess.run([ "compare", "-metric", "AE", "-fuzz", "5%", f"expected/{x}.png", f"screenshot.png", "NULL:" ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                if (x == "Dummy"):
-                    pass
-                else:
-                    self.assertLessEqual(int(imagemagick.stderr), 10)
+                imagemagick = subprocess.run([ "convert", "-metric", "ae", f"expected/{x}.png", f"screenshot.png", "-trim", "-compare", "-format", "%[distortion]", "info:" ], stdout=subprocess.PIPE, text=True)
+                
+                self.assertLessEqual(int(imagemagick.stdout), 10)
 
         os.remove("build.json")
         os.remove("screenshot.png")
