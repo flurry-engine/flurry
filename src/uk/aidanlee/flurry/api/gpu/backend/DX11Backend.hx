@@ -272,6 +272,10 @@ class DX11Backend implements IRendererBackend
 
     final resourceRemovedSubscription : ISubscription;
 
+    final displaySizeChangedSubscription : ISubscription;
+
+    final displayChangeRequestSubscription : ISubscription;
+
     // State trackers
 
     var depth    : DepthState;
@@ -630,8 +634,8 @@ class DX11Backend implements IRendererBackend
         resourceCreatedSubscription = resourceEvents.created.subscribeFunction(onResourceCreated);
         resourceRemovedSubscription = resourceEvents.removed.subscribeFunction(onResourceRemoved);
         
-        displayEvents.sizeChanged.add(onSizeChanged);
-        displayEvents.changeRequested.add(onSizeChangeRequest);
+        displaySizeChangedSubscription   = displayEvents.sizeChanged.subscribeFunction(onSizeChanged);
+        displayChangeRequestSubscription = displayEvents.changeRequested.subscribeFunction(onSizeChangeRequest);
     }
 
     /**
@@ -756,8 +760,8 @@ class DX11Backend implements IRendererBackend
         resourceCreatedSubscription.unsubscribe();
         resourceRemovedSubscription.unsubscribe();
 
-        displayEvents.sizeChanged.remove(onSizeChanged);
-        displayEvents.changeRequested.remove(onSizeChangeRequest);
+        displaySizeChangedSubscription.unsubscribe();
+        displayChangeRequestSubscription.unsubscribe();
 
         SDL.destroyWindow(window);
     }

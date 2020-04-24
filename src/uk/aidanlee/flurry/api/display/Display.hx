@@ -4,6 +4,8 @@ import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.input.InputEvents;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 
+using rx.Observable;
+
 class Display
 {
     public var mouseX (default, null) : Int;
@@ -33,13 +35,13 @@ class Display
         mouseX        = 0;
         mouseY        = 0;
 
-        displayEvents.sizeChanged.add(onResizeEvent);
-        inputEvents.mouseMove.add(onMouseMoveEvent);
+        displayEvents.sizeChanged.subscribeFunction(onResizeEvent);
+        inputEvents.mouseMove.subscribeFunction(onMouseMoveEvent);
     }
 
     public function change(_width : Int, _height : Int, _fullscreen : Bool, _vsync : Bool)
     {
-        displayEvents.changeRequested.dispatch(new DisplayEventChangeRequest(_width, _height, _fullscreen, _vsync));
+        displayEvents.changeRequested.onNext(new DisplayEventChangeRequest(_width, _height, _fullscreen, _vsync));
 
         fullscreen = _fullscreen;
         vsync      = _vsync;        

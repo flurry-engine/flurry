@@ -187,6 +187,10 @@ class OGL4Backend implements IRendererBackend
 
     final resourceRemovedSubscription : ISubscription;
 
+    final displaySizeChangedSubscription : ISubscription;
+
+    final displayChangeRequestSubscription : ISubscription;
+
     /**
      * Backbuffer display, default target if none is specified.
      */
@@ -359,8 +363,9 @@ class OGL4Backend implements IRendererBackend
 
         resourceCreatedSubscription = resourceEvents.created.subscribeFunction(onResourceCreated);
         resourceRemovedSubscription = resourceEvents.removed.subscribeFunction(onResourceRemoved);
-        displayEvents.sizeChanged.add(onSizeChanged);
-        displayEvents.changeRequested.add(onChangeRequest);
+
+        displaySizeChangedSubscription   = displayEvents.sizeChanged.subscribeFunction(onSizeChanged);
+        displayChangeRequestSubscription = displayEvents.changeRequested.subscribeFunction(onChangeRequest);
     }
 
     @:void static function glDebugCallback(_source : cpp.UInt32, _type : cpp.UInt32, _id : cpp.UInt32, _severity : cpp.UInt32, _length : Int, _message : cpp.ConstCharStar, _userParam : cpp.RawConstPointer<cpp.Void>)
@@ -460,8 +465,9 @@ class OGL4Backend implements IRendererBackend
     {
         resourceCreatedSubscription.unsubscribe();
         resourceRemovedSubscription.unsubscribe();
-        displayEvents.sizeChanged.remove(onSizeChanged);
-        displayEvents.changeRequested.remove(onChangeRequest);
+        
+        displaySizeChangedSubscription.unsubscribe();
+        displayChangeRequestSubscription.unsubscribe();
 
         for (_ => shader in shaderPrograms)
         {

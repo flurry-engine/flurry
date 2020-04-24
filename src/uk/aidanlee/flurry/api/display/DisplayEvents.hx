@@ -1,59 +1,59 @@
 package uk.aidanlee.flurry.api.display;
 
-import signals.Signal1;
+import rx.Subject;
 
 class DisplayEvents
 {
-    public final unknown : Signal1<DisplayEventData>;
+    public final unknown : Subject<DisplayEventData>;
     
-    public final shown : Signal1<DisplayEventData>;
+    public final shown : Subject<DisplayEventData>;
 
-    public final hidden : Signal1<DisplayEventData>;
+    public final hidden : Subject<DisplayEventData>;
 
-    public final exposed : Signal1<DisplayEventData>;
+    public final exposed : Subject<DisplayEventData>;
 
-    public final moved : Signal1<DisplayEventData>;
+    public final moved : Subject<DisplayEventData>;
 
-    public final minimised : Signal1<DisplayEventData>;
+    public final minimised : Subject<DisplayEventData>;
 
-    public final maximised : Signal1<DisplayEventData>;
+    public final maximised : Subject<DisplayEventData>;
 
-    public final restored : Signal1<DisplayEventData>;
+    public final restored : Subject<DisplayEventData>;
 
-    public final enter : Signal1<DisplayEventData>;
+    public final enter : Subject<DisplayEventData>;
 
-    public final leave : Signal1<DisplayEventData>;
+    public final leave : Subject<DisplayEventData>;
 
-    public final focusGained : Signal1<DisplayEventData>;
+    public final focusGained : Subject<DisplayEventData>;
 
-    public final focusLost : Signal1<DisplayEventData>;
+    public final focusLost : Subject<DisplayEventData>;
 
-    public final close : Signal1<DisplayEventData>;
+    public final close : Subject<DisplayEventData>;
 
-    public final resized : Signal1<DisplayEventData>;
+    public final resized : Subject<DisplayEventData>;
 
-    public final sizeChanged : Signal1<DisplayEventData>;
+    public final sizeChanged : Subject<DisplayEventData>;
 
-    public final changeRequested : Signal1<DisplayEventChangeRequest>;
+    public final changeRequested : Subject<DisplayEventChangeRequest>;
 
     public function new()
     {
-        unknown         = new Signal1<DisplayEventData>();
-        shown           = new Signal1<DisplayEventData>();
-        hidden          = new Signal1<DisplayEventData>();
-        exposed         = new Signal1<DisplayEventData>();
-        moved           = new Signal1<DisplayEventData>();
-        minimised       = new Signal1<DisplayEventData>();
-        maximised       = new Signal1<DisplayEventData>();
-        restored        = new Signal1<DisplayEventData>();
-        enter           = new Signal1<DisplayEventData>();
-        leave           = new Signal1<DisplayEventData>();
-        focusGained     = new Signal1<DisplayEventData>();
-        focusLost       = new Signal1<DisplayEventData>();
-        close           = new Signal1<DisplayEventData>();
-        resized         = new Signal1<DisplayEventData>();
-        sizeChanged     = new Signal1<DisplayEventData>();
-        changeRequested = new Signal1<DisplayEventChangeRequest>();
+        unknown         = Subject.create();
+        shown           = Subject.create();
+        hidden          = Subject.create();
+        exposed         = Subject.create();
+        moved           = Subject.create();
+        minimised       = Subject.create();
+        maximised       = Subject.create();
+        restored        = Subject.create();
+        enter           = Subject.create();
+        leave           = Subject.create();
+        focusGained     = Subject.create();
+        focusLost       = Subject.create();
+        close           = Subject.create();
+        resized         = Subject.create();
+        sizeChanged     = Subject.create();
+        changeRequested = Subject.create();
     }
 }
 

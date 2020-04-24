@@ -4,48 +4,48 @@ import haxe.EnumFlags;
 import uk.aidanlee.flurry.api.input.Types.KeyModifier;
 import uk.aidanlee.flurry.api.input.Types.TextEventType;
 import uk.aidanlee.flurry.api.input.Types.GamepadDeviceEventType;
-import signals.Signal1;
+import rx.Subject;
 
 class InputEvents
 {
-    public final keyUp : Signal1<InputEventKeyState>;
+    public final keyUp : Subject<InputEventKeyState>;
 
-    public final keyDown : Signal1<InputEventKeyState>;
+    public final keyDown : Subject<InputEventKeyState>;
 
-    public final textInput : Signal1<InputEventTextInput>;
+    public final textInput : Subject<InputEventTextInput>;
 
-    public final mouseUp : Signal1<InputEventMouseState>;
+    public final mouseUp : Subject<InputEventMouseState>;
 
-    public final mouseDown : Signal1<InputEventMouseState>;
+    public final mouseDown : Subject<InputEventMouseState>;
 
-    public final mouseWheel : Signal1<InputEventMouseWheel>;
+    public final mouseWheel : Subject<InputEventMouseWheel>;
 
-    public final mouseMove : Signal1<InputEventMouseMove>;
+    public final mouseMove : Subject<InputEventMouseMove>;
 
-    public final gamepadUp : Signal1<InputEventGamepadState>;
+    public final gamepadUp : Subject<InputEventGamepadState>;
 
-    public final gamepadDown : Signal1<InputEventGamepadState>;
+    public final gamepadDown : Subject<InputEventGamepadState>;
 
-    public final gamepadAxis : Signal1<InputEventGamepadAxis>;
+    public final gamepadAxis : Subject<InputEventGamepadAxis>;
 
-    public final gamepadDevice : Signal1<InputEventGamepadDevice>;
+    public final gamepadDevice : Subject<InputEventGamepadDevice>;
     
-    public final gamepadRumble : Signal1<InputEventGamepadRumble>;
+    public final gamepadRumble : Subject<InputEventGamepadRumble>;
 
     public function new()
     {
-        keyUp         = new Signal1<InputEventKeyState>();
-        keyDown       = new Signal1<InputEventKeyState>();
-        textInput     = new Signal1<InputEventTextInput>();
-        mouseUp       = new Signal1<InputEventMouseState>();
-        mouseDown     = new Signal1<InputEventMouseState>();
-        mouseWheel    = new Signal1<InputEventMouseWheel>();
-        mouseMove     = new Signal1<InputEventMouseMove>();
-        gamepadUp     = new Signal1<InputEventGamepadState>();
-        gamepadDown   = new Signal1<InputEventGamepadState>();
-        gamepadAxis   = new Signal1<InputEventGamepadAxis>();
-        gamepadDevice = new Signal1<InputEventGamepadDevice>();
-        gamepadRumble = new Signal1<InputEventGamepadRumble>();
+        keyUp         = Subject.create();
+        keyDown       = Subject.create();
+        textInput     = Subject.create();
+        mouseUp       = Subject.create();
+        mouseDown     = Subject.create();
+        mouseWheel    = Subject.create();
+        mouseMove     = Subject.create();
+        gamepadUp     = Subject.create();
+        gamepadDown   = Subject.create();
+        gamepadAxis   = Subject.create();
+        gamepadDevice = Subject.create();
+        gamepadRumble = Subject.create();
     }
 }
 

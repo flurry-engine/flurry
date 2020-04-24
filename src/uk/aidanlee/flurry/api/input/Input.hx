@@ -2,6 +2,8 @@ package uk.aidanlee.flurry.api.input;
 
 import uk.aidanlee.flurry.api.input.InputEvents;
 
+using rx.Observable;
+
 private enum InputState
 {
     None;
@@ -32,18 +34,18 @@ class Input
     {
         events = _events;
 
-        scancodes      = [ for (i in 0...MAX_KEYS) None ];
-        mouseButtons   = [ for (i in 0...MAX_MOUSE_BUTTONS) None ];
-        gamepadButtons = [ for (i in 0...MAX_CONTROLLERS) [ for (j in 0...MAX_CONTROLLER_BUTTONS) None ] ];
-        gamepadAxises  = [ for (i in 0...MAX_CONTROLLERS) [ for (j in 0...MAX_CONTROLLER_AXISES) 0 ] ];
+        scancodes      = [ for (_ in 0...MAX_KEYS) None ];
+        mouseButtons   = [ for (_ in 0...MAX_MOUSE_BUTTONS) None ];
+        gamepadButtons = [ for (_ in 0...MAX_CONTROLLERS) [ for (_ in 0...MAX_CONTROLLER_BUTTONS) None ] ];
+        gamepadAxises  = [ for (_ in 0...MAX_CONTROLLERS) [ for (_ in 0...MAX_CONTROLLER_AXISES) 0 ] ];
 
-        events.keyUp.add(onKeyUp);
-        events.keyDown.add(onKeyDown);
-        events.mouseUp.add(onMouseUp);
-        events.mouseDown.add(onMouseDown);
-        events.gamepadUp.add(onGamepadUp);
-        events.gamepadDown.add(onGamepadDown);
-        events.gamepadAxis.add(onGamepadAxis);
+        events.keyUp.subscribeFunction(onKeyUp);
+        events.keyDown.subscribeFunction(onKeyDown);
+        events.mouseUp.subscribeFunction(onMouseUp);
+        events.mouseDown.subscribeFunction(onMouseDown);
+        events.gamepadUp.subscribeFunction(onGamepadUp);
+        events.gamepadDown.subscribeFunction(onGamepadDown);
+        events.gamepadAxis.subscribeFunction(onGamepadAxis);
     }
 
     // #region polling commands
@@ -100,7 +102,7 @@ class Input
 
     public function rumbleGamepad(_gamepad : Int, _intensity : Float, _duration : Int) : Void
     {
-        events.gamepadRumble.dispatch(new InputEventGamepadRumble(_gamepad, _intensity, _duration));
+        events.gamepadRumble.onNext(new InputEventGamepadRumble(_gamepad, _intensity, _duration));
     }
 
     public function update()

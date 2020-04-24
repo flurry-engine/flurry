@@ -8,6 +8,7 @@ import uk.aidanlee.flurry.FlurryConfig;
 import buddy.BuddySuite;
 
 using buddy.Should;
+using rx.Observable;
 
 class DisplayTests extends BuddySuite
 {
@@ -32,7 +33,7 @@ class DisplayTests extends BuddySuite
 
             it('Has a function which will fire an event to indicate that the window should be changed', {
                 var events = new DisplayEvents();
-                events.changeRequested.add(function(_data : DisplayEventChangeRequest) {
+                events.changeRequested.subscribeFunction(_data -> {
                     _data.width.should.be(1920);
                     _data.height.should.be(1080);
                     _data.fullscreen.should.be(false);
@@ -57,7 +58,7 @@ class DisplayTests extends BuddySuite
                 config.window.vsync      = true;
 
                 var display = new Display(events, new InputEvents(), config);
-                events.sizeChanged.dispatch(new DisplayEventData(1920, 1080));
+                events.sizeChanged.onNext(new DisplayEventData(1920, 1080));
 
                 display.width.should.be(1920);
                 display.height.should.be(1080);
@@ -72,7 +73,7 @@ class DisplayTests extends BuddySuite
                 config.window.vsync      = true;
 
                 var display = new Display(new DisplayEvents(), events, config);
-                events.mouseMove.dispatch(new InputEventMouseMove(32, 32, 4, 4));
+                events.mouseMove.onNext(new InputEventMouseMove(32, 32, 4, 4));
 
                 display.mouseX.should.be(32);
                 display.mouseY.should.be(32);

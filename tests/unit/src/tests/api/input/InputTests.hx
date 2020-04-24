@@ -7,6 +7,7 @@ import uk.aidanlee.flurry.api.input.Input;
 import buddy.BuddySuite;
 
 using buddy.Should;
+using rx.Observable;
 
 class InputTests extends BuddySuite
 {
@@ -21,7 +22,7 @@ class InputTests extends BuddySuite
                 input.isKeyDown(Keycodes.key_w).should.be(false);
                 input.wasKeyReleased(Keycodes.key_w).should.be(false);
 
-                event.keyDown.dispatch(new InputEventKeyState(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
+                event.keyDown.onNext(new InputEventKeyState(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
 
                 input.wasKeyPressed(Keycodes.key_w).should.be(true);
                 input.isKeyDown(Keycodes.key_w).should.be(true);
@@ -33,7 +34,7 @@ class InputTests extends BuddySuite
                 input.wasKeyReleased(Keycodes.key_w).should.be(false);
                 input.update();
 
-                event.keyUp.dispatch(new InputEventKeyState(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
+                event.keyUp.onNext(new InputEventKeyState(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
 
                 input.wasKeyPressed(Keycodes.key_w).should.be(false);
                 input.isKeyDown(Keycodes.key_w).should.be(false);
@@ -54,7 +55,7 @@ class InputTests extends BuddySuite
                 input.isMouseDown(1).should.be(false);
                 input.wasMouseReleased(1).should.be(false);
 
-                event.mouseDown.dispatch(new InputEventMouseState(0, 0, 1));
+                event.mouseDown.onNext(new InputEventMouseState(0, 0, 1));
 
                 input.wasMousePressed(1).should.be(true);
                 input.isMouseDown(1).should.be(true);
@@ -66,7 +67,7 @@ class InputTests extends BuddySuite
                 input.wasMouseReleased(1).should.be(false);
                 input.update();
 
-                event.mouseUp.dispatch(new InputEventMouseState(0, 0, 1));
+                event.mouseUp.onNext(new InputEventMouseState(0, 0, 1));
 
                 input.wasMousePressed(1).should.be(false);
                 input.isMouseDown(1).should.be(false);
@@ -84,7 +85,7 @@ class InputTests extends BuddySuite
                 var input = new Input(event);
 
                 input.gamepadAxis(0, 0).should.be(0);
-                event.gamepadAxis.dispatch(new InputEventGamepadAxis(0, 0, 0.5));
+                event.gamepadAxis.onNext(new InputEventGamepadAxis(0, 0, 0.5));
                 input.gamepadAxis(0, 0).should.be(0.5);
             });
 
@@ -96,7 +97,7 @@ class InputTests extends BuddySuite
                 input.isGamepadDown(0, 0).should.be(false);
                 input.wasGamepadReleased(0, 0).should.be(false);
 
-                event.gamepadDown.dispatch(new InputEventGamepadState(0, 0, 1));
+                event.gamepadDown.onNext(new InputEventGamepadState(0, 0, 1));
 
                 input.wasGamepadPressed(0, 0).should.be(true);
                 input.isGamepadDown(0, 0).should.be(true);
@@ -108,7 +109,7 @@ class InputTests extends BuddySuite
                 input.wasGamepadReleased(0, 0).should.be(false);
                 input.update();
 
-                event.gamepadUp.dispatch(new InputEventGamepadState(0, 0, 1));
+                event.gamepadUp.onNext(new InputEventGamepadState(0, 0, 1));
 
                 input.wasGamepadPressed(0, 0).should.be(false);
                 input.isGamepadDown(0, 0).should.be(false);
@@ -125,7 +126,7 @@ class InputTests extends BuddySuite
                 var event = new InputEvents();
                 var input = new Input(event);
 
-                event.gamepadRumble.add(function(_data : InputEventGamepadRumble) {
+                event.gamepadRumble.subscribeFunction(_data -> {
                     _data.gamepad.should.be(0);
                     _data.intensity.should.be(0.5);
                     _data.duration.should.be(2);

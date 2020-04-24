@@ -10,7 +10,6 @@
 -L safety
 -L format
 -L sys.io.abstractions
--L signals
 -L json2object
 -L RxHaxe
 

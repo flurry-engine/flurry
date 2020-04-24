@@ -185,6 +185,10 @@ class OGL3Backend implements IRendererBackend
 
     final resourceRemovedSubscription : ISubscription;
 
+    final displaySizeChangedSubscription : ISubscription;
+
+    final displayChangeRequestSubscription : ISubscription;
+
     /**
      * Backbuffer display, default target if none is specified.
      */
@@ -326,8 +330,8 @@ class OGL3Backend implements IRendererBackend
         resourceCreatedSubscription = resourceEvents.created.subscribeFunction(onResourceCreated);
         resourceRemovedSubscription = resourceEvents.removed.subscribeFunction(onResourceRemoved);
 
-        displayEvents.sizeChanged.add(onSizeChanged);
-        displayEvents.changeRequested.add(onChangeRequest);
+        displaySizeChangedSubscription   = displayEvents.sizeChanged.subscribeFunction(onSizeChanged);
+        displayChangeRequestSubscription = displayEvents.changeRequested.subscribeFunction(onChangeRequest);
 
         var uboAlignment = [ 0 ];
         glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, uboAlignment);
@@ -386,8 +390,8 @@ class OGL3Backend implements IRendererBackend
         resourceCreatedSubscription.unsubscribe();
         resourceRemovedSubscription.unsubscribe();
 
-        displayEvents.sizeChanged.remove(onSizeChanged);
-        displayEvents.changeRequested.remove(onChangeRequest);
+        displaySizeChangedSubscription.unsubscribe();
+        displayChangeRequestSubscription.unsubscribe();
 
         for (_ => shader in shaderPrograms)
         {
