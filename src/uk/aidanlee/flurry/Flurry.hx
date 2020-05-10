@@ -1,15 +1,15 @@
 package uk.aidanlee.flurry;
 
-import uk.aidanlee.flurry.api.schedulers.CurrentThreadScheduler;
-import rx.disposables.ISubscription;
-import hx.concurrent.collection.SynchronizedArray;
 import rx.Unit;
 import rx.Subject;
 import rx.subjects.Replay;
+import rx.schedulers.MakeScheduler;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.input.Input;
 import uk.aidanlee.flurry.api.display.Display;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
+import uk.aidanlee.flurry.api.schedulers.ThreadPoolScheduler;
+import uk.aidanlee.flurry.api.schedulers.MainThreadScheduler;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
 
@@ -18,12 +18,6 @@ using Safety;
 
 class Flurry
 {
-    /**
-     * Thread safe array to place functions into.
-     * All functions in this array are ran at the beginning of every tick.
-     */
-    public final dispatch : SynchronizedArray<()->Void>;
-
     /**
      * Main events bus, engine components can fire events into this to communicate with each other.
      */
@@ -64,12 +58,22 @@ class Flurry
      */
     public var loaded (default, null) : Bool;
 
-    var preloadSubscription : Null<ISubscription>;
+    /**
+     * Scheduler to run functions on the main thread.
+     * Every tick the tasks queued in this scheduler are checked to see if its time to be ran.
+     */
+    final mainThreadScheduler : MakeScheduler;
+
+    /**
+     * 
+     */
+    final taskThreadScheduler : MakeScheduler;
 
     public function new()
     {
-        dispatch = new SynchronizedArray();
-        events   = new FlurryEvents();
+        events              = new FlurryEvents();
+        mainThreadScheduler = MainThreadScheduler.current;
+        taskThreadScheduler = ThreadPoolScheduler.current;
     }
 
     public final function config()
@@ -81,16 +85,15 @@ class Flurry
     {
         loaded = false;
         
-        // Setup core api components
         fileSystem = new FileSystem();
         renderer   = new Renderer(events.resource, events.display, flurryConfig.window, flurryConfig.renderer);
-        resources  = new ResourceSystem(events.resource, fileSystem, CurrentThreadScheduler.current, CurrentThreadScheduler.current);
+        resources  = new ResourceSystem(events.resource, fileSystem, taskThreadScheduler, mainThreadScheduler);
         input      = new Input(events.input);
         display    = new Display(events.display, events.input, flurryConfig);
 
         if (flurryConfig.resources.preload != null)
         {
-            preloadSubscription = resources
+            resources
                 .load(flurryConfig.resources.preload)
                 .subscribeFunction(onPreloadParcelError, onPreloadParcelComplete);
         }
@@ -105,13 +108,7 @@ class Flurry
 
     public final function tick(_dt : Float)
     {
-        // Call any main loop functions.
-        // We should be able to safely skip the null function check as we already check the size;
-        // please don't pass in null functions...
-        while (!dispatch.isEmpty())
-        {
-            dispatch.removeFirst().unsafe()();
-        }
+        (cast mainThreadScheduler : MainThreadScheduler).dispatch();
 
         onTick(_dt);
     }

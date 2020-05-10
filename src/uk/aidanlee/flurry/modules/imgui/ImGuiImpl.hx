@@ -129,7 +129,7 @@ class ImGuiImpl
         events.preUpdate.subscribeFunction(newFrame);
         events.update.subscribeFunction(render);
         events.shutdown.subscribeFunction(dispose);
-        events.input.textInput.add(onTextInput);
+        events.input.textInput.subscribeFunction(onTextInput);
     }
 
     /**

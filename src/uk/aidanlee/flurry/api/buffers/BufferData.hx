@@ -19,7 +19,7 @@ class BufferData implements IObservable<Unit>
 
     public function new(_bytes : Bytes, _offset : Int, _length : Int)
     {
-        changed    = Subject.create();
+        changed    = new Subject<Unit>();
         bytes      = _bytes;
         byteOffset = _offset;
         byteLength = _length;

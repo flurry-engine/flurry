@@ -2,7 +2,7 @@ package uk.aidanlee.flurry.api.schedulers;
 
 import haxe.Timer;
 import rx.Subscription;
-import rx.schedulers.Base;
+import rx.schedulers.ISchedulerBase;
 import rx.schedulers.MakeScheduler;
 import rx.disposables.ISubscription;
 
@@ -16,7 +16,7 @@ class CurrentThreadScheduler extends MakeScheduler
     }
 }
 
-private class CurrentThreadBase implements Base
+private class CurrentThreadBase implements ISchedulerBase
 {
     public function new()
     {
@@ -28,7 +28,7 @@ private class CurrentThreadBase implements Base
         return Timer.stamp();
     }
 
-    public function schedule_absolute(_dueTime : Null<Float>, _action : () -> Void) : ISubscription
+    public function scheduleAbsolute(_dueTime : Float, _action : () -> Void) : ISubscription
     {
         _action();
 

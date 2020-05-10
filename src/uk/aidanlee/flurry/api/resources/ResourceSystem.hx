@@ -5,10 +5,9 @@ import haxe.Unserializer;
 import haxe.io.Path;
 import haxe.zip.Uncompress;
 import rx.Subscription;
-import rx.subjects.Replay;
 import rx.subjects.Behavior;
 import rx.observers.IObserver;
-import rx.schedulers.MakeScheduler;
+import rx.schedulers.IScheduler;
 import rx.observables.IObservable;
 import format.png.Tools;
 import format.png.Reader;
@@ -46,13 +45,13 @@ class ResourceSystem
     /**
      * The scheduler that will load the parcels.
      */
-    final workScheduler : MakeScheduler;
+    final workScheduler : IScheduler;
 
     /**
      * The scheduler that will run all observers.
-     * This should be set to a main thread scheduler if `workScheduler` will perform the subscribe function on a separate thread.
+     * This should be set to a main thread scheduler if `workScheduler` will execute the subscribe function on a separate thread.
      */
-    final syncScheduler : MakeScheduler;
+    final syncScheduler : IScheduler;
 
     /**
      * Map of a parcels ID to all the resources IDs contained within it.
@@ -80,7 +79,7 @@ class ResourceSystem
      * Creates a new resources system.
      * Allows the creation and loading of parcels and caching their resources.
      */
-    public function new(_events : ResourceEvents, _fileSystem : IFileSystem, _workScheduler : MakeScheduler, _syncScheduler : MakeScheduler)
+    public function new(_events : ResourceEvents, _fileSystem : IFileSystem, _workScheduler : IScheduler, _syncScheduler : IScheduler)
     {
         events             = _events;
         fileSystem         = _fileSystem;
@@ -111,12 +110,16 @@ class ResourceSystem
         }
         else
         {
-            final replay   = Replay.create();
-            final progress = Behavior.create(0.0);
+            final progress = new Behavior(0.0);
 
+            // This observable performs the loading work.
+            // It subscribes on the work scheduler and observable functions are called on the sync scheduler.
+            // These are probably some sort of thread pool and them main app thread.
+            // We manually track if the loading was successful otherwise we could fire onError and onComplete events.
+            // We also recursivly call `loadPrePackaged` for dependencies which could fire onComplete before all resources have loaded.
             Observable
                 .create((_observer : IObserver<ParcelEvent>) -> {
-                    switch _parcel
+                    final succeeded = switch _parcel
                     {
                         case Definition(_name, _definition):
                             loadDefinition(_name, _definition, _observer);
@@ -124,17 +127,18 @@ class ResourceSystem
                             loadPrePackaged(_name, _observer);
                     }
 
-                    _observer.onCompleted();
-    
+                    if (succeeded)
+                    {
+                        _observer.onCompleted();
+                    }
+
                     return Subscription.empty();
                 })
                 .subscribeOn(workScheduler)
                 .observeOn(syncScheduler)
-                .subscribe(replay);
-
-            replay.subscribeFunction(
-                    _event -> {
-                        switch _event
+                .subscribeFunction(
+                    _v -> {
+                        switch _v
                         {
                             case Progress(_progress, _resource):
                                 addResource(_resource);
@@ -258,7 +262,7 @@ class ResourceSystem
      * @param _name Parcel unique ID
      * @param _list List of resources to load.
      */
-    function loadDefinition(_name : String, _list : ParcelList, _observer : IObserver<ParcelEvent>)
+    function loadDefinition(_name : String, _list : ParcelList, _observer : IObserver<ParcelEvent>) : Bool
     {
         final totalResources = calculateTotalResources(_list);
 
@@ -270,7 +274,7 @@ class ResourceSystem
             {
                 _observer.onError('failed to load "${asset.id}", "${asset.path}" does not exist');
 
-                return;
+                return false;
             }
 
             _observer.onNext(
@@ -287,7 +291,7 @@ class ResourceSystem
             {
                 _observer.onError('failed to load "${asset.id}", "${asset.path}" does not exist');
 
-                return;
+                return false;
             }
 
             _observer.onNext(
@@ -304,7 +308,7 @@ class ResourceSystem
             {
                 _observer.onError('failed to load "${asset.id}", "${asset.path}" does not exist');
 
-                return;
+                return false;
             }
 
             var info = new Reader(fileSystem.file.read(asset.path)).read();
@@ -324,7 +328,7 @@ class ResourceSystem
             {
                 _observer.onError('failed to load "${asset.id}", "${asset.path}" does not exist');
 
-                return;
+                return false;
             }
 
             final parser = new JsonParser<ShaderInfoLayout>();
@@ -366,13 +370,15 @@ class ResourceSystem
         }
 
         _observer.onNext(List(_name, flattenParcelList(_list)));
+
+        return true;
     }
 
     /**
      * Load a pre-packaged parcel from the disk.
      * @param _file Parcel file name.
      */
-    function loadPrePackaged(_file : String, _observer : IObserver<ParcelEvent>)
+    function loadPrePackaged(_file : String, _observer : IObserver<ParcelEvent>) : Bool
     {
         final path = Path.join([ 'assets', 'parcels', _file ]);
 
@@ -380,7 +386,7 @@ class ResourceSystem
         {
             _observer.onError('failed to load "${_file}", "${path}" does not exist');
 
-            return;
+            return false;
         }
 
         final bytes  = Uncompress.run(fileSystem.file.getBytes(path));
@@ -391,7 +397,7 @@ class ResourceSystem
         {
             _observer.onError('unable to cast deserialised bytes to a ParcelResource');
 
-            return;
+            return false;
         }
 
         if (parcel.depends.length > 0)
@@ -400,7 +406,10 @@ class ResourceSystem
 
             for (dependency in parcel.depends)
             {
-                loadPrePackaged(dependency, _observer);
+                if (!loadPrePackaged(dependency, _observer))
+                {
+                    return false;
+                }
             }   
         }
 
@@ -415,6 +424,8 @@ class ResourceSystem
         }
 
         _observer.onNext(List(_file, [ for (res in parcel.assets) res.id ]));
+
+        return true;
     }
 
     /**

@@ -239,7 +239,7 @@ class Geometry
     public function new(_options : GeometryOptions)
     {
         id      = Hash.uniqueHash();
-        changed = Subject.create();
+        changed = new Subject<Unit>();
 
         data           = _options.data;
         transformation = _options.transform .or(new Transformation());

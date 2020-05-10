@@ -114,7 +114,7 @@ class Transformation implements IObservable<Unit>
 
     public function new()
     {
-        dirtied = Subject.create();
+        dirtied = new Subject<Unit>();
         local   = new Spatial();
         world   = new Spatial();
         origin  = new Vector3();

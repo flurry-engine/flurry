@@ -30,12 +30,12 @@ class FlurryEvents
 
     public function new()
     {
-        init       = Replay.create();
-        ready      = Replay.create();
-        preUpdate  = Subject.create();
-        update     = Subject.create();
-        postUpdate = Subject.create();
-        shutdown   = Replay.create();
+        init       = new Replay<Unit>();
+        ready      = new Replay<Unit>();
+        preUpdate  = new Subject<Unit>();
+        update     = new Subject<Float>();
+        postUpdate = new Subject<Unit>();
+        shutdown   = new Replay<Unit>();
         input      = new InputEvents();
         resource   = new ResourceEvents();
         display    = new DisplayEvents();

@@ -23,7 +23,6 @@
 -lib haxe-concurrent
 -lib safety
 -lib sys.io.abstractions
--lib signals
 -lib format
 -lib json2object
 -lib RxHaxe

@@ -2,7 +2,7 @@ package uk.aidanlee.flurry.api.schedulers;
 
 import haxe.Timer;
 import hx.concurrent.executor.Executor;
-import rx.schedulers.Base;
+import rx.schedulers.ISchedulerBase;
 import rx.schedulers.MakeScheduler;
 import rx.disposables.Boolean;
 import rx.disposables.ISubscription;
@@ -19,7 +19,7 @@ class ThreadPoolScheduler extends MakeScheduler
     }
 }
 
-private class ThreadPoolBase implements Base
+private class ThreadPoolBase implements ISchedulerBase
 {
     final pool : Executor;
 
@@ -33,10 +33,10 @@ private class ThreadPoolBase implements Base
         return Timer.stamp();
     }
 
-    public function schedule_absolute(_dueTime : Null<Float>, _action : () -> Void) : ISubscription
+    public function scheduleAbsolute(_dueTime : Float, _action : () -> Void) : ISubscription
     {
         final task = pool.submit(_action, ONCE(Std.int(_dueTime.or(0) * 1000)));
 
-        return Boolean.create(() -> task.cancel());
+        return new Boolean(() -> task.cancel());
     }
 }

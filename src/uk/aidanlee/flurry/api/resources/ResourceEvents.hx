@@ -10,7 +10,7 @@ class ResourceEvents
 
     public function new()
     {
-        created = Subject.create();
-        removed = Subject.create();
+        created = new Subject();
+        removed = new Subject();
     }
 }

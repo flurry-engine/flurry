@@ -38,22 +38,22 @@ class DisplayEvents
 
     public function new()
     {
-        unknown         = Subject.create();
-        shown           = Subject.create();
-        hidden          = Subject.create();
-        exposed         = Subject.create();
-        moved           = Subject.create();
-        minimised       = Subject.create();
-        maximised       = Subject.create();
-        restored        = Subject.create();
-        enter           = Subject.create();
-        leave           = Subject.create();
-        focusGained     = Subject.create();
-        focusLost       = Subject.create();
-        close           = Subject.create();
-        resized         = Subject.create();
-        sizeChanged     = Subject.create();
-        changeRequested = Subject.create();
+        unknown         = new Subject();
+        shown           = new Subject();
+        hidden          = new Subject();
+        exposed         = new Subject();
+        moved           = new Subject();
+        minimised       = new Subject();
+        maximised       = new Subject();
+        restored        = new Subject();
+        enter           = new Subject();
+        leave           = new Subject();
+        focusGained     = new Subject();
+        focusLost       = new Subject();
+        close           = new Subject();
+        resized         = new Subject();
+        sizeChanged     = new Subject();
+        changeRequested = new Subject();
     }
 }
 

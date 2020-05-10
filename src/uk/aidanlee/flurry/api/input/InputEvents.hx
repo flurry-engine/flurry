@@ -34,18 +34,18 @@ class InputEvents
 
     public function new()
     {
-        keyUp         = Subject.create();
-        keyDown       = Subject.create();
-        textInput     = Subject.create();
-        mouseUp       = Subject.create();
-        mouseDown     = Subject.create();
-        mouseWheel    = Subject.create();
-        mouseMove     = Subject.create();
-        gamepadUp     = Subject.create();
-        gamepadDown   = Subject.create();
-        gamepadAxis   = Subject.create();
-        gamepadDevice = Subject.create();
-        gamepadRumble = Subject.create();
+        keyUp         = new Subject();
+        keyDown       = new Subject();
+        textInput     = new Subject();
+        mouseUp       = new Subject();
+        mouseDown     = new Subject();
+        mouseWheel    = new Subject();
+        mouseMove     = new Subject();
+        gamepadUp     = new Subject();
+        gamepadDown   = new Subject();
+        gamepadAxis   = new Subject();
+        gamepadDevice = new Subject();
+        gamepadRumble = new Subject();
     }
 }
 
