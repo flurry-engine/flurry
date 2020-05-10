@@ -9,22 +9,8 @@ import rx.subjects.Behavior;
 import rx.observers.IObserver;
 import rx.schedulers.IScheduler;
 import rx.observables.IObservable;
-import format.png.Tools;
-import format.png.Reader;
-import json2object.JsonParser;
 import uk.aidanlee.flurry.api.resources.Resource;
-import uk.aidanlee.flurry.api.resources.Parcel.ParcelList;
-import uk.aidanlee.flurry.api.resources.Parcel.ParcelType;
-import uk.aidanlee.flurry.api.resources.Parcel.ShaderInfoLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ParcelResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderSource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderValue;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.resources.Resource.TextResource;
-import uk.aidanlee.flurry.api.resources.Resource.BytesResource;
 import sys.io.abstractions.IFileSystem;
 
 using Safety;
@@ -97,14 +83,9 @@ class ResourceSystem
      * @param _parcel Parcel definition.
      * @return Observable<Float> Observable of loading progress (normalised 0 - 1)
      */
-    public function load(_parcel : ParcelType) : IObservable<Float>
+    public function load(_parcel : String) : IObservable<Float>
     {
-        final name = switch _parcel {
-            case Definition(_name, _) : _name;
-            case PrePackaged(_name) : _name;
-        }
-
-        if (parcelResources.exists(name))
+        if (parcelResources.exists(_parcel))
         {
             return Observable.empty();
         }
@@ -119,15 +100,7 @@ class ResourceSystem
             // We also recursivly call `loadPrePackaged` for dependencies which could fire onComplete before all resources have loaded.
             Observable
                 .create((_observer : IObserver<ParcelEvent>) -> {
-                    final succeeded = switch _parcel
-                    {
-                        case Definition(_name, _definition):
-                            loadDefinition(_name, _definition, _observer);
-                        case PrePackaged(_name):
-                            loadPrePackaged(_name, _observer);
-                    }
-
-                    if (succeeded)
+                    if (loadPrePackaged(_parcel, _observer))
                     {
                         _observer.onCompleted();
                     }
@@ -258,123 +231,6 @@ class ResourceSystem
     }
 
     /**
-     * Loads all the the resources in the list of a different thread.
-     * @param _name Parcel unique ID
-     * @param _list List of resources to load.
-     */
-    function loadDefinition(_name : String, _list : ParcelList, _observer : IObserver<ParcelEvent>) : Bool
-    {
-        final totalResources = calculateTotalResources(_list);
-
-        var loadedIndices  = 0;
-
-        for (asset in _list.bytes)
-        {
-            if (!fileSystem.file.exists(asset.path))
-            {
-                _observer.onError('failed to load "${asset.id}", "${asset.path}" does not exist');
-
-                return false;
-            }
-
-            _observer.onNext(
-                Progress(
-                    ++loadedIndices / totalResources,
-                    new BytesResource(asset.id, fileSystem.file.getBytes(asset.path))
-                )
-            );
-        }
-
-        for (asset in _list.texts)
-        {
-            if (!fileSystem.file.exists(asset.path))
-            {
-                _observer.onError('failed to load "${asset.id}", "${asset.path}" does not exist');
-
-                return false;
-            }
-
-            _observer.onNext(
-                Progress(
-                    ++loadedIndices / totalResources,
-                    new TextResource(asset.id, fileSystem.file.getText(asset.path))
-                )
-            );
-        }
-
-        for (asset in _list.images)
-        {
-            if (!fileSystem.file.exists(asset.path))
-            {
-                _observer.onError('failed to load "${asset.id}", "${asset.path}" does not exist');
-
-                return false;
-            }
-
-            var info = new Reader(fileSystem.file.read(asset.path)).read();
-            var head = Tools.getHeader(info);
-
-            _observer.onNext(
-                Progress(
-                    ++loadedIndices / totalResources,
-                    new ImageResource(asset.id, head.width, head.height, Tools.extract32(info))
-                )
-            );
-        }
-
-        for (asset in _list.shaders)
-        {
-            if (!fileSystem.file.exists(asset.path))
-            {
-                _observer.onError('failed to load "${asset.id}", "${asset.path}" does not exist');
-
-                return false;
-            }
-
-            final parser = new JsonParser<ShaderInfoLayout>();
-            parser.fromJson(fileSystem.file.getText(asset.path));
-
-            for (error in parser.errors)
-            {
-                throw error;
-            }
-
-            final layout = new ShaderLayout(
-                parser.value.textures,
-                [
-                    for (b in parser.value.blocks) new ShaderBlock(b.name, b.binding, [
-                        for (v in b.values) new ShaderValue(v.name, v.type)
-                    ])
-                ]);
-            final sourceOGL3 = asset.ogl3 == null ? null : new ShaderSource(
-                asset.ogl3.compiled.or(false),
-                fileSystem.file.getBytes(asset.ogl3.vertex),
-                fileSystem.file.getBytes(asset.ogl3.fragment));
-            final sourceOGL4 = asset.ogl4 == null ? null : new ShaderSource(
-                asset.ogl4.compiled.or(false),
-                fileSystem.file.getBytes(asset.ogl4.vertex),
-                fileSystem.file.getBytes(asset.ogl4.fragment)
-            );
-            final sourceHLSL = asset.hlsl == null ? null : new ShaderSource(
-                asset.hlsl.compiled.or(false),
-                fileSystem.file.getBytes(asset.hlsl.vertex),
-                fileSystem.file.getBytes(asset.hlsl.fragment)
-            );
-
-            _observer.onNext(
-                Progress(
-                    ++loadedIndices / totalResources,
-                    new ShaderResource(asset.id, layout, sourceOGL3, sourceOGL4, sourceHLSL)
-                )
-            );
-        }
-
-        _observer.onNext(List(_name, flattenParcelList(_list)));
-
-        return true;
-    }
-
-    /**
      * Load a pre-packaged parcel from the disk.
      * @param _file Parcel file name.
      */
@@ -426,44 +282,6 @@ class ResourceSystem
         _observer.onNext(List(_file, [ for (res in parcel.assets) res.id ]));
 
         return true;
-    }
-
-    /**
-     * Sums up to number of resources included in a parcel list.
-     * @param _list Parcel list to sum.
-     * @return Total number of resources.
-     */
-    function calculateTotalResources(_list : ParcelList) : Int
-    {
-        var total = 0;
-        
-        total += _list.bytes.length;
-        total += _list.texts.length;
-        total += _list.images.length;
-        total += _list.shaders.length;
-
-        return total;
-    }
-
-    /**
-     * Returns a list of all resource names from a parcel list.
-     * @param _list List to flatten
-     * @return Array<String> Array of resource names.
-     */
-    function flattenParcelList(_list : ParcelList) : Array<String>
-    {
-        final list = [];
-
-        for (res in _list.bytes)
-            list.push(res.id);
-        for (res in _list.images)
-            list.push(res.id);
-        for (res in _list.shaders)
-            list.push(res.id);
-        for (res in _list.texts)
-            list.push(res.id);
-
-        return list;
     }
 }
 

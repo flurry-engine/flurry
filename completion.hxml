@@ -24,7 +24,6 @@
 -lib safety
 -lib sys.io.abstractions
 -lib format
--lib json2object
 -lib RxHaxe
 
 --macro nullSafety('uk.aidanlee.flurry.modules.differ', Strict)
