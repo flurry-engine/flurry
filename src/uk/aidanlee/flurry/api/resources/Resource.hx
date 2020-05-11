@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.resources;
 
+import hxbit.Serializable;
 import haxe.io.Bytes;
 
 enum ShaderType
@@ -17,10 +18,12 @@ enum ResourceType
     Custom(_name : String);
 }
 
-class Resource
+class Resource implements Serializable
 {
+    @:s
     public var type (default, null) : ResourceType;
 
+    @:s
     public var id (default, null) : String;
 
     public function new(_type : ResourceType, _id : String)
@@ -32,6 +35,7 @@ class Resource
 
 class BytesResource extends Resource
 {
+    @:s
     public var bytes (default, null) : Bytes;
 
     public function new(_id : String, _bytes : Bytes)
@@ -44,6 +48,7 @@ class BytesResource extends Resource
 
 class TextResource extends Resource
 {
+    @:s
     public var content (default, null) : String;
 
     public function new(_id : String, _content : String)
@@ -56,10 +61,13 @@ class TextResource extends Resource
 
 class ImageResource extends Resource
 {
+    @:s
     public var width (default, null) : Int;
 
+    @:s
     public var height (default, null) : Int;
 
+    @:s
     public var pixels (default, null) : Bytes;
 
     public function new(_id : String, _width : Int, _height : Int, _pixels : Bytes)
@@ -74,12 +82,16 @@ class ImageResource extends Resource
 
 class ShaderResource extends Resource
 {
+    @:s
     public var layout (default, null) : ShaderLayout;
 
+    @:s
     public var ogl3 (default, null) : Null<ShaderSource>;
 
+    @:s
     public var ogl4 (default, null) : Null<ShaderSource>;
 
+    @:s
     public var hlsl (default, null) : Null<ShaderSource>;
 
     public function new(_id : String, _layout : ShaderLayout, _ogl3 : Null<ShaderSource>, _ogl4 : Null<ShaderSource>, _hlsl : Null<ShaderSource>)
@@ -93,21 +105,24 @@ class ShaderResource extends Resource
     }
 }
 
-class ShaderSource
+class ShaderSource implements Serializable
 {
     /**
      * If this shader has been compiled offline.
      */
+    @:s
     public var compiled (default, null) : Bool;
 
     /**
      * Shaders vertex stage data.
      */
+    @:s
     public var vertex (default, null) : Bytes;
 
     /**
      * Shaders fragment stage data.
      */
+    @:s
     public var fragment (default, null) : Bytes;
 
     public function new(_compiled : Bool, _vertex : Bytes, _fragment : Bytes)
@@ -118,18 +133,20 @@ class ShaderSource
     }
 }
 
-class ShaderLayout
+class ShaderLayout implements Serializable
 {
     /**
      * Name of all the textures used in the fragment shader.
      * Names only really matter in Ogl3 shaders, in others the strings location in the array is used as the binding location.
      * So positioning within this array does matter!
      */
+    @:s
     public var textures (default, null) : Array<String>;
 
     /**
      * All of the UBOs / SSBOs / CBuffers used in this shader.
      */
+    @:s
     public var blocks (default, null) : Array<ShaderBlock>;
 
     public function new(_textures : Array<String>, _blocks : Array<ShaderBlock>)
@@ -139,23 +156,26 @@ class ShaderLayout
     }
 }
 
-class ShaderBlock
+class ShaderBlock implements Serializable
 {
     /**
      * Name of this shader block.
      * A shader block named "defaultMatrices" must have 3 4x4 matrices inside it.
      */
+    @:s
     public var name (default, null) : String;
 
     /**
      * The location this buffer is bound to.
      * Is not used with the Ogl3 backend.
      */
+    @:s
     public var binding (default, null) : Int;
 
     /**
      * All of the values in this block.
      */
+    @:s
     public var values (default, null) : Array<ShaderValue>;
 
     public function new(_name : String, _binding : Int, _values : Array<ShaderValue>)
@@ -166,10 +186,12 @@ class ShaderBlock
     }
 }
 
-class ShaderValue
+class ShaderValue implements Serializable
 {
+    @:s
     public var name (default, null) : String;
 
+    @:s
     public var type (default, null) : ShaderType;
 
     public function new(_name : String, _type : ShaderType)
@@ -179,21 +201,24 @@ class ShaderValue
     }
 }
 
-class ParcelResource
+class ParcelResource implements Serializable
 {
     /**
      * Name of this parcel.
      */
+    @:s
     public var name (default, null) : String;
 
     /**
      * List of the IDs of all assets to be included in this parcel.
      */
+    @:s
     public var assets (default, null) : Array<Resource>;
 
     /**
      * List of parcel names this parcel depends on.
      */
+    @:s
     public var depends (default, null) : Array<String>;
 
     public function new(_name : String, _assets : Array<Resource>, _depends : Array<String>)

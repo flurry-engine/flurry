@@ -1,7 +1,6 @@
 package uk.aidanlee.flurry;
 
 import uk.aidanlee.flurry.api.maths.Vector4;
-import uk.aidanlee.flurry.api.resources.Parcel.ParcelType;
 
 class FlurryConfig
 {
@@ -261,7 +260,7 @@ class FlurryResourceConfig
     /**
      * Any resources placed into this parcel list will be loaded before the Flurry's onReady function is called.
      */
-    public var preload : Null<ParcelType>;
+    public var preload : Null<String>;
 
     /**
      * Create a new resource config with the default settings.

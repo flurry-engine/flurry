@@ -25,6 +25,7 @@
 -lib sys.io.abstractions
 -lib format
 -lib RxHaxe
+-lib hxbit
 
 --macro nullSafety('uk.aidanlee.flurry.modules.differ', Strict)
 --macro nullSafety('uk.aidanlee.flurry.api.resources', Strict)

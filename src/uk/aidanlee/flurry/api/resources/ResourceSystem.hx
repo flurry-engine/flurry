@@ -1,9 +1,8 @@
 package uk.aidanlee.flurry.api.resources;
 
+import hxbit.Serializer;
 import haxe.Exception;
-import haxe.Unserializer;
 import haxe.io.Path;
-import haxe.zip.Uncompress;
 import rx.Subscription;
 import rx.subjects.Behavior;
 import rx.observers.IObserver;
@@ -245,9 +244,8 @@ class ResourceSystem
             return false;
         }
 
-        final bytes  = Uncompress.run(fileSystem.file.getBytes(path));
-        final loader = new Unserializer(bytes.toString());
-        final parcel = (cast loader.unserialize() : ParcelResource);
+        final serializer = new Serializer();
+        final parcel     = serializer.unserialize(fileSystem.file.getBytes(path), ParcelResource);
 
         if (parcel == null)
         {
