@@ -46,17 +46,14 @@ class SystemTests(unittest.TestCase):
 
                 time.sleep(1)
 
-                subprocess.run([ "import", "-window", "System Tests", f"screenshot.png" ], env=myEnv)
+                subprocess.run([ "import", "-window", "System Tests", f"screenshot_{x}.png" ], env=myEnv)
 
                 test_proc.terminate()
                 test_proc.wait()
 
-                imagemagick = subprocess.run([ "convert", "-metric", "ae", f"expected/{x}.png", f"screenshot.png", "-trim", "-compare", "-format", "%[distortion]", "info:" ], stdout=subprocess.PIPE, text=True)
+                imagemagick = subprocess.run([ "convert", "-metric", "ae", f"expected/{x}.png", f"screenshot_{x}.png", "-trim", "-compare", "-format", "%[distortion]", "info:" ], stdout=subprocess.PIPE, text=True)
                 
                 self.assertLessEqual(int(imagemagick.stdout), 10)
-
-        os.remove("build.json")
-        os.remove("screenshot.png")
 
         xvfb_proc.terminate()
         xvfb_proc.wait()

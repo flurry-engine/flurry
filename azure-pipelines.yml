@@ -99,10 +99,9 @@ jobs:
   #     env:
   #       AGENT_OS: $(Agent.OS)
   #   - bash: |
-  #       pip install -U pytest
-  #       pip install -U pytest-subtests
-  #       pip install -U pytest-custom_exit_code
-  #       python -m pytest -o junit_family=xunit2 --junit-xml test-system.xml --suppress-tests-failed-exit-code -s Test.py
+  #       pip3 install -U pytest
+  #       pip3 install -U pytest-subtests
+  #       python3 -m pytest -o junit_family=xunit2 --junit-xml test-system.xml -s Test.py
   #     displayName: System Tests
   #     workingDirectory: $(Build.SourcesDirectory)/tests/system
   #     env:
