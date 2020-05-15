@@ -15,7 +15,7 @@ class ImageSamplers extends Flurry
         _config.window.width  = 768;
         _config.window.height = 512;
 
-        _config.resources.preload = PrePackaged('preload');
+        _config.resources.preload = 'preload';
 
         return _config;
     }
@@ -43,13 +43,13 @@ class ImageSamplers extends Flurry
             sampler  : new SamplerState(Mirror, Mirror, Linear, Linear),
             batchers : [ batcher ],
             x : 256, y : 256, width : 128, height : 128
-        }).uv_xyzw(0, 0, 2, 2);
+        }).uv(0, 0, 2, 2);
 
         new QuadGeometry({
             texture  : resources.get('van', ImageResource),
             sampler  : new SamplerState(Wrap, Wrap, Linear, Linear),
             batchers : [ batcher ],
             x : 384, y : 256, width : 128, height : 128
-        }).uv_xyzw(0, 0, 2, 2);
+        }).uv(0, 0, 2, 2);
     }
 }
