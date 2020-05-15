@@ -12,6 +12,7 @@
     },
     "parcels" : [
         { "name" : "preload.parcel", "assets" : [ "ubuntu", "cavesofgallet" ], "depends" : [ "images.parcel" ] },
-        { "name" : "images.parcel" , "assets" : [ "dots" ], "depends" : [ ] }
+        { "name" : "images.parcel" , "assets" : [ "dots" ], "depends" : [ ] },
+        { "name" : "moreImages.parcel" , "assets" : [ "dots" ], "depends" : [ ] }
     ]
 }

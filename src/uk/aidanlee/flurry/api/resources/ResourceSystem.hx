@@ -15,7 +15,7 @@ import sys.io.abstractions.IFileSystem;
 using Safety;
 using rx.Observable;
 
-class ResourceSystem
+@:nullSafety(Loose) class ResourceSystem
 {
     /**
      * Event bus the resource system can fire events into as and when resources and created and removed.

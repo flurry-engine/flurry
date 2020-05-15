@@ -9,7 +9,6 @@ import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.batcher.BatcherState;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
-import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.resources.Resource;
@@ -25,9 +24,7 @@ class BatcherStateTests extends BuddySuite
     {
         describe('BatcherState', {
             it('can detect changes in the geometries primitive type', {
-                final shader = mock(ShaderResource);
-                shader.id.returns('shader');
-
+                final shader  = shader();
                 final batcher = new Batcher({
                     shader: shader,
                     camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
@@ -51,9 +48,7 @@ class BatcherStateTests extends BuddySuite
             });
 
             it('can detect when geometries data changes between indexed and unindexed', {
-                final shader = mock(ShaderResource);
-                shader.id.returns('shader');
-
+                final shader  = shader();
                 final batcher = new Batcher({
                     shader: shader,
                     camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
@@ -80,9 +75,7 @@ class BatcherStateTests extends BuddySuite
                 final blend1 = new BlendState(false);
                 final blend2 = new BlendState(true, One, Zero, OneMinusDstColor, SrcAlphaSaturate);
 
-                final shader = mock(ShaderResource);
-                shader.id.returns('shader');
-
+                final shader  = shader();
                 final batcher = new Batcher({
                     shader: shader,
                     camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
@@ -109,11 +102,8 @@ class BatcherStateTests extends BuddySuite
 
             describe('shader changing', {
                 it('can detect changes when one geometry provides a shader and the other provides none', {
-                    final shader1 = mock(ShaderResource);
-                    shader1.id.returns('shader1');
-    
-                    final shader2 = mock(ShaderResource);
-                    shader2.id.returns('shader2');
+                    final shader1 = shader('shader1');
+                    final shader2 = shader('shader2');
     
                     final batcher = new Batcher({
                         shader: shader1,
@@ -134,14 +124,9 @@ class BatcherStateTests extends BuddySuite
                     state.shader.should.be(shader2);
                 });
                 it('can detect changes when both geometries provide different shaders', {
-                    final shader1 = mock(ShaderResource);
-                    shader1.id.returns('shader1');
-    
-                    final shader2 = mock(ShaderResource);
-                    shader2.id.returns('shader2');
-
-                    final shader3 = mock(ShaderResource);
-                    shader3.id.returns('shader3');
+                    final shader1 = shader('shader1');
+                    final shader2 = shader('shader2');
+                    final shader3 = shader('shader3');
     
                     final batcher = new Batcher({
                         shader: shader1,
@@ -166,11 +151,8 @@ class BatcherStateTests extends BuddySuite
             describe('uniform changing', {
                 it('can detect changes when one geometry provides uniforms and the other provides none', {
                     final uniforms = mock(UniformBlob);
-
-                    final shader = mock(ShaderResource);
-                    shader.id.returns('shader');
-
-                    final batcher = new Batcher({
+                    final shader   = shader();
+                    final batcher  = new Batcher({
                         shader: shader,
                         camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
                     });
@@ -190,11 +172,8 @@ class BatcherStateTests extends BuddySuite
                 });
                 it('can detect changes when geometries provide different number of uniforms', {
                     final uniforms = mock(UniformBlob);
-
-                    final shader = mock(ShaderResource);
-                    shader.id.returns('shader');
-
-                    final batcher = new Batcher({
+                    final shader   = shader();
+                    final batcher  = new Batcher({
                         shader: shader,
                         camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
                     });
@@ -219,9 +198,7 @@ class BatcherStateTests extends BuddySuite
                     final uniforms2 = mock(UniformBlob);
                     uniforms2.id.returns(0);
 
-                    final shader = mock(ShaderResource);
-                    shader.id.returns('shader');
-
+                    final shader  = shader();
                     final batcher = new Batcher({
                         shader: shader,
                         camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
@@ -246,9 +223,7 @@ class BatcherStateTests extends BuddySuite
                 it('can detect changes when one geometry provides textures and the other provides none', {
                     final texture = new ImageResource('', 0, 0, haxe.io.Bytes.alloc(0));
 
-                    final shader = mock(ShaderResource);
-                    shader.id.returns('shader');
-
+                    final shader  = shader();
                     final batcher = new Batcher({
                         shader: shader,
                         camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
@@ -270,9 +245,7 @@ class BatcherStateTests extends BuddySuite
                 it('can detect changes when geometries provide different number of textures', {
                     final texture = new ImageResource('', 0, 0, haxe.io.Bytes.alloc(0));
 
-                    final shader = mock(ShaderResource);
-                    shader.id.returns('shader');
-
+                    final shader  = shader();
                     final batcher = new Batcher({
                         shader: shader,
                         camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
@@ -295,9 +268,7 @@ class BatcherStateTests extends BuddySuite
                     final texture1 = new ImageResource('texture1', 0, 0, haxe.io.Bytes.alloc(0));
                     final texture2 = new ImageResource('texture2', 0, 0, haxe.io.Bytes.alloc(0));
 
-                    final shader = mock(ShaderResource);
-                    shader.id.returns('shader');
-
+                    final shader  = shader();
                     final batcher = new Batcher({
                         shader: shader,
                         camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
@@ -322,9 +293,7 @@ class BatcherStateTests extends BuddySuite
                 it('can detect changes when one geometry provides samplers and the other provides none', {
                     final sampler = new SamplerState(Border, Border, Linear, Linear);
 
-                    final shader = mock(ShaderResource);
-                    shader.id.returns('shader');
-
+                    final shader  = shader();
                     final batcher = new Batcher({
                         shader: shader,
                         camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
@@ -346,9 +315,7 @@ class BatcherStateTests extends BuddySuite
                 it('can detect changes when geometries provide different number of samplers', {
                     final sampler = new SamplerState(Border, Border, Linear, Linear);
 
-                    final shader = mock(ShaderResource);
-                    shader.id.returns('shader');
-
+                    final shader  = shader();
                     final batcher = new Batcher({
                         shader: shader,
                         camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
@@ -371,9 +338,7 @@ class BatcherStateTests extends BuddySuite
                     final sampler1 = new SamplerState(Border, Border, Linear, Linear);
                     final sampler2 = new SamplerState(Border, Border, Linear, Linear);
 
-                    final shader = mock(ShaderResource);
-                    shader.id.returns('shader');
-
+                    final shader  = shader();
                     final batcher = new Batcher({
                         shader: shader,
                         camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
@@ -399,9 +364,7 @@ class BatcherStateTests extends BuddySuite
                     final clipNone = ClipState.None;
                     final clipRect = Clip(32, 48, 128, 64);
 
-                    final shader = mock(ShaderResource);
-                    shader.id.returns('shader');
-
+                    final shader  = shader();
                     final batcher = new Batcher({
                         shader: shader,
                         camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
@@ -424,9 +387,7 @@ class BatcherStateTests extends BuddySuite
                     final clip1 = Clip(32, 48, 128, 64);
                     final clip2 = Clip(16,  8, 48, 96);
 
-                    final shader = mock(ShaderResource);
-                    shader.id.returns('shader');
-
+                    final shader  = shader();
                     final batcher = new Batcher({
                         shader: shader,
                         camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
@@ -449,9 +410,7 @@ class BatcherStateTests extends BuddySuite
                     final clip1 = Clip(32, 48, 128, 64);
                     final clip2 = Clip(32, 48, 128, 64);
 
-                    final shader = mock(ShaderResource);
-                    shader.id.returns('shader');
-
+                    final shader  = shader();
                     final batcher = new Batcher({
                         shader: shader,
                         camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
@@ -469,5 +428,10 @@ class BatcherStateTests extends BuddySuite
                 });
             });
         });
+    }
+
+    function shader(_name : String = 'shader') : ShaderResource
+    {
+        return new ShaderResource(_name, new ShaderLayout([], []), null, null, null);
     }
 }

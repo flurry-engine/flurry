@@ -6,6 +6,7 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import mockatoo.Mockatoo.*;
 import buddy.BuddySuite;
@@ -22,7 +23,7 @@ class QuadGeometryTests extends BuddySuite
                 final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : mock(ShaderResource)
+                    shader : shader()
                 });
 
                 final quad = new QuadGeometry({
@@ -54,7 +55,7 @@ class QuadGeometryTests extends BuddySuite
                 final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : mock(ShaderResource)
+                    shader : shader()
                 });
 
                 final quad = new QuadGeometry({
@@ -72,7 +73,7 @@ class QuadGeometryTests extends BuddySuite
                 final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : mock(ShaderResource)
+                    shader : shader()
                 });
 
                 final width  = 128;
@@ -116,7 +117,7 @@ class QuadGeometryTests extends BuddySuite
                 final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : mock(ShaderResource)
+                    shader : shader()
                 });
 
                 final quad = new QuadGeometry({
@@ -155,7 +156,7 @@ class QuadGeometryTests extends BuddySuite
                 final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : mock(ShaderResource)
+                    shader : shader()
                 });
 
                 final region = new ImageRegion(texture, 16, 48, 32, 64);
@@ -199,7 +200,7 @@ class QuadGeometryTests extends BuddySuite
                 final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : mock(ShaderResource)
+                    shader : shader()
                 });
 
                 final quad = new QuadGeometry({
@@ -245,7 +246,7 @@ class QuadGeometryTests extends BuddySuite
                 final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : mock(ShaderResource)
+                    shader : shader()
                 });
 
                 final quad = new QuadGeometry({
@@ -294,7 +295,7 @@ class QuadGeometryTests extends BuddySuite
                 final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : mock(ShaderResource)
+                    shader : shader()
                 });
 
                 final quad = new QuadGeometry({
@@ -340,7 +341,7 @@ class QuadGeometryTests extends BuddySuite
                 final texture = new ImageResource('', 256, 128, Bytes.alloc(0));
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : mock(ShaderResource)
+                    shader : shader()
                 });
 
                 final quad = new QuadGeometry({
@@ -377,5 +378,10 @@ class QuadGeometryTests extends BuddySuite
                 }
             });
         });
+    }
+
+    function shader() : ShaderResource
+    {
+        return new ShaderResource('shader', new ShaderLayout([], []), null, null, null);
     }
 }

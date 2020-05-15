@@ -11,13 +11,13 @@ import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import buddy.BuddySuite;
 import mockatoo.Mockatoo.*;
 
 using buddy.Should;
 using rx.Observable;
-using mockatoo.Mockatoo;
 
 class GeometryTests extends BuddySuite
 {
@@ -77,7 +77,7 @@ class GeometryTests extends BuddySuite
             });
 
             it('Has a shader for overriding the batchers shader', {
-                final shader    = Shader(mock(ShaderResource));
+                final shader    = Shader(shader());
                 final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                 final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), shader : shader });
 
@@ -129,7 +129,7 @@ class GeometryTests extends BuddySuite
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                     geometry.changed.subscribeFunction(_ -> count++);
 
-                    geometry.shader = Shader(mock(ShaderResource));
+                    geometry.shader = Shader(shader());
                     count.should.be(1);
 
                     geometry.shader = None;
@@ -206,5 +206,10 @@ class GeometryTests extends BuddySuite
                 });
             });
         });
+    }
+
+    function shader() : ShaderResource
+    {
+        return new ShaderResource('shader', new ShaderLayout([], []), null, null, null);
     }
 }
