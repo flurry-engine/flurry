@@ -30,30 +30,30 @@ package uk.aidanlee.flurry.api.maths;
  */
 class Random
 {
-    final mt : haxe.ds.Vector<Int>;
+    final mt : Array<Int>;
 
     var index : Int;
 
-	public function new(seed : Int): Void
+	public function new(_seed : Int)
     {
         index = 0;
-		mt    = new haxe.ds.Vector<Int>(624);
+		mt    = [];
 
-		mt[0] = seed;
+		mt.push(_seed);
 		for (i in 1...624)
         {
-            mt[i] = 0x6c078965 * (mt[i - 1] ^ (mt[i - 1] >> 30)) + i;
+            mt.push(0x6c078965 * (mt[i - 1] ^ (mt[i - 1] >> 30)) + i);
         }
 	}
 	
-	public function get(): Int
+	public function get() : Int
     {
 		if (index == 0)
         {
             generateNumbers();
         }
 
-		var y: Int = mt[index];
+		var y = mt[index];
 		y = y ^ (y >> 11);
 		y = y ^ ((y << 7) & (0x9d2c5680));
 		y = y ^ ((y << 15) & (0xefc60000));
@@ -69,19 +69,19 @@ class Random
 		return get() / 0x7ffffffe;
 	}
 	
-	public function getUpTo(max : Int) : Int
+	public function getUpTo(_max : Int) : Int
     {
-		return get() % (max + 1);
+		return get() % (_max + 1);
 	}
 	
-	public function getIn(min : Int, max : Int) : Int
+	public function getIn(_min : Int, _max : Int) : Int
     {
-		return get() % (max + 1 - min) + min;
+		return get() % (_max + 1 - _min) + _min;
 	}
 	
-	public function getFloatIn(min : Float, max : Float) : Float
+	public function getFloatIn(_min : Float, _max : Float) : Float
     {
-		return min + getFloat() * (max - min);
+		return _min + getFloat() * (_max - _min);
 	}
 	
 	private function generateNumbers(): Void

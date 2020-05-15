@@ -1,5 +1,6 @@
 package tests.api.resources;
 
+import haxe.Exception;
 import sys.io.File;
 import haxe.io.Bytes;
 import buddy.SingleSuite;
@@ -228,7 +229,17 @@ class ResourceSystemTests extends SingleSuite
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 
                 system.load('images.parcel');
-                system.get.bind('dots', BytesResource).should.throwType(InvalidResourceTypeException);
+
+                // This try catch is needed for hashlink.
+                // if we try and bind and use buddys exception catching we get a compile error about not knowing how to cast.
+                try
+                {
+                    system.get('dots', BytesResource);
+                }
+                catch (e : Exception)
+                {
+                    e.should.beType(InvalidResourceTypeException);
+                }
             });
 
             it('contains a callback for when the parcel has finished loading', {
