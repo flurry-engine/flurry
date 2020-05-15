@@ -4,8 +4,3 @@ build.hxml
 -D js-es=6
 
 --js bin/js/main.js
-
-#--macro nullSafety('uk.aidanlee.flurry.modules.differ', Loose)
---macro nullSafety('uk.aidanlee.flurry.api.resources', Loose)
---macro nullSafety('uk.aidanlee.flurry.api.maths', Loose)
---macro Safety.safeNavigation('uk.aidanlee.flurry')
