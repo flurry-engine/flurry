@@ -88,30 +88,33 @@ jobs:
         testRunTitle: Engine Tests Hashlink
         buildPlatform: Hashlink
         failTaskOnFailedTests: true
-  # - job: SystemTestsOgl3
-  #   displayName: System Tests (OpenGL 3 Backend)
-  #   dependsOn: UnitTests
-  #   pool: default
-  #   steps:
-  #   - bash: ci/install.sh
-  #     displayName: Install Dependencies
-  #     workingDirectory: $(Build.SourcesDirectory)
-  #     env:
-  #       AGENT_OS: $(Agent.OS)
-  #   - bash: |
-  #       pip3 install -U pytest
-  #       pip3 install -U pytest-subtests
-  #       python3 -m pytest -o junit_family=xunit2 --junit-xml test-system.xml -s Test.py
-  #     displayName: System Tests
-  #     workingDirectory: $(Build.SourcesDirectory)/tests/system
-  #     env:
-  #       AGENT_OS: $(Agent.OS)
-  #   - task: PublishTestResults@2
-  #     condition: succeededOrFailed()
-  #     inputs:
-  #       testResultsFormat: JUnit
-  #       testResultsFiles: test-system.xml
-  #       searchFolder: $(Build.SourcesDirectory)/tests/system
-  #       testRunTitle: System Tests $(Agent.OS)
-  #       buildPlatform: $(Agent.OS)
-  #       failTaskOnFailedTests: true
+  - job: SystemTestsOgl3
+    displayName: System Tests (OpenGL 3 Backend)
+    dependsOn: UnitTests
+    pool:
+      name: Default
+      demands:
+        - Agent.OS -equals Linux
+    steps:
+    - bash: ci/install.sh
+      displayName: Install Dependencies
+      workingDirectory: $(Build.SourcesDirectory)
+      env:
+        AGENT_OS: $(Agent.OS)
+    - bash: |
+        pip3 install -U pytest
+        pip3 install -U pytest-subtests
+        python3 -m pytest -o junit_family=xunit2 --junit-xml test-system.xml -s Test.py
+      displayName: System Tests
+      workingDirectory: $(Build.SourcesDirectory)/tests/system
+      env:
+        AGENT_OS: $(Agent.OS)
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: JUnit
+        testResultsFiles: test-system.xml
+        searchFolder: $(Build.SourcesDirectory)/tests/system
+        testRunTitle: System Tests $(Agent.OS)
+        buildPlatform: $(Agent.OS)
+        failTaskOnFailedTests: true

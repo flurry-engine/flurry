@@ -28,8 +28,6 @@ class SystemTests(unittest.TestCase):
         myEnv = os.environ.copy()
         myEnv["DISPLAY"]=":99"
 
-        time.sleep(3)
-
         for x in test_cases:
             with self.subTest(x, x=x):
                 templateHandle=open("template.json", "r")
@@ -44,7 +42,7 @@ class SystemTests(unittest.TestCase):
 
                 test_proc=subprocess.Popen([ "bin/linux-x64/SystemTests" ], env=myEnv)
 
-                time.sleep(1)
+                time.sleep(2)
 
                 subprocess.run([ "import", "-window", "System Tests", f"screenshot_{x}.png" ], env=myEnv)
 
