@@ -90,7 +90,6 @@ jobs:
         failTaskOnFailedTests: true
   - job: SystemTestsOgl3
     displayName: System Tests (OpenGL 3 Backend)
-    dependsOn: UnitTests
     pool:
       name: Default
       demands:
