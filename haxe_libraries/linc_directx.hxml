@@ -1,6 +1,5 @@
 -D linc_directx=0.0.0
 # @install: lix --silent download "gh://github.com/aidan63/linc_directx#0dc3af0134b8a5e9208bbb2911576acda94c9ace" into linc_directx/0.0.0/github/0dc3af0134b8a5e9208bbb2911576acda94c9ace
--lib exception
 -lib hxcpp
 -lib linc_sdl
 -lib safety
