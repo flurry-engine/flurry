@@ -15,7 +15,7 @@ import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Transformation;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 
 using Safety;
@@ -55,7 +55,7 @@ enum GeometryUniforms
 enum GeometryTextures
 {
     None;
-    Textures(_textures : ReadOnlyArray<ImageResource>);
+    Textures(_textures : ReadOnlyArray<ImageFrameResource>);
 }
 
 enum GeometrySamplers

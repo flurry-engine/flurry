@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import haxe.ds.ReadOnlyArray;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
@@ -32,7 +33,7 @@ class BatcherState
     /**
      * The textures currently active in this batcher.
      */
-    public var textures (default, null) : Array<ImageResource>;
+    public var textures (default, null) : Array<ImageFrameResource>;
 
     /**
      * The samplers currently active in this batcher.

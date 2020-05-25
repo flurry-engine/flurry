@@ -3,7 +3,7 @@ package;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
@@ -156,7 +156,7 @@ class StencilTesting extends Flurry
     {
         return new Geometry({
             batchers : [ _batcher ],
-            textures : Textures([ resources.get('wood', ImageResource) ]),
+            textures : Textures([ resources.get('wood', ImageFrameResource) ]),
             data     : _data
         });
     }

@@ -2,7 +2,7 @@ package;
 
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import uk.aidanlee.flurry.api.resources.Resource.TextResource;
 import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontParser;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.TextGeometry;
@@ -29,7 +29,7 @@ class Text extends Flurry
 
         new TextGeometry({
             batchers : [ batcher ],
-            texture  : resources.get('ubuntu.png', ImageResource),
+            texture  : resources.get('ubuntu', ImageFrameResource),
             font     : font,
             text     : 'hello world',
             x : 32, y : 32
@@ -37,7 +37,7 @@ class Text extends Flurry
 
         new TextGeometry({
             batchers : [ batcher ],
-            texture  : resources.get('ubuntu.png', ImageResource),
+            texture  : resources.get('ubuntu', ImageFrameResource),
             font     : font,
             text     : 'Lorem ipsum',
             x : 32, y : 48

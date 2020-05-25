@@ -5,7 +5,7 @@ import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 
 class ShaderUniforms extends Flurry
@@ -40,7 +40,7 @@ class ShaderUniforms extends Flurry
         final batcher = renderer.createBatcher({ shader : shader, camera : camera });
 
         new QuadGeometry({
-            texture  : resources.get('tank1', ImageResource),
+            texture  : resources.get('tank1', ImageFrameResource),
             batchers : [ batcher ],
             shader   : Shader(shader),
             uniforms : Uniforms([ u1 ]),
@@ -48,7 +48,7 @@ class ShaderUniforms extends Flurry
         }).position.set_xy(  0, 128);
 
         new QuadGeometry({
-            texture  : resources.get('tank2', ImageResource),
+            texture  : resources.get('tank2', ImageFrameResource),
             batchers : [ batcher ],
             shader   : Shader(shader),
             uniforms : Uniforms([ u2 ]),
@@ -56,7 +56,7 @@ class ShaderUniforms extends Flurry
         });
 
         new QuadGeometry({
-            texture  : resources.get('tank3', ImageResource),
+            texture  : resources.get('tank3', ImageFrameResource),
             batchers : [ batcher ],
             shader   : Shader(shader),
             uniforms : Uniforms([ u3 ]),

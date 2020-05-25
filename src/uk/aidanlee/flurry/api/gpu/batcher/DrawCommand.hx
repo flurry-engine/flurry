@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import haxe.ds.ReadOnlyArray;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
@@ -58,7 +59,7 @@ class DrawCommand
     /**
      * Textures to be used with this draw command.
      */
-    public final textures : ReadOnlyArray<ImageResource>;
+    public final textures : ReadOnlyArray<ImageFrameResource>;
 
     /**
      * Samples to be used with this draw command.
@@ -90,7 +91,7 @@ class DrawCommand
         _target     : TargetState,
         _shader     : ShaderResource,
         _uniforms   : ReadOnlyArray<UniformBlob>,
-        _textures   : ReadOnlyArray<ImageResource>,
+        _textures   : ReadOnlyArray<ImageFrameResource>,
         _samplers   : ReadOnlyArray<SamplerState>,
         _depth      : DepthState,
         _stencil    : StencilState,

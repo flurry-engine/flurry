@@ -5,7 +5,7 @@ import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
 
@@ -99,7 +99,7 @@ class DepthTesting extends Flurry
 
         final cubes = [ for (_ in 0...10) new Geometry({
             batchers : [ batcher ],
-            textures : Textures([ resources.get('wood', ImageResource) ]),
+            textures : Textures([ resources.get('wood', ImageFrameResource) ]),
             data     : cube
         }) ];
 

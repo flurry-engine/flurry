@@ -4,7 +4,7 @@ import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontData;
@@ -15,7 +15,7 @@ using Safety;
 typedef TextGeometryOptions = {
     var font : BitmapFontData;
     var text : String;
-    var texture : ImageResource;
+    var texture : ImageFrameResource;
     var ?sampler : SamplerState;
     var ?shader : GeometryShader;
     var ?uniforms : GeometryUniforms;
@@ -64,7 +64,7 @@ class TextGeometry extends Geometry
         return text;
     }
 
-    final fontTexture : ImageResource;
+    final fontTexture : ImageFrameResource;
 
     var ignore = true;
 

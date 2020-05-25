@@ -1330,7 +1330,7 @@ class DX11Backend implements IRendererBackend
         }
     }
 
-    function updateTextures(_expectedTextures : Int, _textures : ReadOnlyArray<ImageResource>, _samplers : ReadOnlyArray<SamplerState>)
+    function updateTextures(_expectedTextures : Int, _textures : ReadOnlyArray<ImageFrameResource>, _samplers : ReadOnlyArray<SamplerState>)
     {
         // If the shader description specifies more textures than the command provides throw an exception.
         // If less is specified than provided we just ignore the extra, maybe we should throw as well?
@@ -1342,7 +1342,7 @@ class DX11Backend implements IRendererBackend
             // then go through each texture and bind it if it isn't already.
             for (i in 0..._textures.length)
             {
-                var texture = textureResources.get(_textures[i].id);
+                var texture = textureResources.get(_textures[i].image);
                 var sampler = defaultSampler;
                 if (i < _samplers.length)
                 {
