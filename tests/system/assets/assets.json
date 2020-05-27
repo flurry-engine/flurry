@@ -1,15 +1,18 @@
 {
     "assets" : {
         "bytes"  : [],
-        "texts"  : [
-            { "id" : "ubuntu.fnt", "path" : "assets/fonts/ubuntu.fnt" }
+        "texts"  : [],
+        "fonts"  : [
+            { "id" : "ubuntu", "path" : "assets/fonts/Ubuntu.ttf" }
+        ],
+        "sheets" : [
+            { "id" : "unnamed", "path" : "assets/sheets/unnamed.atlas" }
         ],
         "images" : [
             { "id" : "tank1"      , "path" : "assets/images/tank1.png" },
             { "id" : "tank2"      , "path" : "assets/images/tank2.png" },
             { "id" : "tank3"      , "path" : "assets/images/tank3.png" },
             { "id" : "wood"       , "path" : "assets/images/wood.png"  },
-            { "id" : "ubuntu.png" , "path" : "assets/fonts/ubuntu.png" },
             { "id" : "van"        , "path" : "assets/images/van.png"   }
         ],
         "shaders" : [
@@ -37,7 +40,7 @@
         ]
     },
     "parcels" : [
-        { "name" : "preload", "assets" : [ "tank1", "tank2", "tank3", "wood", "ubuntu.fnt", "ubuntu.png", "van" ], "depends" : [ "shaders" ] },
+        { "name" : "preload", "assets" : [ "tank1", "tank2", "tank3", "wood", "van", "unnamed", "ubuntu" ], "depends" : [ "shaders" ] },
         { "name" : "shaders", "assets" : [ "textured", "colourise", "purple" ], "depends" : [] }
     ]
 }

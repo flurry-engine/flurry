@@ -40,7 +40,7 @@ class RenderTarget extends Flurry
 
         // Drawn to target
         new QuadGeometry({
-            texture  : resources.get('tank3', ImageFrameResource),
+            texture  : resources.get('scifiUnit_12', ImageFrameResource),
             batchers : [ batcher2 ],
             x : 0, y : 0, width : 256, height : 256
         });
@@ -52,7 +52,7 @@ class RenderTarget extends Flurry
             x : 0, y : 128, width : 256, height : 256
         });
         new QuadGeometry({
-            texture  : resources.get('tank2', ImageFrameResource),
+            texture  : resources.get('scifiUnit_18', ImageFrameResource),
             batchers : [ batcher1 ],
             x : 256, y : 128, width : 256, height : 256
         });

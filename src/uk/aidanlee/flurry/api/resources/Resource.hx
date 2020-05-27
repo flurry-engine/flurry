@@ -14,6 +14,7 @@ enum ResourceType
 {
     Bytes;
     Text;
+    Font;
     Image;
     ImageSheet;
     ImageFrame;
@@ -156,6 +157,70 @@ class ImageFrameResource extends Resource
         v1     = _v1;
         u2     = _u2;
         v2     = _v2;
+    }
+}
+
+class FontResource extends ImageFrameResource
+{
+    @:s public var characters : Map<Int, Character>;
+
+    public function new(_id : String, _image : String, _characters : Map<Int, Character>, _x : Int, _y : Int, _width : Int, _height : Int, _u1 : Float, _v1 : Float, _u2 : Float, _v2 : Float)
+    {
+        super(_id, _image, _x, _y, _width, _height, _u1, _v1, _u2, _v2);
+
+        type       = Font;
+        characters = _characters;
+    }
+}
+
+class Character implements Serializable
+{
+    @:s public var x : Float;
+
+    @:s public var y : Float;
+
+    @:s public var width : Float;
+
+    @:s public var height : Float;
+
+    @:s public var xOffset : Float;
+
+    @:s public var yOffset : Float;
+
+    @:s public var xAdvance : Float;
+
+    @:s public var u1 : Float;
+
+    @:s public var v1 : Float;
+
+    @:s public var u2 : Float;
+
+    @:s public var v2 : Float;
+
+    public function new(
+        _x : Float,
+        _y : Float,
+        _width : Float,
+        _height : Float,
+        _xOffset : Float,
+        _yOffset : Float,
+        _xAdvance : Float,
+        _u1 : Float,
+        _v1 : Float,
+        _u2 : Float,
+        _v2 : Float)
+    {
+        x        = _x;
+        y        = _y;
+        width    = _width;
+        height   = _height;
+        xOffset  = _xOffset;
+        yOffset  = _yOffset;
+        xAdvance = _xAdvance;
+        u1       = _u1;
+        v1       = _v1;
+        u2       = _u2;
+        v2       = _v2;
     }
 }
 

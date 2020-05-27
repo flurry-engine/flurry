@@ -1,0 +1,9 @@
+# @install: lix --silent download "gh://github.com/flurry-engine/flurry#e0aed40f9f986cfed933b67efb9333f90cb365f0" into flurry/0.0.1/github/e0aed40f9f986cfed933b67efb9333f90cb365f0
+-lib RxHaxe
+-lib format
+-lib haxe-concurrent
+-lib safety
+-lib sys.io.abstractions
+-lib hxbit
+-cp D:/projects/flurry/flurry/src
+-D flurry=0.0.1
