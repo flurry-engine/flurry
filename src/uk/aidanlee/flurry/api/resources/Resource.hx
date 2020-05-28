@@ -16,7 +16,6 @@ enum ResourceType
     Text;
     Font;
     Image;
-    ImageSheet;
     ImageFrame;
     Shader;
     Custom(_name : String);
@@ -88,36 +87,6 @@ class ImageResource extends Resource
         width  = _width;
         height = _height;
         pixels = _pixels;
-    }
-}
-
-class ImageSheetResource extends Resource
-{
-    /**
-     * Unique ID of the `ImageResource` all of the frames are contained within.
-     */
-    @:s public var image (default, null) : String;
-
-    @:s public var x (default, null) : Int;
-
-    @:s public var y (default, null) : Int;
-
-    @:s public var width (default, null) : Int;
-
-    @:s public var height (default, null) : Int;
-
-    @:s public var frames (default, null) : Map<String, ImageFrameResource>;
-
-    public function new(_id : String, _image : String, _x : Int, _y : Int, _width : Int, _height : Int, _frames : Map<String, ImageFrameResource>)
-    {
-        super(ImageSheet, _id);
-
-        image  = _image;
-        x      = _x;
-        y      = _y;
-        width  = _width;
-        height = _height;
-        frames = _frames;
     }
 }
 
