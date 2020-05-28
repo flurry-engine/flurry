@@ -6,7 +6,7 @@ if [ $AGENT_OS == 'Linux' ]; then
 fi
 
 # Download libgdx texture packer
-curl -o runnable-texturepacker.jar https://libgdx.badlogicgames.com/nightlies/runnables/runnable-texturepacker.jar
+curl -L -O https://libgdx.badlogicgames.com/nightlies/runnables/runnable-texturepacker.jar
 
 # Install lix and download flurry dependencies
 npm ci
