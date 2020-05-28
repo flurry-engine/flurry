@@ -13,10 +13,6 @@
 -L hxbit
 -L RxHaxe
 
--r assets/atlas/cavesofgallet.atlas@atlas-data
--r assets/fonts/ubuntu.fnt@font-data
--r assets/images/dots.png@dots-data
-
 --dce full
 
 --no-inline

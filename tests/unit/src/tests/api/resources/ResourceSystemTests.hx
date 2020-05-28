@@ -41,13 +41,11 @@ class ResourceSystemTests extends SingleSuite
             });
 
             it('can load a pre-packaged parcels resources', {
-                final files  = [
-                    'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel'))
-                ];
+                final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel')) ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 system.load('images.parcel');
 
-                final res = system.get('dots', ImageResource);
+                final res = system.get('dots', ImageFrameResource);
                 res.id.should.be('dots');
                 res.width.should.be(2);
                 res.height.should.be(2);
@@ -61,9 +59,8 @@ class ResourceSystemTests extends SingleSuite
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 system.load('preload.parcel');
 
-                system.get('dots'         , ImageResource).should.beType(ImageResource);
-                system.get('ubuntu'       , TextResource).should.beType(TextResource);
-                system.get('cavesofgallet', TextResource).should.beType(TextResource);
+                system.get('dots', ImageFrameResource).should.beType(ImageFrameResource);
+                system.get('text', TextResource).should.beType(TextResource);
             });
 
             it('fires events for when images and shaders are added', {
@@ -145,9 +142,7 @@ class ResourceSystemTests extends SingleSuite
             });
 
             it('can remove a parcels resources from the system', {
-                final files  = [
-                    'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel'))
-                ];
+                final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel')) ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 system.load('images.parcel');
                 system.free('images.parcel');
@@ -178,7 +173,7 @@ class ResourceSystemTests extends SingleSuite
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
 
                 system.load('images.parcel');
-                system.get('dots', ImageResource).should.beType(ImageResource);
+                system.get('dots', ImageFrameResource).should.beType(ImageFrameResource);
                 system.free('images.parcel');
 
                 system.get.bind('dots', Resource).should.throwType(ResourceNotFoundException);
@@ -192,15 +187,13 @@ class ResourceSystemTests extends SingleSuite
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 system.load('preload.parcel');
 
-                system.get('ubuntu'       , TextResource).should.beType(TextResource);
-                system.get('cavesofgallet', TextResource).should.beType(TextResource);
-                system.get('dots'         , ImageResource).should.beType(ImageResource);
+                system.get('text', TextResource).should.beType(TextResource);
+                system.get('dots', ImageFrameResource).should.beType(ImageFrameResource);
 
                 system.free('preload.parcel');
 
-                system.get.bind('ubuntu'       , Resource).should.throwType(ResourceNotFoundException);
-                system.get.bind('cavesofgallet', Resource).should.throwType(ResourceNotFoundException);
-                system.get.bind('dots'         , Resource).should.throwType(ResourceNotFoundException);
+                system.get.bind('text', Resource).should.throwType(ResourceNotFoundException);
+                system.get.bind('dots', Resource).should.throwType(ResourceNotFoundException);
             });
 
             it('will throw an exception trying to fetch a resource which does not exist', {

@@ -221,7 +221,7 @@ class BatcherStateTests extends BuddySuite
 
             describe('texture changing', {
                 it('can detect changes when one geometry provides textures and the other provides none', {
-                    final texture = new ImageResource('', 0, 0, haxe.io.Bytes.alloc(0));
+                    final texture = new ImageFrameResource('', '', 0, 0, 0, 0, 0, 0, 0, 0);
 
                     final shader  = shader();
                     final batcher = new Batcher({
@@ -234,16 +234,16 @@ class BatcherStateTests extends BuddySuite
                     final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), textures : Textures([ texture ]) });
 
                     state.change(geometry1);
-                    (cast state.textures : Array<ImageResource>).should.containExactly([ ]);
+                    (cast state.textures : Array<ImageFrameResource>).should.containExactly([ ]);
     
                     state.requiresChange(geometry1).should.be(false);
                     state.requiresChange(geometry2).should.be(true);
     
                     state.change(geometry2);
-                    (cast state.textures : Array<ImageResource>).should.containExactly([ texture ]);
+                    (cast state.textures : Array<ImageFrameResource>).should.containExactly([ texture ]);
                 });
                 it('can detect changes when geometries provide different number of textures', {
-                    final texture = new ImageResource('', 0, 0, haxe.io.Bytes.alloc(0));
+                    final texture = new ImageFrameResource('', '', 0, 0, 0, 0, 0, 0, 0, 0);
 
                     final shader  = shader();
                     final batcher = new Batcher({
@@ -256,17 +256,17 @@ class BatcherStateTests extends BuddySuite
                     final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), textures : Textures([ texture, texture ]) });
 
                     state.change(geometry1);
-                    (cast state.textures : Array<ImageResource>).should.containExactly([ texture ]);
+                    (cast state.textures : Array<ImageFrameResource>).should.containExactly([ texture ]);
     
                     state.requiresChange(geometry1).should.be(false);
                     state.requiresChange(geometry2).should.be(true);
     
                     state.change(geometry2);
-                    (cast state.textures : Array<ImageResource>).should.containExactly([ texture, texture ]);
+                    (cast state.textures : Array<ImageFrameResource>).should.containExactly([ texture, texture ]);
                 });
                 it ('can detect changes when geometries provide the same number of textures but are different objects', {
-                    final texture1 = new ImageResource('texture1', 0, 0, haxe.io.Bytes.alloc(0));
-                    final texture2 = new ImageResource('texture2', 0, 0, haxe.io.Bytes.alloc(0));
+                    final texture1 = new ImageFrameResource('t1', '', 0, 0, 0, 0, 0, 0, 0, 0);
+                    final texture2 = new ImageFrameResource('t2', '', 0, 0, 0, 0, 0, 0, 0, 0);
 
                     final shader  = shader();
                     final batcher = new Batcher({
@@ -279,13 +279,13 @@ class BatcherStateTests extends BuddySuite
                     final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), textures : Textures([ texture2 ]) });
 
                     state.change(geometry1);
-                    (cast state.textures : Array<ImageResource>).should.containExactly([ texture1 ]);
+                    (cast state.textures : Array<ImageFrameResource>).should.containExactly([ texture1 ]);
     
                     state.requiresChange(geometry1).should.be(false);
                     state.requiresChange(geometry2).should.be(true);
     
                     state.change(geometry2);
-                    (cast state.textures : Array<ImageResource>).should.containExactly([ texture2 ]);
+                    (cast state.textures : Array<ImageFrameResource>).should.containExactly([ texture2 ]);
                 });
             });
 

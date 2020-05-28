@@ -1,18 +1,19 @@
 {
     "assets" : {
         "bytes"   : [],
-        "shaders" : [],
         "texts"   : [
-            { "id" : "ubuntu"       , "path" : "assets/fonts/ubuntu.fnt" },
-            { "id" : "cavesofgallet", "path" : "assets/atlas/cavesofgallet.atlas" }
+            { "id" : "text", "path" : "assets/text.txt" }
         ],
+        "fonts"   : [],
+        "shaders" : [],
+        "sheets"  : [],
         "images"  : [
-            { "id" : "dots", "path" : "assets/images/dots.png" }
+            { "id" : "dots", "path" : "assets/dots.png" }
         ]
     },
     "parcels" : [
-        { "name" : "preload.parcel", "assets" : [ "ubuntu", "cavesofgallet" ], "depends" : [ "images.parcel" ] },
-        { "name" : "images.parcel" , "assets" : [ "dots" ], "depends" : [ ] },
-        { "name" : "moreImages.parcel" , "assets" : [ "dots" ], "depends" : [ ] }
+        { "name" : "preload.parcel", "texts" : [ "text" ], "depends" : [ "images.parcel" ] },
+        { "name" : "images.parcel" , "images" : [ "dots" ], "depends" : [ ] },
+        { "name" : "moreImages.parcel" , "images" : [ "dots" ], "depends" : [ ] }
     ]
 }

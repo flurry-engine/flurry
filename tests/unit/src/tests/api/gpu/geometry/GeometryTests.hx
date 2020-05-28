@@ -1,5 +1,6 @@
 package tests.api.gpu.geometry;
 
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
@@ -66,7 +67,7 @@ class GeometryTests extends BuddySuite
             });
 
             it('Has an array of textures to draw the geometry with', {
-                final image = new ImageResource('', 0, 0, Bytes.alloc(0));
+                final image = new ImageFrameResource('', '', 0, 0, 0, 0, 0, 0, 0, 0);
 
                 final textures  = Textures([ image ]);
                 final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
@@ -153,7 +154,7 @@ class GeometryTests extends BuddySuite
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                     geometry.changed.subscribeFunction(_ -> count++);
 
-                    geometry.textures = Textures([ new ImageResource('', 0, 0, Bytes.alloc(0)) ]);
+                    geometry.textures = Textures([ new ImageFrameResource('', '', 0, 0, 0, 0, 0, 0, 0, 0) ]);
                     count.should.be(1);
 
                     geometry.textures = None;

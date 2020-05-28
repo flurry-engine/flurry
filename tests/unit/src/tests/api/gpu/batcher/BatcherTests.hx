@@ -1,5 +1,6 @@
 package tests.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
@@ -78,7 +79,7 @@ class BatcherTests extends BuddySuite
             describe('Batching', {
                 it('Produces geometry draw commands describing how to draw a set of geometry at once', {
                     final shader  = shader('1');
-                    final texture = new ImageResource('1', 0, 0, Bytes.alloc(0));
+                    final texture = new ImageFrameResource('1', '', 0, 0, 0, 0, 0, 0, 0, 0);
 
                     final batcher   = new Batcher({ shader: shader, camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne) });
                     final geometry1 = new Geometry({ batchers : [ batcher ], textures : Textures([ texture ]), data : unindexedData() });
@@ -105,8 +106,8 @@ class BatcherTests extends BuddySuite
 
                 it('Can sort geometry to minimise the number of state changes needed to draw it', {
                     final shader   = shader('1');
-                    final texture1 = new ImageResource('1', 0, 0, Bytes.alloc(0));
-                    final texture2 = new ImageResource('2', 0, 0, Bytes.alloc(0));
+                    final texture1 = new ImageFrameResource('1', '', 0, 0, 0, 0, 0, 0, 0, 0);
+                    final texture2 = new ImageFrameResource('2', '', 0, 0, 0, 0, 0, 0, 0, 0);
 
                     final batcher   = new Batcher({ shader: shader, camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne) });
                     final geometry1 = new Geometry({ batchers : [ batcher ], textures : Textures([ texture1 ]), data : unindexedData() });
@@ -139,7 +140,7 @@ class BatcherTests extends BuddySuite
                 
                 it('Produces geometry draw commands which are either indexed or non indexed', {
                     final shader  = shader('1');
-                    final texture = new ImageResource('', 0, 0, Bytes.alloc(0));
+                    final texture = new ImageFrameResource('', '', 0, 0, 0, 0, 0, 0, 0, 0);
 
                     final batcher   = new Batcher({ shader: shader, camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne) });
                     final geometry1 = new Geometry({ batchers : [ batcher ], textures : Textures([ texture ]), data : unindexedData() });
