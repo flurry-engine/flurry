@@ -13,3 +13,6 @@ cd $(npx haxelib path hxcpp | tail -1 | tr -d '\n')
 npm install lix
 cd tools/hxcpp
 npx haxe compile.hxml
+
+# Download libgdx texture packer
+curl -o runnable-texturepacker.jar https://libgdx.badlogicgames.com/nightlies/runnables/runnable-texturepacker.jar
