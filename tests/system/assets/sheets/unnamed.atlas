@@ -1,0 +1,384 @@
+
+unnamed.png
+size: 512,256
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+scifiUnit_12
+  rotate: false
+  xy: 4, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_13
+  rotate: false
+  xy: 4, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_15
+  rotate: false
+  xy: 136, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_16
+  rotate: false
+  xy: 268, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_36
+  rotate: false
+  xy: 136, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_43
+  rotate: false
+  xy: 268, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+
+unnamed2.png
+size: 512,256
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+scifiUnit_01
+  rotate: false
+  xy: 268, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_04
+  rotate: false
+  xy: 268, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_06
+  rotate: false
+  xy: 136, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_18
+  rotate: false
+  xy: 4, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_19
+  rotate: false
+  xy: 4, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_22
+  rotate: false
+  xy: 136, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+
+unnamed3.png
+size: 512,256
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+scifiUnit_26
+  rotate: false
+  xy: 4, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_34
+  rotate: false
+  xy: 4, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_35
+  rotate: false
+  xy: 136, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_38
+  rotate: false
+  xy: 136, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_40
+  rotate: false
+  xy: 268, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_41
+  rotate: false
+  xy: 268, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+
+unnamed4.png
+size: 512,256
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+scifiUnit_02
+  rotate: false
+  xy: 268, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_17
+  rotate: false
+  xy: 136, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_20
+  rotate: false
+  xy: 4, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_32
+  rotate: false
+  xy: 4, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_45
+  rotate: false
+  xy: 136, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_47
+  rotate: false
+  xy: 268, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+
+unnamed5.png
+size: 512,256
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+scifiUnit_05
+  rotate: false
+  xy: 4, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_08
+  rotate: false
+  xy: 268, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_23
+  rotate: false
+  xy: 268, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_28
+  rotate: false
+  xy: 136, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_37
+  rotate: false
+  xy: 136, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_46
+  rotate: false
+  xy: 4, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+
+unnamed6.png
+size: 512,256
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+scifiUnit_07
+  rotate: false
+  xy: 268, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_09
+  rotate: false
+  xy: 4, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_21
+  rotate: false
+  xy: 136, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_25
+  rotate: false
+  xy: 136, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_44
+  rotate: false
+  xy: 4, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_48
+  rotate: false
+  xy: 268, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+
+unnamed7.png
+size: 512,256
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+scifiUnit_03
+  rotate: false
+  xy: 4, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_24
+  rotate: false
+  xy: 136, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_27
+  rotate: false
+  xy: 4, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_30
+  rotate: false
+  xy: 268, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_33
+  rotate: false
+  xy: 136, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_42
+  rotate: false
+  xy: 268, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+
+unnamed8.png
+size: 512,256
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+scifiUnit_10
+  rotate: false
+  xy: 4, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_11
+  rotate: false
+  xy: 136, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_14
+  rotate: false
+  xy: 268, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_29
+  rotate: false
+  xy: 136, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_31
+  rotate: false
+  xy: 4, 128
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1
+scifiUnit_39
+  rotate: false
+  xy: 268, 0
+  size: 128, 128
+  orig: 128, 128
+  offset: 0, 0
+  index: -1

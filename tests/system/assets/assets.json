@@ -40,7 +40,7 @@
         ]
     },
     "parcels" : [
-        { "name" : "preload", "assets" : [ "tank1", "tank2", "tank3", "wood", "van", "unnamed", "ubuntu" ], "depends" : [ "shaders" ] },
-        { "name" : "shaders", "assets" : [ "textured", "colourise", "purple" ], "depends" : [] }
+        { "name" : "preload", "images" : [ "tank1", "tank2", "tank3", "wood", "van" ], "sheets" : [ "unnamed" ], "fonts" : [ "ubuntu" ], "depends" : [ "shaders" ] },
+        { "name" : "shaders", "shaders" : [ "textured", "colourise", "purple" ], "depends" : [] }
     ]
 }
