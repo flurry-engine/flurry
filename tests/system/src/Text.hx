@@ -1,5 +1,6 @@
 package;
 
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.TextGeometry;
@@ -22,11 +23,13 @@ class Text extends Flurry
     override function onReady()
     {
         final camera  = renderer.createCamera2D(display.width, display.height);
-        final batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
+        final batcher = renderer.createBatcher({ shader : resources.get('msdf', ShaderResource), camera : camera });
+        final sampler = new SamplerState(Clamp, Clamp, Linear, Linear);
 
         new TextGeometry({
             batchers : [ batcher ],
             font     : resources.get('ubuntu', FontResource),
+            sampler  : sampler,
             text     : 'hello world',
             x : 32, y : 32
         });
@@ -34,6 +37,7 @@ class Text extends Flurry
         new TextGeometry({
             batchers : [ batcher ],
             font     : resources.get('ubuntu', FontResource),
+            sampler  : sampler,
             text     : 'Lorem ipsum',
             x : 32, y : 48
         }).scale.set_xy(2, 2);
