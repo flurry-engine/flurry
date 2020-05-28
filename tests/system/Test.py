@@ -41,7 +41,7 @@ class SystemTests(unittest.TestCase):
 
                 test_proc=subprocess.Popen([ "bin/linux-x64/SystemTests" ], env=myEnv)
 
-                time.sleep(2)
+                time.sleep(5)
 
                 subprocess.run([ "import", "-window", "System Tests", f"screenshot_{x}.png" ], env=myEnv)
 
