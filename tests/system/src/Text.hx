@@ -26,14 +26,14 @@ class Text extends Flurry
 
         new TextGeometry({
             batchers : [ batcher ],
-            font     : resources.get('Ubuntu', FontResource),
+            font     : resources.get('ubuntu', FontResource),
             text     : 'hello world',
             x : 32, y : 32
         });
 
         new TextGeometry({
             batchers : [ batcher ],
-            font     : resources.get('Ubuntu', FontResource),
+            font     : resources.get('ubuntu', FontResource),
             text     : 'Lorem ipsum',
             x : 32, y : 48
         }).scale.set_xy(2, 2);
