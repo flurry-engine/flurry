@@ -2,13 +2,13 @@
     "assets" : {
         "bytes"   : [],
         "texts"   : [
-            { "id" : "text", "path" : "assets/text.txt" }
+            { "id" : "text", "path" : "text.txt" }
         ],
         "fonts"   : [],
         "shaders" : [],
         "sheets"  : [],
         "images"  : [
-            { "id" : "dots", "path" : "assets/dots.png" }
+            { "id" : "dots", "path" : "dots.png" }
         ]
     },
     "parcels" : [
