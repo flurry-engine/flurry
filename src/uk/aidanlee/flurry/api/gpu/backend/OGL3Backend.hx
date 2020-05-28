@@ -874,7 +874,7 @@ class OGL3Backend implements IRendererBackend
                 if (i < _samplers.length)
                 {
                     final samplerHash     = _samplers[i].hash();
-                    final textureSamplers = samplerObjects[_textures[i].id];
+                    final textureSamplers = samplerObjects[_textures[i].image];
 
                     if (!textureSamplers.exists(samplerHash))
                     {

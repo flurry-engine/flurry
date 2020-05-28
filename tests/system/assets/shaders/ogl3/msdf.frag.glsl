@@ -15,8 +15,8 @@ float median(vec3 v)
 void main()
 {
     vec2  msdfUnit = 2.0 / vec2(textureSize(defaultTexture, 0));
-    vec3  sample   = texture(defaultTexture, TexCoord).rgb;
-    float sigDist  = median(sample) - 0.5;
+    vec3  sampled  = texture(defaultTexture, TexCoord).rgb;
+    float sigDist  = median(sampled) - 0.5;
     sigDist *= dot(msdfUnit, 0.5 / fwidth(TexCoord));
 
     FragColor = vec4(Color.r, Color.g, Color.b, clamp(sigDist + 0.5, 0.0, 1.0));
