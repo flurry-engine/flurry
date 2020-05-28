@@ -79,48 +79,49 @@ class StencilTesting extends Flurry
             }
         });
 
-        final data = UnIndexed(new VertexBlobBuilder()
-            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
-            .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
-            .addFloat3( 0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
-            .addFloat3( 0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
-            .addFloat3(-0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
-            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
+        final frame = resources.get('wood', ImageFrameResource);
+        final data  = UnIndexed(new VertexBlobBuilder()
+            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v1)
+            .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
+            .addFloat3( 0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v2)
+            .addFloat3( 0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v2)
+            .addFloat3(-0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v2)
+            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v1)
 
-            .addFloat3(-0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
-            .addFloat3( 0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
-            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
-            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
-            .addFloat3(-0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
-            .addFloat3(-0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
+            .addFloat3(-0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v1)
+            .addFloat3( 0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
+            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v2)
+            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v2)
+            .addFloat3(-0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v2)
+            .addFloat3(-0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v1)
 
-            .addFloat3(-0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
-            .addFloat3(-0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
-            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
-            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
-            .addFloat3(-0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
-            .addFloat3(-0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
+            .addFloat3(-0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
+            .addFloat3(-0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v2)
+            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v2)
+            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v2)
+            .addFloat3(-0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v1)
+            .addFloat3(-0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
 
-            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
-            .addFloat3( 0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
-            .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
-            .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
-            .addFloat3( 0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
-            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
+            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
+            .addFloat3( 0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v2)
+            .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v2)
+            .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v2)
+            .addFloat3( 0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v1)
+            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
 
-            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
-            .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
-            .addFloat3( 0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
-            .addFloat3( 0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
-            .addFloat3(-0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
-            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
+            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v2)
+            .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v2)
+            .addFloat3( 0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
+            .addFloat3( 0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
+            .addFloat3(-0.5, -0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v1)
+            .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v2)
 
-            .addFloat3(-0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
-            .addFloat3( 0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 1.0)
-            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
-            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(1.0, 0.0)
-            .addFloat3(-0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 0.0)
-            .addFloat3(-0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(0.0, 1.0)
+            .addFloat3(-0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v2)
+            .addFloat3( 0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v2)
+            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
+            .addFloat3( 0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
+            .addFloat3(-0.5,  0.5,  0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v1)
+            .addFloat3(-0.5,  0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v2)
 
             .vertexBlob());
 
@@ -138,8 +139,8 @@ class StencilTesting extends Flurry
             new Vector3(-1.3,  1.0, - 1.5)
         ];
 
-        final cubes1 = [ for (_ in 0...10) cube(batcher1, data) ];
-        final cubes2 = [ for (_ in 0...10) cube(batcher2, data) ];
+        final cubes1 = [ for (_ in 0...10) cube(batcher1, frame, data) ];
+        final cubes2 = [ for (_ in 0...10) cube(batcher2, frame, data) ];
 
         for (i in 0...positions.length)
         {
@@ -152,11 +153,11 @@ class StencilTesting extends Flurry
         }
     }
 
-    function cube(_batcher : Batcher, _data : GeometryData) : Geometry
+    function cube(_batcher : Batcher, _frame : ImageFrameResource, _data : GeometryData) : Geometry
     {
         return new Geometry({
             batchers : [ _batcher ],
-            textures : Textures([ resources.get('wood', ImageFrameResource) ]),
+            textures : Textures([ _frame ]),
             data     : _data
         });
     }

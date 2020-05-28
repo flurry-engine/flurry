@@ -12,8 +12,7 @@
             { "id" : "tank1"      , "path" : "assets/images/tank1.png" },
             { "id" : "tank2"      , "path" : "assets/images/tank2.png" },
             { "id" : "tank3"      , "path" : "assets/images/tank3.png" },
-            { "id" : "wood"       , "path" : "assets/images/wood.png"  },
-            { "id" : "van"        , "path" : "assets/images/van.png"   }
+            { "id" : "wood"       , "path" : "assets/images/wood.png"  }
         ],
         "shaders" : [
             {

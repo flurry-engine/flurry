@@ -21,7 +21,6 @@ class SystemTests(unittest.TestCase):
             "Text",
             "Transformations",
             "TransformationTree",
-            "ImageSamplers",
             "ImGuiDrawing"
         ]
 
