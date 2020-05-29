@@ -1,0 +1,12 @@
+{
+    "app" : {
+        "name"      : "SystemTests",
+        "main"      : "Text",
+        "output"    : "bin",
+        "codepaths" : [ "src", "../../src" ],
+        "namespace" : "uk.aidanlee.flurry.tests.system",
+        "backend"   : "Snow"
+    },
+
+    "parcels" : [ "assets/assets.json" ]
+}
