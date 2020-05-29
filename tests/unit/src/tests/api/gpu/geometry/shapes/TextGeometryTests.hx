@@ -1,14 +1,11 @@
 package tests.api.gpu.geometry.shapes;
 
-import haxe.io.Bytes;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.Character;
+import uk.aidanlee.flurry.api.resources.Resource.FontResource;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.TextGeometry;
-import uk.aidanlee.flurry.api.importers.bmfont.BitmapFontParser;
 import buddy.BuddySuite;
-import mockatoo.Mockatoo.mock;
 
 using buddy.Should;
-using mockatoo.Mockatoo;
 
 class TextGeometryTests extends BuddySuite
 {
@@ -16,12 +13,16 @@ class TextGeometryTests extends BuddySuite
     {
         describe('TextGeometry', {
             it('Can create a text geometry from an initial string and bitmap font data', {
-                final ubuntuFont = haxe.Resource.getString('font-data');
-                final fontData   = BitmapFontParser.parse(ubuntuFont);
-                final string     = 'hello world!';
-                final texture    = new ImageResource('', 512, 512, Bytes.alloc(0));
+                final string   = 'hello';
+                final chars    = [
+                    "h".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "e".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "l".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "o".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+                ];
+                final font     = new FontResource('', '', chars, 0, 0, 256, 256, 0, 0, 1, 1);
+                final geometry = new TextGeometry({ font : font, text : string });
 
-                final geometry = new TextGeometry({ font : fontData, text : string, texture : texture });
                 switch geometry.data
                 {
                     case Indexed(_vertices, _indices):
@@ -33,13 +34,18 @@ class TextGeometryTests extends BuddySuite
             });
 
             it('Will re-create the geometry when the text has changed', {
-                var ubuntuFont = haxe.Resource.getString('font-data');
-                var fontData   = BitmapFontParser.parse(ubuntuFont);
-                var oldString  = 'hello world!';
-                var newString  = 'hello from flurry!';
-                final texture  = new ImageResource('', 512, 512, Bytes.alloc(0));
+                final oldString = 'hello';
+                final newString = 'hello!';
+                final chars     = [
+                    "h".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "e".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "l".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "o".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "!".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+                ];
+                final font      = new FontResource('', '', chars, 0, 0, 256, 256, 0, 0, 1, 1);
+                final geometry  = new TextGeometry({ font : font, text : oldString });
 
-                var geometry = new TextGeometry({ font : fontData, text : oldString, texture : texture });
                 switch geometry.data
                 {
                     case Indexed(_vertices, _indices):

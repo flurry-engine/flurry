@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.resources;
 
+import hxbit.Serializer;
 import hxbit.Serializable;
 import haxe.io.Bytes;
 
@@ -13,7 +14,9 @@ enum ResourceType
 {
     Bytes;
     Text;
+    Font;
     Image;
+    ImageFrame;
     Shader;
     Custom(_name : String);
 }
@@ -61,14 +64,21 @@ class TextResource extends Resource
 
 class ImageResource extends Resource
 {
-    @:s
-    public var width (default, null) : Int;
+    /**
+     * Pixel width of this texture.
+     */
+    @:s public var width (default, null) : Int;
 
-    @:s
-    public var height (default, null) : Int;
+    /**
+     * Pixel height of this texture.
+     */
+    @:s public var height (default, null) : Int;
 
-    @:s
-    public var pixels (default, null) : Bytes;
+    /**
+     * Pixel data of this texture.
+     * Modifying this does not modify the actual images data.
+     */
+    @:s public var pixels (default, null) : Bytes;
 
     public function new(_id : String, _width : Int, _height : Int, _pixels : Bytes)
     {
@@ -77,6 +87,109 @@ class ImageResource extends Resource
         width  = _width;
         height = _height;
         pixels = _pixels;
+    }
+}
+
+class ImageFrameResource extends Resource
+{
+    /**
+     * Unique ID of the `ImageResource` all of the frames are contained within.
+     */
+    @:s public var image (default, null) : String;
+
+    @:s public var x (default, null) : Int;
+
+    @:s public var y (default, null) : Int;
+
+    @:s public var width (default, null) : Int;
+
+    @:s public var height (default, null) : Int;
+
+    @:s public var u1 (default, null) : Float;
+
+    @:s public var v1 (default, null) : Float;
+
+    @:s public var u2 (default, null) : Float;
+
+    @:s public var v2 (default, null) : Float;
+
+    public function new(_id : String, _image : String, _x : Int, _y : Int, _width : Int, _height : Int, _u1 : Float, _v1 : Float, _u2 : Float, _v2 : Float)
+    {
+        super(ImageFrame, _id);
+
+        image  = _image;
+        x      = _x;
+        y      = _y;
+        width  = _width;
+        height = _height;
+        u1     = _u1;
+        v1     = _v1;
+        u2     = _u2;
+        v2     = _v2;
+    }
+}
+
+class FontResource extends ImageFrameResource
+{
+    @:s public var characters : Map<Int, Character>;
+
+    public function new(_id : String, _image : String, _characters : Map<Int, Character>, _x : Int, _y : Int, _width : Int, _height : Int, _u1 : Float, _v1 : Float, _u2 : Float, _v2 : Float)
+    {
+        super(_id, _image, _x, _y, _width, _height, _u1, _v1, _u2, _v2);
+
+        type       = Font;
+        characters = _characters;
+    }
+}
+
+class Character implements Serializable
+{
+    @:s public var x : Float;
+
+    @:s public var y : Float;
+
+    @:s public var width : Float;
+
+    @:s public var height : Float;
+
+    @:s public var xOffset : Float;
+
+    @:s public var yOffset : Float;
+
+    @:s public var xAdvance : Float;
+
+    @:s public var u1 : Float;
+
+    @:s public var v1 : Float;
+
+    @:s public var u2 : Float;
+
+    @:s public var v2 : Float;
+
+    public function new(
+        _x : Float,
+        _y : Float,
+        _width : Float,
+        _height : Float,
+        _xOffset : Float,
+        _yOffset : Float,
+        _xAdvance : Float,
+        _u1 : Float,
+        _v1 : Float,
+        _u2 : Float,
+        _v2 : Float)
+    {
+        x        = _x;
+        y        = _y;
+        width    = _width;
+        height   = _height;
+        xOffset  = _xOffset;
+        yOffset  = _yOffset;
+        xAdvance = _xAdvance;
+        u1       = _u1;
+        v1       = _v1;
+        u2       = _u2;
+        v2       = _v2;
     }
 }
 

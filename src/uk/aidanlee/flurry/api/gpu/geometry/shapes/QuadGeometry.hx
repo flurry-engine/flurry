@@ -4,17 +4,16 @@ import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.gpu.textures.ImageRegion;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
 import uk.aidanlee.flurry.api.maths.Rectangle;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 
 using Safety;
 
 typedef QuadGeometryOptions = {
-    var texture : ImageResource;
+    var texture : ImageFrameResource;
     var ?sampler : SamplerState;
     var ?shader : GeometryShader;
     var ?uniforms : GeometryUniforms;
@@ -26,17 +25,16 @@ typedef QuadGeometryOptions = {
     var ?y : Float;
     var ?width : Float;
     var ?height : Float;
-    var ?region : ImageRegion;
 }
 
 class QuadGeometry extends Geometry
 {
     public function new(_options : QuadGeometryOptions)
     {
-        final u1 = _options.region!.u1.or(0);
-        final v1 = _options.region!.v1.or(0);
-        final u2 = _options.region!.u2.or(1);
-        final v2 = _options.region!.v2.or(1);
+        final u1     = _options.texture.u1;
+        final v1     = _options.texture.v1;
+        final u2     = _options.texture.u2;
+        final v2     = _options.texture.v2;
         final width  = _options.width.or(_options.texture.width);
         final height = _options.height.or(_options.texture.height);
 

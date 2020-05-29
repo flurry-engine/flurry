@@ -5,7 +5,7 @@ import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 
 class Transformations extends Flurry
@@ -27,9 +27,9 @@ class Transformations extends Flurry
         final camera  = renderer.createCamera2D(display.width, display.height);
         final batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
 
-        final g1 = new QuadGeometry({ texture : resources.get('tank1', ImageResource), batchers : [ batcher ] });
-        final g2 = new QuadGeometry({ texture : resources.get('tank2', ImageResource), batchers : [ batcher ] });
-        final g3 = new QuadGeometry({ texture : resources.get('tank3', ImageResource), batchers : [ batcher ] });
+        final g1 = new QuadGeometry({ texture : resources.get('tank1', ImageFrameResource), batchers : [ batcher ] });
+        final g2 = new QuadGeometry({ texture : resources.get('tank2', ImageFrameResource), batchers : [ batcher ] });
+        final g3 = new QuadGeometry({ texture : resources.get('tank3', ImageFrameResource), batchers : [ batcher ] });
 
         g1.origin.set_xy(128, 128);
         g2.origin.set_xy(128, 128);

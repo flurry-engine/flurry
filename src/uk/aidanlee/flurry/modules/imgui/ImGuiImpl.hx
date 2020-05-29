@@ -41,6 +41,7 @@ class ImGuiImpl
     final renderer  : Renderer;
     
     final texture  : ImageResource;
+    final frame    : ImageFrameResource;
     final vtxData  : Float32Array;
     final idxData  : UInt16Array;
     final camera   : Camera2D;
@@ -121,7 +122,8 @@ class ImGuiImpl
         final bytes = @:privateAccess new Bytes(width[0] * height[0] * 4, Pointer.fromStar(pixels).toUnmanagedArray(width[0] * height[0] * bpp[0]));
 
         texture = new ImageResource('imgui_texture', width[0], height[0], bytes);
-        io.fonts.texID = cast Pointer.addressOf(texture).raw;
+        frame   = new ImageFrameResource('imgui_frame', 'imgui_texture', 0, 0, texture.width, texture.height, 0, 0, 1, 1);
+        io.fonts.texID = cast Pointer.addressOf(frame).raw;
 
         resources.addResource(texture);
 
@@ -239,7 +241,7 @@ class ImGuiImpl
             for (j in 0...cmdList.cmdBuffer.size())
             {
                 final draw = cmdBuffer[j];
-                final t : Pointer<ImageResource> = Pointer.fromRaw(draw.textureId).reinterpret();
+                final t : Pointer<ImageFrameResource> = Pointer.fromRaw(draw.textureId).reinterpret();
 
                 renderer.backend.queue(
                     new DrawCommand(

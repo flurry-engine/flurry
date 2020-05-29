@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import haxe.Exception;
 import haxe.io.Bytes;
 import haxe.ds.ReadOnlyArray;
@@ -970,7 +971,7 @@ class OGL4Backend implements IRendererBackend
         }
     }
 
-    function updateTextures(_expectedTextures : Int, _textures : ReadOnlyArray<ImageResource>, _samplers : ReadOnlyArray<SamplerState>)
+    function updateTextures(_expectedTextures : Int, _textures : ReadOnlyArray<ImageFrameResource>, _samplers : ReadOnlyArray<SamplerState>)
     {
         // If the shader description specifies more textures than the command provides throw an exception.
         // If less is specified than provided we just ignore the extra, maybe we should throw as well?
@@ -980,7 +981,7 @@ class OGL4Backend implements IRendererBackend
                 for (i in 0..._textures.length)
                 {
                     // Bind and activate the texture if its not already bound.
-                    final glTextureID = textureObjects.get(_textures[i].id);
+                    final glTextureID = textureObjects.get(_textures[i].image);
     
                     if (glTextureID != textureSlots[i])
                     {
@@ -995,7 +996,7 @@ class OGL4Backend implements IRendererBackend
                     if (i < _samplers.length)
                     {
                         final samplerHash     = _samplers[i].hash();
-                        final textureSamplers = samplerObjects[_textures[i].id];
+                        final textureSamplers = samplerObjects[_textures[i].image];
     
                         if (!textureSamplers.exists(samplerHash))
                         {
