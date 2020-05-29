@@ -28,7 +28,7 @@ class Text extends Flurry
 
         new TextGeometry({
             batchers : [ batcher ],
-            font     : resources.get('ubuntu', FontResource),
+            font     : resources.get('roboto-regular', FontResource),
             sampler  : sampler,
             text     : 'hello world',
             x : 32, y : 32
@@ -36,7 +36,7 @@ class Text extends Flurry
 
         new TextGeometry({
             batchers : [ batcher ],
-            font     : resources.get('ubuntu', FontResource),
+            font     : resources.get('roboto-regular', FontResource),
             sampler  : sampler,
             text     : 'Lorem ipsum',
             x : 32, y : 48

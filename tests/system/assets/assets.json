@@ -3,7 +3,7 @@
         "bytes"  : [],
         "texts"  : [],
         "fonts"  : [
-            { "id" : "ubuntu", "path" : "fonts/Roboto-Regular.ttf" }
+            { "id" : "roboto-regular", "path" : "fonts/Roboto-Regular.ttf" }
         ],
         "sheets" : [
             { "id" : "unnamed", "path" : "sheets/unnamed.atlas" }
@@ -46,7 +46,7 @@
         ]
     },
     "parcels" : [
-        { "name" : "preload", "images" : [ "tank1", "tank2", "tank3", "wood", "van" ], "sheets" : [ "unnamed" ], "fonts" : [ "ubuntu" ], "depends" : [ "shaders" ] },
+        { "name" : "preload", "images" : [ "tank1", "tank2", "tank3", "wood", "van" ], "sheets" : [ "unnamed" ], "fonts" : [ "roboto-regular" ], "depends" : [ "shaders" ] },
         { "name" : "shaders", "shaders" : [ "textured", "colourise", "purple", "msdf" ], "depends" : [] }
     ]
 }
