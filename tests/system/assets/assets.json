@@ -3,7 +3,7 @@
         "bytes"  : [],
         "texts"  : [],
         "fonts"  : [
-            { "id" : "ubuntu", "path" : "fonts/Ubuntu-R.ttf" }
+            { "id" : "ubuntu", "path" : "fonts/Roboto-Regular.ttf" }
         ],
         "sheets" : [
             { "id" : "unnamed", "path" : "sheets/unnamed.atlas" }
