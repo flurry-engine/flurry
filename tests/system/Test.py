@@ -48,7 +48,7 @@ class SystemTests(unittest.TestCase):
                 test_proc.terminate()
                 test_proc.wait()
 
-                imagemagick = subprocess.run([ "convert", "-metric", "ae", "-fuzz", "5%", f"expected/{x}.png", f"screenshot_{x}.png", "-trim", "-compare", "-format", "%[distortion]", "info:" ], stdout=subprocess.PIPE, text=True)
+                imagemagick = subprocess.run([ "convert", "-metric", "ae", f"expected/{x}.png", f"screenshot_{x}.png", "-trim", "-compare", "-format", "%[distortion]", "info:" ], stdout=subprocess.PIPE, text=True)
                 
                 self.assertLessEqual(int(imagemagick.stdout), 10)
 
