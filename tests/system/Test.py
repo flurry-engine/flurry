@@ -41,14 +41,14 @@ class SystemTests(unittest.TestCase):
 
                 test_proc=subprocess.Popen([ "bin/linux-x64/SystemTests" ], env=myEnv)
 
-                time.sleep(2)
+                time.sleep(5)
 
                 subprocess.run([ "import", "-window", "System Tests", f"screenshot_{x}.png" ], env=myEnv)
 
                 test_proc.terminate()
                 test_proc.wait()
 
-                imagemagick = subprocess.run([ "convert", "-metric", "ae", f"expected/{x}.png", f"screenshot_{x}.png", "-trim", "-compare", "-format", "%[distortion]", "info:" ], stdout=subprocess.PIPE, text=True)
+                imagemagick = subprocess.run([ "convert", "-metric", "ae", "-fuzz", "5%", f"expected/{x}.png", f"screenshot_{x}.png", "-trim", "-compare", "-format", "%[distortion]", "info:" ], stdout=subprocess.PIPE, text=True)
                 
                 self.assertLessEqual(int(imagemagick.stdout), 10)
 
