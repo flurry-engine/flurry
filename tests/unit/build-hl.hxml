@@ -2,4 +2,4 @@ build.hxml
 
 --hl bin/hl/main.hl
 
---cmd lix run parcel pack --input=assets/assets.json --output=bin/
+--cmd lix run parcel pack --input=assets/assets.json --output=bin/ --gdx-jar=../../runnable-texturepacker.jar
