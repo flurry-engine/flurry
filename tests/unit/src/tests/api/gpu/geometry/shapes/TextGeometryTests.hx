@@ -21,7 +21,7 @@ class TextGeometryTests extends BuddySuite
                     "o".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
                 ];
                 final font     = new FontResource('', '', chars, 0, 0, 256, 256, 0, 0, 1, 1);
-                final geometry = new TextGeometry({ font : font, text : string });
+                final geometry = new TextGeometry({ font : font, text : string, size : 48 });
 
                 switch geometry.data
                 {
@@ -44,7 +44,7 @@ class TextGeometryTests extends BuddySuite
                     "!".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
                 ];
                 final font      = new FontResource('', '', chars, 0, 0, 256, 256, 0, 0, 1, 1);
-                final geometry  = new TextGeometry({ font : font, text : oldString });
+                final geometry  = new TextGeometry({ font : font, text : oldString, size : 48 });
 
                 switch geometry.data
                 {

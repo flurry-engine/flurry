@@ -15,6 +15,7 @@ using Safety;
 typedef TextGeometryOptions = {
     var font : FontResource;
     var text : String;
+    var size : Float;
     var ?sampler : SamplerState;
     var ?shader : GeometryShader;
     var ?uniforms : GeometryUniforms;
@@ -41,7 +42,7 @@ class TextGeometry extends Geometry
 
         if (!ignore)
         {
-            data = generateGeometry(font, text, position.x, position.y);
+            data = generateGeometry(font, text);
         }
 
         return font;
@@ -57,10 +58,23 @@ class TextGeometry extends Geometry
 
         if (!ignore)
         {
-            data = generateGeometry(font, text, position.x, position.y);
+            data = generateGeometry(font, text);
         }
 
         return text;
+    }
+
+    /**
+     * The pixel size to draw this text at.
+     */
+    public var size (default, set) : Float;
+
+    inline function set_size(_size : Float) : Float {
+        size = _size;
+
+        scale.set_xy(size, size);
+
+        return size;
     }
 
     var ignore = true;
@@ -72,7 +86,7 @@ class TextGeometry extends Geometry
     public function new(_options : TextGeometryOptions)
     {
         super({
-            data : generateGeometry(_options.font, _options.text, _options.x.or(0), _options.y.or(0)),
+            data     : generateGeometry(_options.font, _options.text),
             textures : Textures([ _options.font ]),
             samplers : _options.sampler == null ? None : Samplers([ _options.sampler ]),
             shader   : _options.shader,
@@ -85,6 +99,10 @@ class TextGeometry extends Geometry
 
         font = _options.font;
         text = _options.text;
+        size = _options.size;
+
+        position.x = _options.x.or(0);
+        position.y = _options.y.or(0);
 
         ignore = false;
     }
@@ -92,10 +110,11 @@ class TextGeometry extends Geometry
     /**
      * Remove any vertices from this geometry and create it for the text.
      */
-    function generateGeometry(_font : FontResource, _text: String, _xPos : Float, _yPos : Float) : GeometryData
+    function generateGeometry(_font : FontResource, _text: String) : GeometryData
     {
         final lines = _text.split('\n');
-        final baseX = _xPos;
+        var xCursor = 0.0;
+        var yCursor = 0.0;
 
         var count = 0;
         for (line in lines)
@@ -115,33 +134,18 @@ class TextGeometry extends Geometry
             {
                 final char = _font.characters.get(line.charCodeAt(i));
 
-                // Move the cursor by the kerning amount.
-                // if (i != 0)
-                // {
-                //     if (_font.kernings.exists(char.id))
-                //     {
-                //         final map   = _font.kernings.get(char.id);
-                //         final value = map.get(line.charCodeAt(i - 1));
-
-                //         if (value != null)
-                //         {
-                //             _xPos += value;
-                //         }
-                //     }
-                // }
-
                 // Add the character quad.
-                addCharacter(vtxBuffer, idxBuffer, vtxOffset, idxOffset, baseIndex, char, _xPos, _yPos);
+                addCharacter(vtxBuffer, idxBuffer, vtxOffset, idxOffset, baseIndex, char, xCursor, yCursor);
                 vtxOffset += 4 * 9;
                 idxOffset += 6;
                 baseIndex += 4;
 
                 // Move the cursor to the next characters position.
-                _xPos += char.xAdvance;
+                xCursor += char.xAdvance;
             }
 
-            _yPos += 0; //_font.lineHeight;
-            _xPos  = baseX;
+            yCursor += 0; //_font.lineHeight;
+            xCursor  = 0;
         }
 
         return Indexed(new VertexBlob(vtxBuffer), new IndexBlob(idxBuffer));
@@ -164,8 +168,8 @@ class TextGeometry extends Geometry
         _y : Float)
     {
         // bottom left
-        _vtxBuffer[_vtxOffset++] = _x + _char.xOffset;
-        _vtxBuffer[_vtxOffset++] = _y + _char.yOffset + _char.height;
+        _vtxBuffer[_vtxOffset++] = _x + _char.x;
+        _vtxBuffer[_vtxOffset++] = _y + _char.height;
         _vtxBuffer[_vtxOffset++] = 0;
         _vtxBuffer[_vtxOffset++] = 1;
         _vtxBuffer[_vtxOffset++] = 1;
@@ -175,8 +179,8 @@ class TextGeometry extends Geometry
         _vtxBuffer[_vtxOffset++] = _char.v2;
 
         // Bottom right
-        _vtxBuffer[_vtxOffset++] = _x + _char.xOffset + _char.width;
-        _vtxBuffer[_vtxOffset++] = _y + _char.yOffset + _char.height;
+        _vtxBuffer[_vtxOffset++] = _x + _char.width;
+        _vtxBuffer[_vtxOffset++] = _y + _char.height;
         _vtxBuffer[_vtxOffset++] = 0;
         _vtxBuffer[_vtxOffset++] = 1;
         _vtxBuffer[_vtxOffset++] = 1;
@@ -186,8 +190,8 @@ class TextGeometry extends Geometry
         _vtxBuffer[_vtxOffset++] = _char.v2;
 
         // Top left
-        _vtxBuffer[_vtxOffset++] = _x + _char.xOffset;
-        _vtxBuffer[_vtxOffset++] = _y + _char.yOffset;
+        _vtxBuffer[_vtxOffset++] = _x + _char.x;
+        _vtxBuffer[_vtxOffset++] = _y + _char.y;
         _vtxBuffer[_vtxOffset++] = 0;
         _vtxBuffer[_vtxOffset++] = 1;
         _vtxBuffer[_vtxOffset++] = 1;
@@ -197,8 +201,8 @@ class TextGeometry extends Geometry
         _vtxBuffer[_vtxOffset++] = _char.v1;
 
         // Top right
-        _vtxBuffer[_vtxOffset++] = (_x + _char.xOffset) + _char.width;
-        _vtxBuffer[_vtxOffset++] = _y + _char.yOffset;
+        _vtxBuffer[_vtxOffset++] = _x + _char.width;
+        _vtxBuffer[_vtxOffset++] = _y + _char.y;
         _vtxBuffer[_vtxOffset++] = 0;
         _vtxBuffer[_vtxOffset++] = 1;
         _vtxBuffer[_vtxOffset++] = 1;

@@ -3,16 +3,16 @@
         "bytes"  : [],
         "texts"  : [],
         "fonts"  : [
-            { "id" : "roboto-regular", "path" : "fonts/Roboto-Regular.ttf" }
+            { "id" : "ubuntu", "path" : "fonts/Ubuntu-R.ttf" }
         ],
         "sheets" : [
             { "id" : "unnamed", "path" : "sheets/unnamed.atlas" }
         ],
         "images" : [
-            { "id" : "tank1"      , "path" : "images/tank1.png" },
-            { "id" : "tank2"      , "path" : "images/tank2.png" },
-            { "id" : "tank3"      , "path" : "images/tank3.png" },
-            { "id" : "wood"       , "path" : "images/wood.png"  }
+            { "id" : "tank1", "path" : "images/tank1.png" },
+            { "id" : "tank2", "path" : "images/tank2.png" },
+            { "id" : "tank3", "path" : "images/tank3.png" },
+            { "id" : "wood" , "path" : "images/wood.png"  }
         ],
         "shaders" : [
             {
@@ -46,7 +46,7 @@
         ]
     },
     "parcels" : [
-        { "name" : "preload", "images" : [ "tank1", "tank2", "tank3", "wood", "van" ], "sheets" : [ "unnamed" ], "fonts" : [ "roboto-regular" ], "depends" : [ "shaders" ] },
+        { "name" : "preload", "images" : [ "tank1", "tank2", "tank3", "wood", "van" ], "sheets" : [ "unnamed" ], "fonts" : [ "ubuntu" ], "depends" : [ "shaders" ] },
         { "name" : "shaders", "shaders" : [ "textured", "colourise", "purple", "msdf" ], "depends" : [] }
     ]
 }
