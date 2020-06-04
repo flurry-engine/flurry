@@ -1,4 +1,4 @@
 -D Build=1.0.0
-# @install: lix --silent download "gh://github.com/flurry-engine/build#253a6bd554d628e4067cfeaca443ca3dba04b05d" into Build/1.0.0/github/253a6bd554d628e4067cfeaca443ca3dba04b05d
-# @run: haxelib run-dir Build ${HAXE_LIBCACHE}/Build/1.0.0/github/253a6bd554d628e4067cfeaca443ca3dba04b05d
--cp ${HAXE_LIBCACHE}/Build/1.0.0/github/253a6bd554d628e4067cfeaca443ca3dba04b05d/src
+# @install: lix --silent download "gh://github.com/flurry-engine/build#eedf306bb6b1a862f2cb16c372ba50dfb4110bd3" into Build/1.0.0/github/eedf306bb6b1a862f2cb16c372ba50dfb4110bd3
+# @run: haxelib run-dir Build ${HAXE_LIBCACHE}/Build/1.0.0/github/eedf306bb6b1a862f2cb16c372ba50dfb4110bd3
+-cp ${HAXE_LIBCACHE}/Build/1.0.0/github/eedf306bb6b1a862f2cb16c372ba50dfb4110bd3/src
