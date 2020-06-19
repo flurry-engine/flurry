@@ -199,21 +199,6 @@ class Build
         user.addDefine('flurry-entry-point', project.app.main);
         user.addMacro('Safety.safeNavigation("uk.aidanlee.flurry")');
 
-        for (d in [
-            'flurry-snow-host',
-            'haxe-concurrent',
-            'linc_directx',
-            'linc_imgui',
-            'sys.io.abstractions',
-            'format',
-            'safety',
-            'hxbit',
-            'RxHaxe' ])
-        {
-            user.addLibrary(d);
-            user.addDefine(d);
-        }
-
         for (p in project.app.codepaths)
         {           
             user.addClassPath(p);

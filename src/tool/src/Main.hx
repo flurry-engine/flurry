@@ -84,7 +84,14 @@ class Main
 
     @:command public function create()
     {
-        //
+        switch new Create().run()
+        {
+            case Failure(_message):
+                Sys.println('failed to create project : $_message');
+                Sys.exit(1);
+            case _:
+                //
+        }
     }
 
     @:command public function build()

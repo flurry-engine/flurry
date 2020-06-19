@@ -7,6 +7,19 @@
         "namespace" : "uk.aidanlee.flurry.tests.system",
         "backend"   : "Snow"
     },
-
+    "build" : {
+        "dependencies" : [
+            { "lib" : "RxHaxe" },
+            { "lib" : "flurry-snow-host" },
+            { "lib" : "format" },
+            { "lib" : "haxe-concurrent" },
+            { "lib" : "hxbit" },
+            { "lib" : "linc_directx" },
+            { "lib" : "linc_imgui" },
+            { "lib" : "linc_opengl" },
+            { "lib" : "safety" },
+            { "lib" : "sys.io.abstractions" }
+        ]
+    },
     "parcels" : [ "assets/assets.json" ]
 }
