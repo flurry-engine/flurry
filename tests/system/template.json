@@ -3,7 +3,7 @@
         "name"      : "SystemTests",
         "main"      : "{TEST_CASE}",
         "output"    : "bin",
-        "codepaths" : [ "src", "../../src" ],
+        "codepaths" : [ "src", "../../src/lib" ],
         "namespace" : "uk.aidanlee.flurry.tests.system",
         "backend"   : "Snow"
     },

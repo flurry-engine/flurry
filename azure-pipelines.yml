@@ -24,19 +24,20 @@ jobs:
       env:
         AGENT_OS: $(Agent.OS)
     - bash: |
-        npx haxe build-cpp.hxml -D reporter=XUnit2Reporter -D report-name=Engine-Tests-$(Agent.OS) --debug --no-traces
-        ./bin/cpp/Main-debug
+        npx haxe build-cpp.hxml -D reporter=buddy.reporting.XUnit2Reporter -D report-name=Engine-Tests-$(Agent.OS) --debug --no-traces
+        ./bin/cpp/Tests-debug
       displayName: Engine Tests
       workingDirectory: $(Build.SourcesDirectory)/tests/unit
     - task: PublishTestResults@2
       condition: succeededOrFailed()
       inputs:
         testResultsFormat: xUnit
-        testResultsFiles: test-engine.xml
+        testResultsFiles: Engine-Tests-$(Agent.OS).xml
         searchFolder: $(Build.SourcesDirectory)/tests/unit
         testRunTitle: Engine Tests $(Agent.OS)
         buildPlatform: $(Agent.OS)
         failTaskOnFailedTests: true
+
   - job: JsUnitTests
     displayName: Js Unit Tests
     pool:
@@ -51,7 +52,7 @@ jobs:
       env:
         AGENT_OS: $(Agent.OS)
     - bash: |
-        npx haxe build-js.hxml -D reporter=XUnit2Reporter -D report-name=Engine-Tests-Js --debug --no-traces
+        npx haxe build-js.hxml -D reporter=buddy.reporting.XUnit2Reporter -D report-name=Engine-Tests-Js --debug --no-traces
         node bin/js/main.js
       displayName: Engine Tests
       workingDirectory: $(Build.SourcesDirectory)/tests/unit
@@ -59,11 +60,12 @@ jobs:
       condition: succeededOrFailed()
       inputs:
         testResultsFormat: xUnit
-        testResultsFiles: test-engine.xml
+        testResultsFiles: Engine-Tests-Js.xml
         searchFolder: $(Build.SourcesDirectory)/tests/unit
         testRunTitle: Engine Tests Js
         buildPlatform: Js
         failTaskOnFailedTests: true
+
   - job: HashlinkUnitTests
     displayName: Hashlink Unit Tests
     pool:
@@ -78,7 +80,7 @@ jobs:
         curl https://github.com/HaxeFoundation/hashlink/releases/download/1.10/hl-1.10.0-win.zip -O -J -L -o hl-1.10.0-win.zip
         unzip hl-1.10.0-win.zip
         export PATH=$PWD/hl-1.10.0-win:$PATH
-        npx haxe build-hl.hxml -D reporter=XUnit2Reporter -D report-name=Engine-Tests-Hashlink --debug --no-traces
+        npx haxe build-hl.hxml -D reporter=buddy.reporting.XUnit2Reporter -D report-name=Engine-Tests-Hashlink --debug --no-traces
         hl bin/hl/main.hl
       displayName: Engine Tests Hashlink
       workingDirectory: $(Build.SourcesDirectory)/tests/unit
@@ -86,11 +88,37 @@ jobs:
       condition: succeededOrFailed()
       inputs:
         testResultsFormat: xUnit
-        testResultsFiles: test-engine.xml
+        testResultsFiles: Engine-Tests-Hashlink.xml
         searchFolder: $(Build.SourcesDirectory)/tests/unit
         testRunTitle: Engine Tests Hashlink
         buildPlatform: Hashlink
         failTaskOnFailedTests: true
+
+  - job: ToolUnitTests
+    displayName: Tool Unit Tests
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '10.15.x'
+    - bash: ci/install.sh
+      displayName: Install Dependencies
+      workingDirectory: $(Build.SourcesDirectory)
+      env:
+        AGENT_OS: $(Agent.OS)
+    - bash: npx haxe build.hxml -D reporter=buddy.reporting.XUnit2Reporter -D report-name=Tool-Tests --debug --no-traces
+      displayName: Tool Unit Tests
+      workingDirectory: $(Build.SourcesDirectory)/tests/tool
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: xUnit
+        testResultsFiles: Tool-Tests.xml
+        searchFolder: $(Build.SourcesDirectory)/tests/tool
+        testRunTitle: Tool Unit Tests
+        failTaskOnFailedTests: true
+
   - job: SystemTestsOgl3
     displayName: System Tests (OpenGL 3 Backend)
     pool:
@@ -104,6 +132,10 @@ jobs:
       env:
         AGENT_OS: $(Agent.OS)
     - bash: |
+        cd ../../src/tool
+        npx haxe build.hxml
+        cd ../../tests/system
+        
         pip3 install -U pytest
         pip3 install -U pytest-subtests
         python3 -m pytest -o junit_family=xunit2 --junit-xml test-system.xml -s Test.py

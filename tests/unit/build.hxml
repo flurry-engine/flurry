@@ -1,7 +1,8 @@
--m Main
+-m Tests
 
 -p src
--p ../../src
+-p ../../src/lib
+-p ../../src/tool/src
 
 -L buddy
 -L hxcpp
@@ -12,6 +13,8 @@
 -L sys.io.abstractions
 -L hxbit
 -L RxHaxe
+-L tink_json
+-L akifox-asynchttp
 
 --dce full
 
@@ -19,4 +22,4 @@
 
 --macro nullSafety('uk.aidanlee.flurry.modules.differ', Loose)
 --macro nullSafety('uk.aidanlee.flurry.api.maths', Loose)
---macro Safety.safeNavigation('uk.aidanlee.flurry')
+--macro Safety.safeNavigation('')

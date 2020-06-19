@@ -37,11 +37,11 @@ class SystemTests(unittest.TestCase):
                 buildFileHandle.write(template)
                 buildFileHandle.close()
 
-                subprocess.run([ "npx", "lix", "run", "build", "build" ])
+                subprocess.run([ "npx", "neko", "../../run.n", "build" ])
 
-                test_proc=subprocess.Popen([ "bin/linux-x64/SystemTests" ], env=myEnv)
+                test_proc=subprocess.Popen([ "bin/linux/SystemTests" ], env=myEnv)
 
-                time.sleep(5)
+                time.sleep(2)
 
                 subprocess.run([ "import", "-window", "System Tests", f"screenshot_{x}.png" ], env=myEnv)
 

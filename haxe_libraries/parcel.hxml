@@ -1,8 +1,0 @@
--D parcel=0.0.1
-# @install: lix --silent download "gh://github.com/flurry-engine/parcel#6e094c0f4614199044a2df1c3cc85262e454b90c" into parcel/0.0.1/github/6e094c0f4614199044a2df1c3cc85262e454b90c
-# @run: haxelib run-dir parcel ${HAXE_LIBCACHE}/parcel/0.0.1/github/6e094c0f4614199044a2df1c3cc85262e454b90c
--lib flurry
--lib safety
--lib tink_cli
--lib tink_json
--cp ${HAXE_LIBCACHE}/parcel/0.0.1/github/6e094c0f4614199044a2df1c3cc85262e454b90c/

@@ -1,8 +1,10 @@
 package tests.api.resources;
 
+import Types.Project;
+import Types.Backend;
+import commands.Restore;
+import parcel.Packer;
 import haxe.Exception;
-import sys.io.File;
-import haxe.io.Bytes;
 import buddy.SingleSuite;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
@@ -18,8 +20,37 @@ using rx.Observable;
 
 class ResourceSystemTests extends SingleSuite
 {
+    final parcels : Map<String, haxe.io.Bytes>;
+
+    final project : Project;
+
     public function new()
     {
+        parcels = [];
+        project = {
+            app: {
+                name      : '',
+                backend   : Backend.Snow,
+                codepaths : [],
+                main      : '',
+                output    : 'bin',
+                namespace : ''
+            },
+            parcels: [ 'assets/assets.json' ]
+        };
+
+        new Restore(project).run();
+        switch new Packer(project).create('assets/assets.json')
+        {
+            case Success(data):
+                for (parcel in data)
+                {
+                    parcels[parcel.name] = parcel.bytes;
+                }
+            case Failure(message):
+                trace('failed to build parcels : $message');
+        }
+
         describe('ResourceSystem', {
 
             it('allows manually adding resources to the system', {
@@ -41,7 +72,7 @@ class ResourceSystemTests extends SingleSuite
             });
 
             it('can load a pre-packaged parcels resources', {
-                final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel')) ];
+                final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']) ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 system.load('images.parcel');
 
@@ -53,8 +84,8 @@ class ResourceSystemTests extends SingleSuite
 
             it('can load all the dependencies of a pre-packaged parcel', {
                 final files = [
-                    'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel')),
-                    'assets/parcels/preload.parcel' => MockFileData.fromBytes(File.getBytes('bin/preload.parcel'))
+                    'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']),
+                    'assets/parcels/preload.parcel' => MockFileData.fromBytes(parcels['preload.parcel'])
                 ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 system.load('preload.parcel');
@@ -142,7 +173,7 @@ class ResourceSystemTests extends SingleSuite
             });
 
             it('can remove a parcels resources from the system', {
-                final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel')) ];
+                final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']) ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 system.load('images.parcel');
                 system.free('images.parcel');
@@ -152,8 +183,8 @@ class ResourceSystemTests extends SingleSuite
 
             it('will reference count resources so they are only removed when no parcels reference them', {
                 final files = [
-                    'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel')),
-                    'assets/parcels/moreImages.parcel' => MockFileData.fromBytes(File.getBytes('bin/moreImages.parcel'))
+                    'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']),
+                    'assets/parcels/moreImages.parcel' => MockFileData.fromBytes(parcels['moreImages.parcel'])
                 ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 system.load('images.parcel');
@@ -169,7 +200,7 @@ class ResourceSystemTests extends SingleSuite
             });
 
             it('will decremement the references for pre-packaged parcels', {
-                final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel')) ];
+                final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']) ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
 
                 system.load('images.parcel');
@@ -181,8 +212,8 @@ class ResourceSystemTests extends SingleSuite
 
             it('will decrement the resources in all pre-packaged parcels dependencies', {
                 final files = [
-                    'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel')),
-                    'assets/parcels/preload.parcel' => MockFileData.fromBytes(File.getBytes('bin/preload.parcel'))
+                    'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']),
+                    'assets/parcels/preload.parcel' => MockFileData.fromBytes(parcels['preload.parcel'])
                 ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 system.load('preload.parcel');
@@ -205,8 +236,8 @@ class ResourceSystemTests extends SingleSuite
                 var calls = 0;
 
                 final files = [
-                    'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel')),
-                    'assets/parcels/preload.parcel' => MockFileData.fromBytes(File.getBytes('bin/preload.parcel'))
+                    'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']),
+                    'assets/parcels/preload.parcel' => MockFileData.fromBytes(parcels['preload.parcel'])
                 ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 final parcel = 'preload.parcel';
@@ -218,7 +249,7 @@ class ResourceSystemTests extends SingleSuite
             });
 
             it('will thrown an exception when trying to get a resource as the wrong type', {
-                final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel')) ];
+                final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']) ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 
                 system.load('images.parcel');
@@ -239,7 +270,7 @@ class ResourceSystemTests extends SingleSuite
                 var result = '';
 
                 final files = [
-                    'assets/parcels/images.parcel' => MockFileData.fromBytes(File.getBytes('bin/images.parcel'))
+                    'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel'])
                 ];
                 new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current)
                     .load('images.parcel')

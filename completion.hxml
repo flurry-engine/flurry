@@ -2,8 +2,10 @@
 
 -cpp out/
 
--cp src
+-cp src/lib
+-cp src/tool/src
 -cp tests/unit/src
+-cp tests/tool/src
 -cp tests/system/src
 
 -D hxcpp
@@ -26,9 +28,12 @@
 -lib format
 -lib RxHaxe
 -lib hxbit
+-lib tink_json
+-lib tink_cli
+-lib akifox-asynchttp
 
 --macro nullSafety('uk.aidanlee.flurry.modules.differ', Strict)
 --macro nullSafety('uk.aidanlee.flurry.api.resources', Strict)
---macro Safety.safeNavigation('uk.aidanlee.flurry', true)
+--macro Safety.safeNavigation('', true)
 
 --no-inline
