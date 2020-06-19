@@ -15,10 +15,10 @@ class TextGeometryTests extends BuddySuite
             it('Can create a text geometry from an initial string and bitmap font data', {
                 final string   = 'hello';
                 final chars    = [
-                    "h".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                    "e".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                    "l".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                    "o".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+                    "h".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "e".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "l".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "o".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0)
                 ];
                 final font     = new FontResource('', '', chars, 0, 0, 256, 256, 0, 0, 1, 1);
                 final geometry = new TextGeometry({ font : font, text : string, size : 48 });
@@ -37,11 +37,11 @@ class TextGeometryTests extends BuddySuite
                 final oldString = 'hello';
                 final newString = 'hello!';
                 final chars     = [
-                    "h".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                    "e".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                    "l".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                    "o".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                    "!".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+                    "h".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "e".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "l".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "o".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    "!".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0)
                 ];
                 final font      = new FontResource('', '', chars, 0, 0, 256, 256, 0, 0, 1, 1);
                 final geometry  = new TextGeometry({ font : font, text : oldString, size : 48 });

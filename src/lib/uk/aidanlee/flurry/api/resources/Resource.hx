@@ -152,10 +152,6 @@ class Character implements Serializable
 
     @:s public var height : Float;
 
-    @:s public var xOffset : Float;
-
-    @:s public var yOffset : Float;
-
     @:s public var xAdvance : Float;
 
     @:s public var u1 : Float;
@@ -171,8 +167,6 @@ class Character implements Serializable
         _y : Float,
         _width : Float,
         _height : Float,
-        _xOffset : Float,
-        _yOffset : Float,
         _xAdvance : Float,
         _u1 : Float,
         _v1 : Float,
@@ -183,8 +177,6 @@ class Character implements Serializable
         y        = _y;
         width    = _width;
         height   = _height;
-        xOffset  = _xOffset;
-        yOffset  = _yOffset;
         xAdvance = _xAdvance;
         u1       = _u1;
         v1       = _v1;

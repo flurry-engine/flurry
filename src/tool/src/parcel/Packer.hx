@@ -389,8 +389,6 @@ class Packer
                                 pTop,
                                 pRight,
                                 pBottom,
-                                0,
-                                0,
                                 char.advance,
                                 (found.section.x + ax) / found.page.width,
                                 (found.section.y + ay) / found.page.height,
@@ -399,7 +397,7 @@ class Packer
                         }
                         else
                         {
-                            chars[char.unicode] = new Character(0, 0, 0, 0, 0, 0, char.advance, 0, 0, 1, 1);
+                            chars[char.unicode] = new Character(0, 0, 0, 0, char.advance, 0, 0, 1, 1);
                         }
                     }
         
