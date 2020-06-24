@@ -178,15 +178,14 @@ class Build
     {
         user.main = 'snow.App';
         user.cpp  = Path.join([ buildPath, 'cpp' ]);
+        user.dce  = std;
 
         if (project!.build!.profile.or(Debug) == Release || release)
         {
-            user.dce = full;
             user.noTraces();
         }
         else
         {
-            user.dce = no;
             user.debug();
         }
 
