@@ -105,30 +105,27 @@ class Camera2D extends Camera
         {
             zoom = minimumZoom;
         }
-        
-        // Update the position and virtual view size according to the scale mode.
-        var ratioX = 1.0;
-        var ratioY = 1.0;
+
         switch viewport
         {
             case Viewport(_, _, _width, _height):
-                ratioX = _width / size.x;
-                ratioY = _height / size.y;
-            case _:
+                final ratioX   = _width  / size.x;
+                final ratioY   = _height / size.y;
+                final longest  = Maths.max(ratioX, ratioY);
+                final shortest = Maths.min(ratioX, ratioY);
+
+                switch sizeMode
+                {
+                    case Fit:
+                        transformation.scale.set(1 / (longest * zoom), 1 / (longest * zoom), 1);
+                    case Cover:
+                        transformation.scale.set(1 / (shortest * zoom), 1 / (shortest * zoom), 1);
+                    case Contain:
+                        transformation.scale.set(1 * zoom, 1 * zoom, 1);
+                }
+            case None:
+                //
         }
-
-        var shortest = Maths.max(ratioX, ratioY);
-        var longest  = Maths.min(ratioX, ratioY);
-
-        switch (sizeMode)
-        {
-            case Fit    : ratioX = ratioY = longest;
-            case Cover  : ratioX = ratioY = shortest;
-            case Contain: // Uses actual size.
-        }
-
-        transformation.scale.x = 1 / (ratioX * zoom);
-        transformation.scale.y = 1 / (ratioY * zoom);
 
         // Apply any shaking
         if (shaking)
