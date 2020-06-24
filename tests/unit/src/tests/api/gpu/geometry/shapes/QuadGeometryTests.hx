@@ -1,14 +1,9 @@
 package tests.api.gpu.geometry.shapes;
 
-import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import buddy.BuddySuite;
 
-using mockatoo.Mockatoo;
 using buddy.Should;
 
 class QuadGeometryTests extends BuddySuite
@@ -18,15 +13,7 @@ class QuadGeometryTests extends BuddySuite
         describe('QuadGeometry', {
             it('Creates an indexed quad with the textures size by default', {
                 final texture = new ImageFrameResource('', '', 0, 0, 256, 128, 0, 0, 1, 1);
-                final batcher = new Batcher({
-                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
-                });
-
-                final quad = new QuadGeometry({
-                    texture  : texture,
-                    batchers : [ batcher ]
-                });
+                final quad    = new QuadGeometry({ texture : texture });
 
                 switch quad.data
                 {
@@ -50,37 +37,21 @@ class QuadGeometryTests extends BuddySuite
                 final y =  64;
 
                 final texture = new ImageFrameResource('', '', 0, 0, 256, 128, 0, 0, 1, 1);
-                final batcher = new Batcher({
-                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
-                });
-
-                final quad = new QuadGeometry({
-                    texture  : texture,
-                    batchers : [ batcher ],
-                    x : x,
-                    y : y
-                });
+                final quad    = new QuadGeometry({ texture : texture, x : x, y : y });
 
                 quad.transformation.position.x.should.be(x);
                 quad.transformation.position.y.should.be(y);
             });
 
             it('Can create a quad with a specific size', {
-                final texture = new ImageFrameResource('', '', 0, 0, 256, 128, 0, 0, 1, 1);
-                final batcher = new Batcher({
-                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
-                });
-
                 final width  = 128;
                 final height =  64;
 
-                final quad = new QuadGeometry({
-                    texture  : texture,
-                    batchers : [ batcher ],
-                    width    : width,
-                    height   : height
+                final texture = new ImageFrameResource('', '', 0, 0, 256, 128, 0, 0, 1, 1);
+                final quad    = new QuadGeometry({
+                    texture : texture,
+                    width   : width,
+                    height  : height
                 });
 
                 switch quad.data
@@ -112,15 +83,7 @@ class QuadGeometryTests extends BuddySuite
 
             it('Will UV the entire texture by default', {
                 final texture = new ImageFrameResource('', '', 0, 0, 256, 128, 0, 0, 1, 1);
-                final batcher = new Batcher({
-                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
-                });
-
-                final quad = new QuadGeometry({
-                    texture  : texture,
-                    batchers : [ batcher ]
-                });
+                final quad    = new QuadGeometry({ texture : texture });
 
                 switch quad.data
                 {
@@ -151,15 +114,7 @@ class QuadGeometryTests extends BuddySuite
 
             it('Allows a custom UV region to be specified', {
                 final texture = new ImageFrameResource('', '', 16, 48, 32, 64, 16 / 256, 48 / 128, (16 + 32) / 256, (48 + 64) / 128);
-                final batcher = new Batcher({
-                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
-                });
-
-                final quad = new QuadGeometry({
-                    texture  : texture,
-                    batchers : [ batcher ],
-                });
+                final quad    = new QuadGeometry({ texture : texture });
 
                 switch quad.data
                 {
@@ -193,15 +148,7 @@ class QuadGeometryTests extends BuddySuite
                 final height = 512;
 
                 final texture = new ImageFrameResource('', '', 0, 0, 256, 128, 0, 0, 1, 1);
-                final batcher = new Batcher({
-                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
-                });
-
-                final quad = new QuadGeometry({
-                    texture  : texture,
-                    batchers : [ batcher ]
-                });
+                final quad    = new QuadGeometry({ texture : texture });
 
                 quad.resize(width, height);
 
@@ -239,15 +186,7 @@ class QuadGeometryTests extends BuddySuite
                 final height = 512;
 
                 final texture = new ImageFrameResource('', '', 0, 0, 256, 128, 0, 0, 1, 1);
-                final batcher = new Batcher({
-                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
-                });
-
-                final quad = new QuadGeometry({
-                    texture  : texture,
-                    batchers : [ batcher ]
-                });
+                final quad    = new QuadGeometry({ texture : texture });
 
                 quad.set(x, y, width, height);
 
@@ -288,15 +227,7 @@ class QuadGeometryTests extends BuddySuite
                 final h = 0.95;
 
                 final texture = new ImageFrameResource('', '', 0, 0, 256, 128, 0, 0, 1, 1);
-                final batcher = new Batcher({
-                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
-                });
-
-                final quad = new QuadGeometry({
-                    texture  : texture,
-                    batchers : [ batcher ]
-                });
+                final quad    = new QuadGeometry({ texture : texture });
 
                 quad.uv(x, y, w, h);
 
@@ -334,15 +265,7 @@ class QuadGeometryTests extends BuddySuite
                 final h = 64;
 
                 final texture = new ImageFrameResource('', '', 0, 0, 256, 128, 0, 0, 1, 1);
-                final batcher = new Batcher({
-                    camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
-                });
-
-                final quad = new QuadGeometry({
-                    texture  : texture,
-                    batchers : [ batcher ]
-                });
+                final quad    = new QuadGeometry({ texture : texture });
 
                 quad.uv(x, y, w, h, false);
 
@@ -372,11 +295,63 @@ class QuadGeometryTests extends BuddySuite
                         fail('quad data should be indexed');
                 }
             });
-        });
-    }
 
-    function shader() : ShaderResource
-    {
-        return new ShaderResource('shader', new ShaderLayout([], []), null, null, null);
+            describe('Updating the frame', {
+                final frame1 = new ImageFrameResource('frame_1', 'image', 0, 0, 256, 128, 0, 0, 1, 1);
+                final frame2 = new ImageFrameResource('frame_2', 'image', 0, 0,  64,  32, 0.2, 0.3, 0.75, 0.55);
+                final quad   = new QuadGeometry({ texture : frame1 });
+
+                quad.reframe(frame2);
+
+                it('will uv the geometry to the frame', {
+                    switch quad.data
+                    {
+                        case Indexed(_vertices, _):
+                        _vertices.floatAccess[(0 * 9) + 7].should.beCloseTo(frame2.u1);
+                        _vertices.floatAccess[(0 * 9) + 8].should.beCloseTo(frame2.v2);
+
+                        _vertices.floatAccess[(1 * 9) + 7].should.beCloseTo(frame2.u2);
+                        _vertices.floatAccess[(1 * 9) + 8].should.beCloseTo(frame2.v2);
+
+                        _vertices.floatAccess[(2 * 9) + 7].should.beCloseTo(frame2.u1);
+                        _vertices.floatAccess[(2 * 9) + 8].should.beCloseTo(frame2.v1);
+
+                        _vertices.floatAccess[(3 * 9) + 7].should.beCloseTo(frame2.u2);
+                        _vertices.floatAccess[(3 * 9) + 8].should.beCloseTo(frame2.v1);
+                        case _:
+                            fail('quad data should be indexed');
+                    }
+                });
+                it('will resize the geometry to the frame', {
+                    switch quad.data
+                    {
+                        case Indexed(_vertices, _):
+                        _vertices.floatAccess[(0 * 9) + 0].should.be(0);
+                        _vertices.floatAccess[(0 * 9) + 1].should.be(frame2.height);
+
+                        _vertices.floatAccess[(1 * 9) + 0].should.be(frame2.width);
+                        _vertices.floatAccess[(1 * 9) + 1].should.be(frame2.height);
+
+                        _vertices.floatAccess[(2 * 9) + 0].should.be(0);
+                        _vertices.floatAccess[(2 * 9) + 1].should.be(0);
+
+                        _vertices.floatAccess[(3 * 9) + 0].should.be(frame2.width);
+                        _vertices.floatAccess[(3 * 9) + 1].should.be(0);
+                        case _:
+                            fail('quad data should be indexed');
+                    }
+                });
+                it('will update the textures of the geometry', {
+                    switch quad.textures
+                    {
+                        case Textures(_frames):
+                            _frames.length.should.be(1);
+                            _frames[0].id.should.be(frame2.id);
+                        case _:
+                            fail('expected textures on this quad');
+                    }
+                });
+            });
+        });
     }
 }

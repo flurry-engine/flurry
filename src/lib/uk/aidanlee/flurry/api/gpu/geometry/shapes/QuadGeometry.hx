@@ -113,6 +113,27 @@ class QuadGeometry extends Geometry
         }
     }
 
+    /**
+     * Updates this geometry to display the provided frame.
+     * @param _frame Frame to display.
+     */
+    public function reframe(_frame : ImageFrameResource)
+    {
+        final replace = switch textures
+        {
+            case None: true;
+            case Textures(_frames): _frames.length < 1 || _frames[0].id != _frame.id;
+        }
+
+        if (replace)
+        {
+            textures = Textures([ _frame ]);
+        }
+
+        updateSize(_frame.width, _frame.height);
+        updateUVs(_frame.u1, _frame.v1, _frame.u2, _frame.v2);
+    }
+
     public function setColour(_r : Float, _g : Float, _b : Float, _a : Float)
     {
         switch data
