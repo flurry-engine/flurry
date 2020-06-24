@@ -27,6 +27,7 @@ class Tests implements Buddy<[
     tests.api.gpu.geometry.UniformBlobTests,
     tests.api.gpu.geometry.shapes.QuadGeometryTests,
     tests.api.gpu.geometry.shapes.TextGeometryTests,
+    tests.api.gpu.geometry.shapes.SpriteGeometryTests,
     tests.api.gpu.batcher.BatcherStateTests,
     tests.api.gpu.batcher.BatcherTests,
 

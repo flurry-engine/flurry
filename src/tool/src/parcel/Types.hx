@@ -43,6 +43,7 @@ typedef JsonParcel = {
     var ?fonts : Array<String>;
     var ?images : Array<String>;
     var ?sheets : Array<String>;
+    var ?sprites : Array<String>;
     var ?shaders : Array<String>;
 }
 
@@ -52,6 +53,7 @@ typedef JsonAssets = {
     var fonts : Array<JsonResource>;
     var images : Array<JsonResource>;
     var sheets : Array<JsonResource>;
+    var sprites : Array<JsonResource>;
     var shaders : Array<JsonShaderResource>;
 }
 
@@ -99,4 +101,48 @@ typedef JsonFontDefinition = {
     var metrics : JsonFontMetrics;
     var glyphs : Array<JsonFontGlyph>;
     var kerning : Array<Dynamic>;
+}
+
+typedef JsonRectangle = {
+    var x : Int;
+    var y : Int;
+    var w : Int;
+    var h : Int;
+}
+
+typedef JsonSize = {
+    var w : Int;
+    var h : Int;
+}
+
+typedef JsonSpriteFrame = {
+    var filename : String;
+    var frame : JsonRectangle;
+    var rotated : Bool;
+    var trimmed : Bool;
+    var spriteSourceSize : JsonRectangle;
+    var sourceSize : JsonSize;
+    var duration : Int;
+}
+
+typedef JsonSpriteTag = {
+    var name : String;
+    var from : Int;
+    var to : Int;
+    var direction : String;
+}
+
+typedef JsonSpriteMeta = {
+    var app : String;
+    var version : String;
+    var image : String;
+    var format : String;
+    var size : JsonSize;
+    var scale : String;
+    var frameTags : Array<JsonSpriteTag>;
+}
+
+typedef JsonSprite = {
+    var frames : Array<JsonSpriteFrame>;
+    var meta : JsonSpriteMeta;
 }

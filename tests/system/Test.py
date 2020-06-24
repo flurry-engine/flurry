@@ -19,6 +19,7 @@ class SystemTests(unittest.TestCase):
             "BatchingGeometry",
             "StencilTesting",
             "Text",
+            "Sprites",
             "Transformations",
             "TransformationTree",
             "ImGuiDrawing"
@@ -37,7 +38,7 @@ class SystemTests(unittest.TestCase):
                 buildFileHandle.write(template)
                 buildFileHandle.close()
 
-                subprocess.run([ "npx", "neko", "../../run.n", "build" ])
+                subprocess.run([ "npx", "neko", "../../run.n", "build" ], env=myEnv)
 
                 test_proc=subprocess.Popen([ "bin/linux/SystemTests" ], env=myEnv)
 

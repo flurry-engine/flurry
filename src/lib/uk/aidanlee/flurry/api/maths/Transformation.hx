@@ -128,6 +128,7 @@ class Transformation implements IObservable<Unit>
         local.position.subscribeFunction(setDirty);
         local.rotation.subscribeFunction(setDirty);
         local.scale.subscribeFunction(setDirty);
+        origin.subscribeFunction(setDirty);
     }
 
     /**

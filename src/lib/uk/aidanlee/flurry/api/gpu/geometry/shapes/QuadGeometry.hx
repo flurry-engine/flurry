@@ -7,7 +7,6 @@ import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
-import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 
 using Safety;

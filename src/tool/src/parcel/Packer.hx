@@ -36,6 +36,11 @@ class Packer
     final tempFonts : String;
 
     /**
+     * Temp location used to store all exported sprite sheets and json.
+     */
+    final tempSprites : String;
+
+    /**
      * Directory where this platforms pre-compiled tools are found.
      */
     final toolsDir : String;
@@ -53,16 +58,18 @@ class Packer
 
     public function new(_project : Project, _fs : IFileSystem = null, _proc : Proc = null)
     {
-        fs         = _fs.or(new FileSystem());
-        proc       = _proc.or(new Proc());
-        tempFonts  = _project.tempFonts();
-        tempAssets = _project.tempAssets();
-        toolsDir   = _project.toolPath();
-        prepared   = [];
-        serialiser = new Serializer();
+        fs          = _fs.or(new FileSystem());
+        proc        = _proc.or(new Proc());
+        tempFonts   = _project.tempFonts();
+        tempSprites = _project.tempSprites();
+        tempAssets  = _project.tempAssets();
+        toolsDir    = _project.toolPath();
+        prepared    = [];
+        serialiser  = new Serializer();
 
         fs.directory.create(tempFonts);
         fs.directory.create(tempAssets);
+        fs.directory.create(tempSprites);
     }
 
     public function create(_path : String) : Result<Array<{ name : String, bytes : Bytes }>>
@@ -118,15 +125,35 @@ class Packer
             }
         }
 
+        for (sprite in assets.assets.sprites)
+        {
+            final tool    = Utils.asepriteExecutable();
+            final outPng  = Path.join([ tempSprites, sprite.id + '.png' ]);
+            final outJson = Path.join([ tempSprites, sprite.id + '.json' ]);
+
+            switch proc.run(tool, [
+                '--batch',
+                Path.join([ baseDir, sprite.path ]),
+                '--sheet', outPng,
+                '--data', outJson,
+                '--format', 'json-array',
+                '--filename-format', '{frame}',
+                '--list-tags' ])
+            {
+                case Failure(message): return Failure(message);
+                case _:
+            }
+        }
+
         // Images, sheets, and fonts can't be pre-created into resources as they are packed together based on the parcel.
 
         for (parcel in assets.parcels)
         {
             final resources =
-                if (parcel.images == null && parcel.sheets == null && parcel.fonts == null)
+                if (parcel.images == null && parcel.sheets == null && parcel.fonts == null && parcel.sprites == null)
                     [];
                 else
-                    switch packImages(baseDir, parcel, assets.assets.images, assets.assets.sheets, assets.assets.fonts)
+                    switch packImages(baseDir, parcel, assets.assets.images, assets.assets.sheets, assets.assets.fonts, assets.assets.sprites)
                     {
                         case Success(parcels): parcels;
                         case Failure(message): return Failure(message);
@@ -164,6 +191,7 @@ class Packer
 
         clean(tempAssets);
         clean(tempFonts);
+        clean(tempSprites);
 
         return Success(parcelBytes);
     }
@@ -185,10 +213,11 @@ class Packer
      * @param _fonts All font resources in this project.
      * @return Array<Resource>
      */
-    function packImages(_baseDir : String, _parcel : JsonParcel, _images : Array<JsonResource>, _sheets : Array<JsonResource>, _fonts : Array<JsonResource>) : Result<Array<Resource>>
+    function packImages(_baseDir : String, _parcel : JsonParcel, _images : Array<JsonResource>, _sheets : Array<JsonResource>, _fonts : Array<JsonResource>, _sprites : Array<JsonResource>) : Result<Array<Resource>>
     {
         final atlases = [];
         final bmfonts = [];
+        final sprites = [];
 
         for (id in _parcel.images.or([]))
         {
@@ -232,6 +261,26 @@ class Packer
                         Path.join([ tempAssets, image ]));
 
                     bmfonts.push({ id : font.id, font : bmfont });
+                });
+        }
+        for (id in _parcel.sprites.or([]))
+        {
+            _sprites
+                .find(sprite -> sprite.id == id)
+                .run(sprite -> {
+                    final path = new Path(sprite.id);
+                    path.dir = tempSprites;
+                    path.ext = 'json';
+
+                    final json : JsonSprite = tink.Json.parse(fs.file.getText(path.toString()));
+
+                    final image = sprite.id + '.png';
+
+                    fs.file.copy(
+                        Path.join([ tempSprites, image ]),
+                        Path.join([ tempAssets, image ]));
+
+                    sprites.push({ id : sprite.id, sprite : json });
                 });
         }
 
@@ -415,6 +464,47 @@ class Packer
                         (found.section.y + found.section.height) / found.page.height));
         
                     continue;
+                case Failure(message): return Failure(message);
+            }
+        }
+
+        for (sprite in sprites)
+        {
+            switch findSection(sprite.id, pages)
+            {
+                case Success(found):
+                    final sets = new Map<String, Array<SpriteFrameResource>>();
+
+                    for (tag in sprite.sprite.meta.frameTags)
+                    {
+                        sets[tag.name] = [ for (i in tag.from...tag.to + 1) {
+                            final frame = sprite.sprite.frames.find(f -> Std.parseInt(f.filename) == i).sure();
+                            final x     = found.section.x + frame.frame.x;
+                            final y     = found.section.y + frame.frame.y;
+
+                            new SpriteFrameResource(
+                                frame.frame.w,
+                                frame.frame.h,
+                                frame.duration,
+                                x / found.page.width,
+                                y / found.page.height,
+                                (x + frame.frame.w) / found.page.width,
+                                (y + frame.frame.h) / found.page.height);
+                        } ];
+                    }
+
+                    assets.push(new SpriteResource(
+                        found.section.name,
+                        found.page.image.file,
+                        found.section.x,
+                        found.section.y,
+                        found.section.width,
+                        found.section.height,
+                        found.section.x / found.page.width,
+                        found.section.y / found.page.height,
+                        (found.section.x + found.section.width) / found.page.width,
+                        (found.section.y + found.section.height) / found.page.height,
+                        sets));
                 case Failure(message): return Failure(message);
             }
         }

@@ -24,6 +24,9 @@ class Utils
     public static function tempFonts(_project : Project)
         return Path.join([ baseTempDir(_project), 'fonts' ]);
 
+    public static function tempSprites(_project : Project)
+        return Path.join([ baseTempDir(_project), 'sprites' ]);
+
     public static function tempAssets(_project : Project)
         return Path.join([ baseTempDir(_project), 'assets' ]);
 
@@ -46,5 +49,12 @@ class Utils
         {
             case Windows : 'glslangValidator.exe';
             case _ : 'glslangValidator';
+        }
+
+    public static function asepriteExecutable()
+        return switch platform()
+        {
+            case Windows : Path.join([ 'C:', 'Program Files', 'Aseprite', 'aseprite.exe' ]);
+            case _ : 'aseprite';
         }
 }

@@ -1,5 +1,6 @@
 package tests;
 
+import parcel.Types.JsonSprite;
 import parcel.GdxParser.GdxSection;
 import parcel.GdxParser.GdxPage;
 import parcel.Types.JsonFontDefinition;
@@ -19,6 +20,7 @@ import sys.io.abstractions.mock.MockFileSystem;
 import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import uk.aidanlee.flurry.api.resources.Resource.ParcelResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.FontResource;
 import buddy.BuddySuite;
@@ -43,6 +45,7 @@ class PackerTests extends BuddySuite
                             fonts : [],
                             images : [],
                             sheets : [],
+                            sprites : [],
                             shaders : [
                                 {
                                     id   : 'shader',
@@ -113,6 +116,7 @@ class PackerTests extends BuddySuite
                             fonts : [],
                             images : [],
                             sheets : [],
+                            sprites : [],
                             shaders : [
                                 {
                                     id   : 'shader',
@@ -183,6 +187,7 @@ class PackerTests extends BuddySuite
                             fonts : [],
                             images : [],
                             sheets : [],
+                            sprites : [],
                             shaders : [
                                 {
                                     id   : 'shader',
@@ -244,6 +249,7 @@ class PackerTests extends BuddySuite
                             fonts : [],
                             images : [],
                             sheets : [],
+                            sprites : [],
                             shaders : [
                                 {
                                     id   : 'shader',
@@ -305,6 +311,7 @@ class PackerTests extends BuddySuite
                             fonts : [],
                             images : [],
                             sheets : [],
+                            sprites : [],
                             shaders : [
                                 {
                                     id   : 'shader1',
@@ -405,6 +412,7 @@ class PackerTests extends BuddySuite
                             fonts : [],
                             images : [],
                             sheets : [],
+                            sprites : [],
                             shaders : [
                                 {
                                     id   : 'shader',
@@ -467,6 +475,7 @@ class PackerTests extends BuddySuite
                         ],
                         images : [],
                         sheets : [],
+                        sprites : [],
                         shaders : []
                     },
                     parcels : [ 
@@ -543,6 +552,7 @@ class PackerTests extends BuddySuite
                             { id : 'img3', path : 'img3.png' }
                         ],
                         sheets : [],
+                        sprites : [],
                         shaders : []
                     },
                     parcels : [ 
@@ -620,6 +630,196 @@ class PackerTests extends BuddySuite
                         fail(message);
                 }
             });
+            it('will call aseprite to generate sprite sheets for packing', {
+                final assets : JsonDefinition = {
+                    assets : {
+                        bytes : [],
+                        texts : [],
+                        fonts : [],
+                        images : [],
+                        sheets : [],
+                        sprites : [
+                            { id : 'sprite', path : 'sprites/sprite.aseprite' }
+                        ],
+                        shaders : []
+                    },
+                    parcels : [ 
+                        { name : 'parcel', depends : [], sprites : [ 'sprite' ] }
+                    ]
+                }
+                final fs = new MockFileSystem([
+                    'assets.json' => MockFileData.fromText(tink.Json.stringify(assets)),
+                    'sprites/sprite.aseprite' => MockFileData.fromText('')
+                ], []);
+                final project = project();
+                final proc    = mock(Proc);
+                final packer  = new Packer(project, fs, proc);
+
+                Mockatoo.when(proc.run('C:/Program Files/Aseprite/aseprite.exe', anyIterator)).thenCall(f -> {
+                    final args = (cast f[1] : Array<String>);
+                    final png  = args[3];
+                    final json = args[5];
+                    final spr : JsonSprite = {
+                        meta: {
+                            app: '', scale: '', size: { w: 64, h: 32 }, format: '', image: '', version: '', frameTags: [
+                                { name: 'anim_1', direction: '', from: 0, to: 1 },
+                                { name: 'anim_2', direction: '', from: 2, to: 5 }
+                            ]
+                        },
+                        frames: [
+                            {
+                                filename: '0',
+                                duration: 100,
+                                trimmed: false,
+                                rotated: false,
+                                frame: { x: 0, y: 0, w: 32, h: 16 },
+                                sourceSize: { w: 0, h: 0 },
+                                spriteSourceSize: { x: 0, y: 0, w: 0, h: 0 }
+                            },
+                            {
+                                filename: '1',
+                                duration: 100,
+                                trimmed: false,
+                                rotated: false,
+                                frame: { x: 32, y: 0, w: 32, h: 16 },
+                                sourceSize: { w: 0, h: 0 },
+                                spriteSourceSize: { x: 0, y: 0, w: 0, h: 0 }
+                            },
+                            {
+                                filename: '2',
+                                duration: 100,
+                                trimmed: false,
+                                rotated: false,
+                                frame: { x: 0, y: 16, w: 16, h: 16 },
+                                sourceSize: { w: 0, h: 0 },
+                                spriteSourceSize: { x: 0, y: 0, w: 0, h: 0 }
+                            },
+                            {
+                                filename: '3',
+                                duration: 100,
+                                trimmed: false,
+                                rotated: false,
+                                frame: { x: 16, y: 16, w: 16, h: 16 },
+                                sourceSize: { w: 0, h: 0 },
+                                spriteSourceSize: { x: 0, y: 0, w: 0, h: 0 }
+                            },
+                            {
+                                filename: '4',
+                                duration: 100,
+                                trimmed: false,
+                                rotated: false,
+                                frame: { x: 32, y: 16, w: 16, h: 16 },
+                                sourceSize: { w: 0, h: 0 },
+                                spriteSourceSize: { x: 0, y: 0, w: 0, h: 0 }
+                            },
+                            {
+                                filename: '5',
+                                duration: 100,
+                                trimmed: false,
+                                rotated: false,
+                                frame: { x: 48, y: 16, w: 16, h: 16 },
+                                sourceSize: { w: 0, h: 0 },
+                                spriteSourceSize: { x: 0, y: 0, w: 0, h: 0 }
+                            }
+                        ]
+                    }
+
+                    fs.files.set(png, MockFileData.fromText(''));
+                    fs.files.set(json, MockFileData.fromText(tink.Json.stringify(spr)));
+
+                    return Success(Unit.value);
+                });
+
+                Mockatoo.when(proc.run('java', anyIterator)).thenCall(f -> {
+                    final args   = (cast f[1] : Array<String>);
+                    final outDir = args[3];
+                    final parcel = args[4];
+                    final atlas  = createAtlas([ new GdxPage(new Path('$parcel.png'), 64, 32, [ new GdxSection('sprite', 0, 0, 64, 32) ]) ]);
+
+                    fs.files.set(Path.join([ outDir, '$parcel.png' ]), MockFileData.fromBytes(createDummyPng(64, 32)));
+                    fs.files.set(Path.join([ outDir, '$parcel.atlas' ]), MockFileData.fromText(atlas));
+
+                    return Success(Unit.value);
+                });
+
+                switch packer.create('assets.json')
+                {
+                    case Success(data):
+                        final parcel = unpack(data[0].bytes);
+
+                        final image = (cast parcel.assets.find(r -> r.id == 'parcel' && r.type == Image) : ImageResource);
+                        image.width.should.be(64);
+                        image.height.should.be(32);
+
+                        final resource = (cast parcel.assets.find(r -> r.id == 'sprite' && r.type == Sprite) : SpriteResource);
+                        resource.image.should.be('parcel');
+                        resource.x.should.be(0);
+                        resource.y.should.be(0);
+                        resource.width.should.be(64);
+                        resource.height.should.be(32);
+                        resource.u1.should.beCloseTo(resource.x / image.width);
+                        resource.v1.should.beCloseTo(resource.y / image.height);
+                        resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
+                        resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
+
+                        resource.animations.exists('anim_1').should.be(true);
+                        resource.animations.exists('anim_2').should.be(true);
+
+                        resource.animations['anim_1'].length.should.be(2);
+                        final frame = resource.animations['anim_1'][0];
+                        frame.duration.should.be(100);
+                        frame.width.should.be(32);
+                        frame.height.should.be(16);
+                        frame.u1.should.be(0);
+                        frame.v1.should.be(0);
+                        frame.u2.should.be(0.5);
+                        frame.v2.should.be(0.5);
+                        final frame = resource.animations['anim_1'][1];
+                        frame.duration.should.be(100);
+                        frame.width.should.be(32);
+                        frame.height.should.be(16);
+                        frame.u1.should.be(0.5);
+                        frame.v1.should.be(0);
+                        frame.u2.should.be(1);
+                        frame.v2.should.be(0.5);
+
+                        resource.animations['anim_2'].length.should.be(4);
+                        final frame = resource.animations['anim_2'][0];
+                        frame.duration.should.be(100);
+                        frame.width.should.be(16);
+                        frame.height.should.be(16);
+                        frame.u1.should.be(0);
+                        frame.v1.should.be(0.5);
+                        frame.u2.should.be(0.25);
+                        frame.v2.should.be(1);
+                        final frame = resource.animations['anim_2'][1];
+                        frame.duration.should.be(100);
+                        frame.width.should.be(16);
+                        frame.height.should.be(16);
+                        frame.u1.should.be(0.25);
+                        frame.v1.should.be(0.5);
+                        frame.u2.should.be(0.5);
+                        frame.v2.should.be(1);
+                        final frame = resource.animations['anim_2'][2];
+                        frame.duration.should.be(100);
+                        frame.width.should.be(16);
+                        frame.height.should.be(16);
+                        frame.u1.should.be(0.5);
+                        frame.v1.should.be(0.5);
+                        frame.u2.should.be(0.75);
+                        frame.v2.should.be(1);
+                        final frame = resource.animations['anim_2'][3];
+                        frame.duration.should.be(100);
+                        frame.width.should.be(16);
+                        frame.height.should.be(16);
+                        frame.u1.should.be(0.75);
+                        frame.v1.should.be(0.5);
+                        frame.u2.should.be(1);
+                        frame.v2.should.be(1);
+                    case Failure(message):
+                        fail(message);
+                }
+            });
             it('will create images frames for pre-computed atlases', {
                 final assets : JsonDefinition = {
                     assets : {
@@ -630,6 +830,7 @@ class PackerTests extends BuddySuite
                         sheets : [
                             { id : 'atlas', path : 'atlas/sheet.atlas' }
                         ],
+                        sprites : [],
                         shaders : []
                     },
                     parcels : [ 

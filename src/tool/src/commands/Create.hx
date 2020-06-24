@@ -45,6 +45,7 @@ class Create
                 bytes   : [],
                 shaders : [],
                 sheets  : [],
+                sprites : [],
                 images  : [],
                 fonts   : [],
                 texts   : []
