@@ -45,6 +45,14 @@ typedef JsonParcel = {
     var ?sheets : Array<String>;
     var ?sprites : Array<String>;
     var ?shaders : Array<String>;
+    var ?options : JsonPackingOptions;
+}
+
+typedef JsonPackingOptions = {
+    final pageMaxWidth : Int;
+    final pageMaxHeight : Int;
+    final pagePadX : Int;
+    final pagePadY : Int;
 }
 
 typedef JsonAssets = {

@@ -153,7 +153,19 @@ class Packer
                 if (parcel.images == null && parcel.sheets == null && parcel.fonts == null && parcel.sprites == null)
                     [];
                 else
-                    switch packImages(baseDir, parcel, assets.assets.images, assets.assets.sheets, assets.assets.fonts, assets.assets.sprites)
+                    switch packImages(
+                        baseDir,
+                        parcel,
+                        assets.assets.images,
+                        assets.assets.sheets,
+                        assets.assets.fonts,
+                        assets.assets.sprites,
+                        parcel.options.or({
+                            pageMaxWidth  : 4096,
+                            pageMaxHeight : 4096,
+                            pagePadX      : 0,
+                            pagePadY      : 0
+                        }))
                     {
                         case Success(parcels): parcels;
                         case Failure(message): return Failure(message);
@@ -211,9 +223,17 @@ class Packer
      * @param _images All image resources in this project.
      * @param _sheets All image sheet resources in this project.
      * @param _fonts All font resources in this project.
+     * @param _options Options for how the texture pages should be generated.
      * @return Array<Resource>
      */
-    function packImages(_baseDir : String, _parcel : JsonParcel, _images : Array<JsonResource>, _sheets : Array<JsonResource>, _fonts : Array<JsonResource>, _sprites : Array<JsonResource>) : Result<Array<Resource>>
+    function packImages(
+        _baseDir : String,
+        _parcel : JsonParcel,
+        _images : Array<JsonResource>,
+        _sheets : Array<JsonResource>,
+        _fonts : Array<JsonResource>,
+        _sprites : Array<JsonResource>,
+        _options : JsonPackingOptions) : Result<Array<Resource>>
     {
         final atlases = [];
         final bmfonts = [];
@@ -289,8 +309,8 @@ class Packer
         final packFile = Path.join([ tempAssets, 'pack.json' ]);
         final packJson = '{
             "pot": true,
-            "paddingX": 0,
-            "paddingY": 0,
+            "paddingX": ${ _options.pagePadX },
+            "paddingY": ${ _options.pagePadY },
             "bleed": true,
             "bleedIterations": 2,
             "edgePadding": true,
@@ -298,8 +318,8 @@ class Packer
             "rotation": false,
             "minWidth": 16,
             "minHeight": 16,
-            "maxWidth": 2048,
-            "maxHeight": 2048,
+            "maxWidth": ${ _options.pageMaxWidth },
+            "maxHeight": ${ _options.pageMaxHeight },
             "square": false,
             "stripWhitespaceX": false,
             "stripWhitespaceY": false,
