@@ -1,31 +1,14 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.resources.Resource.FontResource;
-import uk.aidanlee.flurry.api.resources.Resource.Character;
 import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
-import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
-
-using Safety;
-
-typedef TextGeometryOptions = {
-    var font : FontResource;
-    var text : String;
-    var size : Float;
-    var ?sampler : SamplerState;
-    var ?shader : GeometryShader;
-    var ?uniforms : GeometryUniforms;
-    var ?depth : Float;
-    var ?clip : ClipState;
-    var ?blend : BlendState;
-    var ?batchers : Array<Batcher>;
-    var ?x : Float;
-    var ?y : Float;
-}
+import uk.aidanlee.flurry.api.resources.Resource.FontResource;
+import uk.aidanlee.flurry.api.resources.Resource.Character;
 
 /**
  * Geometry class which will draw a string with a bitmap font.
@@ -97,12 +80,11 @@ class TextGeometry extends Geometry
             batchers : _options.batchers
         });
 
-        font = _options.font;
-        text = _options.text;
-        size = _options.size;
-
-        position.x = _options.x.or(0);
-        position.y = _options.y.or(0);
+        font       = _options.font;
+        text       = _options.text;
+        size       = _options.size;
+        position.x = _options.x;
+        position.y = _options.y;
 
         ignore = false;
     }
@@ -219,4 +201,73 @@ class TextGeometry extends Geometry
         _idxBuffer[_idxOffset++] = _baseIndex + 1;
         _idxBuffer[_idxOffset++] = _baseIndex + 3;
     }
+}
+
+@:structInit class TextGeometryOptions
+{
+    /**
+     * The font this text will use.
+     */
+    public final font : FontResource;
+
+    /**
+     * What this text geometry will initially display.
+     */
+    public final text : String;
+
+    /**
+     * Pixel height of the geometry.
+     */
+    public final size : Float;
+
+    /**
+     * Provide a custom sampler for the geometries texture.
+     * If null is provided a default sampler is used.
+     * Default samplers is clamp uv clipping and nearest neighbour scaling.
+     */
+    public final sampler : Null<SamplerState> = null;
+
+    /**
+     * Specify a custom shader to be used by this geometry.
+     * If none is provided the batchers shader is used.
+     */
+    public final shader = GeometryShader.None;
+
+    /**
+     * Specify custom uniform blocks to be passed to the shader.
+     * If none is provided the batchers uniforms are used.
+     */
+    public final uniforms = GeometryUniforms.None;
+
+    /**
+     * Initial depth of the geometry.
+     * If none is provided 0 is used.
+     */
+    public final depth = 0.0;
+
+    /**
+     * Custom clip rectangle for this geometry.
+     * Defaults to clipping based on the batchers camera.
+     */
+    public final clip = ClipState.None;
+
+    /**
+     * Provides custom blending operations for drawing this geometry.
+     */
+    public final blend = new BlendState();
+
+    /**
+     * The batchers to initially add this geometry to.
+     */
+    public final batchers = new Array<Batcher>();
+
+    /**
+     * Initial x position of the top left of the geometry.
+     */
+    public final x = 0.0;
+
+    /**
+     * Initial y position of the top left of the geometry.
+     */
+    public final y = 0.0;
 }

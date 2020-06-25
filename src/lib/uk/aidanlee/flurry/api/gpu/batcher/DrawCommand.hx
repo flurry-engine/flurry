@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import haxe.ds.ReadOnlyArray;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
@@ -12,8 +11,8 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 
 /**
  * A draw command describes how to draw a set amount of data within a vertex buffer.

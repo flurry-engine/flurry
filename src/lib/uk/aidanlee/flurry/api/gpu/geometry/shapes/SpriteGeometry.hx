@@ -10,34 +10,12 @@ import uk.aidanlee.flurry.api.gpu.geometry.Geometry.GeometryShader;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
 import uk.aidanlee.flurry.api.resources.Resource.SpriteFrameResource;
 import haxe.Exception;
 import haxe.ds.ReadOnlyArray;
 
 using Safety;
-
-typedef SpriteOptions = {
-    var sprite : SpriteResource;
-    var animation : String;
-    var ?sampler : SamplerState;
-    var ?shader : GeometryShader;
-    var ?uniforms : GeometryUniforms;
-    var ?depth : Float;
-    var ?clip : ClipState;
-    var ?blend : BlendState;
-    var ?batchers : Array<Batcher>;
-    var ?x : Float;
-    var ?y : Float;
-    var ?xScale : Float;
-    var ?yScale : Float;
-    var ?xOrigin : Int;
-    var ?yOrigin : Int;
-    var ?speed : Float;
-    var ?angle : Float;
-    var ?playing : Bool;
-}
 
 class SpriteGeometry extends QuadGeometry
 {
@@ -130,13 +108,13 @@ class SpriteGeometry extends QuadGeometry
             y        : _options.y
         });
 
-        scale.x     = _options.xScale.or(1);
-        scale.y     = _options.yScale.or(1);
-        origin.x    = _options.xOrigin.or(0);
-        origin.y    = _options.yOrigin.or(0);
         animations  = _options.sprite.animations;
-        speed       = _options.speed.or(1);
-        angle       = _options.angle.or(0);
+        scale.x     = _options.xScale;
+        scale.y     = _options.yScale;
+        origin.x    = _options.xOrigin;
+        origin.y    = _options.yOrigin;
+        angle       = _options.angle;
+        speed       = _options.speed;
         index       = 0;
         time        = 0;
         onAnimation = new Subject<String>();
@@ -238,6 +216,107 @@ class SpriteGeometry extends QuadGeometry
 
         resize(frame.width, frame.height);
     }
+}
+
+@:structInit class SpriteOptions
+{
+    /**
+     * Sprite data for this geometry.
+     */
+    public final sprite : SpriteResource;
+
+    /**
+     * Initial animation to play.
+     */
+    public final animation : String;
+
+    /**
+     * Initial x position of the sprite.
+     */
+    public final x = 0.0;
+
+    /**
+     * Initial y position of the sprite.
+     */
+    public final y = 0.0;
+
+    /**
+     * Scale multiplier for the sprites width.
+     */
+    public final xScale = 1.0;
+
+    /**
+     * Scale multiplier for the sprites height.
+     */
+    public final yScale = 1.0;
+
+    /**
+     * The x origin for all translations and rotations.
+     * Value is a pixel location into the sprites image. This is uneffected by any scaling.
+     */
+    public final xOrigin = 0;
+
+    /**
+     * The y origin for all translations and rotations.
+     * Value is a pixel location into the sprites image. This is uneffected by any scaling.
+     */
+    public final yOrigin = 0;
+
+    /**
+     * Speed multiplier for animation playing.
+     */
+    public final speed = 1.0;
+
+    /**
+     * Initial angle in degrees for the sprite.
+     */
+    public final angle = 0.0;
+
+    /**
+     * If the initial animation should immediately start playing.
+     */
+    public final playing = false;
+
+    /**
+     * Provide a custom sampler for the geometries texture.
+     * If null is provided a default sampler is used.
+     * Default samplers is clamp uv clipping and nearest neighbour scaling.
+     */
+    public final sampler : Null<SamplerState> = null;
+
+    /**
+     * Specify a custom shader to be used by this geometry.
+     * If none is provided the batchers shader is used.
+     */
+    public final shader = GeometryShader.None;
+
+    /**
+     * Specify custom uniform blocks to be passed to the shader.
+     * If none is provided the batchers uniforms are used.
+     */
+    public final uniforms = GeometryUniforms.None;
+    
+    /**
+     * Initial depth of the geometry.
+     * If none is provided 0 is used.
+     */
+    public final depth = 0.0;
+
+    /**
+     * Custom clip rectangle for this geometry.
+     * Defaults to clipping based on the batchers camera.
+     */
+    public final clip = ClipState.None;
+
+    /**
+     * Provides custom blending operations for drawing this geometry.
+     */
+    public final blend = new BlendState();
+
+    /**
+     * The batchers to initially add this geometry to.
+     */
+    public final batchers = new Array<Batcher>();
 }
 
 class AnimationNotFoundException extends Exception

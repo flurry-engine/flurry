@@ -20,20 +20,6 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 
 using Safety;
 
-typedef GeometryOptions = {
-    var data       : GeometryData;
-    var ?transform : Transformation;
-    var ?depth     : Float;
-    var ?shader    : GeometryShader;
-    var ?uniforms  : GeometryUniforms;
-    var ?textures  : GeometryTextures;
-    var ?samplers  : GeometrySamplers;
-    var ?clip      : ClipState;
-    var ?blend     : BlendState;
-    var ?primitive : PrimitiveType;
-    var ?batchers  : Array<Batcher>;
-}
-
 enum GeometryData
 {
     Indexed(_vertices : VertexBlob, _indices : IndexBlob);
@@ -260,4 +246,69 @@ class Geometry
             }
         }
     }
+}
+
+@:structInit class GeometryOptions
+{
+    /**
+     * Vertex and optionally index data of this geometry.
+     */
+    public final data : GeometryData;
+
+    /**
+     * Specify an existing transformation to be used by this geometry.
+     * If none is provided a new transformation is created.
+     */
+    public final transform = new Transformation();
+
+    /**
+     * Initial depth of the geometry.
+     * If none is provided 0 is used.
+     */
+    public final depth = 0.0;
+
+    /**
+     * Specify a custom shader to be used by this geometry.
+     * If none is provided the batchers shader is used.
+     */
+    public final shader = GeometryShader.None;
+
+    /**
+     * Specify custom uniform blocks to be passed to the shader.
+     * If none is provided the batchers uniforms are used.
+     */
+    public final uniforms = GeometryUniforms.None;
+
+    /**
+     * Any textures to be used by this geometry.
+     */
+    public final textures = GeometryTextures.None;
+
+    /**
+     * Any samplers to be used by this geometry.
+     * If textures are specified by an equal number of samplers are not a default sampler is used.
+     * Default samplers is clamp uv clipping and nearest neighbour scaling.
+     */
+    public final samplers = GeometrySamplers.None;
+
+    /**
+     * Custom clip rectangle for this geometry.
+     * Defaults to clipping based on the batchers camera.
+     */
+    public final clip = ClipState.None;
+
+    /**
+     * Provides custom blending operations for drawing this geometry.
+     */
+    public final blend = new BlendState();
+
+    /**
+     * The primitive to draw this geometries vertex data with.
+     */
+    public final primitive = PrimitiveType.Triangles;
+
+    /**
+     * The batchers to initially add this geometry to.
+     */
+    public final batchers = new Array<Batcher>();
 }

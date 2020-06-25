@@ -11,21 +11,6 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 
 using Safety;
 
-typedef QuadGeometryOptions = {
-    var texture : ImageFrameResource;
-    var ?sampler : SamplerState;
-    var ?shader : GeometryShader;
-    var ?uniforms : GeometryUniforms;
-    var ?depth : Float;
-    var ?clip : ClipState;
-    var ?blend : BlendState;
-    var ?batchers : Array<Batcher>;
-    var ?x : Float;
-    var ?y : Float;
-    var ?width : Float;
-    var ?height : Float;
-}
-
 class QuadGeometry extends Geometry
 {
     public function new(_options : QuadGeometryOptions)
@@ -201,4 +186,75 @@ class QuadGeometry extends Geometry
             case _:
         }
     }
+}
+
+@:structInit class QuadGeometryOptions
+{
+    /**
+     * The frame this geometry will initially display.
+     */
+    public final texture : ImageFrameResource;
+
+    /**
+     * Provide a custom sampler for the geometries texture.
+     * If null is provided a default sampler is used.
+     * Default samplers is clamp uv clipping and nearest neighbour scaling.
+     */
+    public final sampler : Null<SamplerState> = null;
+
+    /**
+     * Specify a custom shader to be used by this geometry.
+     * If none is provided the batchers shader is used.
+     */
+    public final shader = GeometryShader.None;
+
+    /**
+     * Specify custom uniform blocks to be passed to the shader.
+     * If none is provided the batchers uniforms are used.
+     */
+    public final uniforms = GeometryUniforms.None;
+    
+    /**
+     * Initial depth of the geometry.
+     * If none is provided 0 is used.
+     */
+    public final depth = 0.0;
+
+    /**
+     * Custom clip rectangle for this geometry.
+     * Defaults to clipping based on the batchers camera.
+     */
+    public final clip = ClipState.None;
+
+    /**
+     * Provides custom blending operations for drawing this geometry.
+     */
+    public final blend = new BlendState();
+
+    /**
+     * The batchers to initially add this geometry to.
+     */
+    public final batchers = new Array<Batcher>();
+
+    /**
+     * Initial x position of the top left of the geometry.
+     */
+    public final x = 0.0;
+
+    /**
+     * Initial y position of the top left of the geometry.
+     */
+    public final y = 0.0;
+
+    /**
+     * Custom width for this geometry.
+     * If null is provided the width of the frame is used.
+     */
+    public final width : Null<Float> = null;
+
+    /**
+     * Custom height for this geometry.
+     * If null is provided the height of the frame is used.
+     */
+    public final height : Null<Float> = null;
 }

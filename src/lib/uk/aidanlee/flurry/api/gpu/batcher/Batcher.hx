@@ -381,29 +381,29 @@ class Batcher
     /**
      * The camera this batcher will use.
      */
-    public var camera : Camera;
+    public final camera : Camera;
 
     /**
      * The shader this batcher will use.
      */
-    public var shader : ShaderResource;
+    public final shader : ShaderResource;
 
     /**
      * Optional render target for this batcher.
      * If not specified the backbuffer will be used.
      */
-    public var target : TargetState = Backbuffer;
+    public final target : TargetState = Backbuffer;
 
     /**
      * Optional initial depth for this batcher.
      * If not specified the depth starts at 0.
      */
-    public var depth = 0.0;
+    public final depth = 0.0;
 
     /**
      * Depth testing options to be used by the batcher.
      */
-    public var depthOptions : DepthState = {
+    public final depthOptions : DepthState = {
         depthTesting  : false,
         depthMasking  : false,
         depthFunction : Always
@@ -412,7 +412,7 @@ class Batcher
     /**
      * Stencil testing options to be used by the batcher.
      */
-    public var stencilOptions : StencilState = {
+    public final stencilOptions : StencilState = {
         stencilTesting : false,
 
         stencilFrontMask          : 0xff,
