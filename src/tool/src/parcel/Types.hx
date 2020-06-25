@@ -3,49 +3,49 @@ package parcel;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
 
 typedef JsonResource = {
-    var id : String;
-    var path : String;
+    final id : String;
+    final path : String;
 }
 
 typedef JsonShaderValue = {
-    var type : ShaderType;
-    var name : String;
+    final type : ShaderType;
+    final name : String;
 }
 
 typedef JsonShaderBlock = {
-    var name : String;
-    var binding : Int;
-    var values : Array<JsonShaderValue>;
+    final name : String;
+    final binding : Int;
+    final values : Array<JsonShaderValue>;
 }
 
 typedef JsonShaderDefinition = {
-    var textures : Array<String>;
-    var blocks : Array<JsonShaderBlock>;
+    final textures : Array<String>;
+    final blocks : Array<JsonShaderBlock>;
 }
 
 typedef JsonShaderSource = {
-    var vertex : String;
-    var fragment : String;
-    var compiled : Bool;
+    final vertex : String;
+    final fragment : String;
+    final compiled : Bool;
 }
 
 typedef JsonShaderResource = JsonResource & {
-    var ?ogl3 : JsonShaderSource;
-    var ?ogl4 : JsonShaderSource;
-    var ?hlsl : JsonShaderSource;
+    final ?ogl3 : JsonShaderSource;
+    final ?ogl4 : JsonShaderSource;
+    final ?hlsl : JsonShaderSource;
 }
 
 typedef JsonParcel = {
-    var name : String;
-    var depends : Array<String>;
-    var ?bytes : Array<String>;
-    var ?texts : Array<String>;
-    var ?fonts : Array<String>;
-    var ?images : Array<String>;
-    var ?sheets : Array<String>;
-    var ?sprites : Array<String>;
-    var ?shaders : Array<String>;
-    var ?options : JsonPackingOptions;
+    final name : String;
+    final depends : Array<String>;
+    final ?bytes : Array<String>;
+    final ?texts : Array<String>;
+    final ?fonts : Array<String>;
+    final ?images : Array<String>;
+    final ?sheets : Array<String>;
+    final ?sprites : Array<String>;
+    final ?shaders : Array<String>;
+    final ?options : JsonPackingOptions;
 }
 
 typedef JsonPackingOptions = {
@@ -56,101 +56,101 @@ typedef JsonPackingOptions = {
 }
 
 typedef JsonAssets = {
-    var bytes : Array<JsonResource>;
-    var texts : Array<JsonResource>;
-    var fonts : Array<JsonResource>;
-    var images : Array<JsonResource>;
-    var sheets : Array<JsonResource>;
-    var sprites : Array<JsonResource>;
-    var shaders : Array<JsonShaderResource>;
+    final bytes : Array<JsonResource>;
+    final texts : Array<JsonResource>;
+    final fonts : Array<JsonResource>;
+    final images : Array<JsonResource>;
+    final sheets : Array<JsonResource>;
+    final sprites : Array<JsonResource>;
+    final shaders : Array<JsonShaderResource>;
 }
 
 typedef JsonDefinition = {
-    var assets : JsonAssets;
-    var parcels : Array<JsonParcel>;
+    final assets : JsonAssets;
+    final parcels : Array<JsonParcel>;
 }
 
 typedef JsonFontAtlas = {
-    var type : String;
-    var distanceRange : Int;
-    var size : Int;
-    var width : Int;
-    var height : Int;
-    var yOrigin : String;
+    final type : String;
+    final distanceRange : Int;
+    final size : Int;
+    final width : Int;
+    final height : Int;
+    final yOrigin : String;
 }
 
 typedef JsonFontMetrics = {
-    var lineHeight : Float;
-    var ascender : Float;
-    var descender : Float;
-    var underlineY : Float;
-    var underlineThickness : Float;
+    final lineHeight : Float;
+    final ascender : Float;
+    final descender : Float;
+    final underlineY : Float;
+    final underlineThickness : Float;
 }
 
 typedef JsonFontGlyph = {
-    var unicode : Int;
-    var advance : Float;
-    var ?planeBounds : {
-        var left : Float;
-        var bottom : Float;
-        var right : Float;
-        var top : Float;
+    final unicode : Int;
+    final advance : Float;
+    final ?planeBounds : {
+        final left : Float;
+        final bottom : Float;
+        final right : Float;
+        final top : Float;
     }
-    var ?atlasBounds : {
-        var left : Float;
-        var bottom : Float;
-        var right : Float;
-        var top : Float;
+    final ?atlasBounds : {
+        final left : Float;
+        final bottom : Float;
+        final right : Float;
+        final top : Float;
     }
 }
 
 typedef JsonFontDefinition = {
-    var atlas : JsonFontAtlas;
-    var metrics : JsonFontMetrics;
-    var glyphs : Array<JsonFontGlyph>;
-    var kerning : Array<Dynamic>;
+    final atlas : JsonFontAtlas;
+    final metrics : JsonFontMetrics;
+    final glyphs : Array<JsonFontGlyph>;
+    final kerning : Array<Dynamic>;
 }
 
 typedef JsonRectangle = {
-    var x : Int;
-    var y : Int;
-    var w : Int;
-    var h : Int;
+    final x : Int;
+    final y : Int;
+    final w : Int;
+    final h : Int;
 }
 
 typedef JsonSize = {
-    var w : Int;
-    var h : Int;
+    final w : Int;
+    final h : Int;
 }
 
 typedef JsonSpriteFrame = {
-    var filename : String;
-    var frame : JsonRectangle;
-    var rotated : Bool;
-    var trimmed : Bool;
-    var spriteSourceSize : JsonRectangle;
-    var sourceSize : JsonSize;
-    var duration : Int;
+    final filename : String;
+    final frame : JsonRectangle;
+    final rotated : Bool;
+    final trimmed : Bool;
+    final spriteSourceSize : JsonRectangle;
+    final sourceSize : JsonSize;
+    final duration : Int;
 }
 
 typedef JsonSpriteTag = {
-    var name : String;
-    var from : Int;
-    var to : Int;
-    var direction : String;
+    final name : String;
+    final from : Int;
+    final to : Int;
+    final direction : String;
 }
 
 typedef JsonSpriteMeta = {
-    var app : String;
-    var version : String;
-    var image : String;
-    var format : String;
-    var size : JsonSize;
-    var scale : String;
-    var frameTags : Array<JsonSpriteTag>;
+    final app : String;
+    final version : String;
+    final image : String;
+    final format : String;
+    final size : JsonSize;
+    final scale : String;
+    final frameTags : Array<JsonSpriteTag>;
 }
 
 typedef JsonSprite = {
-    var frames : Array<JsonSpriteFrame>;
-    var meta : JsonSpriteMeta;
+    final frames : Array<JsonSpriteFrame>;
+    final meta : JsonSpriteMeta;
 }
