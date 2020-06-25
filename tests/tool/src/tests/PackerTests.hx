@@ -502,8 +502,8 @@ class PackerTests extends BuddySuite
                 });
                 Mockatoo.when(proc.run('java', anyIterator)).thenCall(f -> {
                     final args   = (cast f[1] : Array<String>);
-                    final outDir = args[3];
-                    final parcel = args[4];
+                    final outDir = args[4];
+                    final parcel = args[5];
                     final atlas  = createAtlas([ new GdxPage(new Path('$parcel.png'), 8, 8, [ new GdxSection('custom_font', 0, 0, 8, 8) ]) ]);
 
                     fs.files.set(Path.join([ outDir, '$parcel.png' ]), MockFileData.fromBytes(createDummyPng()));
@@ -571,8 +571,8 @@ class PackerTests extends BuddySuite
 
                 Mockatoo.when(proc.run('java', anyIterator)).thenCall(f -> {
                     final args   = (cast f[1] : Array<String>);
-                    final outDir = args[3];
-                    final parcel = args[4];
+                    final outDir = args[4];
+                    final parcel = args[5];
                     final atlas  = createAtlas([ new GdxPage(new Path('$parcel.png'), 22, 6, [
                         new GdxSection('img1',  0, 0,  4, 6),
                         new GdxSection('img2',  4, 0,  8, 3),
@@ -732,8 +732,8 @@ class PackerTests extends BuddySuite
 
                 Mockatoo.when(proc.run('java', anyIterator)).thenCall(f -> {
                     final args   = (cast f[1] : Array<String>);
-                    final outDir = args[3];
-                    final parcel = args[4];
+                    final outDir = args[4];
+                    final parcel = args[5];
                     final atlas  = createAtlas([ new GdxPage(new Path('$parcel.png'), 64, 32, [ new GdxSection('sprite', 0, 0, 64, 32) ]) ]);
 
                     fs.files.set(Path.join([ outDir, '$parcel.png' ]), MockFileData.fromBytes(createDummyPng(64, 32)));
@@ -849,8 +849,8 @@ class PackerTests extends BuddySuite
 
                 Mockatoo.when(proc.run('java', anyIterator)).thenCall(f -> {
                     final args   = (cast f[1] : Array<String>);
-                    final outDir = args[3];
-                    final parcel = args[4];
+                    final outDir = args[4];
+                    final parcel = args[5];
                     final atlas  = createAtlas([ new GdxPage(new Path('$parcel.png'), 1024, 256, [
                         new GdxSection('image' ,   0, 0, 512, 256),
                         new GdxSection('image2', 512, 0, 512, 256)

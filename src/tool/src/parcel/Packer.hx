@@ -164,7 +164,8 @@ class Packer
                             pageMaxWidth  : 4096,
                             pageMaxHeight : 4096,
                             pagePadX      : 0,
-                            pagePadY      : 0
+                            pagePadY      : 0,
+                            fast          : false
                         }))
                     {
                         case Success(parcels): parcels;
@@ -333,7 +334,7 @@ class Packer
             "outputFormat": "png",
             "jpegQuality": 0.9,
             "ignoreBlankImages": true,
-            "fast": false,
+            "fast": ${ _options.fast },
             "debug": false,
             "combineSubdirectories": false,
             "flattenPaths": false,
@@ -349,6 +350,7 @@ class Packer
         fs.file.writeText(packFile, packJson);
 
         switch proc.run('java', [
+            '-Xmx1024m',
             '-jar', Path.join([ toolsDir, 'runnable-texturepacker.jar' ]),
             tempAssets,   // input
             tempAssets,   // output

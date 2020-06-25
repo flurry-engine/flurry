@@ -53,6 +53,7 @@ typedef JsonPackingOptions = {
     final pageMaxHeight : Int;
     final pagePadX : Int;
     final pagePadY : Int;
+    final fast : Bool;
 }
 
 typedef JsonAssets = {
