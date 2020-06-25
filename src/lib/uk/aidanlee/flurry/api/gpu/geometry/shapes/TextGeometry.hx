@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
-import haxe.io.Eof;
 import haxe.io.StringInput;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;

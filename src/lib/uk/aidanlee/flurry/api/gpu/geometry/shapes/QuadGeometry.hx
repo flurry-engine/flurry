@@ -44,7 +44,7 @@ class QuadGeometry extends Geometry
             batchers : _options.batchers
         });
 
-        position.set_xy(_options.x.or(0), _options.y.or(0));
+        position.set_xy(_options.x, _options.y);
     }
 
     /**
