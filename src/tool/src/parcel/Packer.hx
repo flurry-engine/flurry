@@ -474,6 +474,7 @@ class Packer
                         found.section.name,
                         found.page.image.file,
                         chars,
+                        bmfont.font.metrics.lineHeight,
                         found.section.x,
                         found.section.y,
                         found.section.width,

@@ -1,12 +1,14 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
+import haxe.io.Eof;
+import haxe.io.StringInput;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
-import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.resources.Resource.FontResource;
 import uk.aidanlee.flurry.api.resources.Resource.Character;
 
@@ -94,112 +96,72 @@ class TextGeometry extends Geometry
      */
     function generateGeometry(_font : FontResource, _text: String) : GeometryData
     {
-        final lines = _text.split('\n');
+        final input      = new StringInput(_text);
+        final vtxBuilder = new VertexBlobBuilder();
+        final idxBuilder = new IndexBlobBuilder();
+
         var xCursor = 0.0;
         var yCursor = 0.0;
+        var index   = 0;
 
-        var count = 0;
-        for (line in lines)
+        while (input.position < input.length)
         {
-            count += line.length;
-        }
+            final line = input.readLine();
 
-        final vtxBuffer = new Float32BufferData(count * 4 * 9);
-        final idxBuffer = new UInt16BufferData(count * 6);
-        var vtxOffset = 0;
-        var idxOffset = 0;
-        var baseIndex = 0;
-
-        for (line in lines)
-        {
             for (i in 0...line.length)
             {
                 final char = _font.characters.get(line.charCodeAt(i));
 
-                // Add the character quad.
-                addCharacter(vtxBuffer, idxBuffer, vtxOffset, idxOffset, baseIndex, char, xCursor, yCursor);
-                vtxOffset += 4 * 9;
-                idxOffset += 6;
-                baseIndex += 4;
+                addCharacter(vtxBuilder, idxBuilder, char, index, xCursor, yCursor);
 
-                // Move the cursor to the next characters position.
+                index   += 4;
                 xCursor += char.xAdvance;
             }
 
-            yCursor += 0; //_font.lineHeight;
+            yCursor += _font.lineHeight;
             xCursor  = 0;
         }
 
-        return Indexed(new VertexBlob(vtxBuffer), new IndexBlob(idxBuffer));
+        input.close();
+
+        return Indexed(vtxBuilder.vertexBlob(), idxBuilder.indexBlob());
     }
 
-    /**
-     * Create a textured quad for a character.
-     * @param _char Character to draw.
-     * @param _x Top left start x for the quad.
-     * @param _y Top left start y for the quad.
-     */
     function addCharacter(
-        _vtxBuffer : Float32BufferData,
-        _idxBuffer : UInt16BufferData,
-        _vtxOffset : Int,
-        _idxOffset : Int,
-        _baseIndex : Int,
+        _vtxBuilder : VertexBlobBuilder,
+        _idxBuilder : IndexBlobBuilder,
         _char : Character,
+        _baseIndex : Int,
         _x : Float,
         _y : Float)
     {
         // bottom left
-        _vtxBuffer[_vtxOffset++] = _x + _char.x;
-        _vtxBuffer[_vtxOffset++] = _y + _char.height;
-        _vtxBuffer[_vtxOffset++] = 0;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = _char.u1;
-        _vtxBuffer[_vtxOffset++] = _char.v2;
+        _vtxBuilder.addFloat3(_x + _char.x, _y + _char.height, 0);
+        _vtxBuilder.addFloat4(1, 1, 1, 1);
+        _vtxBuilder.addFloat2(_char.u1, _char.v2);
 
         // Bottom right
-        _vtxBuffer[_vtxOffset++] = _x + _char.width;
-        _vtxBuffer[_vtxOffset++] = _y + _char.height;
-        _vtxBuffer[_vtxOffset++] = 0;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = _char.u2;
-        _vtxBuffer[_vtxOffset++] = _char.v2;
+        _vtxBuilder.addFloat3(_x + _char.width, _y + _char.height, 0);
+        _vtxBuilder.addFloat4(1, 1, 1, 1);
+        _vtxBuilder.addFloat2(_char.u2, _char.v2);
 
         // Top left
-        _vtxBuffer[_vtxOffset++] = _x + _char.x;
-        _vtxBuffer[_vtxOffset++] = _y + _char.y;
-        _vtxBuffer[_vtxOffset++] = 0;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = _char.u1;
-        _vtxBuffer[_vtxOffset++] = _char.v1;
+        _vtxBuilder.addFloat3(_x + _char.x, _y + _char.y, 0);
+        _vtxBuilder.addFloat4(1, 1, 1, 1);
+        _vtxBuilder.addFloat2(_char.u1, _char.v1);
 
         // Top right
-        _vtxBuffer[_vtxOffset++] = _x + _char.width;
-        _vtxBuffer[_vtxOffset++] = _y + _char.y;
-        _vtxBuffer[_vtxOffset++] = 0;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = 1;
-        _vtxBuffer[_vtxOffset++] = _char.u2;
-        _vtxBuffer[_vtxOffset++] = _char.v1;
+        _vtxBuilder.addFloat3(_x + _char.width, _y + _char.y, 0);
+        _vtxBuilder.addFloat4(1, 1, 1, 1);
+        _vtxBuilder.addFloat2(_char.u2, _char.v1);
 
         // indicies
-        _idxBuffer[_idxOffset++] = _baseIndex + 0;
-        _idxBuffer[_idxOffset++] = _baseIndex + 1;
-        _idxBuffer[_idxOffset++] = _baseIndex + 2;
-        _idxBuffer[_idxOffset++] = _baseIndex + 2;
-        _idxBuffer[_idxOffset++] = _baseIndex + 1;
-        _idxBuffer[_idxOffset++] = _baseIndex + 3;
+        _idxBuilder.addInt(_baseIndex + 0);
+        _idxBuilder.addInt(_baseIndex + 1);
+        _idxBuilder.addInt(_baseIndex + 2);
+        _idxBuilder.addInt(_baseIndex + 2);
+        _idxBuilder.addInt(_baseIndex + 1);
+        _idxBuilder.addInt(_baseIndex + 3);
     }
 }
 

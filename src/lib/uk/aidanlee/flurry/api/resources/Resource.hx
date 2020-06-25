@@ -180,12 +180,15 @@ class FontResource extends ImageFrameResource
 {
     @:s public var characters (default, null) : Map<Int, Character>;
 
-    public function new(_id : String, _image : String, _characters : Map<Int, Character>, _x : Int, _y : Int, _width : Int, _height : Int, _u1 : Float, _v1 : Float, _u2 : Float, _v2 : Float)
+    @:s public var lineHeight (default, null) : Float;
+
+    public function new(_id : String, _image : String, _characters : Map<Int, Character>, _lineHeight : Float, _x : Int, _y : Int, _width : Int, _height : Int, _u1 : Float, _v1 : Float, _u2 : Float, _v2 : Float)
     {
         super(_id, _image, _x, _y, _width, _height, _u1, _v1, _u2, _v2);
 
         type       = Font;
         characters = _characters;
+        lineHeight = _lineHeight;
     }
 }
 
