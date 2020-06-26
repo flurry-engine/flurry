@@ -15,42 +15,38 @@ abstract UInt16BufferData(BufferData) from BufferData to BufferData
      */
     public var offset (get, set) : Int;
 
-    inline function get_offset() : Int return cast this.byteOffset / BYTES_PER_UINT;
+    inline function get_offset() return Std.int(this.byteOffset / BYTES_PER_UINT);
 
-    inline function set_offset(_v : Int) : Int
-    {
-        this.byteOffset = _v * BYTES_PER_UINT;
-
-        return _v;
-    }
+    inline function set_offset(v) return this.byteOffset = v * BYTES_PER_UINT;
 
     /**
      * The length in floats this buffer contains in underlying bytes.
      */
     public var length (get, set) : Int;
 
-    inline function get_length() : Int return cast this.byteLength / BYTES_PER_UINT;
+    inline function get_length() return Std.int(this.byteLength / BYTES_PER_UINT);
 
-    inline function set_length(_v : Int) : Int
-    {
-        this.byteLength = _v * BYTES_PER_UINT;
+    inline function set_length(v) return this.byteLength = v * BYTES_PER_UINT;
 
-        return _v;
-    }
-
+    /**
+     * Create a new int buffer of a fixed size.
+     * @param _length Maximum number of 16bit ints in this buffer.
+     */
     public function new(_length : Int)
     {
         this = new BufferData(Bytes.alloc(_length * BYTES_PER_UINT), 0, _length * BYTES_PER_UINT);
     }
 
-    public function sub(_begin : Int, _length : Int) : UInt16BufferData
+    /**
+     * Allows editing the buffer data without generating excess `changed` calls.
+     * A new valued is passed through the `changed` observable after the provided function has been called.
+     * @param _func Function to modify the buffer in.
+     */
+    public function edit(_func : (_access : UInt16BufferAccess)->Void)
     {
-        return this.sub(_begin * BYTES_PER_UINT, _length * BYTES_PER_UINT);
-    }
+        _func(this);
 
-    public function subarray(_begin : Int, _end : Int) : UInt16BufferData
-    {
-        return this.subarray(_begin * BYTES_PER_UINT, _end * BYTES_PER_UINT);
+        this.changed.onNext(unit);
     }
 
     @:arrayAccess public function get(_idx : Int) : Int
@@ -71,6 +67,28 @@ abstract UInt16BufferData(BufferData) from BufferData to BufferData
 #end
 
         this.changed.onNext(unit);
+
+        return _val;
+    }
+}
+abstract UInt16BufferAccess(BufferData) from BufferData
+{
+    @:arrayAccess public function get(_idx : Int) : Int
+    {
+#if cpp
+        return untyped __global__.__hxcpp_memory_get_ui16(this.bytes.getData(), (_idx << 1) + this.byteOffset);
+#else
+        return this.bytes.getUInt16((_idx << 1) + this.byteOffset);
+#end
+    }
+
+    @:arrayAccess public function set(_idx : Int, _val : Int) : Int
+    {
+#if cpp
+        untyped __global__.__hxcpp_memory_set_ui16(this.bytes.getData(), (_idx << 1) + this.byteOffset, _val);
+#else
+        this.bytes.setUInt16((_idx << 1) + this.byteOffset, _val);
+#end
 
         return _val;
     }
