@@ -14,61 +14,62 @@ abstract Vector3(Float32BufferData) from Float32BufferData to Float32BufferData 
      */
     public var x (get, set) : Float;
 
-    inline function get_x() : Float return this[0];
-    inline function set_x(_x : Float) : Float return this[0] = _x;
+    inline function get_x() return this[0];
+
+    inline function set_x(v) return this[0] = v;
 
     /**
      * y component of this vector.
      */
     public var y (get, set) : Float;
 
-    inline function get_y() : Float return this[1];
+    inline function get_y() return this[1];
 
-    inline function set_y(_y : Float) : Float return this[1] = _y;
+    inline function set_y(v) return this[1] = v;
 
     /**
      * z component of this vector.
      */
     public var z (get, set) : Float;
 
-    inline function get_z() : Float return this[2];
+    inline function get_z() return this[2];
 
-    inline function set_z(_z : Float) : Float return this[2] = _z;
+    inline function set_z(v) return this[2] = v;
 
     /**
      * The length of this vector.
      */
     public var length (get, never) : Float;
 
-    inline function get_length() : Float return Maths.sqrt(x * x + y * y + z * z);
+    inline function get_length() return Maths.sqrt(x * x + y * y + z * z);
 
     /**
      * The square of this vectors length.
      */
     public var lengthsq (get, never) : Float;
 
-    inline function get_lengthsq() : Float return x * x + y * y + z + z;
+    inline function get_lengthsq() return x * x + y * y + z + z;
 
     /**
      * The 2D angle this vector represents.
      */
     public var angle2D (get, never) : Float;
 
-    inline function get_angle2D() : Float return Maths.atan2(y, x);
+    inline function get_angle2D() return Maths.atan2(y, x);
 
     /**
      * Normalized version of this vector.
      */
     public var normalized (get, never) : Vector3;
 
-    inline function get_normalized() : Vector3 return new Vector3(x / length, y / length, z / length);
+    inline function get_normalized() return new Vector3(x / length, y / length, z / length);
 
     /**
      * Inverted version of this vector.
      */
     public var inverted (get, never) : Vector3;
 
-    inline function get_inverted() : Vector3 return new Vector3(-x, -y, -z);
+    inline function get_inverted() return new Vector3(-x, -y, -z);
 
     /**
      * Create a new vector instance.
@@ -79,10 +80,11 @@ abstract Vector3(Float32BufferData) from Float32BufferData to Float32BufferData 
     public function new(_x : Float = 0, _y : Float = 0, _z : Float = 0)
     {
         this = new Float32BufferData(3);
-
-        x = _x;
-        y = _y;
-        z = _z;
+        this.edit(_data -> {
+            _data[0] = _x;
+            _data[1] = _y;
+            _data[2] = _z;
+        });
     }
 
     // #region overloaded operators
@@ -138,11 +140,11 @@ abstract Vector3(Float32BufferData) from Float32BufferData to Float32BufferData 
      */
     public function set(_x : Float, _y : Float, _z : Float) : Vector3
     {
-        x = _x;
-        y = _y;
-        z = _z;
-
-        return this;
+        return this.edit(_data -> {
+            _data[0] = _x;
+            _data[1] = _y;
+            _data[2] = _z;
+        });
     }
 
     /**
@@ -153,10 +155,10 @@ abstract Vector3(Float32BufferData) from Float32BufferData to Float32BufferData 
      */
     public function set_xy(_x : Float, _y : Float) : Vector3
     {
-        x = _x;
-        y = _y;
-
-        return this;
+        return this.edit(_data -> {
+            _data[0] = _x;
+            _data[1] = _y;
+        });
     }
 
     /**
@@ -410,10 +412,10 @@ abstract Vector3(Float32BufferData) from Float32BufferData to Float32BufferData 
      */
     public function setEulerFromQuaternion(_q : Quaternion, _order : ComponentOrder = XYZ) : Vector3
     {
-        var sqx = _q.x * _q.x;
-        var sqy = _q.y * _q.y;
-        var sqz = _q.z * _q.z;
-        var sqw = _q.w * _q.w;
+        final sqx = _q.x * _q.x;
+        final sqy = _q.y * _q.y;
+        final sqz = _q.z * _q.z;
+        final sqw = _q.w * _q.w;
 
         var _x = x;
         var _y = y;

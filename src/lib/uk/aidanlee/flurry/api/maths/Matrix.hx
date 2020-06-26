@@ -5,7 +5,7 @@ import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 /**
  * 4x4 matrix class for transformations and perspective.
  */
-@:forward(subscribe)
+@:forward(subscribe, edit)
 abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
 {
     public var m11 (get, set) : Float;
@@ -149,12 +149,12 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
         _n31 : Float = 0, _n32 : Float = 0, _n33 : Float = 1, _n34 : Float = 0,
         _n41 : Float = 0, _n42 : Float = 0, _n43 : Float = 0, _n44 : Float = 1) : Matrix
     {
-        this[0] = _n11; this[4] = _n12; this[ 8] = _n13; this[12] = _n14;
-        this[1] = _n21; this[5] = _n22; this[ 9] = _n23; this[13] = _n24;
-        this[2] = _n31; this[6] = _n32; this[10] = _n33; this[14] = _n34;
-        this[3] = _n41; this[7] = _n42; this[11] = _n43; this[15] = _n44;
-
-        return this;
+        return this.edit(_data -> {
+            _data[0] = _n11; _data[4] = _n12; _data[ 8] = _n13; _data[12] = _n14;
+            _data[1] = _n21; _data[5] = _n22; _data[ 9] = _n23; _data[13] = _n24;
+            _data[2] = _n31; _data[6] = _n32; _data[10] = _n33; _data[14] = _n34;
+            _data[3] = _n41; _data[7] = _n42; _data[11] = _n43; _data[15] = _n44;
+        });
     }
 
     /**
@@ -163,14 +163,12 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function copy(_m : Matrix) : Matrix
     {
-        set(
+        return set(
             _m[0], _m[4], _m[ 8], _m[12],
             _m[1], _m[5], _m[ 9], _m[13],
             _m[2], _m[6], _m[10], _m[14],
             _m[3], _m[7], _m[11], _m[15]
         );
-
-        return this;
     }
 
     /**
@@ -196,12 +194,12 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
     {
         if (_a.length != 16) return this;
 
-        this[ 0] = _a[ 0]; this[ 1] = _a[ 1]; this[ 2] = _a[ 2]; this[ 3] = _a[ 3];
-        this[ 4] = _a[ 4]; this[ 5] = _a[ 5]; this[ 6] = _a[ 6]; this[ 7] = _a[ 7];
-        this[ 8] = _a[ 8]; this[ 9] = _a[ 9]; this[10] = _a[10]; this[11] = _a[11];
-        this[12] = _a[12]; this[13] = _a[13]; this[14] = _a[14]; this[15] = _a[15];
-
-        return this;
+        return this.edit(_data -> {
+            _data[ 0] = _a[ 0]; _data[ 1] = _a[ 1]; _data[ 2] = _a[ 2]; _data[ 3] = _a[ 3];
+            _data[ 4] = _a[ 4]; _data[ 5] = _a[ 5]; _data[ 6] = _a[ 6]; _data[ 7] = _a[ 7];
+            _data[ 8] = _a[ 8]; _data[ 9] = _a[ 9]; _data[10] = _a[10]; _data[11] = _a[11];
+            _data[12] = _a[12]; _data[13] = _a[13]; _data[14] = _a[14]; _data[15] = _a[15];
+        });
     }
 
     /**
@@ -229,40 +227,40 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
 
     public function invert() : Matrix
     {
-        var me = clone();
+        return this.edit(_data -> {
+            final me = clone();
 
-        var n11 = me[0], n12 = me[4], n13 = me[8],  n14 = me[12];
-        var n21 = me[1], n22 = me[5], n23 = me[9],  n24 = me[13];
-        var n31 = me[2], n32 = me[6], n33 = me[10], n34 = me[14];
-        var n41 = me[3], n42 = me[7], n43 = me[11], n44 = me[15];
+            final n11 = me[0], n12 = me[4], n13 = me[8],  n14 = me[12];
+            final n21 = me[1], n22 = me[5], n23 = me[9],  n24 = me[13];
+            final n31 = me[2], n32 = me[6], n33 = me[10], n34 = me[14];
+            final n41 = me[3], n42 = me[7], n43 = me[11], n44 = me[15];
+    
+            _data[ 0] = (n23 * n34 * n42) - (n24 * n33 * n42) + (n24 * n32 * n43) - (n22 * n34 * n43) - (n23 * n32 * n44) + (n22 * n33 * n44);
+            _data[ 4] = (n14 * n33 * n42) - (n13 * n34 * n42) - (n14 * n32 * n43) + (n12 * n34 * n43) + (n13 * n32 * n44) - (n12 * n33 * n44);
+            _data[ 8] = (n13 * n24 * n42) - (n14 * n23 * n42) + (n14 * n22 * n43) - (n12 * n24 * n43) - (n13 * n22 * n44) + (n12 * n23 * n44);
+            _data[12] = (n14 * n23 * n32) - (n13 * n24 * n32) - (n14 * n22 * n33) + (n12 * n24 * n33) + (n13 * n22 * n34) - (n12 * n23 * n34);
+            _data[ 1] = (n24 * n33 * n41) - (n23 * n34 * n41) - (n24 * n31 * n43) + (n21 * n34 * n43) + (n23 * n31 * n44) - (n21 * n33 * n44);
+            _data[ 5] = (n13 * n34 * n41) - (n14 * n33 * n41) + (n14 * n31 * n43) - (n11 * n34 * n43) - (n13 * n31 * n44) + (n11 * n33 * n44);
+            _data[ 9] = (n14 * n23 * n41) - (n13 * n24 * n41) - (n14 * n21 * n43) + (n11 * n24 * n43) + (n13 * n21 * n44) - (n11 * n23 * n44);
+            _data[13] = (n13 * n24 * n31) - (n14 * n23 * n31) + (n14 * n21 * n33) - (n11 * n24 * n33) - (n13 * n21 * n34) + (n11 * n23 * n34);
+            _data[ 2] = (n22 * n34 * n41) - (n24 * n32 * n41) + (n24 * n31 * n42) - (n21 * n34 * n42) - (n22 * n31 * n44) + (n21 * n32 * n44);
+            _data[ 6] = (n14 * n32 * n41) - (n12 * n34 * n41) - (n14 * n31 * n42) + (n11 * n34 * n42) + (n12 * n31 * n44) - (n11 * n32 * n44);
+            _data[10] = (n12 * n24 * n41) - (n14 * n22 * n41) + (n14 * n21 * n42) - (n11 * n24 * n42) - (n12 * n21 * n44) + (n11 * n22 * n44);
+            _data[14] = (n14 * n22 * n31) - (n12 * n24 * n31) - (n14 * n21 * n32) + (n11 * n24 * n32) + (n12 * n21 * n34) - (n11 * n22 * n34);
+            _data[ 3] = (n23 * n32 * n41) - (n22 * n33 * n41) - (n23 * n31 * n42) + (n21 * n33 * n42) + (n22 * n31 * n43) - (n21 * n32 * n43);
+            _data[ 7] = (n12 * n33 * n41) - (n13 * n32 * n41) + (n13 * n31 * n42) - (n11 * n33 * n42) - (n12 * n31 * n43) + (n11 * n32 * n43);
+            _data[11] = (n13 * n22 * n41) - (n12 * n23 * n41) - (n13 * n21 * n42) + (n11 * n23 * n42) + (n12 * n21 * n43) - (n11 * n22 * n43);
+            _data[15] = (n12 * n23 * n31) - (n13 * n22 * n31) + (n13 * n21 * n32) - (n11 * n23 * n32) - (n12 * n21 * n33) + (n11 * n22 * n33);
+    
+            final det = me[ 0 ] * this[ 0 ] + me[ 1 ] * this[ 4 ] + me[ 2 ] * this[ 8 ] + me[ 3 ] * this[ 12 ];
+    
+            if (det == 0)
+            {
+                identity();
+            }
 
-        this[ 0] = (n23 * n34 * n42) - (n24 * n33 * n42) + (n24 * n32 * n43) - (n22 * n34 * n43) - (n23 * n32 * n44) + (n22 * n33 * n44);
-        this[ 4] = (n14 * n33 * n42) - (n13 * n34 * n42) - (n14 * n32 * n43) + (n12 * n34 * n43) + (n13 * n32 * n44) - (n12 * n33 * n44);
-        this[ 8] = (n13 * n24 * n42) - (n14 * n23 * n42) + (n14 * n22 * n43) - (n12 * n24 * n43) - (n13 * n22 * n44) + (n12 * n23 * n44);
-        this[12] = (n14 * n23 * n32) - (n13 * n24 * n32) - (n14 * n22 * n33) + (n12 * n24 * n33) + (n13 * n22 * n34) - (n12 * n23 * n34);
-        this[ 1] = (n24 * n33 * n41) - (n23 * n34 * n41) - (n24 * n31 * n43) + (n21 * n34 * n43) + (n23 * n31 * n44) - (n21 * n33 * n44);
-        this[ 5] = (n13 * n34 * n41) - (n14 * n33 * n41) + (n14 * n31 * n43) - (n11 * n34 * n43) - (n13 * n31 * n44) + (n11 * n33 * n44);
-        this[ 9] = (n14 * n23 * n41) - (n13 * n24 * n41) - (n14 * n21 * n43) + (n11 * n24 * n43) + (n13 * n21 * n44) - (n11 * n23 * n44);
-        this[13] = (n13 * n24 * n31) - (n14 * n23 * n31) + (n14 * n21 * n33) - (n11 * n24 * n33) - (n13 * n21 * n34) + (n11 * n23 * n34);
-        this[ 2] = (n22 * n34 * n41) - (n24 * n32 * n41) + (n24 * n31 * n42) - (n21 * n34 * n42) - (n22 * n31 * n44) + (n21 * n32 * n44);
-        this[ 6] = (n14 * n32 * n41) - (n12 * n34 * n41) - (n14 * n31 * n42) + (n11 * n34 * n42) + (n12 * n31 * n44) - (n11 * n32 * n44);
-        this[10] = (n12 * n24 * n41) - (n14 * n22 * n41) + (n14 * n21 * n42) - (n11 * n24 * n42) - (n12 * n21 * n44) + (n11 * n22 * n44);
-        this[14] = (n14 * n22 * n31) - (n12 * n24 * n31) - (n14 * n21 * n32) + (n11 * n24 * n32) + (n12 * n21 * n34) - (n11 * n22 * n34);
-        this[ 3] = (n23 * n32 * n41) - (n22 * n33 * n41) - (n23 * n31 * n42) + (n21 * n33 * n42) + (n22 * n31 * n43) - (n21 * n32 * n43);
-        this[ 7] = (n12 * n33 * n41) - (n13 * n32 * n41) + (n13 * n31 * n42) - (n11 * n33 * n42) - (n12 * n31 * n43) + (n11 * n32 * n43);
-        this[11] = (n13 * n22 * n41) - (n12 * n23 * n41) - (n13 * n21 * n42) + (n11 * n23 * n42) + (n12 * n21 * n43) - (n11 * n22 * n43);
-        this[15] = (n12 * n23 * n31) - (n13 * n22 * n31) + (n13 * n21 * n32) - (n11 * n23 * n32) - (n12 * n21 * n33) + (n11 * n22 * n33);
-
-        var det = me[ 0 ] * this[ 0 ] + me[ 1 ] * this[ 4 ] + me[ 2 ] * this[ 8 ] + me[ 3 ] * this[ 12 ];
-
-        if (det == 0)
-        {
-            identity();
-        }
-
-        multiplyScalar( 1 / det );
-
-        return this;
+            multiplyScalar( 1 / det );
+        });
     }
 
     // #endregion
@@ -322,17 +320,17 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function transpose() : Matrix
     {
-        var tmp : Float;
+        return this.edit(_data -> {
+            var tmp = 0.0;
 
-        tmp = this[1]; this[1] = this[4]; this[4] = tmp;
-        tmp = this[2]; this[2] = this[8]; this[8] = tmp;
-        tmp = this[6]; this[6] = this[9]; this[9] = tmp;
-
-        tmp = this[ 3]; this[ 3] = this[12]; this[12] = tmp;
-        tmp = this[ 7]; this[ 7] = this[13]; this[13] = tmp;
-        tmp = this[11]; this[11] = this[14]; this[14] = tmp;
-
-        return this;
+            tmp = _data[1]; _data[1] = _data[4]; _data[4] = tmp;
+            tmp = _data[2]; _data[2] = _data[8]; _data[8] = tmp;
+            tmp = _data[6]; _data[6] = _data[9]; _data[9] = tmp;
+    
+            tmp = _data[ 3]; _data[ 3] = _data[12]; _data[12] = tmp;
+            tmp = _data[ 7]; _data[ 7] = _data[13]; _data[13] = tmp;
+            tmp = _data[11]; _data[11] = _data[14]; _data[14] = tmp;
+        });
     }
 
     /**
@@ -341,16 +339,16 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function scale(_v : Vector3) : Matrix
     {
-        var _x = _v.x;
-        var _y = _v.y;
-        var _z = _v.z;
+        return this.edit(_data -> {
+            final x = _v.x;
+            final y = _v.y;
+            final z = _v.z;
 
-        this[0] *= _x; this[4] *= _y; this[8]  *= _z;
-        this[1] *= _x; this[5] *= _y; this[9]  *= _z;
-        this[2] *= _x; this[6] *= _y; this[10] *= _z;
-        this[3] *= _x; this[7] *= _y; this[11] *= _z;
-
-        return this;
+            _data[0] *= x; _data[4] *= y; _data[8]  *= z;
+            _data[1] *= x; _data[5] *= y; _data[9]  *= z;
+            _data[2] *= x; _data[6] *= y; _data[10] *= z;
+            _data[3] *= x; _data[7] *= y; _data[11] *= z;
+        });
     }
 
     /**
@@ -418,37 +416,37 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function multiply(_m : Matrix) : Matrix
     {
-        var a11 = this[0], a12 = this[4], a13 = this[8],  a14 = this[12];
-        var a21 = this[1], a22 = this[5], a23 = this[9],  a24 = this[13];
-        var a31 = this[2], a32 = this[6], a33 = this[10], a34 = this[14];
-        var a41 = this[3], a42 = this[7], a43 = this[11], a44 = this[15];
-
-        var b11 = _m[0], b12 = _m[4], b13 = _m[8],  b14 = _m[12];
-        var b21 = _m[1], b22 = _m[5], b23 = _m[9],  b24 = _m[13];
-        var b31 = _m[2], b32 = _m[6], b33 = _m[10], b34 = _m[14];
-        var b41 = _m[3], b42 = _m[7], b43 = _m[11], b44 = _m[15];
-
-        this[ 0] = a11 * b11 + a12 * b21 + a13 * b31 + a14 * b41;
-        this[ 4] = a11 * b12 + a12 * b22 + a13 * b32 + a14 * b42;
-        this[ 8] = a11 * b13 + a12 * b23 + a13 * b33 + a14 * b43;
-        this[12] = a11 * b14 + a12 * b24 + a13 * b34 + a14 * b44;
-
-        this[ 1] = a21 * b11 + a22 * b21 + a23 * b31 + a24 * b41;
-        this[ 5] = a21 * b12 + a22 * b22 + a23 * b32 + a24 * b42;
-        this[ 9] = a21 * b13 + a22 * b23 + a23 * b33 + a24 * b43;
-        this[13] = a21 * b14 + a22 * b24 + a23 * b34 + a24 * b44;
-
-        this[ 2] = a31 * b11 + a32 * b21 + a33 * b31 + a34 * b41;
-        this[ 6] = a31 * b12 + a32 * b22 + a33 * b32 + a34 * b42;
-        this[10] = a31 * b13 + a32 * b23 + a33 * b33 + a34 * b43;
-        this[14] = a31 * b14 + a32 * b24 + a33 * b34 + a34 * b44;
-
-        this[ 3] = a41 * b11 + a42 * b21 + a43 * b31 + a44 * b41;
-        this[ 7] = a41 * b12 + a42 * b22 + a43 * b32 + a44 * b42;
-        this[11] = a41 * b13 + a42 * b23 + a43 * b33 + a44 * b43;
-        this[15] = a41 * b14 + a42 * b24 + a43 * b34 + a44 * b44;
-
-        return this;
+        return this.edit(_data -> {
+            final a11 = _data[0], a12 = _data[4], a13 = _data[8],  a14 = _data[12];
+            final a21 = _data[1], a22 = _data[5], a23 = _data[9],  a24 = _data[13];
+            final a31 = _data[2], a32 = _data[6], a33 = _data[10], a34 = _data[14];
+            final a41 = _data[3], a42 = _data[7], a43 = _data[11], a44 = _data[15];
+    
+            final b11 = _m[0], b12 = _m[4], b13 = _m[8],  b14 = _m[12];
+            final b21 = _m[1], b22 = _m[5], b23 = _m[9],  b24 = _m[13];
+            final b31 = _m[2], b32 = _m[6], b33 = _m[10], b34 = _m[14];
+            final b41 = _m[3], b42 = _m[7], b43 = _m[11], b44 = _m[15];
+    
+            _data[ 0] = a11 * b11 + a12 * b21 + a13 * b31 + a14 * b41;
+            _data[ 4] = a11 * b12 + a12 * b22 + a13 * b32 + a14 * b42;
+            _data[ 8] = a11 * b13 + a12 * b23 + a13 * b33 + a14 * b43;
+            _data[12] = a11 * b14 + a12 * b24 + a13 * b34 + a14 * b44;
+    
+            _data[ 1] = a21 * b11 + a22 * b21 + a23 * b31 + a24 * b41;
+            _data[ 5] = a21 * b12 + a22 * b22 + a23 * b32 + a24 * b42;
+            _data[ 9] = a21 * b13 + a22 * b23 + a23 * b33 + a24 * b43;
+            _data[13] = a21 * b14 + a22 * b24 + a23 * b34 + a24 * b44;
+    
+            _data[ 2] = a31 * b11 + a32 * b21 + a33 * b31 + a34 * b41;
+            _data[ 6] = a31 * b12 + a32 * b22 + a33 * b32 + a34 * b42;
+            _data[10] = a31 * b13 + a32 * b23 + a33 * b33 + a34 * b43;
+            _data[14] = a31 * b14 + a32 * b24 + a33 * b34 + a34 * b44;
+    
+            _data[ 3] = a41 * b11 + a42 * b21 + a43 * b31 + a44 * b41;
+            _data[ 7] = a41 * b12 + a42 * b22 + a43 * b32 + a44 * b42;
+            _data[11] = a41 * b13 + a42 * b23 + a43 * b33 + a44 * b43;
+            _data[15] = a41 * b14 + a42 * b24 + a43 * b34 + a44 * b44;
+        });
     }
 
     /**
@@ -458,37 +456,37 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function multiplyMatrices(_a : Matrix, _b : Matrix) : Matrix
     {
-        var a11 = _a[0], a12 = _a[4], a13 = _a[8],  a14 = _a[12];
-        var a21 = _a[1], a22 = _a[5], a23 = _a[9],  a24 = _a[13];
-        var a31 = _a[2], a32 = _a[6], a33 = _a[10], a34 = _a[14];
-        var a41 = _a[3], a42 = _a[7], a43 = _a[11], a44 = _a[15];
-
-        var b11 = _b[0], b12 = _b[4], b13 = _b[8],  b14 = _b[12];
-        var b21 = _b[1], b22 = _b[5], b23 = _b[9],  b24 = _b[13];
-        var b31 = _b[2], b32 = _b[6], b33 = _b[10], b34 = _b[14];
-        var b41 = _b[3], b42 = _b[7], b43 = _b[11], b44 = _b[15];
-
-        this[ 0] = a11 * b11 + a12 * b21 + a13 * b31 + a14 * b41;
-        this[ 4] = a11 * b12 + a12 * b22 + a13 * b32 + a14 * b42;
-        this[ 8] = a11 * b13 + a12 * b23 + a13 * b33 + a14 * b43;
-        this[12] = a11 * b14 + a12 * b24 + a13 * b34 + a14 * b44;
-
-        this[ 1] = a21 * b11 + a22 * b21 + a23 * b31 + a24 * b41;
-        this[ 5] = a21 * b12 + a22 * b22 + a23 * b32 + a24 * b42;
-        this[ 9] = a21 * b13 + a22 * b23 + a23 * b33 + a24 * b43;
-        this[13] = a21 * b14 + a22 * b24 + a23 * b34 + a24 * b44;
-
-        this[ 2] = a31 * b11 + a32 * b21 + a33 * b31 + a34 * b41;
-        this[ 6] = a31 * b12 + a32 * b22 + a33 * b32 + a34 * b42;
-        this[10] = a31 * b13 + a32 * b23 + a33 * b33 + a34 * b43;
-        this[14] = a31 * b14 + a32 * b24 + a33 * b34 + a34 * b44;
-
-        this[ 3] = a41 * b11 + a42 * b21 + a43 * b31 + a44 * b41;
-        this[ 7] = a41 * b12 + a42 * b22 + a43 * b32 + a44 * b42;
-        this[11] = a41 * b13 + a42 * b23 + a43 * b33 + a44 * b43;
-        this[15] = a41 * b14 + a42 * b24 + a43 * b34 + a44 * b44;
-
-        return this;
+        return this.edit(_data -> {
+            final a11 = _a[0], a12 = _a[4], a13 = _a[8],  a14 = _a[12];
+            final a21 = _a[1], a22 = _a[5], a23 = _a[9],  a24 = _a[13];
+            final a31 = _a[2], a32 = _a[6], a33 = _a[10], a34 = _a[14];
+            final a41 = _a[3], a42 = _a[7], a43 = _a[11], a44 = _a[15];
+    
+            final b11 = _b[0], b12 = _b[4], b13 = _b[8],  b14 = _b[12];
+            final b21 = _b[1], b22 = _b[5], b23 = _b[9],  b24 = _b[13];
+            final b31 = _b[2], b32 = _b[6], b33 = _b[10], b34 = _b[14];
+            final b41 = _b[3], b42 = _b[7], b43 = _b[11], b44 = _b[15];
+    
+            _data[ 0] = a11 * b11 + a12 * b21 + a13 * b31 + a14 * b41;
+            _data[ 4] = a11 * b12 + a12 * b22 + a13 * b32 + a14 * b42;
+            _data[ 8] = a11 * b13 + a12 * b23 + a13 * b33 + a14 * b43;
+            _data[12] = a11 * b14 + a12 * b24 + a13 * b34 + a14 * b44;
+    
+            _data[ 1] = a21 * b11 + a22 * b21 + a23 * b31 + a24 * b41;
+            _data[ 5] = a21 * b12 + a22 * b22 + a23 * b32 + a24 * b42;
+            _data[ 9] = a21 * b13 + a22 * b23 + a23 * b33 + a24 * b43;
+            _data[13] = a21 * b14 + a22 * b24 + a23 * b34 + a24 * b44;
+    
+            _data[ 2] = a31 * b11 + a32 * b21 + a33 * b31 + a34 * b41;
+            _data[ 6] = a31 * b12 + a32 * b22 + a33 * b32 + a34 * b42;
+            _data[10] = a31 * b13 + a32 * b23 + a33 * b33 + a34 * b43;
+            _data[14] = a31 * b14 + a32 * b24 + a33 * b34 + a34 * b44;
+    
+            _data[ 3] = a41 * b11 + a42 * b21 + a43 * b31 + a44 * b41;
+            _data[ 7] = a41 * b12 + a42 * b22 + a43 * b32 + a44 * b42;
+            _data[11] = a41 * b13 + a42 * b23 + a43 * b33 + a44 * b43;
+            _data[15] = a41 * b14 + a42 * b24 + a43 * b34 + a44 * b44;
+        });
     }
 
     /**
@@ -497,12 +495,12 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function multiplyScalar(_v : Float) : Matrix
     {
-        this[0] *= _v; this[4] *= _v; this[ 8] *= _v; this[12] *= _v;
-        this[1] *= _v; this[5] *= _v; this[ 9] *= _v; this[13] *= _v;
-        this[2] *= _v; this[6] *= _v; this[10] *= _v; this[14] *= _v;
-        this[3] *= _v; this[7] *= _v; this[11] *= _v; this[15] *= _v;
-
-        return this;
+        return this.edit(_data -> {
+            _data[0] *= _v; _data[4] *= _v; _data[ 8] *= _v; _data[12] *= _v;
+            _data[1] *= _v; _data[5] *= _v; _data[ 9] *= _v; _data[13] *= _v;
+            _data[2] *= _v; _data[6] *= _v; _data[10] *= _v; _data[14] *= _v;
+            _data[3] *= _v; _data[7] *= _v; _data[11] *= _v; _data[15] *= _v;
+        });
     }
 
     public function up() : Vector3
@@ -554,11 +552,11 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function setPosition(_v : Vector3) : Matrix
     {
-        this[12] = _v.x;
-        this[13] = _v.y;
-        this[14] = _v.z;
-
-        return this;
+        return this.edit(_data -> {
+            _data[12] = _v.x;
+            _data[13] = _v.y;
+            _data[14] = _v.z;
+        });
     }
 
     /**
@@ -569,26 +567,26 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function lookAt(_eye : Vector3, _target : Vector3, _up : Vector3) : Matrix
     {
-        var _z = Vector3.Subtract(_target, _eye).normalize();
-        if (_z.length == 0)
-        {
-            _z.z = 1;
-        }
+        return this.edit(_data -> {
+            var z = Vector3.Subtract(_target, _eye).normalize();
+            if (z.length == 0)
+            {
+                z.z = 1;
+            }
 
-        var _x = Vector3.Cross(_up, _z).normalize();
-        if (_x.length == 0)
-        {
-            _z.x += 0.0001;
-            _z = Vector3.Cross(_up, _z).normalize();
-        }
+            var x = Vector3.Cross(_up, z).normalize();
+            if (x.length == 0)
+            {
+                z.x += 0.0001;
+                z = Vector3.Cross(_up, z).normalize();
+            }
 
-        var _y = Vector3.Cross(_z, _x);
+            var y = Vector3.Cross(z, x);
 
-        this[0] = _x.x; this[4] = _y.x; this[ 8] = _z.x;
-        this[1] = _x.y; this[5] = _y.y; this[ 9] = _z.y;
-        this[2] = _x.z; this[6] = _y.z; this[10] = _z.z;
-
-        return this;
+            _data[0] = x.x; _data[4] = y.x; _data[ 8] = z.x;
+            _data[1] = x.y; _data[5] = y.y; _data[ 9] = z.y;
+            _data[2] = x.z; _data[6] = y.z; _data[10] = z.z;
+        });
     }
 
     /**
@@ -613,9 +611,9 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function make2D(_x : Float, _y : Float, _scale : Float = 1, _rotation : Float = 0) : Matrix
     {
-        var theta = Maths.toRadians(_rotation);
-        var c     = Maths.cos(theta);
-        var s     = Maths.cos(theta);
+        final theta = Maths.toRadians(_rotation);
+        final c     = Maths.cos(theta);
+        final s     = Maths.cos(theta);
 
         return set(
              c * _scale, s * _scale,  0, _x,
@@ -648,16 +646,16 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function makeRotationAxis(_axis : Vector3, _angle : Float) : Matrix
     {
-        var c = Maths.cos(_angle);
-        var s = Maths.sin(_angle);
-        var t = 1 - c;
+        final c = Maths.cos(_angle);
+        final s = Maths.sin(_angle);
+        final t = 1 - c;
 
-        var ax = _axis.x;
-        var ay = _axis.y;
-        var az = _axis.z;
+        final ax = _axis.x;
+        final ay = _axis.y;
+        final az = _axis.z;
 
-        var tx = t * ax;
-        var ty = t * ay;
+        final tx = t * ax;
+        final ty = t * ay;
 
         return set(
             (tx * ax + c)     ,   (tx * ay - s * az),   (tx * az + s * ay),   0,
@@ -673,8 +671,8 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function makeRotationX(_theta : Float) : Matrix
     {
-        var c = Maths.cos(_theta);
-        var s = Maths.sin(_theta);
+        final c = Maths.cos(_theta);
+        final s = Maths.sin(_theta);
 
         return set(
             1,  0,  0,  0,
@@ -690,8 +688,8 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function makeRotationY(_theta : Float) : Matrix
     {
-        var c = Maths.cos(_theta);
-        var s = Maths.sin(_theta);
+        final c = Maths.cos(_theta);
+        final s = Maths.sin(_theta);
 
         return set(
             c,  0,  s,  0,
@@ -707,8 +705,8 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function makeRotationZ(_theta : Float) : Matrix
     {
-        var c = Maths.cos(_theta);
-        var s = Maths.sin(_theta);
+        final c = Maths.cos(_theta);
+        final s = Maths.sin(_theta);
 
         return set(
             c, -s,  0,  0,
@@ -742,112 +740,116 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function makeRotationFromEuler(_v : Vector3, _order : ComponentOrder = XYZ) : Matrix
     {
-        var x = _v.x;
-        var y = _v.y;
-        var z = _v.z;
-
-        var a = Maths.cos(x), b = Maths.sin(x);
-        var c = Maths.cos(y), d = Maths.sin(y);
-        var e = Maths.cos(z), f = Maths.sin(z);
-
-        switch (_order)
-        {
-            case XYZ:
-                var ae = a * e, af = a * f, be = b * e, bf = b * f;
-
-                this[ 0] = c * e;
-                this[ 4] = -c * f;
-                this[ 8] = d;
-
-                this[ 1] = af + be * d;
-                this[ 5] = ae - bf * d;
-                this[ 9] = -b * c;
-
-                this[ 2] = bf - ae * d;
-                this[ 6] = be + af * d;
-                this[10] = a * c;
-            case YXZ:
-                var ce = c * e, cf = c * f, de = d * e, df = d * f;
-
-                this[ 0] = ce + df * b;
-                this[ 4] = de * b - cf;
-                this[ 8] = a * d;
-
-                this[ 1] = a * f;
-                this[ 5] = a * e;
-                this[ 9] = -b;
-
-                this[ 2] = cf * b - de;
-                this[ 6] = df + ce * b;
-                this[10] = a * c;
-            case ZXY:
-                var ce = c * e, cf = c * f, de = d * e, df = d * f;
-
-                this[ 0] = ce - df * b;
-                this[ 4] = -a * f;
-                this[ 8] = de + cf * b;
-
-                this[ 1] = cf + de * b;
-                this[ 5] = a * e;
-                this[ 9] = df - ce * b;
-
-                this[ 2] = -a * d;
-                this[ 6] = b;
-                this[10] = a * c;
-            case ZYX:
-                var ae = a * e, af = a * f, be = b * e, bf = b * f;
-
-                this[ 0] = c * e;
-                this[ 4] = be * d - af;
-                this[ 8] = ae * d + bf;
-
-                this[ 1] = c * f;
-                this[ 5] = bf * d + ae;
-                this[ 9] = af * d - be;
-
-                this[ 2] = -d;
-                this[ 6] = b * c;
-                this[10] = a * c;
-            case YZX:
-                var ac = a * c, ad = a * d, bc = b * c, bd = b * d;
-
-                this[ 0] = c * e;
-                this[ 4] = bd - ac * f;
-                this[ 8] = bc * f + ad;
-
-                this[ 1] = f;
-                this[ 5] = a * e;
-                this[ 9] = -b * e;
-
-                this[ 2] = -d * e;
-                this[ 6] = ad * f + bc;
-                this[10] = ac - bd * f;
-            case XZY:
-                var ac = a * c, ad = a * d, bc = b * c, bd = b * d;
-
-                this[ 0] = c * e;
-                this[ 4] = -f;
-                this[ 8] = d * e;
-
-                this[ 1] = ac * f + bd;
-                this[ 5] = a * e;
-                this[ 9] = ad * f - bc;
-
-                this[ 2] = bc * f - ad;
-                this[ 6] = b * e;
-                this[10] = bd * f + ac;
-        }
-
-        this[ 3] = 0;
-        this[ 7] = 0;
-        this[11] = 0;
-
-        this[12] = 0;
-        this[13] = 0;
-        this[14] = 0;
-        this[15] = 1;
-
-        return this;
+        return this.edit(_data -> {
+            final x = _v.x;
+            final y = _v.y;
+            final z = _v.z;
+    
+            final a = Maths.cos(x);
+            final c = Maths.cos(y);
+            final e = Maths.cos(z);
+    
+            final b = Maths.sin(x);
+            final d = Maths.sin(y);
+            final f = Maths.sin(z);
+    
+            switch (_order)
+            {
+                case XYZ:
+                    final ae = a * e, af = a * f, be = b * e, bf = b * f;
+    
+                    _data[ 0] = c * e;
+                    _data[ 4] = -c * f;
+                    _data[ 8] = d;
+    
+                    _data[ 1] = af + be * d;
+                    _data[ 5] = ae - bf * d;
+                    _data[ 9] = -b * c;
+    
+                    _data[ 2] = bf - ae * d;
+                    _data[ 6] = be + af * d;
+                    _data[10] = a * c;
+                case YXZ:
+                    final ce = c * e, cf = c * f, de = d * e, df = d * f;
+    
+                    _data[ 0] = ce + df * b;
+                    _data[ 4] = de * b - cf;
+                    _data[ 8] = a * d;
+    
+                    _data[ 1] = a * f;
+                    _data[ 5] = a * e;
+                    _data[ 9] = -b;
+    
+                    _data[ 2] = cf * b - de;
+                    _data[ 6] = df + ce * b;
+                    _data[10] = a * c;
+                case ZXY:
+                    final ce = c * e, cf = c * f, de = d * e, df = d * f;
+    
+                    _data[ 0] = ce - df * b;
+                    _data[ 4] = -a * f;
+                    _data[ 8] = de + cf * b;
+    
+                    _data[ 1] = cf + de * b;
+                    _data[ 5] = a * e;
+                    _data[ 9] = df - ce * b;
+    
+                    _data[ 2] = -a * d;
+                    _data[ 6] = b;
+                    _data[10] = a * c;
+                case ZYX:
+                    final ae = a * e, af = a * f, be = b * e, bf = b * f;
+    
+                    _data[ 0] = c * e;
+                    _data[ 4] = be * d - af;
+                    _data[ 8] = ae * d + bf;
+    
+                    _data[ 1] = c * f;
+                    _data[ 5] = bf * d + ae;
+                    _data[ 9] = af * d - be;
+    
+                    _data[ 2] = -d;
+                    _data[ 6] = b * c;
+                    _data[10] = a * c;
+                case YZX:
+                    final ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+    
+                    _data[ 0] = c * e;
+                    _data[ 4] = bd - ac * f;
+                    _data[ 8] = bc * f + ad;
+    
+                    _data[ 1] = f;
+                    _data[ 5] = a * e;
+                    _data[ 9] = -b * e;
+    
+                    _data[ 2] = -d * e;
+                    _data[ 6] = ad * f + bc;
+                    _data[10] = ac - bd * f;
+                case XZY:
+                    final ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+    
+                    _data[ 0] = c * e;
+                    _data[ 4] = -f;
+                    _data[ 8] = d * e;
+    
+                    _data[ 1] = ac * f + bd;
+                    _data[ 5] = a * e;
+                    _data[ 9] = ad * f - bc;
+    
+                    _data[ 2] = bc * f - ad;
+                    _data[ 6] = b * e;
+                    _data[10] = bd * f + ac;
+            }
+    
+            _data[ 3] = 0;
+            _data[ 7] = 0;
+            _data[11] = 0;
+    
+            _data[12] = 0;
+            _data[13] = 0;
+            _data[14] = 0;
+            _data[15] = 1;
+        });
     }
 
     /**
@@ -856,36 +858,35 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function makeRotationFromQuaternion(_q : Quaternion) : Matrix
     {
-
-        var x2 = _q.x + _q.x, y2 = _q.y + _q.y, z2 = _q.z + _q.z;
-        var xx = _q.x * x2,   xy = _q.x * y2,   xz = _q.x *  z2;
-        var yy = _q.y * y2,   yz = _q.y * z2,   zz = _q.z *  z2;
-        var wx = _q.w * x2,   wy = _q.w * y2,   wz = _q.w *  z2;
-
-        this[0] = 1 - ( yy + zz );
-        this[4] = xy - wz;
-        this[8] = xz + wy;
-
-        this[1] = xy + wz;
-        this[5] = 1 - ( xx + zz );
-        this[9] = yz - wx;
-
-        this[ 2] = xz - wy;
-        this[ 6] = yz + wx;
-        this[10] = 1 - ( xx + yy );
-
-        // last column
-        this[ 3] = 0;
-        this[ 7] = 0;
-        this[11] = 0;
-
-        // bottom row
-        this[12] = 0;
-        this[13] = 0;
-        this[14] = 0;
-        this[15] = 1;
-
-        return this;
+        return this.edit(_data -> {
+            final x2 = _q.x + _q.x, y2 = _q.y + _q.y, z2 = _q.z + _q.z;
+            final xx = _q.x * x2,   xy = _q.x * y2,   xz = _q.x *  z2;
+            final yy = _q.y * y2,   yz = _q.y * z2,   zz = _q.z *  z2;
+            final wx = _q.w * x2,   wy = _q.w * y2,   wz = _q.w *  z2;
+    
+            _data[0] = 1 - ( yy + zz );
+            _data[4] = xy - wz;
+            _data[8] = xz + wy;
+    
+            _data[1] = xy + wz;
+            _data[5] = 1 - ( xx + zz );
+            _data[9] = yz - wx;
+    
+            _data[ 2] = xz - wy;
+            _data[ 6] = yz + wx;
+            _data[10] = 1 - ( xx + yy );
+    
+            // last column
+            _data[ 3] = 0;
+            _data[ 7] = 0;
+            _data[11] = 0;
+    
+            // bottom row
+            _data[12] = 0;
+            _data[13] = 0;
+            _data[14] = 0;
+            _data[15] = 1;
+        });
     }
 
     /**
@@ -900,20 +901,20 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function makeHomogeneousFrustum(_left : Float, _right : Float, _bottom : Float, _top : Float, _near : Float, _far : Float) : Matrix
     {
-        var a = (2 * _near) / (_right - _left);
-        var b = (2 * _near) / (_top - _bottom);
-        var c = (_right + _left) / (_right - _left);
-        var d = (_top + _bottom) / (_top - _bottom);
-        var e = - (_far + _near) / (_far - _near);
-        var f = -1;
-        var g = - (2 * _far * _near) / (_far - _near);
-
-        this[0] = a;   this[4] = 0;   this[ 8] = c;   this[12] = 0;
-        this[1] = 0;   this[5] = b;   this[ 9] = d;   this[13] = 0;
-        this[2] = 0;   this[6] = 0;   this[10] = e;   this[14] = g;
-        this[3] = 0;   this[7] = 0;   this[11] = f;   this[15] = 0;
-
-        return this;
+        return this.edit(_data -> {
+            final a = (2 * _near) / (_right - _left);
+            final b = (2 * _near) / (_top - _bottom);
+            final c = (_right + _left) / (_right - _left);
+            final d = (_top + _bottom) / (_top - _bottom);
+            final e = - (_far + _near) / (_far - _near);
+            final f = -1;
+            final g = - (2 * _far * _near) / (_far - _near);
+    
+            _data[0] = a;   _data[4] = 0;   _data[ 8] = c;   _data[12] = 0;
+            _data[1] = 0;   _data[5] = b;   _data[ 9] = d;   _data[13] = 0;
+            _data[2] = 0;   _data[6] = 0;   _data[10] = e;   _data[14] = g;
+            _data[3] = 0;   _data[7] = 0;   _data[11] = f;   _data[15] = 0;
+        });
     }
 
     /**
@@ -928,20 +929,20 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function makeHeterogeneousFrustum(_left : Float, _right : Float, _bottom : Float, _top : Float, _near : Float, _far : Float) : Matrix
     {
-        var a = (2 * _near) / (_right - _left);
-        var b = (2 * _near) / (_top - _bottom);
-        var c = (_right + _left) / (_right - _left);
-        var d = (_top + _bottom) / (_top - _bottom);
-        var e = -_far / (_far - _near);
-        var f = -1;
-        var g = - (_far * _near) / (_far - _near);
-        
-        this[0] = a;   this[4] = 0;   this[ 8] = c;   this[12] = 0;
-        this[1] = 0;   this[5] = b;   this[ 9] = d;   this[13] = 0;
-        this[2] = 0;   this[6] = 0;   this[10] = e;   this[14] = g;
-        this[3] = 0;   this[7] = 0;   this[11] = f;   this[15] = 0;
-
-        return this;
+        return this.edit(_data -> {
+            final a = (2 * _near) / (_right - _left);
+            final b = (2 * _near) / (_top - _bottom);
+            final c = (_right + _left) / (_right - _left);
+            final d = (_top + _bottom) / (_top - _bottom);
+            final e = -_far / (_far - _near);
+            final f = -1;
+            final g = - (_far * _near) / (_far - _near);
+            
+            _data[0] = a;   _data[4] = 0;   _data[ 8] = c;   _data[12] = 0;
+            _data[1] = 0;   _data[5] = b;   _data[ 9] = d;   _data[13] = 0;
+            _data[2] = 0;   _data[6] = 0;   _data[10] = e;   _data[14] = g;
+            _data[3] = 0;   _data[7] = 0;   _data[11] = f;   _data[15] = 0;
+        });
     }
 
     /**
@@ -953,19 +954,19 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function makeHomogeneousPerspective(_fov : Float, _aspect : Float, _near : Float, _far : Float) : Matrix
     {
-        var tanHalfFov = Maths.tan(_fov / 2);
-        var a = 1 / (_aspect * tanHalfFov);
-        var b = 1 / tanHalfFov;
-        var c = - (_far + _near) / (_far - _near);
-        var d = - 1;
-        var e = - (2 * _far * _near) / (_far - _near);
-
-        this[0] = a;   this[4] = 0;   this[ 8] = 0;   this[12] = 0;
-        this[1] = 0;   this[5] = b;   this[ 9] = 0;   this[13] = 0;
-        this[2] = 0;   this[6] = 0;   this[10] = c;   this[14] = e;
-        this[3] = 0;   this[7] = 0;   this[11] = d;   this[15] = 0;
-
-        return this;
+        return this.edit(_data -> {
+            final tanHalfFov = Maths.tan(_fov / 2);
+            final a = 1 / (_aspect * tanHalfFov);
+            final b = 1 / tanHalfFov;
+            final c = - (_far + _near) / (_far - _near);
+            final d = - 1;
+            final e = - (2 * _far * _near) / (_far - _near);
+    
+            _data[0] = a;   _data[4] = 0;   _data[ 8] = 0;   _data[12] = 0;
+            _data[1] = 0;   _data[5] = b;   _data[ 9] = 0;   _data[13] = 0;
+            _data[2] = 0;   _data[6] = 0;   _data[10] = c;   _data[14] = e;
+            _data[3] = 0;   _data[7] = 0;   _data[11] = d;   _data[15] = 0;
+        });
     }
 
     /**
@@ -977,19 +978,19 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function makeHeterogeneousPerspective(_fov : Float, _aspect : Float, _near : Float, _far : Float) : Matrix
     {
-        var tanHalfFov = Maths.tan(_fov / 2);
-        var a = 1 / (_aspect * tanHalfFov);
-        var b = 1 / tanHalfFov;
-        var c = _far / (_near - _far);
-        var d = - 1;
-        var e = - (_far * _near) / (_far - _near);
-
-        this[0] = a;   this[4] = 0;   this[ 8] = 0;   this[12] = 0;
-        this[1] = 0;   this[5] = b;   this[ 9] = 0;   this[13] = 0;
-        this[2] = 0;   this[6] = 0;   this[10] = c;   this[14] = e;
-        this[3] = 0;   this[7] = 0;   this[11] = d;   this[15] = 0;
-
-        return this;
+        return this.edit(_data -> {
+            final tanHalfFov = Maths.tan(_fov / 2);
+            final a = 1 / (_aspect * tanHalfFov);
+            final b = 1 / tanHalfFov;
+            final c = _far / (_near - _far);
+            final d = - 1;
+            final e = - (_far * _near) / (_far - _near);
+    
+            _data[0] = a;   _data[4] = 0;   _data[ 8] = 0;   _data[12] = 0;
+            _data[1] = 0;   _data[5] = b;   _data[ 9] = 0;   _data[13] = 0;
+            _data[2] = 0;   _data[6] = 0;   _data[10] = c;   _data[14] = e;
+            _data[3] = 0;   _data[7] = 0;   _data[11] = d;   _data[15] = 0;
+        });
     }
 
     /**
@@ -1004,16 +1005,16 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function makeHomogeneousOrthographic(_left : Float, _right : Float, _top : Float, _bottom : Float, _near : Float, _far : Float) : Matrix
     {
-        var a =  2 / (_right - _left);
-        var b =  2 / (_top - _bottom);
-        var c = -2 / (_far - _near);
-
-        this[0] = a;      this[4] = 0;      this[ 8] = 0;       this[12] = - (_right + _left) / (_right - _left);
-        this[1] = 0;      this[5] = b;      this[ 9] = 0;       this[13] = - (_top + _bottom) / (_top - _bottom);
-        this[2] = 0;      this[6] = 0;      this[10] = c;       this[14] = - (_far + _near) / (_far - _near);
-        this[3] = 0;      this[7] = 0;      this[11] = 0;       this[15] = 1;
-
-        return this;
+        return this.edit(_data -> {
+            final a =  2 / (_right - _left);
+            final b =  2 / (_top - _bottom);
+            final c = -2 / (_far - _near);
+    
+            _data[0] = a;      _data[4] = 0;      _data[ 8] = 0;       _data[12] = - (_right + _left) / (_right - _left);
+            _data[1] = 0;      _data[5] = b;      _data[ 9] = 0;       _data[13] = - (_top + _bottom) / (_top - _bottom);
+            _data[2] = 0;      _data[6] = 0;      _data[10] = c;       _data[14] = - (_far + _near) / (_far - _near);
+            _data[3] = 0;      _data[7] = 0;      _data[11] = 0;       _data[15] = 1;
+        });
     }
 
     /**
@@ -1028,16 +1029,16 @@ abstract Matrix(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function makeHeterogeneousOrthographic(_left : Float, _right : Float, _top : Float, _bottom : Float, _near : Float, _far : Float) : Matrix
     {
-        var a =  2 / (_right - _left);
-        var b =  2 / (_top - _bottom);
-        var c = -1 / (_far - _near);
-
-        this[0] = a;      this[4] = 0;      this[ 8] = 0;       this[12] = - (_right + _left) / (_right - _left);
-        this[1] = 0;      this[5] = b;      this[ 9] = 0;       this[13] = - (_top + _bottom) / (_top - _bottom);
-        this[2] = 0;      this[6] = 0;      this[10] = c;       this[14] = - _near / (_far - _near);
-        this[3] = 0;      this[7] = 0;      this[11] = 0;       this[15] = 1;
-
-        return this;
+        return this.edit(_data -> {
+            final a =  2 / (_right - _left);
+            final b =  2 / (_top - _bottom);
+            final c = -1 / (_far - _near);
+    
+            _data[0] = a;      _data[4] = 0;      _data[ 8] = 0;       _data[12] = - (_right + _left) / (_right - _left);
+            _data[1] = 0;      _data[5] = b;      _data[ 9] = 0;       _data[13] = - (_top + _bottom) / (_top - _bottom);
+            _data[2] = 0;      _data[6] = 0;      _data[10] = c;       _data[14] = - _near / (_far - _near);
+            _data[3] = 0;      _data[7] = 0;      _data[11] = 0;       _data[15] = 1;
+        });
     }
 
     // #endregion

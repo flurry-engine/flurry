@@ -13,53 +13,53 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      */
     public var x (get, set) : Float;
 
-    inline function get_x() : Float return this[0];
+    inline function get_x() return this[0];
 
-    inline function set_x(_x : Float) : Float return this[0] = _x;
+    inline function set_x(v) return this[0] = v;
 
     /**
      * y component of this vector.
      */
     public var y (get, set) : Float;
 
-    inline function get_y() : Float return this[1];
+    inline function get_y() return this[1];
 
-    inline function set_y(_y : Float) : Float return this[1] = _y;
+    inline function set_y(v) return this[1] = v;
 
     /**
      * The length of this vector.
      */
     public var length (get, never) : Float;
 
-    inline function get_length() : Float return Maths.sqrt(x * x + y * y);
+    inline function get_length() return Maths.sqrt(x * x + y * y);
 
     /**
      * The square of this vectors length.
      */
     public var lengthsq (get, never) : Float;
 
-    inline function get_lengthsq() : Float return x * x + y * y;
+    inline function get_lengthsq() return x * x + y * y;
 
     /**
      * The 2D angle this vector represents.
      */
     public var angle2D (get, never) : Float;
 
-    inline function get_angle2D() : Float return Maths.atan2(y, x);
+    inline function get_angle2D() return Maths.atan2(y, x);
 
     /**
      * Normalized version of this vector.
      */
     public var normalized (get, never) : Vector2;
 
-    inline function get_normalized() : Vector2 return new Vector2(x / length, y / length);
+    inline function get_normalized() return new Vector2(x / length, y / length);
 
     /**
      * Inverted version of this vector.
      */
     public var inverted (get, never) : Vector2;
 
-    inline function get_inverted() : Vector2 return new Vector2(-x, -y);
+    inline function get_inverted() return new Vector2(-x, -y);
 
     /**
      * Create a new vector instance.
@@ -69,9 +69,10 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
     public function new(_x : Float = 0, _y : Float = 0)
     {
         this = new Float32BufferData(2);
-
-        x = _x;
-        y = _y;
+        this.edit(_data -> {
+            _data[0] = _x;
+            _data[1] = _y;
+        });
     }
 
     // #region overloaded operators
@@ -126,10 +127,10 @@ abstract Vector2(Float32BufferData) from Float32BufferData to Float32BufferData 
      */
     public function set(_x : Float, _y : Float) : Vector2
     {
-        x = _x;
-        y = _y;
-
-        return this;
+        return this.edit(_data -> {
+            _data[0] = _x;
+            _data[1] = _y;
+        });
     }
 
     /**

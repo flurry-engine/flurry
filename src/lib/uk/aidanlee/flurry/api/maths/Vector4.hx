@@ -13,71 +13,71 @@ abstract Vector4(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public var x (get, set) : Float;
 
-    inline function get_x() : Float return this[0];
+    inline function get_x() return this[0];
 
-    inline function set_x(_x : Float) : Float return this[0] = _x;
+    inline function set_x(v) return this[0] = v;
 
     /**
      * y component of this vector.
      */
     public var y (get, set) : Float;
 
-    inline function get_y() : Float return this[1];
+    inline function get_y() return this[1];
 
-    inline function set_y(_y : Float) : Float return this[1] = _y;
+    inline function set_y(v) return this[1] = v;
 
     /**
      * z component of this vector.
      */
     public var z (get, set) : Float;
 
-    inline function get_z() : Float return this[2];
+    inline function get_z() return this[2];
 
-    inline function set_z(_z : Float) : Float return this[2] = _z;
+    inline function set_z(v) return this[2] = v;
 
     /**
      * w component of this vector.
      */
     public var w (get, set) : Float;
 
-    inline function get_w() : Float return this[3];
+    inline function get_w() return this[3];
 
-    inline function set_w(_w : Float) : Float return this[3] = _w;
+    inline function set_w(v) return this[3] = v;
 
     /**
      * The length of this vector.
      */
     public var length (get, never) : Float;
 
-    inline function get_length() : Float return Maths.sqrt(x * x + y * y + z * z);
+    inline function get_length() return Maths.sqrt(x * x + y * y + z * z);
 
     /**
      * The square of this vectors length.
      */
     public var lengthsq (get, never) : Float;
 
-    inline function get_lengthsq() : Float return x * x + y * y + z + z;
+    inline function get_lengthsq() return x * x + y * y + z + z;
 
     /**
      * The 2D angle this vector represents.
      */
     public var angle2D (get, never) : Float;
 
-    inline function get_angle2D() : Float return Maths.atan2(y, x);
+    inline function get_angle2D() return Maths.atan2(y, x);
 
     /**
      * Normalized version of this vector.
      */
     public var normalized (get, never) : Vector4;
 
-    inline function get_normalized() : Vector4 return new Vector4(x / length, y / length, z / length);
+    inline function get_normalized() return new Vector4(x / length, y / length, z / length);
 
     /**
      * Inverted version of this vector.
      */
     public var inverted (get, never) : Vector4;
 
-    inline function get_inverted() : Vector4 return new Vector4(-x, -y, -z);
+    inline function get_inverted() return new Vector4(-x, -y, -z);
 
     /**
      * Create a new Vector4 instance.
@@ -89,11 +89,12 @@ abstract Vector4(Float32BufferData) from Float32BufferData to Float32BufferData
     public function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 0)
     {
         this = new Float32BufferData(4);
-
-        x = _x;
-        y = _y;
-        z = _z;
-        w = _w;
+        this.edit(_data -> {
+            _data[0] = _x;
+            _data[1] = _y;
+            _data[2] = _z;
+            _data[3] = _w;
+        });
     }
 
     // #region overloaded operators
@@ -150,12 +151,12 @@ abstract Vector4(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function set(_x : Float, _y : Float, _z : Float, _w : Float) : Vector4
     {
-        x = _x;
-        y = _y;
-        z = _z;
-        w = _w;
-
-        return this;
+        return this.edit(_data -> {
+            _data[0] = _x;
+            _data[1] = _y;
+            _data[2] = _z;
+            _data[3] = _w;
+        });
     }
 
     /**
@@ -167,11 +168,11 @@ abstract Vector4(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function set_xyz(_x : Float, _y : Float, _z : Float) : Vector4
     {
-        x = _x;
-        y = _y;
-        z = _z;
-
-        return this;
+        return this.edit(_data -> {
+            _data[0] = _x;
+            _data[1] = _y;
+            _data[2] = _z;
+        });
     }
 
     /**
@@ -182,10 +183,10 @@ abstract Vector4(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function set_xy(_x : Float, _y : Float) : Vector4
     {
-        x = _x;
-        y = _y;
-
-        return this;
+        return this.edit(_data -> {
+            _data[0] = _x;
+            _data[1] = _y;
+        });
     }
 
     /**
@@ -437,10 +438,10 @@ abstract Vector4(Float32BufferData) from Float32BufferData to Float32BufferData
      */
     public function setEulerFromQuaternion(_q : Quaternion, _order : ComponentOrder = XYZ) : Vector4
     {
-        var sqx = _q.x * _q.x;
-        var sqy = _q.y * _q.y;
-        var sqz = _q.z * _q.z;
-        var sqw = _q.w * _q.w;
+        final sqx = _q.x * _q.x;
+        final sqy = _q.y * _q.y;
+        final sqz = _q.z * _q.z;
+        final sqw = _q.w * _q.w;
 
         var _x = x;
         var _y = y;
