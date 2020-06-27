@@ -161,11 +161,12 @@ class Packer
                         assets.assets.fonts,
                         assets.assets.sprites,
                         parcel.options.or({
-                            pageMaxWidth  : 4096,
-                            pageMaxHeight : 4096,
-                            pagePadX      : 0,
-                            pagePadY      : 0,
-                            fast          : false
+                            pageMaxWidth     : 4096,
+                            pageMaxHeight    : 4096,
+                            pagePadX         : 0,
+                            pagePadY         : 0,
+                            fast             : false,
+                            compressionLevel : 6
                         }))
                     {
                         case Success(parcels): parcels;
@@ -196,7 +197,9 @@ class Packer
 
             parcelBytes.push({
                 name  : parcel.name,
-                bytes : Compress.run(serialiser.serialize(new ParcelResource(parcel.name, resources, parcel.depends)), 9)
+                bytes : Compress.run(
+                    serialiser.serialize(new ParcelResource(parcel.name, resources, parcel.depends)),
+                    parcel!.options!.compressionLevel.or(6))
             });
 
             clean(tempAssets);
@@ -350,7 +353,7 @@ class Packer
         fs.file.writeText(packFile, packJson);
 
         switch proc.run('java', [
-            '-Xmx1024m',
+            '-Xmx4096m',
             '-jar', Path.join([ toolsDir, 'runnable-texturepacker.jar' ]),
             tempAssets,   // input
             tempAssets,   // output
