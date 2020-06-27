@@ -34,7 +34,7 @@ class Main
      */
     @:flag('file')
     @:alias('f')
-    public var buildFile : String;
+    public var buildFile = 'build.json';
 
     /**
      * If set the project will not be re-built before being ran or packaged.
@@ -42,7 +42,7 @@ class Main
      */
     @:flag('no-build')
     @:alias('n')
-    public var noBuild : Bool;
+    public var noBuild = false;
 
     /**
      * If set the project will not be restored before built.
@@ -50,7 +50,7 @@ class Main
      */
     @:flag('no-restore')
     @:alias('i')
-    public var noRestore : Bool;
+    public var noRestore = false;
 
     /**
      * If set the build directory will be delected before building.
@@ -58,7 +58,7 @@ class Main
      */
     @:flag('clean')
     @:alias('c')
-    public var clean : Bool;
+    public var clean = false;
 
     /**
      * If set this will build in release mode regardless of the build files profile.
@@ -66,15 +66,11 @@ class Main
      */
     @:flag('release')
     @:alias('r')
-    public var release : Bool;
+    public var release = false;
 
     public function new()
     {
-        buildFile = 'build.json';
-        noBuild   = false;
-        noRestore = false;
-        clean     = false;
-        release   = false;
+        //
     }
 
     @:defaultCommand public function help()
