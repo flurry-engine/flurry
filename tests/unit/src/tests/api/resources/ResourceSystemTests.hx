@@ -45,7 +45,7 @@ class ResourceSystemTests extends SingleSuite
             case Success(data):
                 for (parcel in data)
                 {
-                    parcels[parcel.name] = parcel.bytes;
+                    parcels[parcel.name] = sys.io.File.getBytes(parcel.file);
                 }
             case Failure(message):
                 trace('failed to build parcels : $message');
