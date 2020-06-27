@@ -7,23 +7,30 @@ import haxe.io.Bytes;
 import haxe.io.Input;
 import haxe.io.Eof;
 
+/**
+ * Uncompress a Zlib compressed input stream.
+ */
 class InputDecompressor
 {
+    /**
+     * Size of the staging buffer.
+     */
     final bufferSize = 64000000;
 
+    /**
+     * Input to read from.
+     */
     final input : Input;
-
-    final buffer : Bytes;
 
     public function new(_input : Input)
     {
-        input  = _input;
-        buffer = Bytes.alloc(bufferSize);
+        input = _input;
     }
 
     public function inflate() : Bytes
     {
-        final acc = new BytesBuffer();
+        final accumulator = new BytesBuffer();
+        final buffer      = Bytes.alloc(bufferSize);
 
         try
         {
@@ -37,12 +44,12 @@ class InputDecompressor
                     throw Error.Blocked;
                 }
 
-                acc.add(Uncompress.run(buffer, len));
+                accumulator.add(Uncompress.run(buffer, len));
             }
         } catch (e : Eof) { }
 
         input.close();
 
-        return acc.getBytes();
+        return accumulator.getBytes();
     }
 }

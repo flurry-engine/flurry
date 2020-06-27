@@ -203,7 +203,7 @@ class Packer
             }
 
             final file   = Path.join([ tempParcels, parcel.name ]);
-            final stream = new OutputCompressor(fs.file.write(file));
+            final stream = new OutputCompressor(fs.file.write(file), parcel!.options!.compressionLevel.or(6));
 
             serialiser.streamSerialise(stream, new ParcelResource(parcel.name, resources, parcel.depends));
 
