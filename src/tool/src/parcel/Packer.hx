@@ -9,6 +9,8 @@ import haxe.io.Bytes;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
 import uk.aidanlee.flurry.api.resources.Resource;
+import uk.aidanlee.flurry.api.stream.OutputCompressor;
+import uk.aidanlee.flurry.api.stream.OutputSerialiser;
 import parcel.Types;
 import Types.Result;
 import Types.Project;
@@ -57,7 +59,7 @@ class Packer
     /**
      * Serialiser used to pack all resources into bytes.
      */
-    final serialiser : StreamSerialiser;
+    final serialiser : OutputSerialiser;
 
     public function new(_project : Project, _fs : IFileSystem = null, _proc : Proc = null)
     {
@@ -69,7 +71,7 @@ class Packer
         tempParcels = _project.tempParcels();
         toolsDir    = _project.toolPath();
         prepared    = [];
-        serialiser  = new StreamSerialiser();
+        serialiser  = new OutputSerialiser();
 
         fs.directory.create(tempFonts);
         fs.directory.create(tempAssets);
@@ -200,16 +202,14 @@ class Packer
                 }
             }
 
-            final parcelFile = Path.join([ tempParcels, parcel.name ]);
-
-            fs.file.create(parcelFile);
-            final stream = fs.file.write(parcelFile);
+            final file   = Path.join([ tempParcels, parcel.name ]);
+            final stream = new OutputCompressor(fs.file.write(file));
 
             serialiser.streamSerialise(stream, new ParcelResource(parcel.name, resources, parcel.depends));
 
             parcelBytes.push({
                 name : parcel.name,
-                file : parcelFile
+                file : file
             });
 
             stream.close();

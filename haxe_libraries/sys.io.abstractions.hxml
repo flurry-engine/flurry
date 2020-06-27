@@ -1,4 +1,4 @@
 -D sys.io.abstractions=1.2.0
-# @install: lix --silent download "gh://github.com/aidan63/sys.io.abstractions#cd3bdd87650bbd71ce4be22a781754cb8c9c74eb" into sys.io.abstractions/1.2.0/github/cd3bdd87650bbd71ce4be22a781754cb8c9c74eb
+# @install: lix --silent download "gh://github.com/aidan63/sys.io.abstractions#6ed1fad7c8624aad3e61eaa84ef306307f9db1fa" into sys.io.abstractions/1.2.0/github/6ed1fad7c8624aad3e61eaa84ef306307f9db1fa
 -lib safety
--cp ${HAXE_LIBCACHE}/sys.io.abstractions/1.2.0/github/cd3bdd87650bbd71ce4be22a781754cb8c9c74eb/src
+-cp ${HAXE_LIBCACHE}/sys.io.abstractions/1.2.0/github/6ed1fad7c8624aad3e61eaa84ef306307f9db1fa/src

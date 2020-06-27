@@ -1,14 +1,14 @@
 package uk.aidanlee.flurry.api.resources;
 
-import haxe.zip.Uncompress;
-import hxbit.Serializer;
 import haxe.Exception;
 import haxe.io.Path;
+import hxbit.Serializer;
 import rx.Subscription;
 import rx.subjects.Behavior;
 import rx.observers.IObserver;
 import rx.schedulers.IScheduler;
 import rx.observables.IObservable;
+import uk.aidanlee.flurry.api.stream.InputDecompressor;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.Resource.ParcelResource;
 import sys.io.abstractions.IFileSystem;
@@ -246,7 +246,7 @@ using rx.Observable;
         }
 
         final serializer = new Serializer();
-        final parcel     = serializer.unserialize(fileSystem.file.getBytes(path), ParcelResource);
+        final parcel     = serializer.unserialize(new InputDecompressor(fileSystem.file.read(path)).inflate(), ParcelResource);
 
         if (parcel == null)
         {

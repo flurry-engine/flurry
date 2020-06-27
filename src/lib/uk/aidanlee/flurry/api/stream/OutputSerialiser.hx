@@ -1,4 +1,4 @@
-package parcel;
+package uk.aidanlee.flurry.api.stream;
 
 import hxbit.Serializable;
 import haxe.io.Bytes;
@@ -7,7 +7,7 @@ import haxe.Int64;
 import haxe.io.Output;
 import hxbit.Serializer;
 
-@:nullSafety(Off) class StreamSerialiser extends Serializer
+@:nullSafety(Off) class OutputSerialiser extends Serializer
 {
     var oStream : Output;
 
