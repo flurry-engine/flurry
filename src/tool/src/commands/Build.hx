@@ -132,8 +132,8 @@ class Build
                 case Success(data):
                     for (parcel in data)
                     {
-                        fs.file.writeBytes(Path.join([ debugParcels, parcel.name ]), parcel.bytes);
-                        fs.file.writeBytes(Path.join([ releaseParcels, parcel.name ]), parcel.bytes);
+                        fs.file.copy(parcel.file, Path.join([ debugParcels, parcel.name ]));
+                        fs.file.copy(parcel.file, Path.join([ releaseParcels, parcel.name ]));
                     }
                 case Failure(message): return Failure(message);
             }

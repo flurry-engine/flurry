@@ -12,6 +12,7 @@
 -lib hxbit
 
 --dce full
+--no-inline
 
 --macro Safety.safeNavigation('')
 --macro nullSafety('commands', Loose)

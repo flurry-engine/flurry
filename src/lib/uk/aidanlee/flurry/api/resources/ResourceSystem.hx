@@ -246,7 +246,7 @@ using rx.Observable;
         }
 
         final serializer = new Serializer();
-        final parcel     = serializer.unserialize(Uncompress.run(fileSystem.file.getBytes(path)), ParcelResource);
+        final parcel     = serializer.unserialize(fileSystem.file.getBytes(path), ParcelResource);
 
         if (parcel == null)
         {

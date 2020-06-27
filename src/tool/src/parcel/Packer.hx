@@ -4,14 +4,12 @@ import parcel.GdxParser;
 import haxe.ds.ReadOnlyArray;
 import format.png.Tools;
 import format.png.Reader;
-import haxe.zip.Compress;
 import haxe.io.Path;
 import haxe.io.Bytes;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
 import uk.aidanlee.flurry.api.resources.Resource;
 import parcel.Types;
-import hxbit.Serializer;
 import Types.Result;
 import Types.Project;
 
@@ -41,6 +39,11 @@ class Packer
     final tempSprites : String;
 
     /**
+     * Temp location used to store all parcels.
+     */
+    final tempParcels : String;
+
+    /**
      * Directory where this platforms pre-compiled tools are found.
      */
     final toolsDir : String;
@@ -54,7 +57,7 @@ class Packer
     /**
      * Serialiser used to pack all resources into bytes.
      */
-    final serialiser : Serializer;
+    final serialiser : StreamSerialiser;
 
     public function new(_project : Project, _fs : IFileSystem = null, _proc : Proc = null)
     {
@@ -63,16 +66,18 @@ class Packer
         tempFonts   = _project.tempFonts();
         tempSprites = _project.tempSprites();
         tempAssets  = _project.tempAssets();
+        tempParcels = _project.tempParcels();
         toolsDir    = _project.toolPath();
         prepared    = [];
-        serialiser  = new Serializer();
+        serialiser  = new StreamSerialiser();
 
         fs.directory.create(tempFonts);
         fs.directory.create(tempAssets);
         fs.directory.create(tempSprites);
+        fs.directory.create(tempParcels);
     }
 
-    public function create(_path : String) : Result<Array<{ name : String, bytes : Bytes }>>
+    public function create(_path : String) : Result<Array<{ name : String, file : String }>>
     {
         final assets      = parse(fs.file.getText(_path));
         final baseDir     = Path.directory(_path);
@@ -195,12 +200,19 @@ class Packer
                 }
             }
 
+            final parcelFile = Path.join([ tempParcels, parcel.name ]);
+
+            fs.file.create(parcelFile);
+            final stream = fs.file.write(parcelFile);
+
+            serialiser.streamSerialise(stream, new ParcelResource(parcel.name, resources, parcel.depends));
+
             parcelBytes.push({
-                name  : parcel.name,
-                bytes : Compress.run(
-                    serialiser.serialize(new ParcelResource(parcel.name, resources, parcel.depends)),
-                    parcel!.options!.compressionLevel.or(6))
+                name : parcel.name,
+                file : parcelFile
             });
+
+            stream.close();
 
             clean(tempAssets);
         }
