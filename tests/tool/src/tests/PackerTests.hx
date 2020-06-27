@@ -92,7 +92,7 @@ class PackerTests extends BuddySuite
                             data[0].name.should.be('parcel');
 
                             // Unpack the serialised bytes.
-                            final parcel = unpack(data[0].bytes);
+                            final parcel = unpack(fs.file.getBytes(data[0].file));
                             parcel.name.should.be('parcel');
                             parcel.depends.length.should.be(0);
                             parcel.assets.length.should.be(1);
@@ -163,7 +163,7 @@ class PackerTests extends BuddySuite
                             data[0].name.should.be('parcel');
 
                             // Unpack the serialised bytes.
-                            final parcel = unpack(data[0].bytes);
+                            final parcel = unpack(fs.file.getBytes(data[0].file));
                             parcel.name.should.be('parcel');
                             parcel.depends.length.should.be(0);
                             parcel.assets.length.should.be(1);
@@ -225,7 +225,7 @@ class PackerTests extends BuddySuite
                             data[0].name.should.be('parcel');
 
                             // Unpack the serialised bytes.
-                            final parcel = unpack(data[0].bytes);
+                            final parcel = unpack(fs.file.getBytes(data[0].file));
                             parcel.name.should.be('parcel');
                             parcel.depends.length.should.be(0);
                             parcel.assets.length.should.be(1);
@@ -287,7 +287,7 @@ class PackerTests extends BuddySuite
                             data[0].name.should.be('parcel');
 
                             // Unpack the serialised bytes.
-                            final parcel = unpack(data[0].bytes);
+                            final parcel = unpack(fs.file.getBytes(data[0].file));
                             parcel.name.should.be('parcel');
                             parcel.depends.length.should.be(0);
                             parcel.assets.length.should.be(1);
@@ -360,7 +360,7 @@ class PackerTests extends BuddySuite
                             data[0].name.should.be('parcel');
 
                             // Unpack the serialised bytes.
-                            final parcel = unpack(data[0].bytes);
+                            final parcel = unpack(fs.file.getBytes(data[0].file));
                             parcel.name.should.be('parcel');
                             parcel.depends.length.should.be(0);
                             parcel.assets.length.should.be(2);
@@ -445,7 +445,7 @@ class PackerTests extends BuddySuite
                     {
                         case Success(data):
                             // Unpack the serialised bytes.
-                            final parcel = unpack(data[0].bytes);
+                            final parcel = unpack(fs.file.getBytes(data[0].file));
 
                             // Check our compiled glsl shader
                             final resource = (cast parcel.assets.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
@@ -522,7 +522,7 @@ class PackerTests extends BuddySuite
                 {
                     case Success(data):
                         // Unpack the serialised bytes.
-                        final parcel = unpack(data[0].bytes);
+                        final parcel = unpack(fs.file.getBytes(data[0].file));
 
                         // Check the image that should have been made from packing the font
                         final resource = (cast parcel.assets.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
@@ -596,7 +596,7 @@ class PackerTests extends BuddySuite
                 switch packer.create('assets.json')
                 {
                     case Success(data):
-                        final parcel = unpack(data[0].bytes);
+                        final parcel = unpack(fs.file.getBytes(data[0].file));
 
                         final image = (cast parcel.assets.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
                         image.width.should.be(22);
@@ -757,7 +757,7 @@ class PackerTests extends BuddySuite
                 switch packer.create('assets.json')
                 {
                     case Success(data):
-                        final parcel = unpack(data[0].bytes);
+                        final parcel = unpack(fs.file.getBytes(data[0].file));
 
                         final image = (cast parcel.assets.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
                         image.width.should.be(64);
@@ -879,7 +879,7 @@ class PackerTests extends BuddySuite
                 switch packer.create('assets.json')
                 {
                     case Success(data):
-                        final parcel = unpack(data[0].bytes);
+                        final parcel = unpack(fs.file.getBytes(data[0].file));
 
                         final image = (cast parcel.assets.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
                         image.width.should.be(1024);
@@ -936,7 +936,7 @@ class PackerTests extends BuddySuite
     }
 
     function unpack(_bytes : Bytes) : ParcelResource
-        return new Serializer().unserialize(Uncompress.run(_bytes), ParcelResource);
+        return new Serializer().unserialize(_bytes, ParcelResource);
 
     function project() : Project
         return {

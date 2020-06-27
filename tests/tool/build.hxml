@@ -14,5 +14,6 @@
 -L hxbit
 -L tink_json
 --macro Safety.safeNavigation('')
+--no-inline
 --neko out.n
 --cmd neko out.n
