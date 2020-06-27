@@ -57,9 +57,10 @@ class OutputCompressor extends Output
     override function flush()
     {
         final bytes  = if (cursor >= bufferSize) buffer else buffer.sub(0, cursor);
-        final deflat = Compress.run(bytes, level);
+        final deflat = if (level > 0) Compress.run(bytes, level) else bytes;
 
         output.writeInt32(deflat.length);
+        output.writeByte(level);
         output.write(deflat);
 
         cursor = 0;

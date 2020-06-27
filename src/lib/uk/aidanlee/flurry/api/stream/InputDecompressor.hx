@@ -36,15 +36,16 @@ class InputDecompressor
         {
             while (true)
             {
-                final len  = input.readInt32();
-                final read = input.readBytes(buffer, 0, len);
+                final len   = input.readInt32();
+                final level = input.readByte();
+                final read  = input.readBytes(buffer, 0, len);
 
                 if (read != len)
                 {
                     throw Error.Blocked;
                 }
 
-                accumulator.add(Uncompress.run(buffer, len));
+                accumulator.add(if (level > 0) Uncompress.run(buffer, read) else buffer.sub(0, read));
             }
         } catch (e : Eof) { }
 
