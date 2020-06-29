@@ -1,56 +1,76 @@
 package uk.aidanlee.flurry.api.stream;
 
 import haxe.zip.Uncompress;
-import haxe.io.BytesBuffer;
-import haxe.io.Error;
 import haxe.io.Bytes;
 import haxe.io.Input;
-import haxe.io.Eof;
 
 /**
- * Uncompress a Zlib compressed input stream.
+ * Allows reading from a DEFLATE compressed chunk stream.
  */
-class InputDecompressor
+class InputDecompressor extends Input
 {
-    /**
-     * Size of the staging buffer.
-     */
-    final bufferSize = 64000000;
-
     /**
      * Input to read from.
      */
     final input : Input;
 
-    public function new(_input : Input)
+    final bufferSize : Int;
+
+    final buffer : Bytes;
+
+    var cursor : Int;
+
+    var length : Int;
+
+    public function new(_input : Input, _bufferSize : Int)
     {
-        input = _input;
+        input      = _input;
+        bufferSize = _bufferSize;
+        buffer     = Bytes.alloc(bufferSize);
+        cursor     = 0;
+        length     = 0;
     }
 
-    public function inflate() : Bytes
+    override function readByte() : Int
     {
-        final accumulator = new BytesBuffer();
-        final buffer      = Bytes.alloc(bufferSize);
-
-        try
+        if (cursor >= length)
         {
-            while (true)
+            readChunk();
+        }
+
+        return buffer.get(cursor++);
+    }
+
+    function readChunk()
+    {
+        final len     = input.readInt32();
+        final staging = Bytes.alloc(len);
+        final read    = input.readBytes(staging, 0, len);
+
+        length = inflate(staging);
+        cursor = 0;
+    }
+
+    function inflate(_source : Bytes) : Int
+    {
+        final u = new Uncompress(null);
+        var srcPos = 0;
+        var dstPos = 0;
+        
+		u.setFlushMode(SYNC);
+        while (true)
+        {
+			final r = u.execute(_source, srcPos, buffer, dstPos);
+            srcPos += r.read;
+            dstPos += r.write;
+
+            if (r.done)
             {
-                final len   = input.readInt32();
-                final level = input.readByte();
-                final read  = input.readBytes(buffer, 0, len);
-
-                if (read != len)
-                {
-                    throw Error.Blocked;
-                }
-
-                accumulator.add(if (level > 0) Uncompress.run(buffer, read) else buffer.sub(0, read));
+				break;
             }
-        } catch (e : Eof) { }
+		}
+        u.close();
 
-        input.close();
-
-        return accumulator.getBytes();
+        return dstPos;
     }
 }

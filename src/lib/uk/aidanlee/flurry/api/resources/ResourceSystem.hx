@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.resources;
 
+import uk.aidanlee.flurry.api.stream.ParcelInput;
 import haxe.Exception;
 import haxe.io.Path;
 import hxbit.Serializer;
@@ -245,37 +246,30 @@ using rx.Observable;
             return false;
         }
 
-        final serializer = new Serializer();
-        final parcel     = serializer.unserialize(new InputDecompressor(fileSystem.file.read(path)).inflate(), ParcelResource);
+        final reader = new ParcelInput(fileSystem.file.read(path));
+        final assets = reader.parcel();
 
-        if (parcel == null)
-        {
-            _observer.onError('unable to cast deserialised bytes to a ParcelResource');
+        // if (parcel.depends.length > 0)
+        // {
+        //     _observer.onNext(Dependency(_file, parcel.depends));
 
-            return false;
-        }
+        //     for (dependency in parcel.depends)
+        //     {
+        //         if (!loadPrePackaged(dependency, _observer))
+        //         {
+        //             return false;
+        //         }
+        //     }
+        // }
 
-        if (parcel.depends.length > 0)
-        {
-            _observer.onNext(Dependency(_file, parcel.depends));
-
-            for (dependency in parcel.depends)
-            {
-                if (!loadPrePackaged(dependency, _observer))
-                {
-                    return false;
-                }
-            }
-        }
-
-        for (i => asset in parcel.assets)
+        for (i => asset in assets)
         {
             _observer.onNext(
-                Progress(i / parcel.assets.length, asset)
+                Progress(i / assets.length, asset)
             );
         }
 
-        _observer.onNext(List(_file, [ for (res in parcel.assets) res.id ]));
+        _observer.onNext(List(_file, [ for (res in assets) res.id ]));
 
         return true;
     }

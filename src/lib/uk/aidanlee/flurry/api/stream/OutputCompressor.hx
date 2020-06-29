@@ -5,7 +5,7 @@ import haxe.io.Bytes;
 import haxe.io.Output;
 
 /**
- * Will apply Zlib compression to data passing through the output stream.
+ * Will apply DEFLATE compression to data passing through the output stream.
  * Use `InputDecompressor` to read the data back.
  */
 class OutputCompressor extends Output
@@ -13,7 +13,7 @@ class OutputCompressor extends Output
     /**
      * Size of the staging buffer.
      */
-    final bufferSize = 64000000;
+    final bufferSize : Int;
 
     /**
      * Stream compressed data will be output to.
@@ -26,9 +26,7 @@ class OutputCompressor extends Output
     final buffer : Bytes;
 
     /**
-     * Zlib compression level (0 - 9).
-     * 0 - no compression applied.
-     * 9 - Maximum compression.
+     * DEFLATE compression level (0 - 9).
      */
     final level : Int;
 
@@ -37,12 +35,13 @@ class OutputCompressor extends Output
      */
     var cursor : Int;
 
-    public function new(_output : Output, _level : Int)
+    public function new(_output : Output, _level : Int, _bufferSize : Int)
     {
-        output = _output;
-        level  = _level;
-        buffer = Bytes.alloc(bufferSize);
-        cursor = 0;
+        output     = _output;
+        level      = _level;
+        bufferSize = _bufferSize;
+        buffer     = Bytes.alloc(bufferSize);
+        cursor     = 0;
     }
 
     override function writeByte(_b : Int)
@@ -57,10 +56,9 @@ class OutputCompressor extends Output
     override function flush()
     {
         final bytes  = if (cursor >= bufferSize) buffer else buffer.sub(0, cursor);
-        final deflat = if (level > 0) Compress.run(bytes, level) else bytes;
+        final deflat = Compress.run(bytes, level);
 
         output.writeInt32(deflat.length);
-        output.writeByte(level);
         output.write(deflat);
 
         cursor = 0;
