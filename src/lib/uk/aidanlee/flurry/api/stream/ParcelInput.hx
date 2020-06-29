@@ -1,11 +1,15 @@
 package uk.aidanlee.flurry.api.stream;
 
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import haxe.io.BytesInput;
 import uk.aidanlee.flurry.api.stream.Compression;
 import uk.aidanlee.flurry.api.stream.ImageFormat;
 import uk.aidanlee.flurry.api.resources.Resource.Resource;
 import haxe.io.Input;
 import haxe.io.Bytes;
 import hxbit.Serializer;
+import format.png.Tools as PngTools;
+import format.png.Reader as PngReader;
 
 class ParcelInput
 {
@@ -82,6 +86,8 @@ class ParcelInput
                     // Image data
                     final format = dataInput.readByte();
                     final length = dataInput.readInt32();
+                    final name   = dataInput.readString(length);
+                    final length = dataInput.readInt32();
                     final tmp    = Bytes.alloc(length);
                     final read   = dataInput.readBytes(tmp, 0, length);
 
@@ -95,7 +101,13 @@ class ParcelInput
                         case RawBGRA:
                             //
                         case Png:
-                            //
+                            final input  = new BytesInput(tmp);
+                            final reader = new PngReader(input);
+                            final data   = reader.read();
+                            final header = PngTools.getHeader(data);
+                            final pixels = PngTools.extract32(data);
+
+                            resources.push(new ImageResource(name, header.width, header.height, pixels));
                         case Jpeg:
                             //
                     }

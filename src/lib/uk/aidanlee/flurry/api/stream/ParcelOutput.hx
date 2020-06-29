@@ -8,7 +8,7 @@ import uk.aidanlee.flurry.api.resources.Resource;
 enum Payload
 {
     SerialisedResource(_resource : Resource);
-    ImageData(_bytes : Bytes, _format : ImageFormat);
+    ImageData(_bytes : Bytes, _format : ImageFormat, _name : String);
 }
 
 class ParcelOutput
@@ -88,9 +88,11 @@ class ParcelOutput
                     dataOutput.write(bytes);
 
                     trace('resource ${ _resource.id }');
-                case ImageData(_bytes, _format):
+                case ImageData(_bytes, _format, _name):
                     dataOutput.writeByte(1);
                     dataOutput.writeByte(_format);
+                    dataOutput.writeInt32(_name.length);
+                    dataOutput.writeString(_name);
                     dataOutput.writeInt32(_bytes.length);
                     dataOutput.write(_bytes);
 

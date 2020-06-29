@@ -348,7 +348,7 @@ class Packer
         {
             final img = new Path(Path.join([ tempAssets, page.image ]));
 
-            _stream.add(ImageData(imageBytes(img), Png));
+            _stream.add(ImageData(imageBytes(img), Png, page.image));
         }
 
         // Search for all of our composited images within the pages
