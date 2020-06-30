@@ -74,24 +74,12 @@ class ResourceSystemTests extends SingleSuite
             it('can load a pre-packaged parcels resources', {
                 final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']) ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                system.load('images.parcel');
+                system.load([ 'images.parcel' ]);
 
                 final res = system.get('dots', ImageFrameResource);
                 res.id.should.be('dots');
                 res.width.should.be(2);
                 res.height.should.be(2);
-            });
-
-            it('can load all the dependencies of a pre-packaged parcel', {
-                final files = [
-                    'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']),
-                    'assets/parcels/preload.parcel' => MockFileData.fromBytes(parcels['preload.parcel'])
-                ];
-                final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                system.load('preload.parcel');
-
-                system.get('dots', ImageFrameResource).should.beType(ImageFrameResource);
-                system.get('text', TextResource).should.beType(TextResource);
             });
 
             it('fires events for when images and shaders are added', {
@@ -121,7 +109,7 @@ class ResourceSystemTests extends SingleSuite
                 });
 
                 final system = new ResourceSystem(events, new MockFileSystem([], []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                system.addResource(new ImageResource('dots', 2, 2, haxe.io.Bytes.alloc(2 * 2 * 4)));
+                system.addResource(new ImageResource('dots', 2, 2, RGBAUNorm, haxe.io.Bytes.alloc(2 * 2 * 4).getData()));
                 system.addResource(new ShaderResource(
                     'shdr',
                     new ShaderLayout([ 'defaultTexture' ], []),
@@ -156,7 +144,7 @@ class ResourceSystemTests extends SingleSuite
                     }
                 });
 
-                final image  = new ImageResource('dots', 2, 2, haxe.io.Bytes.alloc(2 * 2 * 4));
+                final image  = new ImageResource('dots', 2, 2, RGBAUNorm, haxe.io.Bytes.alloc(2 * 2 * 4).getData());
                 final shader = new ShaderResource(
                     'shdr',
                     new ShaderLayout([ 'defaultTexture' ], []),
@@ -175,7 +163,7 @@ class ResourceSystemTests extends SingleSuite
             it('can remove a parcels resources from the system', {
                 final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']) ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                system.load('images.parcel');
+                system.load([ 'images.parcel' ]);
                 system.free('images.parcel');
                 
                 system.get.bind('dots', Resource).should.throwType(ResourceNotFoundException);
@@ -187,8 +175,7 @@ class ResourceSystemTests extends SingleSuite
                     'assets/parcels/moreImages.parcel' => MockFileData.fromBytes(parcels['moreImages.parcel'])
                 ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                system.load('images.parcel');
-                system.load('moreImages.parcel');
+                system.load([ 'images.parcel', 'moreImages.parcel' ]);
 
                 system.get('dots', Resource).id.should.be('dots');
 
@@ -203,27 +190,10 @@ class ResourceSystemTests extends SingleSuite
                 final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']) ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
 
-                system.load('images.parcel');
+                system.load([ 'images.parcel' ]);
                 system.get('dots', ImageFrameResource).should.beType(ImageFrameResource);
                 system.free('images.parcel');
 
-                system.get.bind('dots', Resource).should.throwType(ResourceNotFoundException);
-            });
-
-            it('will decrement the resources in all pre-packaged parcels dependencies', {
-                final files = [
-                    'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']),
-                    'assets/parcels/preload.parcel' => MockFileData.fromBytes(parcels['preload.parcel'])
-                ];
-                final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                system.load('preload.parcel');
-
-                system.get('text', TextResource).should.beType(TextResource);
-                system.get('dots', ImageFrameResource).should.beType(ImageFrameResource);
-
-                system.free('preload.parcel');
-
-                system.get.bind('text', Resource).should.throwType(ResourceNotFoundException);
                 system.get.bind('dots', Resource).should.throwType(ResourceNotFoundException);
             });
 
@@ -242,8 +212,8 @@ class ResourceSystemTests extends SingleSuite
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 final parcel = 'preload.parcel';
 
-                system.load(parcel);
-                system.load(parcel).subscribeFunction(() -> calls++);
+                system.load([ parcel ]);
+                system.load([ parcel ]).subscribeFunction(() -> calls++);
 
                 calls.should.be(1);
             });
@@ -252,7 +222,7 @@ class ResourceSystemTests extends SingleSuite
                 final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']) ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 
-                system.load('images.parcel');
+                system.load([ 'images.parcel' ]);
 
                 // This try catch is needed for hashlink.
                 // if we try and bind and use buddys exception catching we get a compile error about not knowing how to cast.
@@ -273,7 +243,7 @@ class ResourceSystemTests extends SingleSuite
                     'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel'])
                 ];
                 new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current)
-                    .load('images.parcel')
+                    .load([ 'images.parcel' ])
                     .subscribeFunction(() -> result = 'finished');
 
                 result.should.be('finished');
@@ -282,7 +252,7 @@ class ResourceSystemTests extends SingleSuite
             it('contains a callback for when the parcel has failed to load', {
                 var result = '';
                 new ResourceSystem(new ResourceEvents(), new MockFileSystem([], []), CurrentThreadScheduler.current, CurrentThreadScheduler.current)
-                    .load('myParcel')
+                    .load([ 'myParcel' ])
                     .subscribeFunction((_error : String) -> result = 'error');
 
                 result.should.be('error');

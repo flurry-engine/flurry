@@ -91,7 +91,7 @@ using rx.Observable;
                 {
                     if (!loadParcel(path, i, _parcels.length, _observer))
                     {
-                        break;
+                        return Subscription.empty();
                     }
                 }
 
