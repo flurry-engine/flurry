@@ -1,11 +1,11 @@
 package tests;
 
-import Types.Unit;
-import Types.Result;
 import Types.Project;
 import commands.Run;
 import buddy.BuddySuite;
 import mockatoo.Mockatoo.*;
+import uk.aidanlee.flurry.api.core.Result;
+import uk.aidanlee.flurry.api.core.Unit;
 
 using mockatoo.Mockatoo;
 using buddy.Should;

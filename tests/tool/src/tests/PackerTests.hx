@@ -3,16 +3,11 @@ package tests;
 import parcel.Types.JsonAtlas;
 import parcel.Types.JsonAtlasPage;
 import parcel.Types.JsonSprite;
-import parcel.GdxParser.GdxSection;
-import parcel.GdxParser.GdxPage;
 import parcel.Types.JsonFontDefinition;
 import haxe.io.BytesOutput;
 import haxe.io.Path;
 import haxe.io.Bytes;
-import haxe.zip.Uncompress;
-import hxbit.Serializer;
-import Types.Unit;
-import Types.Result;
+import haxe.io.BytesInput;
 import Types.Project;
 import parcel.Packer;
 import parcel.Types.JsonDefinition;
@@ -20,11 +15,14 @@ import parcel.Types.JsonShaderDefinition;
 import sys.io.abstractions.mock.MockFileData;
 import sys.io.abstractions.mock.MockFileSystem;
 import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
-import uk.aidanlee.flurry.api.resources.Resource.ParcelResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.FontResource;
+import uk.aidanlee.flurry.api.resources.Resource.Resource;
+import uk.aidanlee.flurry.api.stream.ParcelInput;
+import uk.aidanlee.flurry.api.core.Result;
+import uk.aidanlee.flurry.api.core.Unit;
 import buddy.BuddySuite;
 import mockatoo.Mockatoo.*;
 
@@ -61,7 +59,7 @@ class PackerTests extends BuddySuite
                             ]
                         },
                         parcels : [ 
-                            { name : 'parcel', depends : [], shaders : [ 'shader' ] }
+                            { name : 'parcel', shaders : [ 'shader' ] }
                         ]
                     }
                     final project = project();
@@ -92,19 +90,22 @@ class PackerTests extends BuddySuite
                             data[0].name.should.be('parcel');
 
                             // Unpack the serialised bytes.
-                            final parcel = unpack(fs.file.getBytes(data[0].file));
-                            parcel.name.should.be('parcel');
-                            parcel.depends.length.should.be(0);
-                            parcel.assets.length.should.be(1);
-                            parcel.assets.count(r -> r.id == 'shader' && r.type == Shader).should.be(1);
-
-                            // Check our compiled hlsl shader
-                            final resource = (cast parcel.assets.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
-                            resource.ogl3.should.be(null);
-                            resource.ogl4.should.be(null);
-                            resource.hlsl.compiled.should.be(true);
-                            resource.hlsl.vertex.compare(Bytes.ofString('vs_5_0')).should.be(0);
-                            resource.hlsl.fragment.compare(Bytes.ofString('ps_5_0')).should.be(0);
+                            switch unpack(fs.file.getBytes(data[0].file))
+                            {
+                                case Success(resources):
+                                    resources.length.should.be(1);
+                                    resources.count(r -> r.id == 'shader' && r.type == Shader).should.be(1);
+        
+                                    // Check our compiled hlsl shader
+                                    final resource = (cast resources.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
+                                    resource.ogl3.should.be(null);
+                                    resource.ogl4.should.be(null);
+                                    resource.hlsl.compiled.should.be(true);
+                                    resource.hlsl.vertex.compare(Bytes.ofString('vs_5_0')).should.be(0);
+                                    resource.hlsl.fragment.compare(Bytes.ofString('ps_5_0')).should.be(0);
+                                case Failure(message):
+                                    fail(message);
+                            }
                         case Failure(message):
                             fail(message);
                     }
@@ -132,7 +133,7 @@ class PackerTests extends BuddySuite
                             ]
                         },
                         parcels : [ 
-                            { name : 'parcel', depends : [], shaders : [ 'shader' ] }
+                            { name : 'parcel', shaders : [ 'shader' ] }
                         ]
                     }
                     final project = project();
@@ -163,19 +164,22 @@ class PackerTests extends BuddySuite
                             data[0].name.should.be('parcel');
 
                             // Unpack the serialised bytes.
-                            final parcel = unpack(fs.file.getBytes(data[0].file));
-                            parcel.name.should.be('parcel');
-                            parcel.depends.length.should.be(0);
-                            parcel.assets.length.should.be(1);
-                            parcel.assets.count(r -> r.id == 'shader' && r.type == Shader).should.be(1);
+                            switch unpack(fs.file.getBytes(data[0].file))
+                            {
+                                case Success(resources):
+                                    resources.length.should.be(1);
+                                    resources.count(r -> r.id == 'shader' && r.type == Shader).should.be(1);
 
-                            // Check our compiled glsl shader
-                            final resource = (cast parcel.assets.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
-                            resource.hlsl.should.be(null);
-                            resource.ogl3.should.be(null);
-                            resource.ogl4.compiled.should.be(true);
-                            resource.ogl4.vertex.compare(Bytes.ofString('vert')).should.be(0);
-                            resource.ogl4.fragment.compare(Bytes.ofString('frag')).should.be(0);
+                                    // Check our compiled glsl shader
+                                    final resource = (cast resources.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
+                                    resource.hlsl.should.be(null);
+                                    resource.ogl3.should.be(null);
+                                    resource.ogl4.compiled.should.be(true);
+                                    resource.ogl4.vertex.compare(Bytes.ofString('vert')).should.be(0);
+                                    resource.ogl4.fragment.compare(Bytes.ofString('frag')).should.be(0);
+                                case Failure(message):
+                                    fail(message);
+                            }
                         case Failure(message):
                             fail(message);
                     }
@@ -203,7 +207,7 @@ class PackerTests extends BuddySuite
                             ]
                         },
                         parcels : [ 
-                            { name : 'parcel', depends : [], shaders : [ 'shader' ] }
+                            { name : 'parcel', shaders : [ 'shader' ] }
                         ]
                     }
                     final project = project();
@@ -225,19 +229,22 @@ class PackerTests extends BuddySuite
                             data[0].name.should.be('parcel');
 
                             // Unpack the serialised bytes.
-                            final parcel = unpack(fs.file.getBytes(data[0].file));
-                            parcel.name.should.be('parcel');
-                            parcel.depends.length.should.be(0);
-                            parcel.assets.length.should.be(1);
-                            parcel.assets.count(r -> r.id == 'shader' && r.type == Shader).should.be(1);
-
-                            // Check our compiled hlsl shader
-                            final resource = (cast parcel.assets.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
-                            resource.ogl3.should.be(null);
-                            resource.ogl4.should.be(null);
-                            resource.hlsl.compiled.should.be(false);
-                            resource.hlsl.vertex.compare(Bytes.ofString('plain text vert')).should.be(0);
-                            resource.hlsl.fragment.compare(Bytes.ofString('plain text frag')).should.be(0);
+                            switch unpack(fs.file.getBytes(data[0].file))
+                            {
+                                case Success(resources):
+                                    resources.length.should.be(1);
+                                    resources.count(r -> r.id == 'shader' && r.type == Shader).should.be(1);
+        
+                                    // Check our compiled hlsl shader
+                                    final resource = (cast resources.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
+                                    resource.ogl3.should.be(null);
+                                    resource.ogl4.should.be(null);
+                                    resource.hlsl.compiled.should.be(false);
+                                    resource.hlsl.vertex.compare(Bytes.ofString('plain text vert')).should.be(0);
+                                    resource.hlsl.fragment.compare(Bytes.ofString('plain text frag')).should.be(0);
+                                case Failure(message):
+                                    fail(message);
+                            }
                         case Failure(message):
                             fail(message);
                     }
@@ -265,7 +272,7 @@ class PackerTests extends BuddySuite
                             ]
                         },
                         parcels : [ 
-                            { name : 'parcel', depends : [], shaders : [ 'shader' ] }
+                            { name : 'parcel', shaders : [ 'shader' ] }
                         ]
                     }
                     final project = project();
@@ -287,19 +294,22 @@ class PackerTests extends BuddySuite
                             data[0].name.should.be('parcel');
 
                             // Unpack the serialised bytes.
-                            final parcel = unpack(fs.file.getBytes(data[0].file));
-                            parcel.name.should.be('parcel');
-                            parcel.depends.length.should.be(0);
-                            parcel.assets.length.should.be(1);
-                            parcel.assets.count(r -> r.id == 'shader' && r.type == Shader).should.be(1);
+                            switch unpack(fs.file.getBytes(data[0].file))
+                            {
+                                case Success(resources):
+                                    resources.length.should.be(1);
+                                    resources.count(r -> r.id == 'shader' && r.type == Shader).should.be(1);
 
-                            // Check our compiled glsl shader
-                            final resource = (cast parcel.assets.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
-                            resource.hlsl.should.be(null);
-                            resource.ogl3.should.be(null);
-                            resource.ogl4.compiled.should.be(false);
-                            resource.ogl4.vertex.compare(Bytes.ofString('plain text vert')).should.be(0);
-                            resource.ogl4.fragment.compare(Bytes.ofString('plain text frag')).should.be(0);
+                                    // Check our compiled glsl shader
+                                    final resource = (cast resources.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
+                                    resource.hlsl.should.be(null);
+                                    resource.ogl3.should.be(null);
+                                    resource.ogl4.compiled.should.be(false);
+                                    resource.ogl4.vertex.compare(Bytes.ofString('plain text vert')).should.be(0);
+                                    resource.ogl4.fragment.compare(Bytes.ofString('plain text frag')).should.be(0);
+                                case Failure(message):
+                                    fail(message);
+                            }
                         case Failure(message):
                             fail(message);
                     }
@@ -336,7 +346,7 @@ class PackerTests extends BuddySuite
                             ]
                         },
                         parcels : [ 
-                            { name : 'parcel', depends : [], shaders : [ 'shader1', 'shader2' ] }
+                            { name : 'parcel', shaders : [ 'shader1', 'shader2' ] }
                         ]
                     }
                     final project = project();
@@ -360,27 +370,30 @@ class PackerTests extends BuddySuite
                             data[0].name.should.be('parcel');
 
                             // Unpack the serialised bytes.
-                            final parcel = unpack(fs.file.getBytes(data[0].file));
-                            parcel.name.should.be('parcel');
-                            parcel.depends.length.should.be(0);
-                            parcel.assets.length.should.be(2);
-                            parcel.assets.count(r -> r.id == 'shader1' && r.type == Shader).should.be(1);
-                            parcel.assets.count(r -> r.id == 'shader2' && r.type == Shader).should.be(1);
+                            switch unpack(fs.file.getBytes(data[0].file))
+                            {
+                                case Success(resources):
+                                    resources.length.should.be(2);
+                                    resources.count(r -> r.id == 'shader1' && r.type == Shader).should.be(1);
+                                    resources.count(r -> r.id == 'shader2' && r.type == Shader).should.be(1);
 
-                            // Check our compiled glsl shader
-                            final resource = (cast parcel.assets.find(r -> r.id == 'shader1' && r.type == Shader) : ShaderResource);
-                            resource.hlsl.should.be(null);
-                            resource.ogl4.should.be(null);
-                            resource.ogl3.compiled.should.be(false);
-                            resource.ogl3.vertex.compare(Bytes.ofString('plain text vert1')).should.be(0);
-                            resource.ogl3.fragment.compare(Bytes.ofString('plain text frag1')).should.be(0);
+                                    // Check our compiled glsl shader
+                                    final resource = (cast resources.find(r -> r.id == 'shader1' && r.type == Shader) : ShaderResource);
+                                    resource.hlsl.should.be(null);
+                                    resource.ogl4.should.be(null);
+                                    resource.ogl3.compiled.should.be(false);
+                                    resource.ogl3.vertex.compare(Bytes.ofString('plain text vert1')).should.be(0);
+                                    resource.ogl3.fragment.compare(Bytes.ofString('plain text frag1')).should.be(0);
 
-                            final resource = (cast parcel.assets.find(r -> r.id == 'shader2' && r.type == Shader) : ShaderResource);
-                            resource.hlsl.should.be(null);
-                            resource.ogl4.should.be(null);
-                            resource.ogl3.compiled.should.be(false);
-                            resource.ogl3.vertex.compare(Bytes.ofString('plain text vert2')).should.be(0);
-                            resource.ogl3.fragment.compare(Bytes.ofString('plain text frag2')).should.be(0);
+                                    final resource = (cast resources.find(r -> r.id == 'shader2' && r.type == Shader) : ShaderResource);
+                                    resource.hlsl.should.be(null);
+                                    resource.ogl4.should.be(null);
+                                    resource.ogl3.compiled.should.be(false);
+                                    resource.ogl3.vertex.compare(Bytes.ofString('plain text vert2')).should.be(0);
+                                    resource.ogl3.fragment.compare(Bytes.ofString('plain text frag2')).should.be(0);
+                                case Failure(message):
+                                    fail(message);
+                            }
                         case Failure(message):
                             fail(message);
                     }
@@ -428,7 +441,7 @@ class PackerTests extends BuddySuite
                             ]
                         },
                         parcels : [ 
-                            { name : 'parcel', depends : [], shaders : [ 'shader' ] }
+                            { name : 'parcel', shaders : [ 'shader' ] }
                         ]
                     }
                     final fs = new MockFileSystem([
@@ -445,23 +458,27 @@ class PackerTests extends BuddySuite
                     {
                         case Success(data):
                             // Unpack the serialised bytes.
-                            final parcel = unpack(fs.file.getBytes(data[0].file));
+                            switch unpack(fs.file.getBytes(data[0].file))
+                            {
+                                case Success(resources):
+                                    // Check our compiled glsl shader
+                                    final resource = (cast resources.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
 
-                            // Check our compiled glsl shader
-                            final resource = (cast parcel.assets.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
+                                    resource.layout.textures.length.should.be(2);
+                                    resource.layout.textures[0].should.be('texture1');
+                                    resource.layout.textures[1].should.be('texture2');
 
-                            resource.layout.textures.length.should.be(2);
-                            resource.layout.textures[0].should.be('texture1');
-                            resource.layout.textures[1].should.be('texture2');
-
-                            resource.layout.blocks.length.should.be(2);
-                            resource.layout.blocks[0].name.should.be('matrices');
-                            resource.layout.blocks[0].binding.should.be(0);
-                            resource.layout.blocks[0].values.length.should.be(3);
-                            resource.layout.blocks[0].values.count(v -> v.name == 'projection' && v.type == Matrix4).should.be(1);
-                            resource.layout.blocks[0].values.count(v -> v.name == 'view' && v.type == Matrix4).should.be(1);
-                            resource.layout.blocks[0].values.count(v -> v.name == 'model' && v.type == Matrix4).should.be(1);
-                            resource.layout.blocks[1].values.count(v -> v.name == 'colour' && v.type == Vector4).should.be(1);
+                                    resource.layout.blocks.length.should.be(2);
+                                    resource.layout.blocks[0].name.should.be('matrices');
+                                    resource.layout.blocks[0].binding.should.be(0);
+                                    resource.layout.blocks[0].values.length.should.be(3);
+                                    resource.layout.blocks[0].values.count(v -> v.name == 'projection' && v.type == Matrix4).should.be(1);
+                                    resource.layout.blocks[0].values.count(v -> v.name == 'view' && v.type == Matrix4).should.be(1);
+                                    resource.layout.blocks[0].values.count(v -> v.name == 'model' && v.type == Matrix4).should.be(1);
+                                    resource.layout.blocks[1].values.count(v -> v.name == 'colour' && v.type == Vector4).should.be(1);
+                                case Failure(message):
+                                    fail(message);
+                            }
                         case Failure(message):
                             fail(message);
                     }
@@ -481,7 +498,7 @@ class PackerTests extends BuddySuite
                         shaders : []
                     },
                     parcels : [ 
-                        { name : 'parcel', depends : [], fonts : [ 'custom_font' ] }
+                        { name : 'parcel', fonts : [ 'custom_font' ] }
                     ]
                 }
                 final fs = new MockFileSystem([
@@ -522,26 +539,30 @@ class PackerTests extends BuddySuite
                 {
                     case Success(data):
                         // Unpack the serialised bytes.
-                        final parcel = unpack(fs.file.getBytes(data[0].file));
+                        switch unpack(fs.file.getBytes(data[0].file))
+                        {
+                            case Success(resources):
+                                // Check the image that should have been made from packing the font
+                                final resource = (cast resources.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
+                                resource.width.should.be(8);
+                                resource.height.should.be(8);
 
-                        // Check the image that should have been made from packing the font
-                        final resource = (cast parcel.assets.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
-                        resource.width.should.be(8);
-                        resource.height.should.be(8);
+                                // Check our font
+                                final resource = (cast resources.find(r -> r.id == 'custom_font' && r.type == Font) : FontResource);
 
-                        // Check our font
-                        final resource = (cast parcel.assets.find(r -> r.id == 'custom_font' && r.type == Font) : FontResource);
-
-                        resource.id.should.be('custom_font');
-                        resource.image.should.be('parcel.png');
-                        resource.x.should.be(0);
-                        resource.y.should.be(0);
-                        resource.width.should.be(8);
-                        resource.height.should.be(8);
-                        resource.u1.should.be(0);
-                        resource.v1.should.be(0);
-                        resource.u2.should.be(1);
-                        resource.v2.should.be(1);
+                                resource.id.should.be('custom_font');
+                                resource.image.should.be('parcel.png');
+                                resource.x.should.be(0);
+                                resource.y.should.be(0);
+                                resource.width.should.be(8);
+                                resource.height.should.be(8);
+                                resource.u1.should.be(0);
+                                resource.v1.should.be(0);
+                                resource.u2.should.be(1);
+                                resource.v2.should.be(1);
+                            case Failure(message):
+                                fail(message);
+                        }
                     case Failure(message):
                         fail(message);
                 }
@@ -562,7 +583,7 @@ class PackerTests extends BuddySuite
                         shaders : []
                     },
                     parcels : [ 
-                        { name : 'parcel', depends : [], images : [ 'img1', 'img2', 'img3' ] }
+                        { name : 'parcel', images : [ 'img1', 'img2', 'img3' ] }
                     ]
                 }
                 final fs = new MockFileSystem([
@@ -596,44 +617,48 @@ class PackerTests extends BuddySuite
                 switch packer.create('assets.json')
                 {
                     case Success(data):
-                        final parcel = unpack(fs.file.getBytes(data[0].file));
-
-                        final image = (cast parcel.assets.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
-                        image.width.should.be(22);
-                        image.height.should.be(6);
-
-                        final resource = (cast parcel.assets.find(r -> r.id == 'img1' && r.type == ImageFrame) : ImageFrameResource);
-                        resource.image.should.be('parcel.png');
-                        resource.x.should.be(0);
-                        resource.y.should.be(0);
-                        resource.width.should.be(4);
-                        resource.height.should.be(6);
-                        resource.u1.should.beCloseTo(resource.x / image.width);
-                        resource.v1.should.beCloseTo(resource.y / image.height);
-                        resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
-                        resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
-
-                        final resource = (cast parcel.assets.find(r -> r.id == 'img2' && r.type == ImageFrame) : ImageFrameResource);
-                        resource.image.should.be('parcel.png');
-                        resource.x.should.be(4);
-                        resource.y.should.be(0);
-                        resource.width.should.be(8);
-                        resource.height.should.be(3);
-                        resource.u1.should.beCloseTo(resource.x / image.width);
-                        resource.v1.should.beCloseTo(resource.y / image.height);
-                        resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
-                        resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
-
-                        final resource = (cast parcel.assets.find(r -> r.id == 'img3' && r.type == ImageFrame) : ImageFrameResource);
-                        resource.image.should.be('parcel.png');
-                        resource.x.should.be(12);
-                        resource.y.should.be(0);
-                        resource.width.should.be(10);
-                        resource.height.should.be(2);
-                        resource.u1.should.beCloseTo(resource.x / image.width);
-                        resource.v1.should.beCloseTo(resource.y / image.height);
-                        resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
-                        resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
+                        switch unpack(fs.file.getBytes(data[0].file))
+                        {
+                            case Success(resources):
+                                final image = (cast resources.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
+                                image.width.should.be(22);
+                                image.height.should.be(6);
+        
+                                final resource = (cast resources.find(r -> r.id == 'img1' && r.type == ImageFrame) : ImageFrameResource);
+                                resource.image.should.be('parcel.png');
+                                resource.x.should.be(0);
+                                resource.y.should.be(0);
+                                resource.width.should.be(4);
+                                resource.height.should.be(6);
+                                resource.u1.should.beCloseTo(resource.x / image.width);
+                                resource.v1.should.beCloseTo(resource.y / image.height);
+                                resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
+                                resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
+        
+                                final resource = (cast resources.find(r -> r.id == 'img2' && r.type == ImageFrame) : ImageFrameResource);
+                                resource.image.should.be('parcel.png');
+                                resource.x.should.be(4);
+                                resource.y.should.be(0);
+                                resource.width.should.be(8);
+                                resource.height.should.be(3);
+                                resource.u1.should.beCloseTo(resource.x / image.width);
+                                resource.v1.should.beCloseTo(resource.y / image.height);
+                                resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
+                                resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
+        
+                                final resource = (cast resources.find(r -> r.id == 'img3' && r.type == ImageFrame) : ImageFrameResource);
+                                resource.image.should.be('parcel.png');
+                                resource.x.should.be(12);
+                                resource.y.should.be(0);
+                                resource.width.should.be(10);
+                                resource.height.should.be(2);
+                                resource.u1.should.beCloseTo(resource.x / image.width);
+                                resource.v1.should.beCloseTo(resource.y / image.height);
+                                resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
+                                resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
+                            case Failure(message):
+                                fail(message);
+                        }
                     case Failure(message):
                         fail(message);
                 }
@@ -652,7 +677,7 @@ class PackerTests extends BuddySuite
                         shaders : []
                     },
                     parcels : [ 
-                        { name : 'parcel', depends : [], sprites : [ 'sprite' ] }
+                        { name : 'parcel', sprites : [ 'sprite' ] }
                     ]
                 }
                 final fs = new MockFileSystem([
@@ -757,77 +782,81 @@ class PackerTests extends BuddySuite
                 switch packer.create('assets.json')
                 {
                     case Success(data):
-                        final parcel = unpack(fs.file.getBytes(data[0].file));
-
-                        final image = (cast parcel.assets.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
-                        image.width.should.be(64);
-                        image.height.should.be(32);
-
-                        final resource = (cast parcel.assets.find(r -> r.id == 'sprite' && r.type == Sprite) : SpriteResource);
-                        resource.image.should.be('parcel.png');
-                        resource.x.should.be(0);
-                        resource.y.should.be(0);
-                        resource.width.should.be(64);
-                        resource.height.should.be(32);
-                        resource.u1.should.beCloseTo(resource.x / image.width);
-                        resource.v1.should.beCloseTo(resource.y / image.height);
-                        resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
-                        resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
-
-                        resource.animations.exists('anim_1').should.be(true);
-                        resource.animations.exists('anim_2').should.be(true);
-
-                        resource.animations['anim_1'].length.should.be(2);
-                        final frame = resource.animations['anim_1'][0];
-                        frame.duration.should.be(100);
-                        frame.width.should.be(32);
-                        frame.height.should.be(16);
-                        frame.u1.should.be(0);
-                        frame.v1.should.be(0);
-                        frame.u2.should.be(0.5);
-                        frame.v2.should.be(0.5);
-                        final frame = resource.animations['anim_1'][1];
-                        frame.duration.should.be(100);
-                        frame.width.should.be(32);
-                        frame.height.should.be(16);
-                        frame.u1.should.be(0.5);
-                        frame.v1.should.be(0);
-                        frame.u2.should.be(1);
-                        frame.v2.should.be(0.5);
-
-                        resource.animations['anim_2'].length.should.be(4);
-                        final frame = resource.animations['anim_2'][0];
-                        frame.duration.should.be(100);
-                        frame.width.should.be(16);
-                        frame.height.should.be(16);
-                        frame.u1.should.be(0);
-                        frame.v1.should.be(0.5);
-                        frame.u2.should.be(0.25);
-                        frame.v2.should.be(1);
-                        final frame = resource.animations['anim_2'][1];
-                        frame.duration.should.be(100);
-                        frame.width.should.be(16);
-                        frame.height.should.be(16);
-                        frame.u1.should.be(0.25);
-                        frame.v1.should.be(0.5);
-                        frame.u2.should.be(0.5);
-                        frame.v2.should.be(1);
-                        final frame = resource.animations['anim_2'][2];
-                        frame.duration.should.be(100);
-                        frame.width.should.be(16);
-                        frame.height.should.be(16);
-                        frame.u1.should.be(0.5);
-                        frame.v1.should.be(0.5);
-                        frame.u2.should.be(0.75);
-                        frame.v2.should.be(1);
-                        final frame = resource.animations['anim_2'][3];
-                        frame.duration.should.be(100);
-                        frame.width.should.be(16);
-                        frame.height.should.be(16);
-                        frame.u1.should.be(0.75);
-                        frame.v1.should.be(0.5);
-                        frame.u2.should.be(1);
-                        frame.v2.should.be(1);
+                        switch unpack(fs.file.getBytes(data[0].file))
+                        {
+                            case Success(resources):
+                                final image = (cast resources.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
+                                image.width.should.be(64);
+                                image.height.should.be(32);
+        
+                                final resource = (cast resources.find(r -> r.id == 'sprite' && r.type == Sprite) : SpriteResource);
+                                resource.image.should.be('parcel.png');
+                                resource.x.should.be(0);
+                                resource.y.should.be(0);
+                                resource.width.should.be(64);
+                                resource.height.should.be(32);
+                                resource.u1.should.beCloseTo(resource.x / image.width);
+                                resource.v1.should.beCloseTo(resource.y / image.height);
+                                resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
+                                resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
+        
+                                resource.animations.exists('anim_1').should.be(true);
+                                resource.animations.exists('anim_2').should.be(true);
+        
+                                resource.animations['anim_1'].length.should.be(2);
+                                final frame = resource.animations['anim_1'][0];
+                                frame.duration.should.be(100);
+                                frame.width.should.be(32);
+                                frame.height.should.be(16);
+                                frame.u1.should.be(0);
+                                frame.v1.should.be(0);
+                                frame.u2.should.be(0.5);
+                                frame.v2.should.be(0.5);
+                                final frame = resource.animations['anim_1'][1];
+                                frame.duration.should.be(100);
+                                frame.width.should.be(32);
+                                frame.height.should.be(16);
+                                frame.u1.should.be(0.5);
+                                frame.v1.should.be(0);
+                                frame.u2.should.be(1);
+                                frame.v2.should.be(0.5);
+        
+                                resource.animations['anim_2'].length.should.be(4);
+                                final frame = resource.animations['anim_2'][0];
+                                frame.duration.should.be(100);
+                                frame.width.should.be(16);
+                                frame.height.should.be(16);
+                                frame.u1.should.be(0);
+                                frame.v1.should.be(0.5);
+                                frame.u2.should.be(0.25);
+                                frame.v2.should.be(1);
+                                final frame = resource.animations['anim_2'][1];
+                                frame.duration.should.be(100);
+                                frame.width.should.be(16);
+                                frame.height.should.be(16);
+                                frame.u1.should.be(0.25);
+                                frame.v1.should.be(0.5);
+                                frame.u2.should.be(0.5);
+                                frame.v2.should.be(1);
+                                final frame = resource.animations['anim_2'][2];
+                                frame.duration.should.be(100);
+                                frame.width.should.be(16);
+                                frame.height.should.be(16);
+                                frame.u1.should.be(0.5);
+                                frame.v1.should.be(0.5);
+                                frame.u2.should.be(0.75);
+                                frame.v2.should.be(1);
+                                final frame = resource.animations['anim_2'][3];
+                                frame.duration.should.be(100);
+                                frame.width.should.be(16);
+                                frame.height.should.be(16);
+                                frame.u1.should.be(0.75);
+                                frame.v1.should.be(0.5);
+                                frame.u2.should.be(1);
+                                frame.v2.should.be(1);
+                            case Failure(message):
+                                fail(message);
+                        }
                     case Failure(message):
                         fail(message);
                 }
@@ -846,7 +875,7 @@ class PackerTests extends BuddySuite
                         shaders : []
                     },
                     parcels : [ 
-                        { name : 'parcel', depends : [], sheets : [ 'atlas' ] }
+                        { name : 'parcel', sheets : [ 'atlas' ] }
                     ]
                 }
                 final fs = new MockFileSystem([
@@ -879,55 +908,59 @@ class PackerTests extends BuddySuite
                 switch packer.create('assets.json')
                 {
                     case Success(data):
-                        final parcel = unpack(fs.file.getBytes(data[0].file));
-
-                        final image = (cast parcel.assets.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
-                        image.width.should.be(1024);
-                        image.height.should.be(256);
-
-                        final resource = (cast parcel.assets.find(r -> r.id == 'section_1' && r.type == ImageFrame) : ImageFrameResource);
-                        resource.image.should.be('parcel.png');
-                        resource.x.should.be(4);
-                        resource.y.should.be(128);
-                        resource.width.should.be(64);
-                        resource.height.should.be(96);
-                        resource.u1.should.beCloseTo(resource.x / image.width);
-                        resource.v1.should.beCloseTo(resource.y / image.height);
-                        resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
-                        resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
-
-                        final resource = (cast parcel.assets.find(r -> r.id == 'section_2' && r.type == ImageFrame) : ImageFrameResource);
-                        resource.image.should.be('parcel.png');
-                        resource.x.should.be(16);
-                        resource.y.should.be(0);
-                        resource.width.should.be(48);
-                        resource.height.should.be(32);
-                        resource.u1.should.beCloseTo(resource.x / image.width);
-                        resource.v1.should.beCloseTo(resource.y / image.height);
-                        resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
-                        resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
-
-                        final resource = (cast parcel.assets.find(r -> r.id == 'section_3' && r.type == ImageFrame) : ImageFrameResource);
-                        resource.image.should.be('parcel.png');
-                        resource.x.should.be(560);
-                        resource.y.should.be(95);
-                        resource.width.should.be(184);
-                        resource.height.should.be(35);
-                        resource.u1.should.beCloseTo(resource.x / image.width);
-                        resource.v1.should.beCloseTo(resource.y / image.height);
-                        resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
-                        resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
-
-                        final resource = (cast parcel.assets.find(r -> r.id == 'section_4' && r.type == ImageFrame) : ImageFrameResource);
-                        resource.image.should.be('parcel.png');
-                        resource.x.should.be(554);
-                        resource.y.should.be(16);
-                        resource.width.should.be(45);
-                        resource.height.should.be(192);
-                        resource.u1.should.beCloseTo(resource.x / image.width);
-                        resource.v1.should.beCloseTo(resource.y / image.height);
-                        resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
-                        resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
+                        switch unpack(fs.file.getBytes(data[0].file))
+                        {
+                            case Success(resources):
+                                final image = (cast resources.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
+                                image.width.should.be(1024);
+                                image.height.should.be(256);
+        
+                                final resource = (cast resources.find(r -> r.id == 'section_1' && r.type == ImageFrame) : ImageFrameResource);
+                                resource.image.should.be('parcel.png');
+                                resource.x.should.be(4);
+                                resource.y.should.be(128);
+                                resource.width.should.be(64);
+                                resource.height.should.be(96);
+                                resource.u1.should.beCloseTo(resource.x / image.width);
+                                resource.v1.should.beCloseTo(resource.y / image.height);
+                                resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
+                                resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
+        
+                                final resource = (cast resources.find(r -> r.id == 'section_2' && r.type == ImageFrame) : ImageFrameResource);
+                                resource.image.should.be('parcel.png');
+                                resource.x.should.be(16);
+                                resource.y.should.be(0);
+                                resource.width.should.be(48);
+                                resource.height.should.be(32);
+                                resource.u1.should.beCloseTo(resource.x / image.width);
+                                resource.v1.should.beCloseTo(resource.y / image.height);
+                                resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
+                                resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
+        
+                                final resource = (cast resources.find(r -> r.id == 'section_3' && r.type == ImageFrame) : ImageFrameResource);
+                                resource.image.should.be('parcel.png');
+                                resource.x.should.be(560);
+                                resource.y.should.be(95);
+                                resource.width.should.be(184);
+                                resource.height.should.be(35);
+                                resource.u1.should.beCloseTo(resource.x / image.width);
+                                resource.v1.should.beCloseTo(resource.y / image.height);
+                                resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
+                                resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
+        
+                                final resource = (cast resources.find(r -> r.id == 'section_4' && r.type == ImageFrame) : ImageFrameResource);
+                                resource.image.should.be('parcel.png');
+                                resource.x.should.be(554);
+                                resource.y.should.be(16);
+                                resource.width.should.be(45);
+                                resource.height.should.be(192);
+                                resource.u1.should.beCloseTo(resource.x / image.width);
+                                resource.v1.should.beCloseTo(resource.y / image.height);
+                                resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
+                                resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
+                            case Failure(message):
+                                fail(message);
+                        }
                     case Failure(message):
                         fail(message);
                 }
@@ -935,8 +968,16 @@ class PackerTests extends BuddySuite
         });
     }
 
-    function unpack(_bytes : Bytes) : ParcelResource
-        return new Serializer().unserialize(_bytes, ParcelResource);
+    function unpack(_bytes : Bytes) : Result<Array<Resource>, String>
+    {
+        final input  = new BytesInput(_bytes);
+        final stream = new ParcelInput(input);
+        final result = stream.read();
+
+        stream.close();
+
+        return result;
+    }
 
     function project() : Project
         return {

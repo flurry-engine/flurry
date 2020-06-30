@@ -54,6 +54,8 @@ class InputDecompressor extends Input
     function inflate(_source : Bytes) : Int
     {
 #if cpp
+        // Slightly modified cpp decompress code to decompress right into the buffer.
+        // Skips an extra allocation and blit this way.
         final u = new Uncompress(null);
         var srcPos = 0;
         var dstPos = 0;
@@ -74,7 +76,11 @@ class InputDecompressor extends Input
 
         return dstPos;
 #else
-        throw 'not implemented on this platform';
+        final decompressed = Uncompress.run(_source);
+
+        buffer.blit(0, decompressed, 0, decompressed.length);
+
+        return decompressed.length;
 #end
     }
 }

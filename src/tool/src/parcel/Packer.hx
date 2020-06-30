@@ -155,25 +155,28 @@ class Packer
             final file        = Path.join([ tempParcels, parcel.name ]);
             final stream      = new ParcelOutput(fs.file.write(file), compression);
 
-            switch packImages(
-                baseDir,
-                parcel,
-                stream,
-                assets.assets.images,
-                assets.assets.sheets,
-                assets.assets.fonts,
-                assets.assets.sprites,
-                parcel.options.or({
-                    pageMaxWidth     : 4096,
-                    pageMaxHeight    : 4096,
-                    pagePadX         : 0,
-                    pagePadY         : 0,
-                    compression      : 6,
-                    format           : 'png'
-                }))
+            if (parcel.images != null || parcel.fonts != null || parcel.sheets != null || parcel.sprites != null)
             {
-                case Failure(message): return Failure(message);
-                case _:
+                switch packImages(
+                    baseDir,
+                    parcel,
+                    stream,
+                    assets.assets.images,
+                    assets.assets.sheets,
+                    assets.assets.fonts,
+                    assets.assets.sprites,
+                    parcel.options.or({
+                        pageMaxWidth     : 4096,
+                        pageMaxHeight    : 4096,
+                        pagePadX         : 0,
+                        pagePadY         : 0,
+                        compression      : 6,
+                        format           : 'png'
+                    }))
+                {
+                    case Failure(message): return Failure(message);
+                    case _:
+                }
             }
 
             for (id in parcel.texts.or([]))

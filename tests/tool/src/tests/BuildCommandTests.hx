@@ -1,7 +1,7 @@
 package tests;
 
-import Types.Unit;
-import Types.Result;
+import uk.aidanlee.flurry.api.core.Result;
+import uk.aidanlee.flurry.api.core.Unit;
 import Types.Project;
 import commands.Build;
 import parcel.Packer;

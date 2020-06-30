@@ -1,13 +1,13 @@
 package tests;
 
-import Types.Unit;
-import Types.Result;
 import Types.Project;
 import haxe.io.Bytes;
 import sys.io.abstractions.mock.MockFileSystem;
 import commands.Restore;
 import buddy.BuddySuite;
 import mockatoo.Mockatoo.*;
+import uk.aidanlee.flurry.api.core.Result;
+import uk.aidanlee.flurry.api.core.Unit;
 
 using mockatoo.Mockatoo;
 using buddy.Should;
