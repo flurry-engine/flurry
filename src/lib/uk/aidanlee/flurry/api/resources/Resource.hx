@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.resources;
 
+import haxe.io.BytesData;
 import hxbit.Serializer;
 import hxbit.Serializable;
 import haxe.io.Bytes;
@@ -19,6 +20,12 @@ enum ResourceType
     ImageFrame;
     Sprite;
     Shader;
+}
+
+enum PixelFormat
+{
+    RGBAUNorm;
+    BGRAUNorm;
 }
 
 class Resource implements Serializable
@@ -71,17 +78,23 @@ class ImageResource extends Resource
     @:s public var height (default, null) : Int;
 
     /**
+     * The format the pixel data is in.
+     */
+    @:s public var format (default, null) : PixelFormat;
+
+    /**
      * Pixel data of this texture.
      * Modifying this does not modify the actual images data.
      */
-    @:s public var pixels (default, null) : Bytes;
+    public var pixels (default, null) : BytesData;
 
-    public function new(_id : String, _width : Int, _height : Int, _pixels : Bytes)
+    public function new(_id : String, _width : Int, _height : Int, _format : PixelFormat, _pixels : BytesData)
     {
         super(Image, _id);
 
         width  = _width;
         height = _height;
+        format = _format;
         pixels = _pixels;
     }
 }
@@ -338,30 +351,5 @@ class ShaderValue implements Serializable
     {
         name = _name;
         type = _type;
-    }
-}
-
-class ParcelResource implements Serializable
-{
-    /**
-     * Name of this parcel.
-     */
-    @:s public var name (default, null) : String;
-
-    /**
-     * List of the IDs of all assets to be included in this parcel.
-     */
-    @:s public var assets (default, null) : Array<Resource>;
-
-    /**
-     * List of parcel names this parcel depends on.
-     */
-    @:s public var depends (default, null) : Array<String>;
-
-    public function new(_name : String, _assets : Array<Resource>, _depends : Array<String>)
-    {
-        name    = _name;
-        assets  = _assets;
-        depends = _depends;
     }
 }

@@ -9,8 +9,6 @@ import uk.aidanlee.flurry.api.stream.ParcelOutput;
 import uk.aidanlee.flurry.api.resources.Resource;
 import parcel.Types;
 import parcel.GdxParser;
-import format.png.Tools;
-import format.png.Reader;
 import Types.Project;
 import Types.Result;
 import Types.Unit;
@@ -141,7 +139,7 @@ class Packer
                 '--filename-format', '{frame}',
                 '--list-tags' ])
             {
-                case Failure(message): return Failure(message);
+                case Failure(message): Sys.println('Parcel exited with a non zero code of $message, this is probably alright...');
                 case _:
             }
         }
@@ -150,8 +148,6 @@ class Packer
 
         for (parcel in assets.parcels)
         {
-            trace('generating parcel');
-
             final file   = Path.join([ tempParcels, parcel.name ]);
             final stream = new ParcelOutput(fs.file.write(file), Deflate(9, 32000000));
 
@@ -197,8 +193,6 @@ class Packer
                     stream.add(SerialisedResource(prepared[id].sure()));
                 }
             }
-
-            trace('writing...');
 
             stream.commit();
             stream.close();
@@ -317,8 +311,6 @@ class Packer
 
         // Pack all of our collected images
 
-        trace('starting packer');
-
         switch proc.run(Path.join([ toolsDir, Utils.atlasCreatorExecutable() ]), [
             '--directory', tempAssets,
             '--output', tempAssets,
@@ -335,11 +327,8 @@ class Packer
             case _:
         }
 
-        trace('packer');
-
         // Read the packed result
 
-        final assets = new Array<Resource>();
         final atlas : JsonAtlas = tink.Json.parse(fs.file.getText(Path.join([ tempAssets, '${ _parcel.name }.json' ])));
 
         // Create images for all unique pages
@@ -348,7 +337,7 @@ class Packer
         {
             final img = new Path(Path.join([ tempAssets, page.image ]));
 
-            _stream.add(ImageData(imageBytes(img), Png, page.image));
+            _stream.add(ImageData(imageBytes(img), Png, page.width, page.height, page.image));
         }
 
         // Search for all of our composited images within the pages

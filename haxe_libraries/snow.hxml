@@ -1,10 +1,8 @@
--D snow=1.0.0-alpha.2
-# @install: lix --silent download "gh://github.com/aidan63/snow#f1ca0659d6091433a0aaccb50b0675b109ab4aa4" into snow/1.0.0-alpha.2/github/f1ca0659d6091433a0aaccb50b0675b109ab4aa4
--lib hxcpp
--lib linc_opengl
+# @install: lix --silent download "gh://github.com/aidan63/snow#8a3629bfe1badf00e461a244c5eb04b16a9e5032" into snow/1.0.0-alpha.2/github/8a3629bfe1badf00e461a244c5eb04b16a9e5032
+-lib linc_ogg
+-lib linc_openal
 -lib linc_sdl
 -lib linc_stb
--lib linc_openal
--lib linc_ogg
 -lib linc_timestamp
--cp ${HAXE_LIBCACHE}/snow/1.0.0-alpha.2/github/f1ca0659d6091433a0aaccb50b0675b109ab4aa4/
+-cp ${HAXE_LIBCACHE}/snow/1.0.0-alpha.2/github/8a3629bfe1badf00e461a244c5eb04b16a9e5032/
+-D snow=1.0.0-alpha.2

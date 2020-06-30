@@ -8,7 +8,7 @@ import uk.aidanlee.flurry.api.resources.Resource;
 enum Payload
 {
     SerialisedResource(_resource : Resource);
-    ImageData(_bytes : Bytes, _format : ImageFormat, _name : String);
+    ImageData(_bytes : Bytes, _format : ImageFormat, _width : Int, _height : Int, _name : String);
 }
 
 class ParcelOutput
@@ -42,8 +42,6 @@ class ParcelOutput
 
     public function commit()
     {
-        trace('committing parcel to output');
-
         writeHeader();
         writePayload();
     }
@@ -68,15 +66,12 @@ class ParcelOutput
         }
 
         headOutput.writeInt32(payload.length);
-
-        trace('header written');
     }
 
     function writePayload()
     {
         for (entry in payload)
         {
-            trace('writing entry');
             switch entry
             {
                 case SerialisedResource(_resource):
@@ -86,17 +81,15 @@ class ParcelOutput
                     dataOutput.writeByte(0);
                     dataOutput.writeInt32(len);
                     dataOutput.write(bytes);
-
-                    trace('resource ${ _resource.id }');
-                case ImageData(_bytes, _format, _name):
+                case ImageData(_bytes, _format, _width, _height, _name):
                     dataOutput.writeByte(1);
                     dataOutput.writeByte(_format);
+                    dataOutput.writeInt32(_width);
+                    dataOutput.writeInt32(_height);
                     dataOutput.writeInt32(_name.length);
                     dataOutput.writeString(_name);
                     dataOutput.writeInt32(_bytes.length);
                     dataOutput.write(_bytes);
-
-                    trace('image $_format');
             }
         }
     }

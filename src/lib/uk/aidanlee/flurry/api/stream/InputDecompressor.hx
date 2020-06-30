@@ -53,6 +53,7 @@ class InputDecompressor extends Input
 
     function inflate(_source : Bytes) : Int
     {
+#if cpp
         final u = new Uncompress(null);
         var srcPos = 0;
         var dstPos = 0;
@@ -72,5 +73,8 @@ class InputDecompressor extends Input
         u.close();
 
         return dstPos;
+#else
+        throw 'not implemented on this platform';
+#end
     }
 }
