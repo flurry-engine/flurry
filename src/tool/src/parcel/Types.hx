@@ -39,7 +39,6 @@ typedef JsonShaderResource = JsonResource & {
 
 typedef JsonParcel = {
     final name : String;
-    final depends : Array<String>;
     final ?bytes : Array<String>;
     final ?texts : Array<String>;
     final ?fonts : Array<String>;
@@ -55,8 +54,8 @@ typedef JsonPackingOptions = {
     final pageMaxHeight : Int;
     final pagePadX : Int;
     final pagePadY : Int;
-    final fast : Bool;
-    final compressionLevel : Int;
+    final compression : Int;
+    final format : String;
 }
 
 typedef JsonAssets = {

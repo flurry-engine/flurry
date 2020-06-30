@@ -1,12 +1,12 @@
 package commands;
 
-import Types.Unit;
-import Types.Result;
 import Types.Project;
 import parcel.Packer;
 import haxe.io.Path;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
+import uk.aidanlee.flurry.api.core.Result;
+import uk.aidanlee.flurry.api.core.Unit;
 
 using Safety;
 using Utils;
@@ -88,7 +88,7 @@ class Build
      * Compile the haxe code and create the parcels.
      * @return Result<Unit>
      */
-    public function run() : Result<Unit>
+    public function run() : Result<Unit, String>
     {
         if (clean)
         {

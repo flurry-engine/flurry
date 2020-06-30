@@ -1,6 +1,6 @@
-import Types.Result;
 import haxe.io.Bytes;
 import com.akifox.asynchttp.HttpRequest;
+import uk.aidanlee.flurry.api.core.Result;
 
 /**
  * Simple wrapper around a http get request.
@@ -13,7 +13,7 @@ class Net
         //
     }
 
-    public function download(_url : String, _proc : Proc) : Result<Bytes>
+    public function download(_url : String, _proc : Proc) : Result<Bytes, String>
     {
         var res = Failure('');
 

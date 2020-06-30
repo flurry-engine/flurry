@@ -31,7 +31,7 @@ class ParcelInput
         // Read magic bytes
         if ('PRCL' != input.readString(4))
         {
-            return Error('invalid magic bytes');
+            return Failure('invalid magic bytes');
         }
 
         // Read Compression info
@@ -45,7 +45,7 @@ class ParcelInput
 
                 Deflate(level, chunkSize);
             case other:
-                return Error('Unknown compression type $other');
+                return Failure('Unknown compression type $other');
         }
 
         // Read payload info
@@ -73,7 +73,7 @@ class ParcelInput
 
                     if (length != read)
                     {
-                        return Error('did not read the expected number of bytes');
+                        return Failure('did not read the expected number of bytes');
                     }
 
                     resources.push(serialiser.unserialize(tmp, Resource));
@@ -90,7 +90,7 @@ class ParcelInput
 
                     if (length != read)
                     {
-                        return Error('did not read the expected number of bytes');
+                        return Failure('did not read the expected number of bytes');
                     }
 
                     switch format
@@ -121,7 +121,7 @@ class ParcelInput
                     }
 
                 case other:
-                    return Error('Unknown payload type $other');
+                    return Failure('Unknown payload type $other');
             }
         }
 

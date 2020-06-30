@@ -1,13 +1,13 @@
 package commands;
 
-import Types.Unit;
-import Types.Result;
 import Types.Project;
-import parcel.Types.JsonDefinition;
 import tink.Json;
 import haxe.io.Path;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
+import uk.aidanlee.flurry.api.core.Result;
+import uk.aidanlee.flurry.api.core.Unit;
+import parcel.Types.JsonDefinition;
 
 using Safety;
 
@@ -51,7 +51,7 @@ class Create
                 texts   : []
             },
             parcels: [
-                { name : 'preload', depends : [] }
+                { name : 'preload' }
             ]
         }
         main = 'package;
@@ -67,14 +67,14 @@ class Main extends Flurry
         _config.window.width  = 768;
         _config.window.height = 512;
 
-        _config.resources.preload = \'preload\';
+        _config.resources.preload = [ \'preload\' ];
 
         return _config;
     }
 }';
     }
 
-    public function run() : Result<Unit>
+    public function run() : Result<Unit, String>
     {
         fs.directory.create('assets');
         fs.directory.create('src');

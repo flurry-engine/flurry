@@ -5,13 +5,15 @@ import haxe.io.Bytes;
 import haxe.ds.ReadOnlyArray;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
+import uk.aidanlee.flurry.api.core.Unit;
+import uk.aidanlee.flurry.api.core.Result;
 import uk.aidanlee.flurry.api.stream.ParcelOutput;
+import uk.aidanlee.flurry.api.stream.Compression;
+import uk.aidanlee.flurry.api.stream.ImageFormat;
 import uk.aidanlee.flurry.api.resources.Resource;
 import parcel.Types;
 import parcel.GdxParser;
 import Types.Project;
-import Types.Result;
-import Types.Unit;
 
 using Utils;
 using Safety;
@@ -71,7 +73,7 @@ class Packer
         fs.directory.create(tempParcels);
     }
 
-    public function create(_path : String) : Result<Array<{ name : String, file : String }>>
+    public function create(_path : String) : Result<Array<{ name : String, file : String }>, String>
     {
         final assets      = parse(fs.file.getText(_path));
         final baseDir     = Path.directory(_path);
@@ -139,7 +141,7 @@ class Packer
                 '--filename-format', '{frame}',
                 '--list-tags' ])
             {
-                case Failure(message): Sys.println('Parcel exited with a non zero code of $message, this is probably alright...');
+                case Failure(message): Failure(message);
                 case _:
             }
         }
@@ -148,8 +150,10 @@ class Packer
 
         for (parcel in assets.parcels)
         {
-            final file   = Path.join([ tempParcels, parcel.name ]);
-            final stream = new ParcelOutput(fs.file.write(file), Deflate(9, 32000000));
+            final deflate     = parcel!.options!.compression.or(6);
+            final compression = if (deflate == 0) None else Deflate(deflate - 0, 32000000);
+            final file        = Path.join([ tempParcels, parcel.name ]);
+            final stream      = new ParcelOutput(fs.file.write(file), compression);
 
             switch packImages(
                 baseDir,
@@ -164,8 +168,8 @@ class Packer
                     pageMaxHeight    : 4096,
                     pagePadX         : 0,
                     pagePadY         : 0,
-                    fast             : false,
-                    compressionLevel : 6
+                    compression      : 6,
+                    format           : 'png'
                 }))
             {
                 case Failure(message): return Failure(message);
@@ -238,7 +242,7 @@ class Packer
         _sheets : Array<JsonResource>,
         _fonts : Array<JsonResource>,
         _sprites : Array<JsonResource>,
-        _options : JsonPackingOptions) : Result<Unit>
+        _options : JsonPackingOptions) : Result<Unit, String>
     {
         final atlases = [];
         final bmfonts = [];
@@ -320,10 +324,10 @@ class Packer
             '--x-pad', Std.string(_options.pagePadX),
             '--y-pad', Std.string(_options.pagePadY),
             '--threads', '4',
-            '--format', 'png'
+            '--format', _options.format
         ])
         {
-            case Failure(message): return Failure(message);
+            case Failure(message): Sys.println('Parcel exited with a non zero code of $message, this is probably alright...');
             case _:
         }
 
@@ -335,9 +339,18 @@ class Packer
 
         for (page in atlas.pages)
         {
-            final img = new Path(Path.join([ tempAssets, page.image ]));
+            final imgPath = new Path(Path.join([ tempAssets, page.image ]));
+            final format  = switch imgPath.ext
+            {
+                case 'jpeg', 'jpg': Jpeg;
+                case 'png': Png;
+                case 'raw': RawBGRA;
+                case other:
+                    _stream.close();
+                    return Failure('Unsupported image format $other');
+            }
 
-            _stream.add(ImageData(imageBytes(img), Png, page.width, page.height, page.image));
+            _stream.add(ImageData(imageBytes(imgPath), format, page.width, page.height, page.image));
         }
 
         // Search for all of our composited images within the pages
@@ -501,7 +514,7 @@ class Packer
      * @param _shader Shader definition.
      * @return Result<ShaderResource>
      */
-    function createShader(_baseDir : String, _shader : JsonShaderResource) : Result<ShaderResource>
+    function createShader(_baseDir : String, _shader : JsonShaderResource) : Result<ShaderResource, String>
     {
         final definition : JsonShaderDefinition = tink.Json.parse(fs.file.getText(Path.join([ _baseDir, _shader.path ])));
 
@@ -579,7 +592,7 @@ class Packer
      * @param _frag Path to the glsl fragment source.
      * @return ShaderSource object containing compiled spirv bytes.
      */
-    function ogl4Compile(_vert : String, _frag : String) : Result<ShaderSource>
+    function ogl4Compile(_vert : String, _frag : String) : Result<ShaderSource, String>
     {
         switch proc.run('glslangValidator', [ '-G', '-S', 'vert', _vert, '-o', Path.join([ tempAssets, 'vert.out' ]) ])
         {
@@ -604,7 +617,7 @@ class Packer
      * @param _frag Path to the hlsl fragment source.
      * @return ShaderSource
      */
-    function hlslCompile(_vert : String, _frag : String) : Result<ShaderSource>
+    function hlslCompile(_vert : String, _frag : String) : Result<ShaderSource, String>
     {
         if (Utils.platform() != Windows)
         {
@@ -639,7 +652,7 @@ class Packer
      * @param _name Name of the section to search for.
      * @param _pages Structure containing the page and section.
      */
-    function findSection(_name : String, _pages : ReadOnlyArray<JsonAtlasPage>) : Result<{ page : JsonAtlasPage, section : JsonAtlasImage }>
+    function findSection(_name : String, _pages : ReadOnlyArray<JsonAtlasPage>) : Result<{ page : JsonAtlasPage, section : JsonAtlasImage }, String>
     {
         for (page in _pages)
         {

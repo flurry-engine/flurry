@@ -251,7 +251,7 @@ using rx.Observable;
                 reader.close();
 
                 true;
-            case Error(_message):
+            case Failure(_message):
                 _observer.onError(_message);
 
                 reader.close();
