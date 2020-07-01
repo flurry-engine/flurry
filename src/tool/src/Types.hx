@@ -1,18 +1,3 @@
-abstract Unit(Dynamic)
-{
-    public static final value = new Unit();
-
-    function new()
-    {
-        this = null;
-    }
-}
-
-enum Result<T>
-{
-    Success(data : T);
-    Failure(message : String);
-}
 
 enum abstract Platform(String) from String to String
 {

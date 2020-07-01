@@ -30,6 +30,17 @@ class Tests implements Buddy<[
     tests.api.gpu.geometry.shapes.SpriteGeometryTests,
     tests.api.gpu.batcher.BatcherStateTests,
     tests.api.gpu.batcher.BatcherTests,
+    
+    tests.api.stream.OutputCompressorTests,
+    tests.api.stream.InputDecompressorTests,
+    tests.api.stream.ParcelOutputTests,
+
+#if (!js)
+
+    // JPEG writing with format is currently failing on js for some reason.
+    tests.api.stream.ParcelInputTests,
+
+#end
 
 #if (target.threaded)
 

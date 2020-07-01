@@ -119,9 +119,7 @@ class ImGuiImpl
         vtxData = new Float32Array(1000000);
         idxData = new UInt16Array(1000000);
 
-        final bytes = @:privateAccess new Bytes(width[0] * height[0] * 4, Pointer.fromStar(pixels).toUnmanagedArray(width[0] * height[0] * bpp[0]));
-
-        texture = new ImageResource('imgui_texture', width[0], height[0], bytes);
+        texture = new ImageResource('imgui_texture', width[0], height[0], BGRAUNorm, Pointer.fromStar(pixels).toUnmanagedArray(width[0] * height[0] * bpp[0]));
         frame   = new ImageFrameResource('imgui_frame', 'imgui_texture', 0, 0, texture.width, texture.height, 0, 0, 1, 1);
         io.fonts.texID = cast Pointer.addressOf(frame).raw;
 

@@ -1,12 +1,12 @@
 package commands;
 
-import Types.Unit;
-import Types.Result;
 import Types.Project;
 import parcel.Packer;
 import haxe.io.Path;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
+import uk.aidanlee.flurry.api.core.Result;
+import uk.aidanlee.flurry.api.core.Unit;
 
 using Safety;
 using Utils;
@@ -88,7 +88,7 @@ class Build
      * Compile the haxe code and create the parcels.
      * @return Result<Unit>
      */
-    public function run() : Result<Unit>
+    public function run() : Result<Unit, String>
     {
         if (clean)
         {
@@ -132,8 +132,8 @@ class Build
                 case Success(data):
                     for (parcel in data)
                     {
-                        fs.file.writeBytes(Path.join([ debugParcels, parcel.name ]), parcel.bytes);
-                        fs.file.writeBytes(Path.join([ releaseParcels, parcel.name ]), parcel.bytes);
+                        fs.file.copy(parcel.file, Path.join([ debugParcels, parcel.name ]));
+                        fs.file.copy(parcel.file, Path.join([ releaseParcels, parcel.name ]));
                     }
                 case Failure(message): return Failure(message);
             }

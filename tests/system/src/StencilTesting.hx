@@ -18,7 +18,7 @@ class StencilTesting extends Flurry
         _config.window.width  = 768;
         _config.window.height = 512;
 
-        _config.resources.preload = 'preload';
+        _config.resources.preload = [ 'preload', 'shaders' ];
 
         return _config;
     }

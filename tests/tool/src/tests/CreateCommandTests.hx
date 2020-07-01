@@ -1,13 +1,11 @@
 package tests;
 
-import Types.Unit;
-import Types.Result;
+import uk.aidanlee.flurry.api.core.Result;
+import uk.aidanlee.flurry.api.core.Unit;
 import sys.io.abstractions.mock.MockFileSystem;
 import commands.Create;
 import buddy.BuddySuite;
-import mockatoo.Mockatoo.*;
 
-using mockatoo.Mockatoo;
 using buddy.Should;
 using StringTools;
 using Utils;

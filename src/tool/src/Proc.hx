@@ -1,5 +1,5 @@
-import Types.Unit;
-import Types.Result;
+import uk.aidanlee.flurry.api.core.Unit;
+import uk.aidanlee.flurry.api.core.Result;
 
 using Safety;
 
@@ -14,7 +14,7 @@ class Proc
         //
     }
 
-    public function run(_executable : String, _arguments : Array<String> = null) : Result<Unit>
+    public function run(_executable : String, _arguments : Array<String> = null) : Result<Unit, String>
     {
         final code = Sys.command(_executable, _arguments);
 

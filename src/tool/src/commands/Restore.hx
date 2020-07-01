@@ -1,13 +1,13 @@
 package commands;
 
-import Types.Unit;
-import Types.Result;
 import Types.Project;
 import haxe.io.Path;
 import haxe.io.BytesInput;
 import format.tgz.Reader;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
+import uk.aidanlee.flurry.api.core.Result;
+import uk.aidanlee.flurry.api.core.Unit;
 
 using Utils;
 using Safety;
@@ -35,7 +35,7 @@ class Restore
         fs.directory.create(toolPath);
     }
 
-    public function run() : Result<Unit>
+    public function run() : Result<Unit, String>
     {
         var res = Success(Unit.value);
 
@@ -66,7 +66,7 @@ class Restore
         return res;
     }
 
-    function getMsdfAtlasGen() : Result<Unit>
+    function getMsdfAtlasGen() : Result<Unit, String>
     {
         final tool = Path.join([ toolPath, Utils.msdfAtlasExecutable() ]);
         final url  = switch Utils.platform()
@@ -79,7 +79,7 @@ class Restore
         return githubDownload(url, tool);
     }
 
-    function getAtlasCreator() : Result<Unit>
+    function getAtlasCreator() : Result<Unit, String>
     {
         final tool = Path.join([ toolPath, Utils.atlasCreatorExecutable() ]);
         final url  = switch Utils.platform()
@@ -92,12 +92,12 @@ class Restore
         return githubDownload(url, tool);
     }
 
-    function getGlslang() : Result<Unit>
+    function getGlslang() : Result<Unit, String>
     {
         return Success(Unit.value);
     }
 
-    function githubDownload(_url : String, _tool : String) : Result<Unit>
+    function githubDownload(_url : String, _tool : String) : Result<Unit, String>
     {
         if (fs.file.exists(_tool))
         {

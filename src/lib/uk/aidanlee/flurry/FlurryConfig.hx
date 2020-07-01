@@ -260,7 +260,7 @@ class FlurryResourceConfig
     /**
      * Any resources placed into this parcel list will be loaded before the Flurry's onReady function is called.
      */
-    public var preload : Null<String>;
+    public var preload : Null<Array<String>>;
 
     /**
      * Create a new resource config with the default settings.

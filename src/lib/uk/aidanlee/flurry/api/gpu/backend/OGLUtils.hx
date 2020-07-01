@@ -7,6 +7,7 @@ import uk.aidanlee.flurry.api.gpu.BlendMode;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.textures.Filtering;
 import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
+import uk.aidanlee.flurry.api.resources.Resource.PixelFormat;
 
 class OGLUtils
 {
@@ -88,6 +89,15 @@ class OGLUtils
             case Mirror : GL_MIRRORED_REPEAT;
             case Clamp  : GL_CLAMP_TO_EDGE;
             case Border : GL_CLAMP_TO_BORDER;
+        }
+    }
+
+    public static function getPixelFormat(_format : PixelFormat) : Int
+    {
+        return switch _format
+        {
+            case BGRAUNorm: GL_BGRA;
+            case RGBAUNorm: GL_RGBA;
         }
     }
 }

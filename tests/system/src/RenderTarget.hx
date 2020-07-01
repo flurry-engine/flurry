@@ -16,14 +16,14 @@ class RenderTarget extends Flurry
         _config.window.width  = 768;
         _config.window.height = 512;
 
-        _config.resources.preload = 'preload';
+        _config.resources.preload = [ 'preload', 'shaders' ];
 
         return _config;
     }
 
     override function onReady()
     {
-        resources.addResource(new ImageResource('surface', 256, 256, Bytes.alloc(256 * 256 * 4)));
+        resources.addResource(new ImageResource('surface', 256, 256, BGRAUNorm, Bytes.alloc(256 * 256 * 4).getData()));
         resources.addResource(new ImageFrameResource('surface_frame', 'surface', 0, 0, 256, 256, 0, 0, 1, 1));
 
         final camera1  = renderer.createCamera2D(display.width, display.height);

@@ -1,8 +1,8 @@
 package commands;
 
-import Types.Unit;
-import Types.Result;
 import Types.Project;
+import uk.aidanlee.flurry.api.core.Result;
+import uk.aidanlee.flurry.api.core.Unit;
 
 using Utils;
 using Safety;
@@ -19,6 +19,6 @@ class Run
         project = _project;
     }
 
-    public function run() : Result<Unit>
+    public function run() : Result<Unit, String>
         return proc.run(project.executable(), []);
 }

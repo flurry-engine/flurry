@@ -51,7 +51,7 @@ class BatcherTests extends BuddySuite
             });
 
             it('Has a target to allow drawing to a texture', {
-                final target   = Texture(new ImageResource('', 0, 0, Bytes.alloc(0)));
+                final target   = Texture(new ImageResource('', 0, 0, RGBAUNorm, Bytes.alloc(0).getData()));
                 final batcher1 = new Batcher({ camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne), shader : shader() });
                 final batcher2 = new Batcher({ camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne), shader : shader(), target : target });
 

@@ -1,17 +1,16 @@
 package uk.aidanlee.flurry.api.resources;
 
-import haxe.zip.Uncompress;
-import hxbit.Serializer;
 import haxe.Exception;
 import haxe.io.Path;
+import haxe.ds.ReadOnlyArray;
 import rx.Subscription;
 import rx.subjects.Behavior;
 import rx.observers.IObserver;
 import rx.schedulers.IScheduler;
 import rx.observables.IObservable;
-import uk.aidanlee.flurry.api.resources.Resource;
-import uk.aidanlee.flurry.api.resources.Resource.ParcelResource;
 import sys.io.abstractions.IFileSystem;
+import uk.aidanlee.flurry.api.stream.ParcelInput;
+import uk.aidanlee.flurry.api.resources.Resource;
 
 using Safety;
 using rx.Observable;
@@ -46,11 +45,6 @@ using rx.Observable;
     final parcelResources : Map<String, Array<String>>;
 
     /**
-     * Reference to all other parcels this parcel depends on.
-     */
-    final parcelDependencies : Map<String, Array<String>>;
-
-    /**
      * All resources stored in this system, keyed by their name.
      */
     final resourceCache : Map<String, Resource>;
@@ -72,7 +66,6 @@ using rx.Observable;
         workScheduler      = _workScheduler;
         syncScheduler      = _syncScheduler;
         parcelResources    = [];
-        parcelDependencies = [];
         resourceCache      = [];
         resourceReferences = [];
     }
@@ -80,54 +73,51 @@ using rx.Observable;
     /**
      * Loads the provided parcels resources into the system.
      * If the parcel has already been loaded an empty observable is returned.
-     * @param _parcel Parcel definition.
+     * @param _parcels List parcel files to load.
      * @return Observable<Float> Observable of loading progress (normalised 0 - 1)
      */
-    public function load(_parcel : String) : IObservable<Float>
+    public function load(_parcels : ReadOnlyArray<String>) : IObservable<Float>
     {
-        if (parcelResources.exists(_parcel))
-        {
-            return Observable.empty();
-        }
-        else
-        {
-            final progress = new Behavior(0.0);
+        final progress = new Behavior(0.0);
 
-            // This observable performs the loading work.
-            // It subscribes on the work scheduler and observable functions are called on the sync scheduler.
-            // These are probably some sort of thread pool and them main app thread.
-            // We manually track if the loading was successful otherwise we could fire onError and onComplete events.
-            // We also recursivly call `loadPrePackaged` for dependencies which could fire onComplete before all resources have loaded.
-            Observable
-                .create((_observer : IObserver<ParcelEvent>) -> {
-                    if (loadPrePackaged(_parcel, _observer))
+        // This observable performs the loading work.
+        // It subscribes on the work scheduler and observable functions are called on the sync scheduler.
+        // These are probably some sort of thread pool and them main app thread.
+        // We manually track if the loading was successful otherwise we could fire onError and onComplete events.
+        // We also recursivly call `loadPrePackaged` for dependencies which could fire onComplete before all resources have loaded.
+        Observable
+            .create((_observer : IObserver<ParcelEvent>) -> {
+                for (i => path in _parcels)
+                {
+                    if (!loadParcel(path, i, _parcels.length, _observer))
                     {
-                        _observer.onCompleted();
+                        return Subscription.empty();
                     }
+                }
 
-                    return Subscription.empty();
-                })
-                .subscribeOn(workScheduler)
-                .observeOn(syncScheduler)
-                .subscribeFunction(
-                    _v -> {
-                        switch _v
-                        {
-                            case Progress(_progress, _resource):
-                                addResource(_resource);
-                                progress.onNext(_progress);
-                            case List(_name, _list):
-                                parcelResources[_name] = _list;
-                            case Dependency(_name, _depends):
-                                parcelDependencies[_name] = _depends;
-                        }
-                    },
-                    progress.onError,
-                    progress.onCompleted
-                );
-    
-            return progress;
-        }
+                _observer.onCompleted();
+
+                return Subscription.empty();
+            })
+            .subscribeOn(workScheduler)
+            .observeOn(syncScheduler)
+            .subscribeFunction(
+                _v -> {
+                    switch _v
+                    {
+                        case Resource(_resource):
+                            addResource(_resource);
+                        case Progress(_time):
+                            progress.onNext(_time);
+                        case List(_name, _list):
+                            parcelResources[_name] = _list;
+                    }
+                },
+                progress.onError,
+                progress.onCompleted
+            );
+
+        return progress;
     }
 
     /**
@@ -136,16 +126,6 @@ using rx.Observable;
      */
     public function free(_name : String)
     {
-        if (parcelDependencies.exists(_name))
-        {
-            for (dep in parcelDependencies[_name].unsafe())
-            {
-                free(dep);
-            }
-
-            parcelDependencies.remove(_name);
-        }
-
         if (parcelResources.exists(_name))
         {
             for (res in parcelResources[_name].unsafe())
@@ -230,11 +210,7 @@ using rx.Observable;
         throw new ResourceNotFoundException(_id);
     }
 
-    /**
-     * Load a pre-packaged parcel from the disk.
-     * @param _file Parcel file name.
-     */
-    function loadPrePackaged(_file : String, _observer : IObserver<ParcelEvent>) : Bool
+    function loadParcel(_file : String, _index : Int, _max : Int, _observer : IObserver<ParcelEvent>) : Bool
     {
         final path = Path.join([ 'assets', 'parcels', _file ]);
 
@@ -245,39 +221,43 @@ using rx.Observable;
             return false;
         }
 
-        final serializer = new Serializer();
-        final parcel     = serializer.unserialize(Uncompress.run(fileSystem.file.getBytes(path)), ParcelResource);
-
-        if (parcel == null)
+        // If the parcel has already been loaded immediately progress by the max amount for a parcel segment.
+        if (parcelResources.exists(_file))
         {
-            _observer.onError('unable to cast deserialised bytes to a ParcelResource');
+            final segment  = 1 / _max;
+            final nextBase = (_index + 1) * segment;
 
-            return false;
+            _observer.onNext(Progress(nextBase));
+
+            return true;
         }
 
-        if (parcel.depends.length > 0)
-        {
-            _observer.onNext(Dependency(_file, parcel.depends));
+        final reader = new ParcelInput(fileSystem.file.read(path));
 
-            for (dependency in parcel.depends)
-            {
-                if (!loadPrePackaged(dependency, _observer))
+        return switch reader.read()
+        {
+            case Success(_assets):
+                for (i => asset in _assets)
                 {
-                    return false;
+                    final segment = 1 / _max;
+                    final current = (_index * segment) + ((i / _assets.length) / _max);
+
+                    _observer.onNext(Resource(asset));
+                    _observer.onNext(Progress(current));
                 }
-            }
+
+                _observer.onNext(List(_file, [ for (res in _assets) res.id ]));
+
+                reader.close();
+
+                true;
+            case Failure(_message):
+                _observer.onError(_message);
+
+                reader.close();
+
+                false;
         }
-
-        for (i => asset in parcel.assets)
-        {
-            _observer.onNext(
-                Progress(i / parcel.assets.length, asset)
-            );
-        }
-
-        _observer.onNext(List(_file, [ for (res in parcel.assets) res.id ]));
-
-        return true;
     }
 }
 
@@ -305,9 +285,9 @@ class ResourceNotFoundException extends Exception
 
 private enum ParcelEvent
 {
-    Progress(_progress : Float, _resource : Resource);
+    Resource(_resource : Resource);
     List(_name : String, _list : Array<String>);
-    Dependency(_name : String, _dependencies : Array<String>);
+    Progress(_value : Float);
 }
 
 

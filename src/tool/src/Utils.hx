@@ -30,6 +30,9 @@ class Utils
     public static function tempAssets(_project : Project)
         return Path.join([ baseTempDir(_project), 'assets' ]);
 
+    public static function tempParcels(_project : Project)
+        return Path.join([ baseTempDir(_project), 'parcels' ]);
+
     public static function executable(_project : Project)
         return switch platform()
         {

@@ -12,6 +12,7 @@
 -D linc_imgui
 -D linc_opengl
 -D linc_directx
+-D linc_stb
 -D format
 -D threads
 
@@ -20,6 +21,7 @@
 -lib linc_sdl
 -lib linc_opengl
 -lib linc_directx
+-lib linc_stb
 -lib buddy
 -lib mockatoo
 -lib haxe-concurrent

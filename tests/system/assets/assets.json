@@ -49,7 +49,21 @@
         ]
     },
     "parcels" : [
-        { "name" : "preload", "images" : [ "tank1", "tank2", "tank3", "wood", "van" ], "sheets" : [ "unnamed" ], "fonts" : [ "roboto" ], "sprites" : [ "character" ], "depends" : [ "shaders" ] },
-        { "name" : "shaders", "shaders" : [ "textured", "colourise", "purple", "msdf" ], "depends" : [] }
+        {
+            "name"    : "preload",
+            "images"  : [ "tank1", "tank2", "tank3", "wood", "van" ],
+            "sheets"  : [ "unnamed" ],
+            "fonts"   : [ "roboto" ],
+            "sprites" : [ "character" ],
+            "options" : {
+                "pagePadX"      : 2,
+                "pagePadY"      : 2,
+                "pageMaxWidth"  : 2048,
+                "pageMaxHeight" : 2048,
+                "format"        : "png",
+                "compression"   : 0
+            }
+        },
+        { "name" : "shaders", "shaders" : [ "textured", "colourise", "purple", "msdf" ] }
     ]
 }

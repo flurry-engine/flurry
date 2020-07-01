@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import dxgi.enumerations.DxgiFormat;
 import haxe.Exception;
 import haxe.ds.ReadOnlyArray;
 import cpp.UInt8;
@@ -919,7 +920,7 @@ class DX11Backend implements IRendererBackend
     {
         // Sub resource struct to hold the raw image bytes.
         var imgData = new D3d11SubResourceData();
-        imgData.systemMemory           = _resource.pixels.getData();
+        imgData.systemMemory           = _resource.pixels;
         imgData.systemMemoryPitch      = 4 * _resource.width;
         imgData.systemMemorySlicePatch = 0;
 
@@ -929,7 +930,7 @@ class DX11Backend implements IRendererBackend
         imgDesc.height             = _resource.height;
         imgDesc.mipLevels          = 1;
         imgDesc.arraySize          = 1;
-        imgDesc.format             = B8G8R8A8UNorm;
+        imgDesc.format             = getPixelFormat(_resource.format);
         imgDesc.sampleDesc.count   = 1;
         imgDesc.sampleDesc.quality = 0;
         imgDesc.usage              = Default;
@@ -1474,6 +1475,15 @@ class DX11Backend implements IRendererBackend
             case Mirror : Mirror;
             case Clamp  : Clamp;
             case Border : Border;
+        }
+    }
+
+    function getPixelFormat(_format : PixelFormat) : DxgiFormat
+    {
+        return switch _format
+        {
+            case RGBAUNorm: R8G8B8A8UNorm;
+            case BGRAUNorm: B8G8R8A8UNorm;
         }
     }
 

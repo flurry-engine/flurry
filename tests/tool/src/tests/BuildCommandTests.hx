@@ -1,7 +1,7 @@
 package tests;
 
-import Types.Unit;
-import Types.Result;
+import uk.aidanlee.flurry.api.core.Result;
+import uk.aidanlee.flurry.api.core.Unit;
 import Types.Project;
 import commands.Build;
 import parcel.Packer;
@@ -24,12 +24,15 @@ class BuildCommandTests extends BuddySuite
         describe('Build Command', {
             it('will set the flurry entry point define in the build.hxml', {
                 final project = project();
-                final fs      = new MockFileSystem([ 'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe') ], []);
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
+                ], []);
                 final packer  = mock(Packer);
                 final proc    = mock(Proc);
     
                 Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', bytes : Bytes.alloc(0) } ]));
+                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
@@ -40,12 +43,15 @@ class BuildCommandTests extends BuddySuite
             });
             it('will set the entry point to be snow.App in the build.hxml', {
                 final project = project();
-                final fs      = new MockFileSystem([ 'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe') ], []);
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
+                ], []);
                 final packer  = mock(Packer);
                 final proc    = mock(Proc);
     
                 Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', bytes : Bytes.alloc(0) } ]));
+                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
@@ -56,12 +62,15 @@ class BuildCommandTests extends BuddySuite
             });
             it('will add all project codepaths to the build.hxml', {
                 final project = project();
-                final fs      = new MockFileSystem([ 'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe') ], []);
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
+                ], []);
                 final packer  = mock(Packer);
                 final proc    = mock(Proc);
     
                 Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', bytes : Bytes.alloc(0) } ]));
+                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
@@ -77,12 +86,15 @@ class BuildCommandTests extends BuddySuite
             });
             it('will add all project macros to the build.hxml', {
                 final project = project();
-                final fs      = new MockFileSystem([ 'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe') ], []);
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
+                ], []);
                 final packer  = mock(Packer);
                 final proc    = mock(Proc);
     
                 Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', bytes : Bytes.alloc(0) } ]));
+                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
@@ -98,12 +110,15 @@ class BuildCommandTests extends BuddySuite
             });
             it('will add all project dependencies to the build.hxml', {
                 final project = project();
-                final fs      = new MockFileSystem([ 'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe') ], []);
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
+                ], []);
                 final packer  = mock(Packer);
                 final proc    = mock(Proc);
     
                 Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', bytes : Bytes.alloc(0) } ]));
+                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
@@ -121,12 +136,15 @@ class BuildCommandTests extends BuddySuite
             });
             it('will add all project defines to the build.hxml', {
                 final project = project();
-                final fs      = new MockFileSystem([ 'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe') ], []);
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
+                ], []);
                 final packer  = mock(Packer);
                 final proc    = mock(Proc);
     
                 Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', bytes : Bytes.alloc(0) } ]));
+                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
@@ -144,12 +162,15 @@ class BuildCommandTests extends BuddySuite
             });
             it('will link to the snow.hxml file at the bottom of the build.hxml', {
                 final project = project();
-                final fs      = new MockFileSystem([ 'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe') ], []);
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
+                ], []);
                 final packer  = mock(Packer);
                 final proc    = mock(Proc);
     
                 Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', bytes : Bytes.alloc(0) } ]));
+                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
@@ -160,12 +181,15 @@ class BuildCommandTests extends BuddySuite
             });
             it('will write a snow.hxml file', {
                 final project = project();
-                final fs      = new MockFileSystem([ 'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe') ], []);
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
+                ], []);
                 final packer  = mock(Packer);
                 final proc    = mock(Proc);
     
                 Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', bytes : Bytes.alloc(0) } ]));
+                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
@@ -178,12 +202,15 @@ class BuildCommandTests extends BuddySuite
             });
             it('will invoke haxe with the build.hxml file', {
                 final project = project();
-                final fs      = new MockFileSystem([ 'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe') ], []);
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
+                ], []);
                 final packer  = mock(Packer);
                 final proc    = mock(Proc);
     
                 Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', bytes : Bytes.alloc(0) } ]));
+                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
 
@@ -202,12 +229,15 @@ class BuildCommandTests extends BuddySuite
             });
             it('will pass the location of each asset bundle to the packer', {
                 final project = project();
-                final fs      = new MockFileSystem([ 'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe') ], []);
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
+                ], []);
                 final packer  = mock(Packer);
                 final proc    = mock(Proc);
     
                 Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', bytes : Bytes.alloc(0) } ]));
+                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
 
@@ -215,14 +245,18 @@ class BuildCommandTests extends BuddySuite
             });
             it('will write the parcel bytes to the build and release parcel folder', {
                 final project = project();
-                final fs      = new MockFileSystem([ 'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe') ], []);
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcel/parcel1' => MockFileData.fromText('hello'),
+                    'bin/temp/parcel/parcel2' => MockFileData.fromText('world'),
+                ], []);
                 final packer  = mock(Packer);
                 final proc    = mock(Proc);
 
                 Mockatoo.returns(proc.run(), Success(Unit.value));
                 Mockatoo.returns(packer.create(), Success([
-                    { name : 'parcel1', bytes : Bytes.ofString('hello') },
-                    { name : 'parcel2', bytes : Bytes.ofString('world') }
+                    { name : 'parcel1', file : 'bin/temp/parcel/parcel1' },
+                    { name : 'parcel2', file : 'bin/temp/parcel/parcel2' }
                 ]));
 
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
@@ -241,23 +275,29 @@ class BuildCommandTests extends BuddySuite
             });
             it('will rename the output executable to that specified in the project json', {
                 final project = project();
-                final fs      = new MockFileSystem([ 'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe') ], []);
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
+                ], []);
                 final packer  = mock(Packer);
                 final proc    = mock(Proc);
     
                 Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', bytes : Bytes.alloc(0) } ]));
+                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
             });
             it('will copy the executable to the release folder', {
                 final project = project();
-                final fs      = new MockFileSystem([ 'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe') ], []);
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
+                ], []);
                 final packer  = mock(Packer);
                 final proc    = mock(Proc);
     
                 Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', bytes : Bytes.alloc(0) } ]));
+                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
 

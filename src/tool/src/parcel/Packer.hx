@@ -1,18 +1,18 @@
 package parcel;
 
-import parcel.GdxParser;
-import haxe.ds.ReadOnlyArray;
-import format.png.Tools;
-import format.png.Reader;
-import haxe.zip.Compress;
 import haxe.io.Path;
 import haxe.io.Bytes;
+import haxe.ds.ReadOnlyArray;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
+import uk.aidanlee.flurry.api.core.Unit;
+import uk.aidanlee.flurry.api.core.Result;
+import uk.aidanlee.flurry.api.stream.ParcelOutput;
+import uk.aidanlee.flurry.api.stream.Compression;
+import uk.aidanlee.flurry.api.stream.ImageFormat;
 import uk.aidanlee.flurry.api.resources.Resource;
 import parcel.Types;
-import hxbit.Serializer;
-import Types.Result;
+import parcel.GdxParser;
 import Types.Project;
 
 using Utils;
@@ -41,6 +41,11 @@ class Packer
     final tempSprites : String;
 
     /**
+     * Temp location used to store all parcels.
+     */
+    final tempParcels : String;
+
+    /**
      * Directory where this platforms pre-compiled tools are found.
      */
     final toolsDir : String;
@@ -51,11 +56,6 @@ class Packer
      */
     final prepared : Map<String, Resource>;
 
-    /**
-     * Serialiser used to pack all resources into bytes.
-     */
-    final serialiser : Serializer;
-
     public function new(_project : Project, _fs : IFileSystem = null, _proc : Proc = null)
     {
         fs          = _fs.or(new FileSystem());
@@ -63,16 +63,17 @@ class Packer
         tempFonts   = _project.tempFonts();
         tempSprites = _project.tempSprites();
         tempAssets  = _project.tempAssets();
+        tempParcels = _project.tempParcels();
         toolsDir    = _project.toolPath();
         prepared    = [];
-        serialiser  = new Serializer();
 
         fs.directory.create(tempFonts);
         fs.directory.create(tempAssets);
         fs.directory.create(tempSprites);
+        fs.directory.create(tempParcels);
     }
 
-    public function create(_path : String) : Result<Array<{ name : String, bytes : Bytes }>>
+    public function create(_path : String) : Result<Array<{ name : String, file : String }>, String>
     {
         final assets      = parse(fs.file.getText(_path));
         final baseDir     = Path.directory(_path);
@@ -140,7 +141,7 @@ class Packer
                 '--filename-format', '{frame}',
                 '--list-tags' ])
             {
-                case Failure(message): return Failure(message);
+                case Failure(message): Failure(message);
                 case _:
             }
         }
@@ -149,57 +150,63 @@ class Packer
 
         for (parcel in assets.parcels)
         {
-            final resources =
-                if (parcel.images == null && parcel.sheets == null && parcel.fonts == null && parcel.sprites == null)
-                    [];
-                else
-                    switch packImages(
-                        baseDir,
-                        parcel,
-                        assets.assets.images,
-                        assets.assets.sheets,
-                        assets.assets.fonts,
-                        assets.assets.sprites,
-                        parcel.options.or({
-                            pageMaxWidth     : 4096,
-                            pageMaxHeight    : 4096,
-                            pagePadX         : 0,
-                            pagePadY         : 0,
-                            fast             : false,
-                            compressionLevel : 6
-                        }))
-                    {
-                        case Success(parcels): parcels;
-                        case Failure(message): return Failure(message);
-                    }
+            final deflate     = parcel!.options!.compression.or(6);
+            final compression = if (deflate == 0) None else Deflate(deflate - 0, 32000000);
+            final file        = Path.join([ tempParcels, parcel.name ]);
+            final stream      = new ParcelOutput(fs.file.write(file), compression);
+
+            if (parcel.images != null || parcel.fonts != null || parcel.sheets != null || parcel.sprites != null)
+            {
+                switch packImages(
+                    baseDir,
+                    parcel,
+                    stream,
+                    assets.assets.images,
+                    assets.assets.sheets,
+                    assets.assets.fonts,
+                    assets.assets.sprites,
+                    parcel.options.or({
+                        pageMaxWidth     : 4096,
+                        pageMaxHeight    : 4096,
+                        pagePadX         : 0,
+                        pagePadY         : 0,
+                        compression      : 6,
+                        format           : 'png'
+                    }))
+                {
+                    case Failure(message): return Failure(message);
+                    case _:
+                }
+            }
 
             for (id in parcel.texts.or([]))
             {
                 if (prepared.exists(id))
                 {
-                    resources.push(prepared[id].sure());
+                    stream.add(SerialisedResource(prepared[id].sure()));
                 }
             }
             for (id in parcel.bytes.or([]))
             {
                 if (prepared.exists(id))
                 {
-                    resources.push(prepared[id].sure());
+                    stream.add(SerialisedResource(prepared[id].sure()));
                 }
             }
             for (id in parcel.shaders.or([]))
             {
                 if (prepared.exists(id))
                 {
-                    resources.push(prepared[id].sure());
+                    stream.add(SerialisedResource(prepared[id].sure()));
                 }
             }
 
+            stream.commit();
+            stream.close();
+
             parcelBytes.push({
-                name  : parcel.name,
-                bytes : Compress.run(
-                    serialiser.serialize(new ParcelResource(parcel.name, resources, parcel.depends)),
-                    parcel!.options!.compressionLevel.or(6))
+                name : parcel.name,
+                file : file
             });
 
             clean(tempAssets);
@@ -233,11 +240,12 @@ class Packer
     function packImages(
         _baseDir : String,
         _parcel : JsonParcel,
+        _stream : ParcelOutput,
         _images : Array<JsonResource>,
         _sheets : Array<JsonResource>,
         _fonts : Array<JsonResource>,
         _sprites : Array<JsonResource>,
-        _options : JsonPackingOptions) : Result<Array<Resource>>
+        _options : JsonPackingOptions) : Result<Unit, String>
     {
         final atlases = [];
         final bmfonts = [];
@@ -319,29 +327,33 @@ class Packer
             '--x-pad', Std.string(_options.pagePadX),
             '--y-pad', Std.string(_options.pagePadY),
             '--threads', '4',
-            '--format', 'png'
+            '--format', _options.format
         ])
         {
-            case Failure(message): return Failure(message);
+            case Failure(message): Sys.println('Parcel exited with a non zero code of $message, this is probably alright...');
             case _:
         }
 
         // Read the packed result
 
-        final assets = new Array<Resource>();
         final atlas : JsonAtlas = tink.Json.parse(fs.file.getText(Path.join([ tempAssets, '${ _parcel.name }.json' ])));
 
         // Create images for all unique pages
 
         for (page in atlas.pages)
         {
-            final img = new Path(Path.join([ tempAssets, page.image ]));
+            final imgPath = new Path(Path.join([ tempAssets, page.image ]));
+            final format  = switch imgPath.ext
+            {
+                case 'jpeg', 'jpg': Jpeg;
+                case 'png': Png;
+                case 'raw': RawBGRA;
+                case other:
+                    _stream.close();
+                    return Failure('Unsupported image format $other');
+            }
 
-            assets.push(new ImageResource(
-                page.image,
-                page.width,
-                page.height,
-                imageBytes(img)));
+            _stream.add(ImageData(imageBytes(imgPath), format, page.width, page.height, page.image));
         }
 
         // Search for all of our composited images within the pages
@@ -354,7 +366,7 @@ class Packer
                     .packed
                     .find(section -> section.file == id)
                     .run(section -> {
-                        assets.push(new ImageFrameResource(
+                        _stream.add(SerialisedResource(new ImageFrameResource(
                             id,
                             page.image,
                             section.x,
@@ -364,7 +376,7 @@ class Packer
                             section.x / page.width,
                             section.y / page.height,
                             (section.x + section.width) / page.width,
-                            (section.y + section.height) / page.height));
+                            (section.y + section.height) / page.height)));
                     });
             }
         }
@@ -378,7 +390,7 @@ class Packer
                     case Success(found):
                         for (section in page.sections)
                         {
-                            assets.push(new ImageFrameResource(
+                            _stream.add(SerialisedResource(new ImageFrameResource(
                                 section.name,
                                 found.page.image,
                                 found.section.x + section.x,
@@ -388,7 +400,7 @@ class Packer
                                 (found.section.x + section.x) / found.page.width,
                                 (found.section.y + section.y) / found.page.height,
                                 (found.section.x + section.x + section.width) / found.page.width,
-                                (found.section.y + section.y + section.height) / found.page.height));
+                                (found.section.y + section.y + section.height) / found.page.height)));
                         }
         
                         continue;
@@ -436,7 +448,7 @@ class Packer
                         }
                     }
         
-                    assets.push(new FontResource(
+                    _stream.add(SerialisedResource(new FontResource(
                         found.section.file,
                         found.page.image,
                         chars,
@@ -448,7 +460,7 @@ class Packer
                         found.section.x / found.page.width,
                         found.section.y / found.page.height,
                         (found.section.x + found.section.width) / found.page.width,
-                        (found.section.y + found.section.height) / found.page.height));
+                        (found.section.y + found.section.height) / found.page.height)));
         
                     continue;
                 case Failure(message): return Failure(message);
@@ -480,7 +492,7 @@ class Packer
                         } ];
                     }
 
-                    assets.push(new SpriteResource(
+                    _stream.add(SerialisedResource(new SpriteResource(
                         found.section.file,
                         found.page.image,
                         found.section.x,
@@ -491,12 +503,12 @@ class Packer
                         found.section.y / found.page.height,
                         (found.section.x + found.section.width) / found.page.width,
                         (found.section.y + found.section.height) / found.page.height,
-                        sets));
+                        sets)));
                 case Failure(message): return Failure(message);
             }
         }
 
-        return Success(assets);
+        return Success(Unit.value);
     }
 
     /**
@@ -505,7 +517,7 @@ class Packer
      * @param _shader Shader definition.
      * @return Result<ShaderResource>
      */
-    function createShader(_baseDir : String, _shader : JsonShaderResource) : Result<ShaderResource>
+    function createShader(_baseDir : String, _shader : JsonShaderResource) : Result<ShaderResource, String>
     {
         final definition : JsonShaderDefinition = tink.Json.parse(fs.file.getText(Path.join([ _baseDir, _shader.path ])));
 
@@ -583,7 +595,7 @@ class Packer
      * @param _frag Path to the glsl fragment source.
      * @return ShaderSource object containing compiled spirv bytes.
      */
-    function ogl4Compile(_vert : String, _frag : String) : Result<ShaderSource>
+    function ogl4Compile(_vert : String, _frag : String) : Result<ShaderSource, String>
     {
         switch proc.run('glslangValidator', [ '-G', '-S', 'vert', _vert, '-o', Path.join([ tempAssets, 'vert.out' ]) ])
         {
@@ -608,7 +620,7 @@ class Packer
      * @param _frag Path to the hlsl fragment source.
      * @return ShaderSource
      */
-    function hlslCompile(_vert : String, _frag : String) : Result<ShaderSource>
+    function hlslCompile(_vert : String, _frag : String) : Result<ShaderSource, String>
     {
         if (Utils.platform() != Windows)
         {
@@ -643,7 +655,7 @@ class Packer
      * @param _name Name of the section to search for.
      * @param _pages Structure containing the page and section.
      */
-    function findSection(_name : String, _pages : ReadOnlyArray<JsonAtlasPage>) : Result<{ page : JsonAtlasPage, section : JsonAtlasImage }>
+    function findSection(_name : String, _pages : ReadOnlyArray<JsonAtlasPage>) : Result<{ page : JsonAtlasPage, section : JsonAtlasImage }, String>
     {
         for (page in _pages)
         {
@@ -667,13 +679,7 @@ class Packer
      */
     function imageBytes(_path : Path) : Bytes
     {
-        final input = fs.file.read(_path.toString());
-        final info  = new Reader(input).read();
-        final bytes = Tools.extract32(info);
-
-        input.close();
-
-        return bytes;
+        return fs.file.getBytes(_path.toString());
     }
 
     /**
