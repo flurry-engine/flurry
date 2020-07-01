@@ -32,6 +32,7 @@ class Tests implements Buddy<[
     tests.api.gpu.batcher.BatcherTests,
     
     tests.api.stream.OutputCompressorTests,
+    tests.api.stream.InputDecompressorTests,
 
 #if (target.threaded)
 
