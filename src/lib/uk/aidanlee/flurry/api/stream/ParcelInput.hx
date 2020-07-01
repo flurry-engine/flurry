@@ -116,7 +116,7 @@ class ParcelInput
 
                             resources.push(new ImageResource(name, width, height, RGBAUNorm, image.bytes));
 #else
-                            throw 'not implemented on this story';
+                            throw 'not implemented on this target';
 #end
                     }
 

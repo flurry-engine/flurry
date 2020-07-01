@@ -34,6 +34,7 @@ class Tests implements Buddy<[
     tests.api.stream.OutputCompressorTests,
     tests.api.stream.InputDecompressorTests,
     tests.api.stream.ParcelOutputTests,
+    tests.api.stream.ParcelInputTests,
 
 #if (target.threaded)
 
