@@ -116,7 +116,9 @@ class ParcelInput
 
                             resources.push(new ImageResource(name, width, height, RGBAUNorm, image.bytes));
 #else
-                            throw 'not implemented on this target';
+                            final image = JpegReader.decode(tmp, Chromatic);
+                                                        
+                            resources.push(new ImageResource(name, image.width, image.height, RGBAUNorm, image.pixels.getData()));
 #end
                     }
 
