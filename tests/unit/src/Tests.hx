@@ -30,6 +30,8 @@ class Tests implements Buddy<[
     tests.api.gpu.geometry.shapes.SpriteGeometryTests,
     tests.api.gpu.batcher.BatcherStateTests,
     tests.api.gpu.batcher.BatcherTests,
+    
+    tests.api.stream.OutputCompressorTests,
 
 #if (target.threaded)
 
