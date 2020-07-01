@@ -42,7 +42,7 @@ class ParcelInputTests extends BuddySuite
                 }
             });
 
-            describe('Reading uncompressed serialised image data', {
+            describe('Reading uncompressed serialised raw image data', {
                 final image    = Bytes.alloc(4 * 4 * 4);
                 final expected = createParcel([ ImageData(image, RawBGRA, 4, 4, 'new_image') ]);
                 final input    = new BytesInput(expected);
@@ -60,6 +60,52 @@ class ParcelInputTests extends BuddySuite
                             resource.width.should.be(4);
                             resource.height.should.be(4);
                             resource.format.should.equal(PixelFormat.BGRAUNorm);
+                        });
+                    case Failure(_):
+                        fail('was not able to read the parcel');
+                }
+            });
+
+            describe('Reading uncompressed serialised png image data', {
+                final image    = toPng(Bytes.alloc(4 * 4 * 4));
+                final expected = createParcel([ ImageData(image, Png, 4, 4, 'new_image') ]);
+                final input    = new BytesInput(expected);
+                final stream   = new ParcelInput(input);
+
+                switch stream.read()
+                {
+                    case Success(_resources):
+                        it('should have 1 resource', {
+                            _resources.length.should.be(1);
+                        });
+                        it('will have successfully created a new ImageResource', {
+                            final resource = (cast _resources[0] : ImageResource);
+                            resource.id.should.be('new_image');
+                            resource.width.should.be(4);
+                            resource.height.should.be(4);
+                        });
+                    case Failure(_):
+                        fail('was not able to read the parcel');
+                }
+            });
+
+            describe('Reading uncompressed serialised jpeg image data', {
+                final image    = toJpg(Bytes.alloc(4 * 4 * 4));
+                final expected = createParcel([ ImageData(image, Jpeg, 4, 4, 'new_image') ]);
+                final input    = new BytesInput(expected);
+                final stream   = new ParcelInput(input);
+
+                switch stream.read()
+                {
+                    case Success(_resources):
+                        it('should have 1 resource', {
+                            _resources.length.should.be(1);
+                        });
+                        it('will have successfully created a new ImageResource', {
+                            final resource = (cast _resources[0] : ImageResource);
+                            resource.id.should.be('new_image');
+                            resource.width.should.be(4);
+                            resource.height.should.be(4);
                         });
                     case Failure(_):
                         fail('was not able to read the parcel');
@@ -199,5 +245,27 @@ class ParcelInputTests extends BuddySuite
         header.write(compressed);
 
         return header.getBytes();
+    }
+
+    function toPng(_bytes : Bytes) : Bytes
+    {
+        final output = new BytesOutput();
+        final writer = new format.png.Writer(output);
+
+        writer.write(format.png.Tools.build32BGRA(4, 4, _bytes));
+        output.close();
+
+        return output.getBytes();
+    }
+
+    function toJpg(_bytes : Bytes) : Bytes
+    {
+        final output = new BytesOutput();
+        final writer = new format.jpg.Writer(output);
+
+        writer.write({ width: 4, height: 4, quality: 90, pixels: _bytes });
+        output.close();
+
+        return output.getBytes();
     }
 }

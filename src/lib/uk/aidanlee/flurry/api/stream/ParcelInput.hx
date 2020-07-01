@@ -12,6 +12,9 @@ import format.png.Tools as PngTools;
 import format.png.Reader as PngReader;
 import hxbit.Serializer;
 
+/**
+ * Reads a parcel from the provided stream.
+ */
 class ParcelInput
 {
     final serialiser : Serializer;
@@ -24,6 +27,10 @@ class ParcelInput
         input      = _input;
     }
 
+    /**
+     * Attempt to read all resources stored in the parcel.
+     * @return Array of resources or error string.
+     */
     public function read() : Result<Array<Resource>, String>
     {
         final resources = [];
@@ -130,6 +137,9 @@ class ParcelInput
         return Success(resources);
     }
 
+    /**
+     * Closes the input stream provided in the constructor.
+     */
     public function close()
     {
         input.close();

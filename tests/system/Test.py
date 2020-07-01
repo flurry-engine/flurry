@@ -52,7 +52,7 @@ class SystemTests(unittest.TestCase):
                 imagemagick = subprocess.run([ "convert", "-metric", "ae", "-fuzz", "5%", f"expected/{x}.png", f"screenshot_{x}.png", "-trim", "-compare", "-format", "%[distortion]", "info:" ], stdout=subprocess.PIPE, text=True)
                 diff        = int(imagemagick.stdout)
 
-                if diff == 0:
+                if diff <= 10:
                     os.remove(f"screenshot_{x}.png")
                 else:
                     os.rename(f"screenshot_{x}.png", f"screenshot_{x}_failed.png")

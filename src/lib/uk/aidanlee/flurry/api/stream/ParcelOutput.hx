@@ -35,17 +35,27 @@ class ParcelOutput
         }
     }
 
+    /**
+     * Queue a resource for serialisation.
+     * @param _payload Item to add.
+     */
     public function add(_payload : Payload)
     {
         payload.push(_payload);
     }
 
+    /**
+     * Write the header and all resources to the stream.
+     */
     public function commit()
     {
         writeHeader();
         writePayload();
     }
 
+    /**
+     * Closes the output stream provided in the constructor.
+     */
     public function close()
     {
         dataOutput.close();
