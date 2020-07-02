@@ -49,6 +49,16 @@ abstract UInt16BufferData(BufferData) from BufferData to BufferData
         this.changed.onNext(unit);
     }
 
+    public function sub(_begin : Int, _length : Int) : UInt16BufferData
+    {
+        return this.sub(_begin * BYTES_PER_UINT, _length * BYTES_PER_UINT);
+    }
+
+    public function subarray(_begin : Int, _end : Int) : UInt16BufferData
+    {
+        return this.subarray(_begin * BYTES_PER_UINT, _end * BYTES_PER_UINT);
+    }
+
     @:arrayAccess public function get(_idx : Int) : Int
     {
 #if cpp

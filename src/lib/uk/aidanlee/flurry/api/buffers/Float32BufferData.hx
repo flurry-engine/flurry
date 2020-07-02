@@ -51,6 +51,16 @@ abstract Float32BufferData(BufferData) from BufferData to BufferData
         return this;
     }
 
+    public function sub(_begin : Int, _length : Int) : Float32BufferData
+    {
+        return this.sub(_begin * BYTES_PER_FLOAT, _length * BYTES_PER_FLOAT);
+    }
+
+    public function subarray(_begin : Int, _end : Int) : Float32BufferData
+    {
+        return this.subarray(_begin * BYTES_PER_FLOAT, _end * BYTES_PER_FLOAT);
+    }
+
     @:arrayAccess public inline function get(_idx : Int) : Float
     {
 #if cpp
