@@ -13,18 +13,18 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      */
     public var x (get, set) : Float;
 
-    inline function get_x() : Float return this[0];
+    inline function get_x() return this[0];
  
-    inline function set_x(_x : Float) : Float return this[0] = _x;
+    inline function set_x(v) return this[0] = v;
 
     /**
      * The y component of this quaternion.
      */
     public var y (get, set) : Float;
 
-    inline function get_y() : Float return this[1];
+    inline function get_y() return this[1];
 
-    inline function set_y(_y : Float) : Float return this[1] = _y;
+    inline function set_y(v) return this[1] = v;
 
     /**
      * The z component of this quaternion.
@@ -33,7 +33,7 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
 
     inline function get_z() return this[2];
 
-    inline function set_z(_z : Float) : Float return this[2] = _z;
+    inline function set_z(v) return this[2] = v;
 
     /**
      * The w component of this quaternion.
@@ -42,25 +42,21 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
 
     inline function get_w() return this[3];
 
-    inline function set_w(_w : Float) : Float return this[3] = _w;
+    inline function set_w(v) return this[3] = v;
 
     /**
      * The length of this quaternion.
      */
     public var length (get, never) : Float;
 
-    inline function get_length() : Float {
-        return Maths.sqrt(x * x + y * y + z * z + w * w);
-    }
+    inline function get_length() return Maths.sqrt(x * x + y * y + z * z + w * w);
 
     /**
      * The square of this quaternions length.
      */
     public var lengthsq (get, never) : Float;
 
-    inline function get_lengthsq() : Float {
-        return x * x + y * y + z * z + w * w;
-    }
+    inline function get_lengthsq() return x * x + y * y + z * z + w * w;
 
     /**
      * A normalized instance of this quaternion.
@@ -91,11 +87,12 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
     public function new(_x : Float = 0, _y : Float = 0, _z : Float = 0, _w : Float = 1)
     {
         this = new Float32BufferData(4);
-        
-        x = _x;
-        y = _y;
-        z = _z;
-        w = _w;
+        this.edit(_data -> {
+            _data[0] = _x;
+            _data[1] = _y;
+            _data[2] = _z;
+            _data[3] = _w;
+        });
     }
 
     /**
@@ -163,12 +160,12 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      */
     public function set_xyzw(_x : Float, _y : Float, _z : Float, _w : Float) : Quaternion
     {
-        x = _x;
-        y = _y;
-        z = _z;
-        w = _w;
-
-        return this;
+        return this.edit(_data -> {
+            _data[0] = _x;
+            _data[1] = _y;
+            _data[2] = _z;
+            _data[3] = _w;
+        });
     }
 
     /**
@@ -179,11 +176,11 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      */
     public function set_xyz(_x : Float, _y : Float, _z : Float) : Quaternion
     {
-        x = _x;
-        y = _y;
-        z = _z;
-
-        return this;
+        return this.edit(_data -> {
+            _data[0] = _x;
+            _data[1] = _y;
+            _data[2] = _z;
+        });
     }
 
     // #region maths
@@ -277,15 +274,15 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      */
     public function multiply(_q : Quaternion) : Quaternion
     {
-        var qax = x;
-        var qay = y;
-        var qaz = z;
-        var qaw = w;
+        final qax = x;
+        final qay = y;
+        final qaz = z;
+        final qaw = w;
 
-        var qbx = _q.x;
-        var qby = _q.y;
-        var qbz = _q.z;
-        var qbw = _q.w;
+        final qbx = _q.x;
+        final qby = _q.y;
+        final qbz = _q.z;
+        final qbw = _q.w;
 
         return set_xyzw(
             qax * qbw + qaw * qbx + qay * qbz - qaz * qby,
@@ -312,13 +309,13 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
         var _z = z;
         var _w = w;
 
-        var c1 = Maths.cos(_euler.x / 2);
-        var c2 = Maths.cos(_euler.y / 2);
-        var c3 = Maths.cos(_euler.z / 2);
+        final c1 = Maths.cos(_euler.x / 2);
+        final c2 = Maths.cos(_euler.y / 2);
+        final c3 = Maths.cos(_euler.z / 2);
 
-        var s1 = Maths.sin(_euler.x / 2);
-        var s2 = Maths.sin(_euler.y / 2);
-        var s3 = Maths.sin(_euler.z / 2);
+        final s1 = Maths.sin(_euler.x / 2);
+        final s2 = Maths.sin(_euler.y / 2);
+        final s3 = Maths.sin(_euler.z / 2);
 
         switch (_order)
         {
@@ -365,8 +362,8 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      */
     public function setFromAxisAngle(_axis : Vector3, _angle : Float) : Quaternion
     {
-        var halfAngle = _angle / 2;
-        var sin       = Maths.sin(halfAngle);
+        final halfAngle = _angle / 2;
+        final sin       = Maths.sin(halfAngle);
 
         return set_xyzw(_axis.x * sin, _axis.y * sin, _axis.z * sin, Maths.cos(halfAngle));
     }
@@ -378,18 +375,17 @@ abstract Quaternion(Float32BufferData) from Float32BufferData to Float32BufferDa
      */
     public function setFromRotationMatrix(_m : Matrix) : Quaternion
     {
-        var m11 = _m[0], m12 = _m[4], m13 = _m[8];
-        var m21 = _m[1], m22 = _m[5], m23 = _m[9];
-        var m31 = _m[2], m32 = _m[6], m33 = _m[10];
+        final m11 = _m[0], m12 = _m[4], m13 = _m[8];
+        final m21 = _m[1], m22 = _m[5], m23 = _m[9];
+        final m31 = _m[2], m32 = _m[6], m33 = _m[10];
+        final tr  = m11 + m22 + m33;
 
         var _x = x;
         var _y = y;
         var _z = z;
         var _w = w;
 
-        var tr = m11 + m22 + m33;
-
-        var s : Float;
+        var s = 0.0;
 
         if (tr > 0) {
 

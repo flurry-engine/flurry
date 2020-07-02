@@ -25,16 +25,6 @@ class BufferData implements IObservable<Unit>
         byteLength = _length;
     }
 
-    public function sub(_begin : Int, _length : Int) : BufferData
-    {
-        return new BufferData(bytes, byteOffset + _begin, _length);
-    }
-
-    public function subarray(_begin : Int, _end : Int) : BufferData
-    {
-        return new BufferData(bytes, byteOffset + _begin, _end - _begin);
-    }
-
     public function subscribe(_observer : IObserver<Unit>) : ISubscription
     {
         return changed.subscribe(_observer);

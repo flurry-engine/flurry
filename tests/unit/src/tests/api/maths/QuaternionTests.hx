@@ -6,6 +6,7 @@ import uk.aidanlee.flurry.api.maths.Matrix;
 import buddy.BuddySuite;
 
 using buddy.Should;
+using rx.Observable;
 
 class QuaternionTests extends BuddySuite
 {
@@ -248,6 +249,24 @@ class QuaternionTests extends BuddySuite
                     q.y.should.beCloseTo(0.366);
                     q.z.should.beCloseTo(0);
                     q.w.should.beCloseTo(0.930);
+                });
+            });
+
+            describe('Observing change', {
+                var count = 0;
+                var quat  = new Quaternion();
+
+                it('allows subscribing to the quaternion', {
+                    quat.subscribeFunction(_ -> count++);
+                });
+
+                it('will tick a unit value when the quaternion changes', {
+                    quat.addScalar(3);
+                    count.should.beGreaterThan(0);
+                });
+
+                it('will only tick one value when multiple components are changed', {
+                    count.should.be(1);
                 });
             });
         });

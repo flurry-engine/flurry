@@ -18,8 +18,6 @@
 
 --dce full
 
---no-inline
-
 --macro nullSafety('uk.aidanlee.flurry.modules.differ', Loose)
 --macro nullSafety('uk.aidanlee.flurry.api.maths', Loose)
 --macro Safety.safeNavigation('')

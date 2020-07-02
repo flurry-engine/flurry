@@ -7,6 +7,7 @@ import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Maths;
 
 using buddy.Should;
+using rx.Observable;
 
 class MatrixTests extends BuddySuite
 {
@@ -874,6 +875,24 @@ class MatrixTests extends BuddySuite
                     m[ 7].should.beCloseTo(0);
                     m[11].should.beCloseTo(0);
                     m[15].should.beCloseTo(2.299);
+                });
+            });
+
+            describe('Observing change', {
+                var count  = 0;
+                var matrix = new Matrix();
+
+                it('allows subscribing to the matrix', {
+                    matrix.subscribeFunction(_ -> count++);
+                });
+
+                it('will tick a unit value when the matrix changes', {
+                    matrix.scale(new Vector3(1, 2, 3));
+                    count.should.beGreaterThan(0);
+                });
+
+                it('will only tick one value when multiple components are changed', {
+                    count.should.be(1);
                 });
             });
         });
