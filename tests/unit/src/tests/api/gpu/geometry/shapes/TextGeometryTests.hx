@@ -13,7 +13,7 @@ class TextGeometryTests extends BuddySuite
     {
         describe('TextGeometry', {
             final string    = 'hello';
-            final newString = 'hello!';
+            final newString = 'hellohello';
             final chars     = [
                 "h".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0),
                 "e".code => new Character(0, 0, 0, 0, 0, 0, 0, 0, 0),
