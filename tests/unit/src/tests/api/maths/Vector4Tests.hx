@@ -7,6 +7,7 @@ import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Maths;
 
 using buddy.Should;
+using rx.Observable;
 
 class Vector4Tests extends BuddySuite
 {
@@ -540,6 +541,24 @@ class Vector4Tests extends BuddySuite
                     rs.z.should.beCloseTo(v1.x * v2.y - v1.y * v2.x);
                     rs.equals(v1).should.be(false);
                     rs.equals(v2).should.be(false);
+                });
+            });
+            
+            describe('Observing change', {
+                var count  = 0;
+                var vector = new Vector4();
+
+                it('allows subscribing to the vector4', {
+                    vector.subscribeFunction(_ -> count++);
+                });
+
+                it('will tick a unit value when the vector4 changes', {
+                    vector.set(1, 2, 3, 4);
+                    count.should.beGreaterThan(0);
+                });
+
+                it('will only tick one value when multiple components are changed', {
+                    count.should.be(1);
                 });
             });
         });

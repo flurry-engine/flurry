@@ -3,10 +3,10 @@ package tests.api.maths;
 import buddy.BuddySuite;
 import uk.aidanlee.flurry.api.maths.Vector2;
 import uk.aidanlee.flurry.api.maths.Matrix;
-import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Maths;
 
 using buddy.Should;
+using rx.Observable;
 
 class Vector2Tests extends BuddySuite
 {
@@ -423,6 +423,24 @@ class Vector2Tests extends BuddySuite
                     r.x.should.beCloseTo(v.x / s);
                     r.y.should.beCloseTo(v.y / s);
                     r.equals(v).should.be(false);
+                });
+            });
+
+            describe('Observing change', {
+                var count  = 0;
+                var vector = new Vector2();
+
+                it('allows subscribing to the vector2', {
+                    vector.subscribeFunction(_ -> count++);
+                });
+
+                it('will tick a unit value when the vector2 changes', {
+                    vector.set(1, 2);
+                    count.should.beGreaterThan(0);
+                });
+
+                it('will only tick one value when multiple components are changed', {
+                    count.should.be(1);
                 });
             });
         });

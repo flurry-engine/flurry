@@ -18,7 +18,7 @@ class TransformationTests extends BuddySuite
                 t.position.z.should.be(t.local.position.z);
             });
 
-            it('will update the local space scale when setting the position', {
+            it('will update the local space scale when setting the scale', {
                 var t = new Transformation();
                 t.scale.set(2, 4, 6);
                 t.scale.x.should.be(t.local.scale.x);
@@ -26,12 +26,20 @@ class TransformationTests extends BuddySuite
                 t.scale.z.should.be(t.local.scale.z);
             });
 
-            it('will update the local space rotation when setting the position', {
+            it('will update the local space rotation when setting the rotation', {
                 var t = new Transformation();
                 t.rotation.set_xyz(2, 4, 6);
                 t.rotation.x.should.be(t.local.rotation.x);
                 t.rotation.y.should.be(t.local.rotation.y);
                 t.rotation.z.should.be(t.local.rotation.z);
+            });
+
+            it('will update the local space rotation when setting the origin', {
+                var t = new Transformation();
+                t.origin.set(2, 4, 6);
+                t.position.x.should.be(t.local.position.x);
+                t.position.y.should.be(t.local.position.y);
+                t.position.z.should.be(t.local.position.z);
             });
 
             it('will multiply by its parents world transformation', {
