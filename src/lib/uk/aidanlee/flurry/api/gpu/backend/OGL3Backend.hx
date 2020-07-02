@@ -771,9 +771,13 @@ class OGL3Backend implements IRendererBackend
                 switch geometry.data
                 {
                     case Indexed(_vertices, _indices):
+                        // This length needs to be stored in a variable as the next chunk of code is untyped.
+                        // putting this directly into the parameter will generate invalid cpp!
+                        final length = _indices.shortAccess.length;
+
                         untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})',
                             command.primitive.getPrimitiveType(),
-                            _indices.shortAccess.length,
+                            length,
                             GL_UNSIGNED_SHORT,
                             idxOffset,
                             vtxOffset);
