@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
+import haxe.Exception;
 import haxe.io.StringInput;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
@@ -91,7 +92,11 @@ class TextGeometry extends Geometry
     }
 
     /**
-     * Remove any vertices from this geometry and create it for the text.
+     * Generates indexed geometry data for a given string.
+     * @throws CharacterNotFoundException If the font does not contain a required character to create the text.
+     * @param _font Font to get glyph data from.
+     * @param _text String to generate geometry from.
+     * @return GeometryData
      */
     function generateGeometry(_font : FontResource, _text: String) : GeometryData
     {
@@ -109,7 +114,13 @@ class TextGeometry extends Geometry
 
             for (i in 0...line.length)
             {
-                final char = _font.characters.get(line.charCodeAt(i));
+                final code = line.charCodeAt(i);
+                final char = _font.characters.get(code);
+
+                if (char == null)
+                {
+                    throw new CharacterNotFoundException(code, _font.id);
+                }
 
                 addCharacter(vtxBuilder, idxBuilder, char, index, xCursor, yCursor);
 
@@ -161,6 +172,14 @@ class TextGeometry extends Geometry
         _idxBuilder.addInt(_baseIndex + 2);
         _idxBuilder.addInt(_baseIndex + 1);
         _idxBuilder.addInt(_baseIndex + 3);
+    }
+}
+
+class CharacterNotFoundException extends Exception
+{
+    public function new(_code : Int, _font : String)
+    {
+        super('Unable to find a character for the code $_code in the font $_font');
     }
 }
 
