@@ -35,6 +35,7 @@ class ImGuiImpl
     final resources : ResourceSystem;
     final input     : Input;
     final renderer  : Renderer;
+    final shader    : ShaderResource;
     
     final texture  : ImageResource;
     final frame    : ImageFrameResource;
@@ -43,13 +44,14 @@ class ImGuiImpl
     final stencil  : StencilState;
     final blend    : BlendState;
 
-    public function new(_events : FlurryEvents, _display : Display, _resources : ResourceSystem, _input : Input, _renderer : Renderer)
+    public function new(_events : FlurryEvents, _display : Display, _resources : ResourceSystem, _input : Input, _renderer : Renderer, _shader : ShaderResource)
     {
         events    = _events;
         display   = _display;
         resources = _resources;
         input     = _input;
         renderer  = _renderer;
+        shader    = _shader;
         camera    = _renderer.createCamera2D(display.width, display.height);
         depth     = {
             depthTesting  : false,
@@ -110,13 +112,22 @@ class ImGuiImpl
 
         io.fonts.getTexDataAsRGBA32(pixelPtr, width, height, bpp);
 
-        texture = new ImageResource('imgui_texture', width[0], height[0], BGRAUNorm, Pointer.fromStar(pixels).toUnmanagedArray(width[0] * height[0] * bpp[0]));
-        frame   = new ImageFrameResource('imgui_frame', 'imgui_texture', 0, 0, texture.width, texture.height, 0, 0, 1, 1);
+        texture = new ImageResource(
+            'imgui_texture',
+            width[0],
+            height[0],
+            BGRAUNorm,
+            Pointer.fromStar(pixels).toUnmanagedArray(width[0] * height[0] * bpp[0]));
+        frame = new ImageFrameResource(
+            'imgui_frame',
+            'imgui_texture',
+            0, 0, texture.width, texture.height,
+            0, 0, 1, 1);
+        
         io.fonts.texID = cast Pointer.addressOf(frame).raw;
 
         resources.addResource(texture);
 
-        // Hook into flurry events
         events.input.textInput.subscribeFunction(onTextInput);
     }
 
@@ -244,7 +255,7 @@ class ImGuiImpl
                             Std.int(draw.clipRect.z - draw.clipRect.x),
                             Std.int(draw.clipRect.w - draw.clipRect.y)),
                         Backbuffer,
-                        resources.get('textured', ShaderResource),
+                        shader,
                         [],
                         [ t.value ],
                         [],

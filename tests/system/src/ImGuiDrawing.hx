@@ -1,5 +1,6 @@
 package;
 
+import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.modules.imgui.ImGuiImpl;
@@ -22,7 +23,7 @@ class ImGuiDrawing extends Flurry
 
     override function onReady()
     {
-        imgui = new ImGuiImpl(events, display, resources, input, renderer);
+        imgui = new ImGuiImpl(events, display, resources, input, renderer, resources.get('textured', ShaderResource));
     }
 
     override function onPreUpdate()
