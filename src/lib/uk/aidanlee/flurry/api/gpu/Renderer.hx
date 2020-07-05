@@ -44,10 +44,7 @@ class Renderer
         api            = ApiSelector.getGraphicsApi();
     }
 
-    /**
-     * Sort and draw all the batchers.
-     */
-    public function render()
+    public function queue()
     {
         if (batchers.length > 0)
         {
@@ -58,7 +55,10 @@ class Renderer
                 batcher.batch(backend.queue);
             }
         }
+    }
 
+    public function submit()
+    {
         backend.submit();
     }
 

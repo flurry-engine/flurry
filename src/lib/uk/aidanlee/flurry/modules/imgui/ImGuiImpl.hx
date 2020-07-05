@@ -4,9 +4,6 @@ import cpp.Star;
 import cpp.Stdlib;
 import cpp.Pointer;
 import cpp.ConstPointer;
-import haxe.io.Bytes;
-import haxe.io.Float32Array;
-import haxe.io.UInt16Array;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
@@ -26,7 +23,6 @@ import uk.aidanlee.flurry.api.display.Display;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import imgui.ImGui;
-import rx.Unit;
 
 using cpp.Native;
 using cpp.NativeArray;
@@ -42,8 +38,6 @@ class ImGuiImpl
     
     final texture  : ImageResource;
     final frame    : ImageFrameResource;
-    final vtxData  : Float32Array;
-    final idxData  : UInt16Array;
     final camera   : Camera2D;
     final depth    : DepthState;
     final stencil  : StencilState;
@@ -116,9 +110,6 @@ class ImGuiImpl
 
         io.fonts.getTexDataAsRGBA32(pixelPtr, width, height, bpp);
 
-        vtxData = new Float32Array(1000000);
-        idxData = new UInt16Array(1000000);
-
         texture = new ImageResource('imgui_texture', width[0], height[0], BGRAUNorm, Pointer.fromStar(pixels).toUnmanagedArray(width[0] * height[0] * bpp[0]));
         frame   = new ImageFrameResource('imgui_frame', 'imgui_texture', 0, 0, texture.width, texture.height, 0, 0, 1, 1);
         io.fonts.texID = cast Pointer.addressOf(frame).raw;
@@ -126,16 +117,13 @@ class ImGuiImpl
         resources.addResource(texture);
 
         // Hook into flurry events
-        events.preUpdate.subscribeFunction(newFrame);
-        events.update.subscribeFunction(render);
-        events.shutdown.subscribeFunction(dispose);
         events.input.textInput.subscribeFunction(onTextInput);
     }
 
     /**
      * Populates the imgui fields with the latest screen, mouse, keyboard, and gamepad info.
      */
-    function newFrame(_unit : Unit)
+    public function newFrame()
     {
         var io = ImGui.getIO();
         io.displaySize  = ImVec2.create(display.width, display.height);
@@ -174,7 +162,7 @@ class ImGuiImpl
     /**
      * Builds the imgui draw data and renders it into its batcher.
      */
-    function render(_dt : Float)
+    public function render()
     {
         camera.viewport = Viewport(0, 0, display.width, display.height);
         camera.size.set(display.width, display.height);
@@ -187,7 +175,7 @@ class ImGuiImpl
     /**
      * Cleans up resources used by the batcher and texture.
      */
-    function dispose(_unit : Unit)
+    public function dispose()
     {
         resources.removeResource(texture);
     }

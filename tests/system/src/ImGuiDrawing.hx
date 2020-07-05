@@ -7,6 +7,8 @@ import imgui.ImGui;
 
 class ImGuiDrawing extends Flurry
 {
+    var imgui : ImGuiImpl;
+
     override function onConfig(_config : FlurryConfig) : FlurryConfig
     {
         _config.window.title  = 'System Tests';
@@ -20,11 +22,26 @@ class ImGuiDrawing extends Flurry
 
     override function onReady()
     {
-        new ImGuiImpl(events, display, resources, input, renderer);
+        imgui = new ImGuiImpl(events, display, resources, input, renderer);
+    }
+
+    override function onPreUpdate()
+    {
+        imgui.newFrame();
+    }
+
+    override function onPreRender()
+    {
+        imgui.render();
     }
 
     override function onUpdate(_dt : Float)
     {
         ImGui.showAboutWindow();
+    }
+
+    override function onShutdown()
+    {
+        imgui.dispose();
     }
 }

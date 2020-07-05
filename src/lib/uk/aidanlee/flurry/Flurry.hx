@@ -1,8 +1,5 @@
 package uk.aidanlee.flurry;
 
-import rx.Unit;
-import rx.Subject;
-import rx.subjects.Replay;
 import rx.schedulers.MakeScheduler;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.input.Input;
@@ -101,9 +98,6 @@ class Flurry
         {
             onPreloadParcelComplete();
         }
-
-        // Fire the init event once the engine has loaded all its components.
-        (cast events.init : Replay<Unit>).onCompleted();
     }
 
     public final function tick(_dt : Float)
@@ -118,36 +112,20 @@ class Flurry
         if (loaded)
         {
             onPreUpdate();
-
-            (cast events.preUpdate : Subject<Unit>).onNext(unit);
-        }
-
-        // Our game specific logic, only do it if our default parcel has loaded.
-        if (loaded)
-        {
             onUpdate(_dt);
-
-            (cast events.update : Subject<Float>).onNext(_dt);
-        }
-
-        // Render and present
-        renderer.render();
-
-        // Post-draw
-        if (loaded)
-        {
             onPostUpdate();
 
             input.update();
+            renderer.queue();
 
-            (cast events.postUpdate : Subject<Unit>).onNext(unit);
+            onPreRender();
+            renderer.submit();
+            onPostRender();
         }
     }
 
     public final function shutdown()
     {
-        (cast events.preUpdate : Subject<Unit>).onNext(unit);
-
         onShutdown();
     }
 
@@ -183,6 +161,16 @@ class Flurry
         //
     }
 
+    function onPreRender()
+    {
+        //
+    }
+
+    function onPostRender()
+    {
+        //
+    }
+
     function onShutdown()
     {
         //
@@ -195,8 +183,6 @@ class Flurry
         loaded = true;
 
         onReady();
-
-        (cast events.ready : Replay<Unit>).onCompleted();
     }
 
     final function onPreloadParcelError(_error : String)
