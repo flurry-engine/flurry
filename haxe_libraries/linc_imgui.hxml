@@ -1,3 +1,3 @@
 -D linc_imgui=0.0.1
-# @install: lix --silent download "git:https://github.com/Aidan63/linc_imgui#742cfb0761869f50cd8bdc82f25c0ea35cca3672" into linc_imgui/0.0.1/git/742cfb0761869f50cd8bdc82f25c0ea35cca3672
+# @install: lix --silent download "git:https://github.com/Aidan63/linc_imgui#c5b2d6ef5a626cad8aaadf69e2587ca197ace5b2" into linc_imgui/0.0.1/git/742cfb0761869f50cd8bdc82f25c0ea35cca3672
 -cp ${HAXE_LIBCACHE}/linc_imgui/0.0.1/git/742cfb0761869f50cd8bdc82f25c0ea35cca3672/src

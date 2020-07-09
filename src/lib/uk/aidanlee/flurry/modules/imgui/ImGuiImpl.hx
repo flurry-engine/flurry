@@ -107,9 +107,9 @@ class ImGuiImpl
         io.setClipboardTextFn = cpp.Callable.fromStaticFunction(setClipboard);
         io.getClipboardTextFn = cpp.Callable.fromStaticFunction(getClipboard);
 
-        final width  = [ 0 ];
-        final height = [ 0 ];
-        final bpp    = [ 0 ];
+        final width  = 0;
+        final height = 0;
+        final bpp    = 0;
         final pixels : cpp.Star<cpp.UInt8> = null;
         final pixelPtr : cpp.Star<cpp.Star<cpp.UInt8>> = pixels.addressOf();
 
@@ -117,17 +117,17 @@ class ImGuiImpl
 
         texture = new ImageResource(
             'imgui_texture',
-            width[0],
-            height[0],
+            width,
+            height,
             BGRAUNorm,
-            Pointer.fromStar(pixels).toUnmanagedArray(width[0] * height[0] * bpp[0]));
+            Pointer.fromStar(pixels).toUnmanagedArray(width * height * bpp));
         frame = new ImageFrameResource(
             'imgui_frame',
             'imgui_texture',
             0, 0, texture.width, texture.height,
             0, 0, 1, 1);
         
-        io.fonts.texID = cast Pointer.addressOf(frame).raw;
+        io.fonts.texID = cast Pointer.addressOf(frame).ptr;
 
         resources.addResource(texture);
         resources.addResource(frame);
