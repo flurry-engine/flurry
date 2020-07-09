@@ -22,6 +22,7 @@ import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.display.Display;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
+import rx.disposables.ISubscription;
 import imgui.ImGui;
 
 using cpp.Native;
@@ -43,6 +44,8 @@ class ImGuiImpl
     final depth    : DepthState;
     final stencil  : StencilState;
     final blend    : BlendState;
+
+    final onTextSubscription : ISubscription;
 
     public function new(_events : FlurryEvents, _display : Display, _resources : ResourceSystem, _input : Input, _renderer : Renderer, _shader : ShaderResource)
     {
@@ -127,8 +130,9 @@ class ImGuiImpl
         io.fonts.texID = cast Pointer.addressOf(frame).raw;
 
         resources.addResource(texture);
+        resources.addResource(frame);
 
-        events.input.textInput.subscribeFunction(onTextInput);
+        onTextSubscription = events.input.textInput.subscribeFunction(onTextInput);
     }
 
     /**
@@ -188,6 +192,9 @@ class ImGuiImpl
      */
     public function dispose()
     {
+        onTextSubscription.unsubscribe();
+
+        resources.removeResource(frame);
         resources.removeResource(texture);
     }
 
