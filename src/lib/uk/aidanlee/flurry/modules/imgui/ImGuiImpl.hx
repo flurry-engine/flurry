@@ -275,12 +275,12 @@ class ImGuiImpl
 
     // Callbacks
 
-    static function getClipboard(_data : imgui.VoidPointer) : cpp.ConstCharStar
+    static function getClipboard(_data : cpp.Star<cpp.Void>) : cpp.ConstCharStar
     {
         return sdl.SDL.getClipboardText();
     }
 
-    @:void static function setClipboard(_data : imgui.VoidPointer, _text : cpp.ConstCharStar)
+    @:void static function setClipboard(_data : cpp.Star<cpp.Void>, _text : cpp.ConstCharStar)
     {
         sdl.SDL.setClipboardText(_text);
     }
