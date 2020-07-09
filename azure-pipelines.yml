@@ -1,6 +1,3 @@
-variables:
-  GDX_PACKER_JAR: $(Build.SourcesDirectory)/runnable-texturepacker.jar
-
 jobs:
   - job: CppUnitTests
     displayName: C++ Unit Tests

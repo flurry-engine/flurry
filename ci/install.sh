@@ -5,9 +5,6 @@ if [ $AGENT_OS == 'Linux' ]; then
     sudo apt-get install -y gcc-multilib g++-multilib libgl1-mesa-dev libglu1-mesa-dev mesa-utils libopenal-dev libxrandr-dev libxinerama-dev libasound2-dev libsdl2-dev
 fi
 
-# Download libgdx texture packer
-curl -L -O https://libgdx.badlogicgames.com/nightlies/runnables/runnable-texturepacker.jar
-
 # Install lix and download flurry dependencies
 npm ci
 
