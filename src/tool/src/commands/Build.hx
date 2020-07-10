@@ -50,11 +50,6 @@ class Build
     final user : Hxml;
 
     /**
-     * Hxml file which will contain all snow related macros.
-     */
-    final snow : Hxml;
-
-    /**
      * Packer object which will be used for generating parcel data.
      */
     final packer : Packer;
@@ -78,7 +73,6 @@ class Build
         release     = _release;
         clean       = _clean;
         user        = new Hxml();
-        snow        = new Hxml();
         fs          = _fs.or(new FileSystem());
         packer      = _packer.or(new Packer(project, fs));
         proc        = _proc.or(new Proc());
@@ -102,12 +96,9 @@ class Build
         // Output and compile the actual haxe program
 
         writeUserHxml();
-        writeSnowHxml();
 
         final buildHxml = Path.join([ buildPath, 'build.hxml' ]);
-        final snowHxml  = Path.join([ buildPath, 'snow.hxml' ]);
         fs.file.writeText(buildHxml, user.toString());
-        fs.file.writeText(snowHxml, snow.toString());
 
         switch proc.run('npx', [ 'haxe', buildHxml ])
         {
@@ -140,18 +131,17 @@ class Build
         }
 
         // Rename the output executables according to the project name
-        // By default the output executable is 'App' as 'snow.App' is '-main'
 
         switch Utils.platform()
         {
             case Windows:
-                final exe = if (project!.build!.profile.or(Debug) == Release || release) 'App.exe' else 'App-debug.exe';
+                final exe = if (project!.build!.profile.or(Debug) == Release || release) 'SDLHost.exe' else 'SDLHost-debug.exe';
                 final src = Path.join([ buildPath, 'cpp', exe ]);
                 final dst = project.executable();
 
                 fs.file.copy(src, dst);
             case Mac, Linux:
-                final exe = if (project!.build!.profile.or(Debug) == Release || release) 'App' else 'App-debug';
+                final exe = if (project!.build!.profile.or(Debug) == Release || release) 'SDLHost' else 'SDLHost-debug';
                 final src = Path.join([ buildPath, 'cpp', exe ]);
                 final dst = project.executable();
 
@@ -176,7 +166,7 @@ class Build
      */
     function writeUserHxml()
     {
-        user.main = 'snow.App';
+        user.main = 'uk.aidanlee.flurry.hosts.SDLHost';
         user.cpp  = Path.join([ buildPath, 'cpp' ]);
         user.dce  = std;
 
@@ -218,37 +208,5 @@ class Build
             user.addLibrary(d.lib, d.version);
             user.addDefine(d.lib);
         }
-
-        user.addHxml(Path.join([ buildPath, 'snow.hxml' ]));
     }
-
-    /**
-     * Write the snow related macro calls into the snow Hxml.
-     */
-    function writeSnowHxml()
-    {
-        final namespace = project!.app!.namespace.or('empty-project');
-        final snowLog   = project!.build!.snow!.log.or(1);
-
-        snow.addMacro('snow.Set.main("uk.aidanlee.flurry.snow.host.FlurrySnowHost")');
-        snow.addMacro('snow.Set.ident("$namespace")');
-        snow.addMacro('snow.Set.config("config.json")');
-        snow.addMacro('snow.Set.runtime("${ snowRuntimeString() }")');
-        snow.addMacro('snow.Set.assets("snow.core.native.assets.Assets")');
-        snow.addMacro('snow.Set.audio("snow.core.Audio")');
-        snow.addMacro('snow.Set.io("snow.modules.sdl.IO")');
-        snow.addMacro('snow.api.Debug.level($snowLog)');
-    }
-
-    /**
-     * Returns a string full the full package and module of the requested snow runtime.
-     * @return String
-     */
-    function snowRuntimeString()
-        return switch project!.build!.snow!.runtime.or(Desktop)
-        {
-            case Desktop: 'uk.aidanlee.flurry.snow.runtime.FlurrySnowDesktopRuntime';
-            case Cli    : 'uk.aidanlee.flurry.snow.runtime.FlurrySnowCLIRuntime';
-            case Custom(_package): _package;
-        }
 }

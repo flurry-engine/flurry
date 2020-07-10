@@ -25,7 +25,7 @@ class BuildCommandTests extends BuddySuite
             it('will set the flurry entry point define in the build.hxml', {
                 final project = project();
                 final fs      = new MockFileSystem([
-                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/windows.build/cpp/SDLHost-debug.exe' => MockFileData.fromText('exe'),
                     'bin/temp/parcels/parcel' => MockFileData.fromText(''),
                 ], []);
                 final packer  = mock(Packer);
@@ -37,14 +37,13 @@ class BuildCommandTests extends BuddySuite
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
                 fs.file.exists('bin/windows.build/build.hxml').should.be(true);
-                fs.file.exists('bin/windows.build/snow.hxml').should.be(true);
     
                 fs.file.getText('bin/windows.build/build.hxml').contains('-D flurry-entry-point=${ project.app.main }').should.be(true);
             });
-            it('will set the entry point to be snow.App in the build.hxml', {
+            it('will set the entry point to be SDLHost in the build.hxml', {
                 final project = project();
                 final fs      = new MockFileSystem([
-                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/windows.build/cpp/SDLHost-debug.exe' => MockFileData.fromText('exe'),
                     'bin/temp/parcels/parcel' => MockFileData.fromText(''),
                 ], []);
                 final packer  = mock(Packer);
@@ -56,14 +55,12 @@ class BuildCommandTests extends BuddySuite
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
                 fs.file.exists('bin/windows.build/build.hxml').should.be(true);
-                fs.file.exists('bin/windows.build/snow.hxml').should.be(true);
-    
-                fs.file.getText('bin/windows.build/build.hxml').contains('-m snow.App').should.be(true);
+                fs.file.getText('bin/windows.build/build.hxml').contains('-m uk.aidanlee.flurry.hosts.SDLHost').should.be(true);
             });
             it('will add all project codepaths to the build.hxml', {
                 final project = project();
                 final fs      = new MockFileSystem([
-                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/windows.build/cpp/SDLHost-debug.exe' => MockFileData.fromText('exe'),
                     'bin/temp/parcels/parcel' => MockFileData.fromText(''),
                 ], []);
                 final packer  = mock(Packer);
@@ -75,7 +72,6 @@ class BuildCommandTests extends BuddySuite
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
                 fs.file.exists('bin/windows.build/build.hxml').should.be(true);
-                fs.file.exists('bin/windows.build/snow.hxml').should.be(true);
     
                 final text = fs.file.getText('bin/windows.build/build.hxml');
 
@@ -87,7 +83,7 @@ class BuildCommandTests extends BuddySuite
             it('will add all project macros to the build.hxml', {
                 final project = project();
                 final fs      = new MockFileSystem([
-                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/windows.build/cpp/SDLHost-debug.exe' => MockFileData.fromText('exe'),
                     'bin/temp/parcels/parcel' => MockFileData.fromText(''),
                 ], []);
                 final packer  = mock(Packer);
@@ -99,7 +95,6 @@ class BuildCommandTests extends BuddySuite
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
                 fs.file.exists('bin/windows.build/build.hxml').should.be(true);
-                fs.file.exists('bin/windows.build/snow.hxml').should.be(true);
     
                 final text = fs.file.getText('bin/windows.build/build.hxml');
 
@@ -111,7 +106,7 @@ class BuildCommandTests extends BuddySuite
             it('will add all project dependencies to the build.hxml', {
                 final project = project();
                 final fs      = new MockFileSystem([
-                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/windows.build/cpp/SDLHost-debug.exe' => MockFileData.fromText('exe'),
                     'bin/temp/parcels/parcel' => MockFileData.fromText(''),
                 ], []);
                 final packer  = mock(Packer);
@@ -123,7 +118,6 @@ class BuildCommandTests extends BuddySuite
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
                 fs.file.exists('bin/windows.build/build.hxml').should.be(true);
-                fs.file.exists('bin/windows.build/snow.hxml').should.be(true);
     
                 final text = fs.file.getText('bin/windows.build/build.hxml');
 
@@ -137,7 +131,7 @@ class BuildCommandTests extends BuddySuite
             it('will add all project defines to the build.hxml', {
                 final project = project();
                 final fs      = new MockFileSystem([
-                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/windows.build/cpp/SDLHost-debug.exe' => MockFileData.fromText('exe'),
                     'bin/temp/parcels/parcel' => MockFileData.fromText(''),
                 ], []);
                 final packer  = mock(Packer);
@@ -149,7 +143,6 @@ class BuildCommandTests extends BuddySuite
                 new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
     
                 fs.file.exists('bin/windows.build/build.hxml').should.be(true);
-                fs.file.exists('bin/windows.build/snow.hxml').should.be(true);
     
                 final text = fs.file.getText('bin/windows.build/build.hxml');
 
@@ -160,50 +153,10 @@ class BuildCommandTests extends BuddySuite
                     text.contains(def).should.be(true);
                 }
             });
-            it('will link to the snow.hxml file at the bottom of the build.hxml', {
-                final project = project();
-                final fs      = new MockFileSystem([
-                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
-                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
-                ], []);
-                final packer  = mock(Packer);
-                final proc    = mock(Proc);
-    
-                Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
-    
-                new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
-    
-                fs.file.exists('bin/windows.build/build.hxml').should.be(true);
-                fs.file.exists('bin/windows.build/snow.hxml').should.be(true);
-    
-                fs.file.getText('bin/windows.build/build.hxml').contains('${ Utils.buildPath(project) }/snow.hxml').should.be(true);
-            });
-            it('will write a snow.hxml file', {
-                final project = project();
-                final fs      = new MockFileSystem([
-                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
-                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
-                ], []);
-                final packer  = mock(Packer);
-                final proc    = mock(Proc);
-    
-                Mockatoo.returns(proc.run(), Success(Unit.value));
-                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
-    
-                new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
-    
-                fs.file.exists('bin/windows.build/build.hxml').should.be(true);
-                fs.file.exists('bin/windows.build/snow.hxml').should.be(true);
-    
-                final text = fs.file.getText('bin/windows.build/snow.hxml');
-                text.contains('--macro snow.Set.runtime("uk.aidanlee.flurry.snow.runtime.FlurrySnowDesktopRuntime")').should.be(true);
-                text.contains('--macro snow.Set.main("uk.aidanlee.flurry.snow.host.FlurrySnowHost")').should.be(true);
-            });
             it('will invoke haxe with the build.hxml file', {
                 final project = project();
                 final fs      = new MockFileSystem([
-                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/windows.build/cpp/SDLHost-debug.exe' => MockFileData.fromText('exe'),
                     'bin/temp/parcels/parcel' => MockFileData.fromText(''),
                 ], []);
                 final packer  = mock(Packer);
@@ -230,7 +183,7 @@ class BuildCommandTests extends BuddySuite
             it('will pass the location of each asset bundle to the packer', {
                 final project = project();
                 final fs      = new MockFileSystem([
-                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/windows.build/cpp/SDLHost-debug.exe' => MockFileData.fromText('exe'),
                     'bin/temp/parcels/parcel' => MockFileData.fromText(''),
                 ], []);
                 final packer  = mock(Packer);
@@ -246,7 +199,7 @@ class BuildCommandTests extends BuddySuite
             it('will write the parcel bytes to the build and release parcel folder', {
                 final project = project();
                 final fs      = new MockFileSystem([
-                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/windows.build/cpp/SDLHost-debug.exe' => MockFileData.fromText('exe'),
                     'bin/temp/parcel/parcel1' => MockFileData.fromText('hello'),
                     'bin/temp/parcel/parcel2' => MockFileData.fromText('world'),
                 ], []);
@@ -276,7 +229,7 @@ class BuildCommandTests extends BuddySuite
             it('will rename the output executable to that specified in the project json', {
                 final project = project();
                 final fs      = new MockFileSystem([
-                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/windows.build/cpp/SDLHost-debug.exe' => MockFileData.fromText('exe'),
                     'bin/temp/parcels/parcel' => MockFileData.fromText(''),
                 ], []);
                 final packer  = mock(Packer);
@@ -290,7 +243,7 @@ class BuildCommandTests extends BuddySuite
             it('will copy the executable to the release folder', {
                 final project = project();
                 final fs      = new MockFileSystem([
-                    'bin/windows.build/cpp/App-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/windows.build/cpp/SDLHost-debug.exe' => MockFileData.fromText('exe'),
                     'bin/temp/parcels/parcel' => MockFileData.fromText(''),
                 ], []);
                 final packer  = mock(Packer);
@@ -314,7 +267,7 @@ class BuildCommandTests extends BuddySuite
                 output    : "bin",
                 main      : "Main",
                 codepaths : [ "src" ],
-                backend   : Snow
+                backend   : Sdl
             },
             build : {
                 defines : [

@@ -8,7 +8,6 @@
     "releasenote": "initial release",
     "classPath": "src/lib",
     "dependencies": {
-        "flurry-snow-host"    : "gh:flurry-engine/flurry-snow-host#19ccd18",
         "haxe-concurrent"     : "3.0.0",
         "format"              : "3.5.0",
         "safety"              : "1.1.2",
@@ -17,6 +16,7 @@
         "RxHaxe"              : "gh:aidan63/RxHaxe#ddae04c",
         "linc_opengl"         : "gh:aidan63/linc_opengl#08e333c",
         "linc_directx"        : "gh:aidan63/linc_directx#0dc3af0",
-        "linc_imgui"          : "git:https://github.com/Aidan63/linc_imgui#c1e38be as linc_imgui#1.0.0"
+        "linc_imgui"          : "git:https://github.com/Aidan63/linc_imgui#c1e38be as linc_imgui#1.0.0",
+        "linc_stb"            : "git:https://github.com/aidan63/linc_stb#68c8d3e as linc_stb#1.0.0"
     }
 }

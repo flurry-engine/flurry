@@ -9,6 +9,7 @@ enum abstract Platform(String) from String to String
 enum Backend
 {
     Snow;
+    Sdl;
     Kha;
 }
 
