@@ -15,6 +15,7 @@
 -D linc_stb
 -D format
 -D threads
+-D flurry-entry-point=uk.aidanlee.flurry.Flurry
 
 -lib hxcpp
 -lib linc_imgui
