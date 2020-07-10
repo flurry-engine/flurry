@@ -1,8 +1,0 @@
-# @install: lix --silent download "gh://github.com/aidan63/snow#8a3629bfe1badf00e461a244c5eb04b16a9e5032" into snow/1.0.0-alpha.2/github/8a3629bfe1badf00e461a244c5eb04b16a9e5032
--lib linc_ogg
--lib linc_openal
--lib linc_sdl
--lib linc_stb
--lib linc_timestamp
--cp ${HAXE_LIBCACHE}/snow/1.0.0-alpha.2/github/8a3629bfe1badf00e461a244c5eb04b16a9e5032/
--D snow=1.0.0-alpha.2

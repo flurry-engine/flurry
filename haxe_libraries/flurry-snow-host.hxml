@@ -1,4 +1,0 @@
--D flurry-snow-host=0.0.1
-# @install: lix --silent download "gh://github.com/flurry-engine/flurry-snow-host#19ccd1811644aca3cfc1f1a74250e5f2ab006eef" into flurry-snow-host/0.0.1/github/19ccd1811644aca3cfc1f1a74250e5f2ab006eef
--lib snow
--cp ${HAXE_LIBCACHE}/flurry-snow-host/0.0.1/github/19ccd1811644aca3cfc1f1a74250e5f2ab006eef/src

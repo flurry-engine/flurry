@@ -2,6 +2,7 @@ package uk.aidanlee.flurry.hosts;
 
 import haxe.Timer;
 import haxe.EnumFlags;
+import haxe.io.Path;
 import uk.aidanlee.flurry.api.input.InputEvents.InputEventGamepadRumble;
 import uk.aidanlee.flurry.api.input.InputEvents.InputEventGamepadDevice;
 import uk.aidanlee.flurry.api.input.InputEvents.InputEventGamepadState;
@@ -61,6 +62,10 @@ class SDLHost
         {
             throw 'failed to init SDL2';
         }
+
+        // Important to set the working directory
+        // Ensure we can use relative paths to read parcels.
+        Sys.setCwd(Path.directory(Sys.programPath()));
 
         frameRate   = 60;
         deltaTime   = 1000 / frameRate;
