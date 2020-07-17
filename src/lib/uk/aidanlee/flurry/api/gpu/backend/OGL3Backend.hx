@@ -530,7 +530,7 @@ class OGL3Backend implements IRendererBackend
 
         if (getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
         {
-            throw new OGL3FragmentCompilationError(_resource.id, getShaderInfoLog(vertex));
+            throw new OGL3FragmentCompilationError(_resource.id, getShaderInfoLog(fragment));
         }
 
         // Link the shaders into a program.
