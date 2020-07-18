@@ -18,6 +18,6 @@
         "linc_directx"        : "gh:aidan63/linc_directx#0dc3af0",
         "linc_imgui"          : "git:https://github.com/Aidan63/linc_imgui#c1e38be as linc_imgui#1.0.0",
         "linc_stb"            : "git:https://github.com/Aidan63/linc_stb#68c8d3e as linc_stb#1.0.0",
-        "linc_sdl"            : "git:httos://github.com/Aidan63/linc_sdl#c0b677e as linc_sdl#1.0.0"
+        "linc_sdl"            : "git:https://github.com/Aidan63/linc_sdl#c0b677e as linc_sdl#1.0.0"
     }
 }
