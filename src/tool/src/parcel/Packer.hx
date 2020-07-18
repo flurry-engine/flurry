@@ -330,7 +330,7 @@ class Packer
             '--format', _options.format
         ])
         {
-            case Failure(message): Sys.println('Parcel exited with a non zero code of $message, this is probably alright...');
+            case Failure(message): return Failure('Parcel exited with a non zero code of $message');
             case _:
         }
 
