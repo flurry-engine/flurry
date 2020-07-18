@@ -1,3 +1,0 @@
--D linc_timestamp=1.0.0
-# @install: lix --silent download "git:https://github.com/snowkit/linc_timestamp#42a3d890a6dc4ed2e2a02a60060594a3e1810536" into untitled/0.0.0/git/42a3d890a6dc4ed2e2a02a60060594a3e1810536
--cp ${HAXE_LIBCACHE}/untitled/0.0.0/git/42a3d890a6dc4ed2e2a02a60060594a3e1810536/

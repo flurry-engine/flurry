@@ -204,8 +204,9 @@ class ImGuiImpl
      */
     function onTextInput(_text : InputEventTextInput)
     {
-        var io = ImGui.getIO();
-        io.addInputCharactersUTF8(_text.text);
+        final io  = ImGui.getIO();
+        final str = cpp.NativeString.c_str(_text.text);
+        io.addInputCharactersUTF8(cast str);
     }
 
     /**

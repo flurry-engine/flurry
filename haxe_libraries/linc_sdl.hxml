@@ -1,3 +1,3 @@
--D linc_sdl=1.0.0
-# @install: lix --silent download "git:https://github.com/Aidan63/linc_sdl#b569de685509ef9893597f0cd24bfedce1d879af" into untitled/0.0.0/git/b569de685509ef9893597f0cd24bfedce1d879af
--cp ${HAXE_LIBCACHE}/untitled/0.0.0/git/b569de685509ef9893597f0cd24bfedce1d879af/
+-D linc_sdl=0.0.1
+# @install: lix --silent download "git:https://github.com/aidan63/linc_sdl#c0b677e73773f8a11c34df7da6d85d584bcb5ad9" into untitled/0.0.0/git/c0b677e73773f8a11c34df7da6d85d584bcb5ad9
+-cp ${HAXE_LIBCACHE}/untitled/0.0.0/git/c0b677e73773f8a11c34df7da6d85d584bcb5ad9/
