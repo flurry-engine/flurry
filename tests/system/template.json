@@ -19,10 +19,6 @@
             { "lib" : "linc_stb" },
             { "lib" : "safety" },
             { "lib" : "sys.io.abstractions" }
-        ],
-        "defines" : [
-            { "def" : "flurry-api-ogl3" },
-            { "def" : "analyzer-optimize" }
         ]
     },
     "parcels" : [ "assets/assets.json" ]

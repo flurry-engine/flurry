@@ -225,19 +225,21 @@ class ImGuiImpl
             final vtxBytes = new Float32BufferData(cmdList.vtxBuffer.size() * 9);
             final idxBytes = new UInt16BufferData(cmdList.idxBuffer.size());
 
-            var idx = 0;
-            for (j in 0...cmdList.vtxBuffer.size())
-            {
-                vtxBytes[idx++] = vtxBuffer[j].pos.x;
-                vtxBytes[idx++] = vtxBuffer[j].pos.y;
-                vtxBytes[idx++] = 0;
-                vtxBytes[idx++] = ((vtxBuffer[j].col) & 0xFF) / 255;
-                vtxBytes[idx++] = ((vtxBuffer[j].col >>  8) & 0xFF) / 255;
-                vtxBytes[idx++] = ((vtxBuffer[j].col >> 16) & 0xFF) / 255;
-                vtxBytes[idx++] = ((vtxBuffer[j].col >> 24) & 0xFF) / 255;
-                vtxBytes[idx++] = vtxBuffer[j].uv.x;
-                vtxBytes[idx++] = vtxBuffer[j].uv.y;
-            }
+            vtxBytes.edit(_access -> {
+                var idx = 0;
+                for (j in 0...cmdList.vtxBuffer.size())
+                {
+                    _access[idx++] = vtxBuffer[j].pos.x;
+                    _access[idx++] = vtxBuffer[j].pos.y;
+                    _access[idx++] = 0;
+                    _access[idx++] = ((vtxBuffer[j].col) & 0xFF) / 255;
+                    _access[idx++] = ((vtxBuffer[j].col >>  8) & 0xFF) / 255;
+                    _access[idx++] = ((vtxBuffer[j].col >> 16) & 0xFF) / 255;
+                    _access[idx++] = ((vtxBuffer[j].col >> 24) & 0xFF) / 255;
+                    _access[idx++] = vtxBuffer[j].uv.x;
+                    _access[idx++] = vtxBuffer[j].uv.y;
+                }
+            });
 
             Stdlib.memcpy(
                 idxBytes.bytes.getData().address(0),
@@ -246,7 +248,7 @@ class ImGuiImpl
             for (j in 0...cmdList.cmdBuffer.size())
             {
                 final draw = cmdBuffer[j];
-                final t : Pointer<ImageFrameResource> = Pointer.fromRaw(draw.textureId).reinterpret();
+                final t : Pointer<ImageFrameResource> = Pointer.fromPointer(draw.textureId).reinterpret();
 
                 renderer.backend.queue(
                     new DrawCommand(
@@ -276,12 +278,12 @@ class ImGuiImpl
 
     // Callbacks
 
-    static function getClipboard(_data : cpp.Star<cpp.Void>) : cpp.VarConstCharStar
+    static function getClipboard(_data : cpp.Star<cpp.Void>) : imgui.utils.VarConstCharStar
     {
         return cast sdl.SDL.getClipboardText();
     }
 
-    @:void static function setClipboard(_data : cpp.Star<cpp.Void>, _text : cpp.VarConstCharStar)
+    @:void static function setClipboard(_data : cpp.Star<cpp.Void>, _text : imgui.utils.VarConstCharStar)
     {
         sdl.SDL.setClipboardText(cast _text);
     }
