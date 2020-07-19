@@ -49,14 +49,14 @@ class SystemTests(unittest.TestCase):
                 test_proc.terminate()
                 test_proc.wait()
 
-                imagemagick = subprocess.run([ "convert", "-metric", "ae", "-fuzz", "5%", f"expected/{x}.png", f"screenshot_{x}.png", "-trim", "-compare", "-format", "%[distortion]", "info:" ], stdout=subprocess.PIPE, text=True)
+                imagemagick = subprocess.run([ "magick", "compare", "-metric", "ae", "-fuzz", "10%", f"expected/{x}.png", f"screenshot_{x}.png", "-trim", "-format", "%[distortion]", "info:" ], stdout=subprocess.PIPE, text=True)
                 diff        = int(imagemagick.stdout)
 
-                if diff <= 10:
+                if diff == 0:
                     os.remove(f"screenshot_{x}.png")
                 else:
                     os.rename(f"screenshot_{x}.png", f"screenshot_{x}_failed.png")
-                    self.fail(f"expected image difference for {x} to be less or equal to 10 but was {diff}")
+                    self.fail(f"expected image difference for {x} to be 0 but was {diff}")
 
         xvfb_proc.terminate()
         xvfb_proc.wait()
