@@ -49,7 +49,7 @@ class SystemTests(unittest.TestCase):
                 test_proc.terminate()
                 test_proc.wait()
 
-                imagemagick = subprocess.run([ "magick", "compare", "-metric", "ae", "-fuzz", "10%", f"expected/{x}.png", f"screenshot_{x}.png", "-trim", "-format", "%[distortion]", "info:" ], stdout=subprocess.PIPE, text=True)
+                imagemagick = subprocess.run([ "compare", "-metric", "ae", "-fuzz", "10%", f"expected/{x}.png", f"screenshot_{x}.png", "-trim", "-format", "%[distortion]", "info:" ], stdout=subprocess.PIPE, text=True)
                 diff        = int(imagemagick.stdout)
 
                 if diff == 0:
