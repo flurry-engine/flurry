@@ -248,7 +248,7 @@ class ImGuiImpl
             for (j in 0...cmdList.cmdBuffer.size())
             {
                 final draw = cmdBuffer[j];
-                final t : Pointer<ImageFrameResource> = Pointer.fromPointer(draw.textureId).reinterpret();
+                final t : Pointer<ImageFrameResource> = Pointer.fromStar(draw.textureId).reinterpret();
 
                 renderer.backend.queue(
                     new DrawCommand(
