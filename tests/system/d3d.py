@@ -4,12 +4,24 @@ import sys
 import time
 import subprocess
 import unittest
+import d3dshot
+import win32gui
 from PIL import Image
 from pixelmatch.contrib.PIL import pixelmatch
 
+d = d3dshot.create(capture_output="numpy")
+
+def enumHandler(hwnd, lParam):
+    if win32gui.IsWindowVisible(hwnd):
+        if 'System Tests' in win32gui.GetWindowText(hwnd):
+            left, top, right, bot = win32gui.GetClientRect(hwnd)
+            lt = win32gui.ClientToScreen(hwnd, (left, top))
+            rb = win32gui.ClientToScreen(hwnd, (right, bot))
+
+            d.screenshot_to_disk(directory=None, file_name=lParam, region=lt + rb)
+
 class SystemTests(unittest.TestCase):
     def test_system_programs(self):
-        xvfb_proc  = subprocess.Popen([ "Xvfb", ":99", "-screen", "0", "768x512x24", "-nolisten", "tcp", "-nolisten", "unix" ])
         test_cases = [
             "Colourised",
             "DepthTesting",
@@ -27,11 +39,10 @@ class SystemTests(unittest.TestCase):
             "ImGuiDrawing"
         ]
 
-        myEnv = os.environ.copy()
-        myEnv["DISPLAY"]=":99"
-
         for x in test_cases:
             with self.subTest(x, x=x):
+                print(x)
+
                 templateHandle=open("template.json", "r")
                 template=templateHandle.read().replace("{TEST_CASE}", x)
                 templateHandle.close()
@@ -40,13 +51,13 @@ class SystemTests(unittest.TestCase):
                 buildFileHandle.write(template)
                 buildFileHandle.close()
 
-                subprocess.run([ "npx", "neko", "../../run.n", "build", "--release" ], env=myEnv)
+                subprocess.run([ "npx", "neko", "../../run.n", "build", "--release" ], shell=True)
 
-                test_proc=subprocess.Popen([ "bin/linux/SystemTests" ], env=myEnv)
+                test_proc=subprocess.Popen([ "bin/windows/SystemTests.exe" ])
 
                 time.sleep(3)
 
-                subprocess.run([ "import", "-window", "System Tests", f"screenshot_{x}.png" ], env=myEnv)
+                win32gui.EnumWindows(enumHandler, f"screenshot_{x}.png")
 
                 test_proc.terminate()
                 test_proc.wait()
@@ -62,9 +73,6 @@ class SystemTests(unittest.TestCase):
                     os.rename(f"screenshot_{x}.png", f"screenshot_{x}_failed.png")
                     img_c.save(f"diff_{x}.png")
                     self.fail(f"expected image difference for {x} to be less than or equal to 5% but was {idiff}%")
-
-        xvfb_proc.terminate()
-        xvfb_proc.wait()
 
 if __name__ == '__main__':
     unittest.main()

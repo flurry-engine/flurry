@@ -133,7 +133,7 @@ jobs:
         pip3 install -U pytest-subtests
         pip3 install -U pillow
         pip3 install -U pixelmatch
-        python3 -m pytest -o junit_family=xunit2 --junit-xml test-system.xml -s Test.py
+        python3 -m pytest -o junit_family=xunit2 --junit-xml test-ogl3-system.xml -s Test.py
       displayName: System Tests
       workingDirectory: $(Build.SourcesDirectory)/tests/system
       env:
@@ -142,7 +142,40 @@ jobs:
       condition: succeededOrFailed()
       inputs:
         testResultsFormat: JUnit
-        testResultsFiles: test-system.xml
+        testResultsFiles: test-ogl3-system.xml
+        searchFolder: $(Build.SourcesDirectory)/tests/system
+        testRunTitle: System Tests $(Agent.OS)
+        buildPlatform: $(Agent.OS)
+        failTaskOnFailedTests: true
+
+  - job: SystemTestsD3D11
+    displayName: System Tests (D3D11 Backend)
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.8'
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '10.15.x'
+    - bash: |
+        ci/install.sh
+        python -m pip install --upgrade pip pytest pytest-subtests pillow pixelmatch
+      displayName: Install Dependencies
+      workingDirectory: $(Build.SourcesDirectory)
+      env:
+        AGENT_OS: $(Agent.OS)
+    - bash: python -m pytest -o junit_family=xunit2 --junit-xml test-d3d11-system.xml -s d3d.py
+      displayName: System Tests
+      workingDirectory: $(Build.SourcesDirectory)/tests/system
+      env:
+        AGENT_OS: $(Agent.OS)
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: JUnit
+        testResultsFiles: test-d3d11-system.xml
         searchFolder: $(Build.SourcesDirectory)/tests/system
         testRunTitle: System Tests $(Agent.OS)
         buildPlatform: $(Agent.OS)
