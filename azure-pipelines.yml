@@ -133,7 +133,7 @@ jobs:
         pip3 install -U pytest-subtests
         pip3 install -U pillow
         pip3 install -U pixelmatch
-        python3 -m pytest -o junit_family=xunit2 --junit-xml test-ogl3-system.xml -s Test.py
+        python3 -m pytest -o junit_family=xunit2 --junit-xml test-ogl3-system.xml -s TestLinuxOGL3.py
       displayName: System Tests
       workingDirectory: $(Build.SourcesDirectory)/tests/system
       env:
@@ -161,12 +161,12 @@ jobs:
         versionSpec: '10.15.x'
     - bash: |
         ci/install.sh
-        python -m pip install --upgrade pip pytest pytest-subtests pillow pixelmatch
+        python -m pip install --upgrade pip pytest pytest-subtests pillow pixelmatch d3dshot pywin32
       displayName: Install Dependencies
       workingDirectory: $(Build.SourcesDirectory)
       env:
         AGENT_OS: $(Agent.OS)
-    - bash: python -m pytest -o junit_family=xunit2 --junit-xml test-d3d11-system.xml -s d3d.py
+    - bash: python -m pytest -o junit_family=xunit2 --junit-xml test-d3d11-system.xml -s TestWindowsD3D11.py
       displayName: System Tests
       workingDirectory: $(Build.SourcesDirectory)/tests/system
       env:
