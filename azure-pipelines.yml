@@ -155,14 +155,14 @@ jobs:
       demands:
         - Agent.OS -equals Windows_NT
     steps:
-    - bash: |
-        ci/install.sh
+    - script: |
+        npm ci
         python -m pip install --upgrade pip pytest pytest-subtests pillow pixelmatch d3dshot pywin32 numpy
       displayName: Install Dependencies
       workingDirectory: $(Build.SourcesDirectory)
       env:
         AGENT_OS: $(Agent.OS)
-    - bash: python -m pytest -o junit_family=xunit2 --junit-xml test-d3d11-system.xml -s TestWindowsD3D11.py
+    - script: python -m pytest -o junit_family=xunit2 --junit-xml test-d3d11-system.xml -s TestWindowsD3D11.py
       displayName: System Tests
       workingDirectory: $(Build.SourcesDirectory)/tests/system
       env:
