@@ -131,6 +131,8 @@ jobs:
     - bash: |       
         pip3 install -U pytest
         pip3 install -U pytest-subtests
+        pip3 install -U pillow
+        pip3 install -U pixelmatch
         python3 -m pytest -o junit_family=xunit2 --junit-xml test-system.xml -s Test.py
       displayName: System Tests
       workingDirectory: $(Build.SourcesDirectory)/tests/system
