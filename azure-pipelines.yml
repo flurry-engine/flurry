@@ -151,14 +151,10 @@ jobs:
   - job: SystemTestsD3D11
     displayName: System Tests (D3D11 Backend)
     pool:
-      vmImage: 'windows-latest'
+      name: Default
+      demands:
+        - Agent.OS -equals Windows_NT
     steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '3.8'
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '10.15.x'
     - bash: |
         ci/install.sh
         python -m pip install --upgrade pip pytest pytest-subtests pillow pixelmatch d3dshot pywin32 numpy
