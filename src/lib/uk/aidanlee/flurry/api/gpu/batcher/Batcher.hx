@@ -7,7 +7,6 @@ import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import rx.Unit;
 import rx.disposables.ISubscription;
 
@@ -76,7 +75,7 @@ class Batcher
     {
         geometry       = [];
         subscriptions  = [];
-        shader         = _options.shader.id;
+        shader         = _options.shader;
         camera         = _options.camera;
         target         = _options.target;
         depth          = _options.depth;
@@ -387,13 +386,13 @@ class Batcher
     /**
      * The shader this batcher will use.
      */
-    public final shader : ShaderResource;
+    public final shader : ResourceID;
 
     /**
      * Optional render target for this batcher.
      * If not specified the backbuffer will be used.
      */
-    public final target : TargetState = Backbuffer;
+    public final target = Backbuffer;
 
     /**
      * Optional initial depth for this batcher.

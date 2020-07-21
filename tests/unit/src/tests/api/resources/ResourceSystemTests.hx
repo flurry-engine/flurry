@@ -77,7 +77,7 @@ class ResourceSystemTests extends SingleSuite
                 system.load([ 'images.parcel' ]);
 
                 final res = system.get('dots', ImageFrameResource);
-                res.id.should.be('dots');
+                res.name.should.be('dots');
                 res.width.should.be(2);
                 res.height.should.be(2);
             });
@@ -89,12 +89,12 @@ class ResourceSystemTests extends SingleSuite
                     {
                         case Image:
                             final res : ImageResource = cast _created;
-                            res.id.should.be('dots');
+                            res.name.should.be('dots');
                             res.width.should.be(2);
                             res.height.should.be(2);
                         case Shader:
                             final res : ShaderResource = cast _created;
-                            res.id.should.be('shdr');
+                            res.name.should.be('shdr');
                             res.layout.textures.should.containExactly([ 'defaultTexture' ]);
                             res.layout.blocks.should.containExactly([ ]);
                             res.ogl3.vertex.toString().should.be('ogl3_vertex');
@@ -125,12 +125,12 @@ class ResourceSystemTests extends SingleSuite
                     {
                         case Image:
                             final res : ImageResource = cast _removed;
-                            res.id.should.be('dots');
+                            res.name.should.be('dots');
                             res.width.should.be(2);
                             res.height.should.be(2);
                         case Shader:
                             final res : ShaderResource = cast _removed;
-                            res.id.should.be('shdr');
+                            res.name.should.be('shdr');
                             res.layout.textures.should.containExactly([ 'defaultTexture' ]);
                             res.layout.blocks.should.containExactly([ ]);
                             res.ogl3.vertex.toString().should.be('ogl3_vertex');
@@ -177,10 +177,10 @@ class ResourceSystemTests extends SingleSuite
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
                 system.load([ 'images.parcel', 'moreImages.parcel' ]);
 
-                system.get('dots', Resource).id.should.be('dots');
+                system.get('dots', Resource).name.should.be('dots');
 
                 system.free('images.parcel');
-                system.get('dots', Resource).id.should.be('dots');
+                system.get('dots', Resource).name.should.be('dots');
 
                 system.free('moreImages.parcel');
                 system.get.bind('dots', Resource).should.throwType(ResourceNotFoundException);

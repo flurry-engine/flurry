@@ -31,7 +31,7 @@ class SpriteGeometryTests extends BuddySuite
             describe('default constructor', {
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
+                    shader : 0
                 });
                 final geom = new SpriteGeometry({
                     sprite    : sprite,
@@ -69,9 +69,9 @@ class SpriteGeometryTests extends BuddySuite
                 it('will set the texture to the image of the sprite resource', {
                     switch geom.textures
                     {
-                        case Textures(_textures):
+                        case Some(_textures):
                             _textures.length.should.be(1);
-                            _textures[0].should.be(sprite);
+                            _textures[0].should.be(sprite.image);
                         case None:
                             fail('expected textures but none were found');
                     }
@@ -80,7 +80,7 @@ class SpriteGeometryTests extends BuddySuite
             describe('custom constructor', {
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
+                    shader : 0
                 });
                 final geom = new SpriteGeometry({
                     sprite    : sprite,
@@ -119,7 +119,7 @@ class SpriteGeometryTests extends BuddySuite
             describe('manually setting frame', {
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
+                    shader : 0
                 });
                 final geom = new SpriteGeometry({
                     sprite    : sprite,
@@ -185,7 +185,7 @@ class SpriteGeometryTests extends BuddySuite
             describe('playing animation', {
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
+                    shader : 0
                 });
                 final geom = new SpriteGeometry({
                     sprite    : sprite,
@@ -359,7 +359,7 @@ class SpriteGeometryTests extends BuddySuite
             describe('resetting animation', {
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
+                    shader : 0
                 });
                 final geom = new SpriteGeometry({
                     sprite    : sprite,
@@ -475,7 +475,7 @@ class SpriteGeometryTests extends BuddySuite
             describe('animation speed', {
                 final batcher = new Batcher({
                     camera : new Camera2D(0, 0, TopLeft, ZeroToNegativeOne),
-                    shader : shader()
+                    shader : 0
                 });
                 final geom = new SpriteGeometry({
                     sprite    : sprite,
@@ -517,7 +517,4 @@ class SpriteGeometryTests extends BuddySuite
             });
         });
     }
-
-    function shader()
-        return new ShaderResource('shader', new ShaderLayout([], []), null, null, null);
 }

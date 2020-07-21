@@ -258,44 +258,6 @@ class QuadGeometryTests extends BuddySuite
                 }
             });
 
-            it('Allows setting texture space coordinates using four floats', {
-                final x = 32;
-                final y = 48;
-                final w = 96;
-                final h = 64;
-
-                final texture = new ImageFrameResource('', '', 0, 0, 256, 128, 0, 0, 1, 1);
-                final quad    = new QuadGeometry({ texture : texture });
-
-                quad.uv(x, y, w, h, false);
-
-                switch quad.data
-                {
-                    case Indexed(_vertices, _):
-                        // vertex 1
-                        // u, v
-                        _vertices.floatAccess[(0 * 9) + 7].should.beCloseTo(x / texture.width);
-                        _vertices.floatAccess[(0 * 9) + 8].should.beCloseTo(h / texture.height);
-
-                        // vertex 2
-                        // u, v
-                        _vertices.floatAccess[(1 * 9) + 7].should.beCloseTo(w / texture.width);
-                        _vertices.floatAccess[(1 * 9) + 8].should.beCloseTo(h / texture.height);
-
-                        // vertex 3
-                        // u, v
-                        _vertices.floatAccess[(2 * 9) + 7].should.beCloseTo(x / texture.width);
-                        _vertices.floatAccess[(2 * 9) + 8].should.beCloseTo(y / texture.height);
-
-                        // vertex 4
-                        // u, v
-                        _vertices.floatAccess[(3 * 9) + 7].should.beCloseTo(w / texture.width);
-                        _vertices.floatAccess[(3 * 9) + 8].should.beCloseTo(y / texture.height);
-                    case UnIndexed(_):
-                        fail('quad data should be indexed');
-                }
-            });
-
             describe('Updating the frame', {
                 final frame1 = new ImageFrameResource('frame_1', 'image', 0, 0, 256, 128, 0, 0, 1, 1);
                 final frame2 = new ImageFrameResource('frame_2', 'image', 0, 0,  64,  32, 0.2, 0.3, 0.75, 0.55);
@@ -344,9 +306,9 @@ class QuadGeometryTests extends BuddySuite
                 it('will update the textures of the geometry', {
                     switch quad.textures
                     {
-                        case Textures(_frames):
+                        case Some(_frames):
                             _frames.length.should.be(1);
-                            _frames[0].id.should.be(frame2.id);
+                            _frames[0].should.be(frame2.image);
                         case _:
                             fail('expected textures on this quad');
                     }
