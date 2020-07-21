@@ -195,7 +195,7 @@ class GeometryTests extends BuddySuite
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                     geometry.changed.subscribeFunction(_ -> count++);
 
-                    geometry.samplers = Some([ mock(SamplerState) ]);
+                    geometry.samplers = Some([ new SamplerState(Clamp, Clamp, Linear, Linear) ]);
                     count.should.be(1);
 
                     geometry.samplers = None;
