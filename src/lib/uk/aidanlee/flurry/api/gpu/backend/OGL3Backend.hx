@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.maths.Vector2;
+import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import haxe.Exception;
 import haxe.io.BytesData;
@@ -125,29 +127,36 @@ class OGL3Backend implements IRendererBackend
     /**
      * Shader programs keyed by their associated shader resource IDs.
      */
-    final shaderPrograms : Map<String, Int>;
+    final shaderPrograms : Map<ResourceID, Int>;
 
     /**
      * Shader uniform locations keyed by their associated shader resource IDs.
      */
-    final shaderUniforms : Map<String, ShaderLocations>;
+    final shaderUniforms : Map<ResourceID, ShaderInformation>;
 
     /**
      * Texture objects keyed by their associated image resource IDs.
      */
-    final textureObjects : Map<String, Int>;
+    final textureObjects : Map<ResourceID, Int>;
+
+    /**
+     * Keep track of all our texture sizes.
+     * After they are created draw calls refer to their IDs so we manually store the dimensions.
+     * Could use glGet calls but they can be slow.
+     */
+    final textureInfo : Map<ResourceID, TextureInformation>;
 
     /**
      * The sampler objects which have been created for each specific texture.
      */
-    final samplerObjects : Map<String, Map<Int, Int>>;
+    final samplerObjects : Map<ResourceID, Map<Int, Int>>;
 
     /**
      * Framebuffer objects keyed by their associated image resource IDs.
      * Framebuffers will only be generated when an image resource is used as a target.
      * Will be destroyed when the associated image resource is destroyed.
      */
-    final framebufferObjects : Map<String, Int>;
+    final framebufferObjects : Map<ResourceID, Int>;
 
     /**
      * Array of opengl textures objects which are bound.
@@ -201,7 +210,7 @@ class OGL3Backend implements IRendererBackend
     // So we track the current state with the equivilent flurry sturctures.
 
     var target     : TargetState;
-    var shader     : ShaderResource;
+    var shader     : ResourceID;
     final clip     : Rectangle;
     final viewport : Rectangle;
     final blend    : BlendState;
@@ -223,6 +232,7 @@ class OGL3Backend implements IRendererBackend
 
         shaderPrograms     = [];
         shaderUniforms     = [];
+        textureInfo        = [];
         textureObjects     = [];
         samplerObjects     = [];
         framebufferObjects = [];
@@ -302,7 +312,7 @@ class OGL3Backend implements IRendererBackend
             stencilBackDepthTestFail : Keep,
             stencilBackDepthTestPass : Keep
         };
-        shader       = null;
+        shader       = 0;
         target       = Backbuffer;
         textureSlots = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
         samplerSlots = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
@@ -421,6 +431,7 @@ class OGL3Backend implements IRendererBackend
 
         shaderPrograms.clear();
         shaderUniforms.clear();
+        textureInfo.clear();
         textureObjects.clear();
         samplerObjects.clear();
         framebufferObjects.clear();
@@ -495,8 +506,8 @@ class OGL3Backend implements IRendererBackend
     {
         switch _resource.type
         {
-            case Image  : removeTexture(cast _resource);
-            case Shader : removeShader(cast _resource);
+            case Image  : removeTexture(_resource.id);
+            case Shader : removeShader(_resource.id);
             case _:
         }
     }
@@ -510,7 +521,7 @@ class OGL3Backend implements IRendererBackend
 
         if (_resource.ogl3 == null)
         {
-            throw new OGL3NoShaderSourceException(_resource.id);
+            throw new OGL3NoShaderSourceException(_resource.name);
         }
 
         // Create vertex shader.
@@ -520,7 +531,7 @@ class OGL3Backend implements IRendererBackend
 
         if (getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
         {
-            throw new OGL3VertexCompilationError(_resource.id, getShaderInfoLog(vertex));
+            throw new OGL3VertexCompilationError(_resource.name, getShaderInfoLog(vertex));
         }
 
         // Create fragment shader.
@@ -530,7 +541,7 @@ class OGL3Backend implements IRendererBackend
 
         if (getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
         {
-            throw new OGL3FragmentCompilationError(_resource.id, getShaderInfoLog(fragment));
+            throw new OGL3FragmentCompilationError(_resource.name, getShaderInfoLog(fragment));
         }
 
         // Link the shaders into a program.
@@ -541,7 +552,7 @@ class OGL3Backend implements IRendererBackend
 
         if (getProgramParameter(program, GL_LINK_STATUS) == 0)
         {
-            throw new OGL3ShaderLinkingException(_resource.id, getProgramInfoLog(program));
+            throw new OGL3ShaderLinkingException(_resource.name, getProgramInfoLog(program));
         }
 
         // Delete the shaders now that they're linked
@@ -559,15 +570,15 @@ class OGL3Backend implements IRendererBackend
         }
 
         shaderPrograms.set(_resource.id, program);
-        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings));
+        shaderUniforms.set(_resource.id, new ShaderInformation(_resource.layout, textureLocations, blockBindings));
     }
 
-    function removeShader(_resource : ShaderResource)
+    function removeShader(_id : ResourceID)
     {
-        glDeleteProgram(shaderPrograms[_resource.id]);
+        glDeleteProgram(shaderPrograms[_id]);
 
-        shaderPrograms.remove(_resource.id);
-        shaderUniforms.remove(_resource.id);
+        shaderPrograms.remove(_id);
+        shaderUniforms.remove(_id);
     }
 
     function createTexture(_resource : ImageResource)
@@ -584,27 +595,29 @@ class OGL3Backend implements IRendererBackend
 
         glBindTexture(GL_TEXTURE_2D, 0);
 
+        textureInfo[_resource.id] = new TextureInformation(_resource.width, _resource.height);
         textureObjects[_resource.id] = id[0];
         samplerObjects[_resource.id] = new Map();
     }
 
-    function removeTexture(_resource : ImageResource)
+    function removeTexture(_id : ResourceID)
     {
-        glDeleteTextures(1, [ textureObjects[_resource.id] ]);
+        glDeleteTextures(1, [ textureObjects[_id] ]);
 
-        for (_ => sampler in samplerObjects[_resource.id])
+        for (_ => sampler in samplerObjects[_id])
         {
             glDeleteSamplers(1, [ sampler ]);
         }
 
-        if (framebufferObjects.exists(_resource.id))
+        if (framebufferObjects.exists(_id))
         {
-            glDeleteFramebuffers(1, [ framebufferObjects[_resource.id] ]);
+            glDeleteFramebuffers(1, [ framebufferObjects[_id] ]);
         }
 
-        textureObjects.remove(_resource.id);
-        samplerObjects.remove(_resource.id);
-        framebufferObjects.remove(_resource.id);
+        textureInfo.remove(_id);
+        textureObjects.remove(_id);
+        samplerObjects.remove(_id);
+        framebufferObjects.remove(_id);
     }
 
     //  #endregion
@@ -748,9 +761,11 @@ class OGL3Backend implements IRendererBackend
             // Bind the correct range for all uniforms
             for (block in command.uniforms)
             {
+                final info = shaderUniforms[command.shader];
+
                 glBindBufferRange(
                     GL_UNIFORM_BUFFER,
-                    findBlockIndexByName(block.name, command.shader.layout.blocks),
+                    findBlockIndexByName(block.name, info.layout.blocks),
                     glUniformBuffer,
                     unfOffset,
                     block.buffer.byteLength);
@@ -761,9 +776,11 @@ class OGL3Backend implements IRendererBackend
             for (geometry in command.geometry)
             {
                 // Bind the correct range for the matrix buffer
+                final info = shaderUniforms[command.shader];
+
                 glBindBufferRange(
                     GL_UNIFORM_BUFFER,
-                    findBlockIndexByName("flurry_matrices", command.shader.layout.blocks),
+                    findBlockIndexByName("flurry_matrices", info.layout.blocks),
                     glMatrixBuffer,
                     matOffset,
                     192);
@@ -812,7 +829,7 @@ class OGL3Backend implements IRendererBackend
     {
         updateFramebuffer(_command.target);
         updateShader(_command.shader);
-        updateTextures(_command.shader.layout.textures.length, _command.textures, _command.samplers);
+        updateTextures(_command.shader, _command.textures, _command.samplers);
         updateDepth(_command.depth);
         updateStencil(_command.stencil);
         updateBlending(_command.blending);
@@ -825,8 +842,9 @@ class OGL3Backend implements IRendererBackend
                 {
                     case Backbuffer:
                         updateViewport(0, 0, backbuffer.width, backbuffer.height);
-                    case Texture(_image):
-                        updateViewport(0, 0, _image.width, _image.height);
+                    case Texture(_id):
+                        final size = textureInfo[_id];
+                        updateViewport(0, 0, size.width, size.height);
                 }
             case Viewport(_x, _y, _width, _height):
                 updateViewport(_x, _y, _width, _height);
@@ -840,8 +858,9 @@ class OGL3Backend implements IRendererBackend
                 {
                     case Backbuffer:
                         updateClip(0, 0, backbuffer.width, backbuffer.height);
-                    case Texture(_image):
-                        updateClip(0, 0, _image.width, _image.height);
+                    case Texture(_id):
+                        final size = textureInfo[_id];
+                        updateClip(0, 0, size.width, size.height);
                 }
             case Clip(_x, _y, _width, _height):
                 updateClip(_x, _y, _width, _height);
@@ -853,17 +872,20 @@ class OGL3Backend implements IRendererBackend
      * The currently bound textures are tracked to stop re-binding the same textures.
      * @param _command Command to bind textures and samplers for.
      */
-    function updateTextures(_expectedTextures : Int, _textures : ReadOnlyArray<ImageFrameResource>, _samplers : ReadOnlyArray<SamplerState>)
+    function updateTextures(_shader : ResourceID, _textures : ReadOnlyArray<ResourceID>, _samplers : ReadOnlyArray<SamplerState>)
     {
         // If the shader description specifies more textures than the command provides throw an exception.
         // If less is specified than provided we just ignore the extra, maybe we should throw as well?
-        if (_expectedTextures >= _textures.length)
+        final info  = shaderUniforms[_shader];
+        final count = info.layout.textures.length;
+
+        if (count >= _textures.length)
         {
             // then go through each texture and bind it if it isn't already.
             for (i in 0..._textures.length)
             {
                 // Bind and activate the texture if its not already bound.
-                final glTextureID = textureObjects.get(_textures[i].image);
+                final glTextureID = textureObjects[_textures[i]];
 
                 if (glTextureID != textureSlots[i])
                 {
@@ -878,7 +900,7 @@ class OGL3Backend implements IRendererBackend
                 if (i < _samplers.length)
                 {
                     final samplerHash     = _samplers[i].hash();
-                    final textureSamplers = samplerObjects[_textures[i].image];
+                    final textureSamplers = samplerObjects[_textures[i]];
 
                     if (!textureSamplers.exists(samplerHash))
                     {
@@ -899,7 +921,7 @@ class OGL3Backend implements IRendererBackend
         }
         else
         {
-            throw new OGL3NotEnoughTexturesException(_expectedTextures, _textures.length);
+            throw new OGL3NotEnoughTexturesException(count, _textures.length);
         }
     }
 
@@ -926,7 +948,7 @@ class OGL3Backend implements IRendererBackend
                     case Backbuffer:
                         updateTextureFramebuffer(_requested);
                     case Texture(_current):
-                        if (_current.id != _requested.id)
+                        if (_current != _requested)
                         {
                             updateTextureFramebuffer(_requested);
                         }
@@ -936,11 +958,11 @@ class OGL3Backend implements IRendererBackend
         target = _newTarget;
     }
 
-    function updateShader(_newShader : ShaderResource)
+    function updateShader(_newShader : ResourceID)
     {
         if (_newShader != shader)
         {
-            glUseProgram(shaderPrograms.get(_newShader.id));
+            glUseProgram(shaderPrograms[_newShader]);
 
             shader = _newShader;
         }
@@ -1085,27 +1107,27 @@ class OGL3Backend implements IRendererBackend
      * If a framebuffer does not exist for the image, create one and store it.
      * @param _image Image to bind a framebuffer for.
      */
-    function updateTextureFramebuffer(_image : ImageResource)
+    function updateTextureFramebuffer(_image : ResourceID)
     {
-        if (!framebufferObjects.exists(_image.id))
+        if (!framebufferObjects.exists(_image))
         {
             // Create the framebuffer
             var fbo = [ 0 ];
             glGenFramebuffers(1, fbo);
             glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureObjects.get(_image.id), 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureObjects[_image], 0);
 
             if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             {
-                throw new OGL3IncompleteFramebufferException(_image.id);
+                throw new OGL3IncompleteFramebufferException(Std.string(_image));
             }
 
-            framebufferObjects.set(_image.id, fbo[0]);
+            framebufferObjects.set(_image, fbo[0]);
 
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
-        glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects.get(_image.id));
+        glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects[_image]);
     }
 
     /**
@@ -1179,7 +1201,7 @@ class OGL3Backend implements IRendererBackend
             case Backbuffer:
                 glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
             case Texture(_image):
-                glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects.get(_image.id));
+                glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects[_image]);
         }
 
         for (i in 0...GL_MAX_TEXTURE_IMAGE_UNITS)
@@ -1243,7 +1265,7 @@ private class BackBuffer
 /**
  * Stores the location of all a shaders uniforms
  */
-private class ShaderLocations
+private class ShaderInformation
 {
     /**
      * Layout of the shader.
@@ -1260,11 +1282,24 @@ private class ShaderLocations
      */
     public final blockBindings : Array<Int>;
 
-    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockBindings : Array<Int>)
+    public function new(_layout, _textureLocations, _blockBindings)
     {
         layout           = _layout;
         textureLocations = _textureLocations;
         blockBindings    = _blockBindings;
+    }
+}
+
+private class TextureInformation
+{
+    public final width : Int;
+
+    public final height : Int;
+
+    public function new(_width, _height)
+    {
+        width  = _width;
+        height = _height;
     }
 }
 
