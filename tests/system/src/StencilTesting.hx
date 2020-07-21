@@ -30,6 +30,7 @@ class StencilTesting extends Flurry
         camera.update(0);
 
         final batcher1 = renderer.createBatcher({
+            depth  : 0,
             shader : resources.getByName('textured', ShaderResource),
             camera : camera,
             depthOptions : {
@@ -44,17 +45,18 @@ class StencilTesting extends Flurry
                 stencilFrontFunction: Always,
                 stencilFrontTestFail: Keep,
                 stencilFrontDepthTestFail: Keep,
-                stencilFrontDepthTestPass: Keep,
+                stencilFrontDepthTestPass: Replace,
 
                 stencilBackMask: 0xff,
                 stencilBackFunction: Always,
                 stencilBackTestFail: Keep,
                 stencilBackDepthTestFail: Keep,
-                stencilBackDepthTestPass: Keep
+                stencilBackDepthTestPass: Replace
             }
         });
 
         final batcher2 = renderer.createBatcher({
+            depth  : 1,
             shader : resources.getByName('purple', ShaderResource),
             camera : camera,
             depthOptions : {
@@ -66,16 +68,16 @@ class StencilTesting extends Flurry
                 stencilTesting: true,
 
                 stencilFrontMask: 0x00,
-                stencilFrontFunction: Always,
+                stencilFrontFunction: NotEqual,
                 stencilFrontTestFail: Keep,
                 stencilFrontDepthTestFail: Keep,
-                stencilFrontDepthTestPass: Keep,
+                stencilFrontDepthTestPass: Replace,
 
                 stencilBackMask: 0x00,
-                stencilBackFunction: Always,
+                stencilBackFunction: NotEqual,
                 stencilBackTestFail: Keep,
                 stencilBackDepthTestFail: Keep,
-                stencilBackDepthTestPass: Keep
+                stencilBackDepthTestPass: Replace
             }
         });
 
