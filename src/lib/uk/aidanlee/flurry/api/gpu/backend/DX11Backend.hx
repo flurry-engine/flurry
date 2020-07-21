@@ -1150,16 +1150,7 @@ class DX11Backend implements IRendererBackend
         updateTextures(_command.shader, _command.textures, _command.samplers);
         updateBlend(_command.blending);
         updateTopology(_command.primitive);
-
-        if (updateDepth(_command.depth) || updateStencil(_command.stencil))
-        {
-            if (device.createDepthStencilState(depthStencilDescription, depthStencilState) != Ok)
-            {
-                throw new Dx11ResourceCreationException('ID3D11DepthStencilState');
-            }
-
-            context.omSetDepthStencilState(depthStencilState, 1);
-        }
+        updateDepthStencil(_command.depth, _command.stencil);
 
         switch _command.camera.viewport
         {
@@ -1235,9 +1226,11 @@ class DX11Backend implements IRendererBackend
         shader = _newShader;
     }
 
-    function updateDepth(_newDepth : DepthState) : Bool
+    function updateDepthStencil(_newDepth : DepthState, _newStencil : StencilState)
     {
-        if (!_newDepth.equals(depth))
+        var update = false;
+        
+        if (!depth.equals(_newDepth))
         {
             depthStencilDescription.depthEnable    = _newDepth.depthTesting;
             depthStencilDescription.depthWriteMask = _newDepth.depthMasking ? All : Zero;
@@ -1245,17 +1238,10 @@ class DX11Backend implements IRendererBackend
 
             depth.copyFrom(_newDepth);
 
-            return true;
+            update = true;
         }
-        else
-        {
-            return false;
-        }
-    }
 
-    function updateStencil(_newStencil : StencilState) : Bool
-    {
-        if (!_newStencil.equals(stencil))
+        if (!stencil.equals(_newStencil))
         {
             depthStencilDescription.stencilEnable = _newStencil.stencilTesting;
 
@@ -1271,11 +1257,17 @@ class DX11Backend implements IRendererBackend
 
             stencil.copyFrom(_newStencil);
 
-            return true;
+            update = true;
         }
-        else
+
+        if (update)
         {
-            return false;
+            if (device.createDepthStencilState(depthStencilDescription, depthStencilState) != Ok)
+            {
+                throw new Dx11ResourceCreationException('ID3D11DepthStencilState');
+            }
+
+            context.omSetDepthStencilState(depthStencilState, 1);
         }
     }
 
