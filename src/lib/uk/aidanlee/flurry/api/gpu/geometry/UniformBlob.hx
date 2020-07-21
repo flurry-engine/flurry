@@ -46,7 +46,7 @@ class UniformBlob
      */
     public function new(_name : String, _buffer : BufferData, _locations : Map<String, Int>)
     {
-        id        = Hash.hash(_name);
+        id        = Hash.uniqueHash();
         name      = _name;
         buffer    = _buffer;
         locations = _locations;
