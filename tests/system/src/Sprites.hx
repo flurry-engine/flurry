@@ -22,8 +22,8 @@ class Sprites extends Flurry
     override function onReady()
     {
         final camera  = renderer.createCamera2D(display.width, display.height);
-        final batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
-        final sprite  = resources.get('character', SpriteResource);
+        final batcher = renderer.createBatcher({ shader : resources.getByName('textured', ShaderResource), camera : camera });
+        final sprite  = resources.getByName('character', SpriteResource);
 
         for (i in 0...sprite.animations['default'].length)
         {

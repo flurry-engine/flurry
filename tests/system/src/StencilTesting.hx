@@ -30,7 +30,7 @@ class StencilTesting extends Flurry
         camera.update(0);
 
         final batcher1 = renderer.createBatcher({
-            shader : resources.get('textured', ShaderResource),
+            shader : resources.getByName('textured', ShaderResource),
             camera : camera,
             depthOptions : {
                 depthTesting: true,
@@ -55,7 +55,7 @@ class StencilTesting extends Flurry
         });
 
         final batcher2 = renderer.createBatcher({
-            shader : resources.get('purple', ShaderResource),
+            shader : resources.getByName('purple', ShaderResource),
             camera : camera,
             depthOptions : {
                 depthTesting: false,
@@ -79,7 +79,7 @@ class StencilTesting extends Flurry
             }
         });
 
-        final frame = resources.get('wood', ImageFrameResource);
+        final frame = resources.getByName('wood', ImageFrameResource);
         final data  = UnIndexed(new VertexBlobBuilder()
             .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v1)
             .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
@@ -157,7 +157,7 @@ class StencilTesting extends Flurry
     {
         return new Geometry({
             batchers : [ _batcher ],
-            textures : Textures([ _frame ]),
+            textures : Some([ _frame.image ]),
             data     : _data
         });
     }

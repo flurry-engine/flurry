@@ -29,35 +29,35 @@ class RenderTarget extends Flurry
         final camera1  = renderer.createCamera2D(display.width, display.height);
         final camera2  = renderer.createCamera2D(256, 256);
         final batcher1 = renderer.createBatcher({
-            shader : resources.get('textured', ShaderResource),
+            shader : resources.getByName('textured', ShaderResource),
             camera : camera1
         });
         final batcher2 = renderer.createBatcher({
-            shader : resources.get('textured', ShaderResource),
+            shader : resources.getByName('textured', ShaderResource),
             camera : camera2,
-            target : Texture(resources.get('surface', ImageResource))
+            target : Texture(resources.getByName('surface', ImageResource).id)
         });
 
         // Drawn to target
         new QuadGeometry({
-            texture  : resources.get('tank3', ImageFrameResource),
+            texture  : resources.getByName('tank3', ImageFrameResource),
             batchers : [ batcher2 ],
             x : 0, y : 0, width : 256, height : 256
         });
 
         // Drawn to backbuffer
         new QuadGeometry({
-            texture  : resources.get('tank1', ImageFrameResource),
+            texture  : resources.getByName('tank1', ImageFrameResource),
             batchers : [ batcher1 ],
             x : 0, y : 128, width : 256, height : 256
         });
         new QuadGeometry({
-            texture  : resources.get('tank2', ImageFrameResource),
+            texture  : resources.getByName('tank2', ImageFrameResource),
             batchers : [ batcher1 ],
             x : 256, y : 128, width : 256, height : 256
         });
         new QuadGeometry({
-            texture  : resources.get('surface_frame', ImageFrameResource),
+            texture  : resources.getByName('surface_frame', ImageFrameResource),
             batchers : [ batcher1 ],
             x : 512, y : 128, width : 256, height : 256
         });

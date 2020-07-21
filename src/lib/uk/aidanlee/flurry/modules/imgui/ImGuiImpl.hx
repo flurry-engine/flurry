@@ -36,10 +36,8 @@ class ImGuiImpl
     final resources : ResourceSystem;
     final input     : Input;
     final renderer  : Renderer;
-    final shader    : ShaderResource;
-    
-    final texture  : ImageResource;
-    final frame    : ImageFrameResource;
+    final shader    : ResourceID;
+    final texture  : ResourceID;
     final camera   : Camera2D;
     final depth    : DepthState;
     final stencil  : StencilState;
@@ -47,7 +45,7 @@ class ImGuiImpl
 
     final onTextSubscription : ISubscription;
 
-    public function new(_events : FlurryEvents, _display : Display, _resources : ResourceSystem, _input : Input, _renderer : Renderer, _shader : ShaderResource)
+    public function new(_events : FlurryEvents, _display : Display, _resources : ResourceSystem, _input : Input, _renderer : Renderer, _shader : ResourceID)
     {
         events    = _events;
         display   = _display;
@@ -115,23 +113,17 @@ class ImGuiImpl
 
         io.fonts.getTexDataAsRGBA32(pixelPtr, width, height, bpp);
 
-        texture = new ImageResource(
+        final img = new ImageResource(
             'imgui_texture',
             width,
             height,
             BGRAUNorm,
             Pointer.fromStar(pixels).toUnmanagedArray(width * height * bpp));
-        frame = new ImageFrameResource(
-            'imgui_frame',
-            'imgui_texture',
-            0, 0, texture.width, texture.height,
-            0, 0, 1, 1);
-        
-        io.fonts.texID = cast Pointer.addressOf(frame).ptr;
 
-        resources.addResource(texture);
-        resources.addResource(frame);
+        resources.addResource(img);
 
+        texture            = img.id;
+        io.fonts.texID     = cast Pointer.addressOf(texture).ptr;
         onTextSubscription = events.input.textInput.subscribeFunction(onTextInput);
     }
 
@@ -193,9 +185,6 @@ class ImGuiImpl
     public function dispose()
     {
         onTextSubscription.unsubscribe();
-
-        resources.removeResource(frame);
-        resources.removeResource(texture);
     }
 
     /**
@@ -248,7 +237,7 @@ class ImGuiImpl
             for (j in 0...cmdList.cmdBuffer.size())
             {
                 final draw = cmdBuffer[j];
-                final t : Pointer<ImageFrameResource> = Pointer.fromStar(draw.textureId).reinterpret();
+                final rid : Pointer<ResourceID> = Pointer.fromStar(draw.textureId).reinterpret();
 
                 renderer.backend.queue(
                     new DrawCommand(
@@ -267,7 +256,7 @@ class ImGuiImpl
                         Backbuffer,
                         shader,
                         [],
-                        [ t.value ],
+                        [ rid.value ],
                         [],
                         depth,
                         stencil,

@@ -29,7 +29,7 @@ class DepthTesting extends Flurry
         camera.update(0);
 
         final batcher = renderer.createBatcher({
-            shader : resources.get('textured', ShaderResource),
+            shader : resources.getByName('textured', ShaderResource),
             camera : camera,
             depthOptions : {
                 depthTesting: true,
@@ -38,7 +38,7 @@ class DepthTesting extends Flurry
             }
         });
 
-        final frame = resources.get('wood', ImageFrameResource);
+        final frame = resources.getByName('wood', ImageFrameResource);
         final cube  = UnIndexed(new VertexBlobBuilder()
             .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v1)
             .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
@@ -100,7 +100,7 @@ class DepthTesting extends Flurry
 
         final cubes = [ for (_ in 0...10) new Geometry({
             batchers : [ batcher ],
-            textures : Textures([ frame ]),
+            textures : Some([ frame.image ]),
             data     : cube
         }) ];
 

@@ -193,7 +193,7 @@ using rx.Observable;
      * @param _type Class type of the resource.
      * @return T
      */
-    @:deprecated('')
+    @:deprecated('Use getByName instead')
     public function get<T : Resource>(_id : String, _type : Class<T>) : T
     {
         return getByName(_id, _type);
