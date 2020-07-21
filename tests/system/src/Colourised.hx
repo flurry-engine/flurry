@@ -23,7 +23,7 @@ class Colourised extends Flurry
     {
         final camera  = renderer.createCamera2D(display.width, display.height);
         final batcher = renderer.createBatcher({
-            shader : resources.getByName('textured', ShaderResource),
+            shader : resources.getByName('textured', ShaderResource).id,
             camera : camera
         });
 

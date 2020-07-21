@@ -23,7 +23,7 @@ class Text extends Flurry
     override function onReady()
     {
         final camera  = renderer.createCamera2D(display.width, display.height);
-        final batcher = renderer.createBatcher({ shader : resources.getByName('msdf', ShaderResource), camera : camera });
+        final batcher = renderer.createBatcher({ shader : resources.getByName('msdf', ShaderResource).id, camera : camera });
         final sampler = new SamplerState(Clamp, Clamp, Linear, Linear);
 
         new TextGeometry({

@@ -29,7 +29,7 @@ class DepthTesting extends Flurry
         camera.update(0);
 
         final batcher = renderer.createBatcher({
-            shader : resources.getByName('textured', ShaderResource),
+            shader : resources.getByName('textured', ShaderResource).id,
             camera : camera,
             depthOptions : {
                 depthTesting: true,

@@ -22,7 +22,7 @@ class TransformationTree extends Flurry
     override function onReady()
     {
         final camera  = renderer.createCamera2D(display.width, display.height);
-        final batcher = renderer.createBatcher({ shader : resources.getByName('textured', ShaderResource), camera : camera });
+        final batcher = renderer.createBatcher({ shader : resources.getByName('textured', ShaderResource).id, camera : camera });
 
         final g1 = new QuadGeometry({ texture : resources.getByName('tank1', ImageFrameResource), batchers : [ batcher ], x : 256, y : 128, width : 256, height : 256 });
 

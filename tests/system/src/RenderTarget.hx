@@ -29,11 +29,11 @@ class RenderTarget extends Flurry
         final camera1  = renderer.createCamera2D(display.width, display.height);
         final camera2  = renderer.createCamera2D(256, 256);
         final batcher1 = renderer.createBatcher({
-            shader : resources.getByName('textured', ShaderResource),
+            shader : resources.getByName('textured', ShaderResource).id,
             camera : camera1
         });
         final batcher2 = renderer.createBatcher({
-            shader : resources.getByName('textured', ShaderResource),
+            shader : resources.getByName('textured', ShaderResource).id,
             camera : camera2,
             target : Texture(resources.getByName('surface', ImageResource).id)
         });

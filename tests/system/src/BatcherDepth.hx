@@ -22,9 +22,9 @@ class BatcherDepth extends Flurry
     override function onReady()
     {
         final camera   = renderer.createCamera2D(display.width, display.height);
-        final batcher1 = renderer.createBatcher({ shader : resources.getByName('textured', ShaderResource), camera : camera, depth : 1 });
-        final batcher2 = renderer.createBatcher({ shader : resources.getByName('textured', ShaderResource), camera : camera, depth : 0 });
-        final batcher3 = renderer.createBatcher({ shader : resources.getByName('textured', ShaderResource), camera : camera, depth : 2 });
+        final batcher1 = renderer.createBatcher({ shader : resources.getByName('textured', ShaderResource).id, camera : camera, depth : 1 });
+        final batcher2 = renderer.createBatcher({ shader : resources.getByName('textured', ShaderResource).id, camera : camera, depth : 0 });
+        final batcher3 = renderer.createBatcher({ shader : resources.getByName('textured', ShaderResource).id, camera : camera, depth : 2 });
 
         new QuadGeometry({
             texture  : resources.getByName('tank1', ImageFrameResource),

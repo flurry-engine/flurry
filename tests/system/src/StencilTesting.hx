@@ -31,7 +31,7 @@ class StencilTesting extends Flurry
 
         final batcher1 = renderer.createBatcher({
             depth  : 0,
-            shader : resources.getByName('textured', ShaderResource),
+            shader : resources.getByName('textured', ShaderResource).id,
             camera : camera,
             depthOptions : {
                 depthTesting: true,
@@ -57,7 +57,7 @@ class StencilTesting extends Flurry
 
         final batcher2 = renderer.createBatcher({
             depth  : 1,
-            shader : resources.getByName('purple', ShaderResource),
+            shader : resources.getByName('purple', ShaderResource).id,
             camera : camera,
             depthOptions : {
                 depthTesting: false,
