@@ -148,37 +148,37 @@ jobs:
         buildPlatform: $(Agent.OS)
         failTaskOnFailedTests: true
 
-  # - job: SystemTestsD3D11
-  #   displayName: System Tests (D3D11 Backend)
-  #   pool:
-  #     name: Default
-  #     demands:
-  #       - Agent.OS -equals Windows_NT
-  #   steps:
-  #   - script: |
-  #       npm ci
+  - job: SystemTestsD3D11
+    displayName: System Tests (D3D11 Backend)
+    pool:
+      name: Default
+      demands:
+        - Agent.OS -equals Windows_NT
+    steps:
+    - script: |
+        npm ci
         
-  #       python -m pip install --upgrade pip pytest pytest-subtests pillow pixelmatch d3dshot pywin32 numpy
+        python -m pip install --upgrade pip pytest pytest-subtests pillow pixelmatch d3dshot pywin32 numpy
 
-  #       cd ((npx haxelib path hxcpp) 2>&1)[1]
-  #       npm install lix
-  #       cd tools/hxcpp
-  #       npx haxe compile.hxml
-  #     displayName: Install Dependencies
-  #     workingDirectory: $(Build.SourcesDirectory)
-  #     env:
-  #       AGENT_OS: $(Agent.OS)
-  #   - script: python -m pytest -o junit_family=xunit2 --junit-xml test-d3d11-system.xml -s TestWindowsD3D11.py
-  #     displayName: System Tests
-  #     workingDirectory: $(Build.SourcesDirectory)/tests/system
-  #     env:
-  #       AGENT_OS: $(Agent.OS)
-  #   - task: PublishTestResults@2
-  #     condition: succeededOrFailed()
-  #     inputs:
-  #       testResultsFormat: JUnit
-  #       testResultsFiles: test-d3d11-system.xml
-  #       searchFolder: $(Build.SourcesDirectory)/tests/system
-  #       testRunTitle: System Tests $(Agent.OS)
-  #       buildPlatform: $(Agent.OS)
-  #       failTaskOnFailedTests: true
+        cd ((npx haxelib path hxcpp) 2>&1)[1]
+        npm install lix
+        cd tools/hxcpp
+        npx haxe compile.hxml
+      displayName: Install Dependencies
+      workingDirectory: $(Build.SourcesDirectory)
+      env:
+        AGENT_OS: $(Agent.OS)
+    - script: python -m pytest -o junit_family=xunit2 --junit-xml test-d3d11-system.xml -s TestWindowsD3D11.py
+      displayName: System Tests
+      workingDirectory: $(Build.SourcesDirectory)/tests/system
+      env:
+        AGENT_OS: $(Agent.OS)
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: JUnit
+        testResultsFiles: test-d3d11-system.xml
+        searchFolder: $(Build.SourcesDirectory)/tests/system
+        testRunTitle: System Tests $(Agent.OS)
+        buildPlatform: $(Agent.OS)
+        failTaskOnFailedTests: true
