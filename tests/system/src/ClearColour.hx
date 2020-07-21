@@ -16,6 +16,11 @@ class ClearColour extends Flurry
         _config.renderer.ogl3.clearColour.z = 0.94;
         _config.renderer.ogl3.clearColour.w = 1;
 
+        _config.renderer.dx11.clearColour.x = 0.34;
+        _config.renderer.dx11.clearColour.y = 0.10;
+        _config.renderer.dx11.clearColour.z = 0.94;
+        _config.renderer.dx11.clearColour.w = 1;
+
         return _config;
     }
 }
