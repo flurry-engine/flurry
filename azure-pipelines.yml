@@ -157,7 +157,13 @@ jobs:
     steps:
     - script: |
         npm ci
+        
         python -m pip install --upgrade pip pytest pytest-subtests pillow pixelmatch d3dshot pywin32 numpy
+
+        cd ((npx haxelib path hxcpp) 2>&1)[1]
+        npm install lix
+        cd tools/hxcpp
+        npx haxe compile.hxml
       displayName: Install Dependencies
       workingDirectory: $(Build.SourcesDirectory)
       env:
