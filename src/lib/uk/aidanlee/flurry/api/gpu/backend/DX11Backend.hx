@@ -311,7 +311,7 @@ class DX11Backend implements IRendererBackend
 
         if (!success)
         {
-            throw new Exception('Unable to get DXGI information for the main SDL window');
+            throw new Exception('Unable to get DXGI information for the main SDL window : ${ SDL.getError() }');
         }
 
         shaderResources  = [];
