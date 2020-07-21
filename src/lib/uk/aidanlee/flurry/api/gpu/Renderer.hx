@@ -152,7 +152,7 @@ class Renderer
                     case Backbuffer: return -1;
                     case Texture(_imageB):
                         if (_imageA < _imageB) return -1;
-                        if (_imageA < _imageB) return  1;
+                        if (_imageA > _imageB) return  1;
                 }
         }
 
