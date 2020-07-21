@@ -34,8 +34,8 @@ class QuadGeometry extends Geometry
                     .addInt(0).addInt(1).addInt(2).addInt(2).addInt(1).addInt(3)
                     .indexBlob()
             ),
-            textures : Textures([ _options.texture ]),
-            samplers : _options.sampler == null ? None : Samplers([ _options.sampler ]),
+            textures : Some([ _options.texture.image ]),
+            samplers : _options.sampler == null ? None : Some([ _options.sampler ]),
             shader   : _options.shader,
             uniforms : _options.uniforms,
             depth    : _options.depth,
@@ -78,24 +78,10 @@ class QuadGeometry extends Geometry
      * @param _y Top left y coordinate.
      * @param _z Bottom right x coordinate.
      * @param _w Bottom right y coordinate.
-     * @param _normalized 
      */
-    public function uv(_x : Float, _y : Float, _z : Float, _w : Float, _normalized : Bool = true)
+    public function uv(_x : Float, _y : Float, _z : Float, _w : Float)
     {
-        switch textures
-        {
-            case None: //
-            case Textures(_textures):
-                final width  = _textures[0].width;
-                final height = _textures[0].height;
-
-                final uv_x = _normalized ? _x : _x / width;
-                final uv_y = _normalized ? _y : _y / height;
-                final uv_w = _normalized ? _z : _z / width;
-                final uv_h = _normalized ? _w : _w / height;
-
-                updateUVs(uv_x, uv_y, uv_w, uv_h);
-        }
+        updateUVs(_x, _y, _z, _w);
     }
 
     /**
@@ -107,12 +93,12 @@ class QuadGeometry extends Geometry
         final replace = switch textures
         {
             case None: true;
-            case Textures(_frames): _frames.length < 1 || _frames[0].id != _frame.id;
+            case Some(_frames): _frames.length < 1 || _frames[0] != _frame.image;
         }
 
         if (replace)
         {
-            textures = Textures([ _frame ]);
+            textures = Some([ _frame.image ]);
         }
 
         updateSize(_frame.width, _frame.height);

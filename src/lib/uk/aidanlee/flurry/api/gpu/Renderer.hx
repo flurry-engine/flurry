@@ -151,14 +151,14 @@ class Renderer
                 {
                     case Backbuffer: return -1;
                     case Texture(_imageB):
-                        if (_imageA.id < _imageB.id) return -1;
-                        if (_imageA.id < _imageB.id) return  1;
+                        if (_imageA < _imageB) return -1;
+                        if (_imageA < _imageB) return  1;
                 }
         }
 
         // Lastly shader
-        if (_a.shader.id < _b.shader.id) return -1;
-        if (_a.shader.id > _b.shader.id) return  1;
+        if (_a.shader < _b.shader) return -1;
+        if (_a.shader > _b.shader) return  1;
 
         return 0;
     }

@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 import haxe.io.Bytes;
 import haxe.io.BytesBuffer;
 import uk.aidanlee.flurry.api.maths.Hash;
@@ -17,7 +18,7 @@ class UniformBlob
      * ID of the uniform blob.
      * This ID is the name hashed.
      */
-    public final id : Int;
+    public final id : ResourceID;
 
     /**
      * The name of the uniform blob.

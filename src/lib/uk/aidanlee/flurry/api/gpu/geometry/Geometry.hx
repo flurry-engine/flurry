@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import haxe.ds.Option;
 import haxe.ds.ReadOnlyArray;
 import rx.Unit;
 import rx.Subject;
@@ -15,8 +16,7 @@ import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Transformation;
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 
 using Safety;
 
@@ -26,29 +26,13 @@ enum GeometryData
     UnIndexed(_vertices : VertexBlob);
 }
 
-enum GeometryShader
-{
-    None;
-    Shader(_shader : ShaderResource);
-}
+typedef GeometryShader = Option<ResourceID>;
 
-enum GeometryUniforms
-{
-    None;
-    Uniforms(_uniforms : ReadOnlyArray<UniformBlob>);
-}
+typedef GeometryUniforms = Option<ReadOnlyArray<UniformBlob>>;
 
-enum GeometryTextures
-{
-    None;
-    Textures(_textures : ReadOnlyArray<ImageFrameResource>);
-}
+typedef GeometryTextures = Option<ReadOnlyArray<ResourceID>>;
 
-enum GeometrySamplers
-{
-    None;
-    Samplers(_samplers : ReadOnlyArray<SamplerState>);
-}
+typedef GeometrySamplers = Option<ReadOnlyArray<SamplerState>>;
 
 /**
  * The geometry class is the primary way of displaying visuals to the screen.

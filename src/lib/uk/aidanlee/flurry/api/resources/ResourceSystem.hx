@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.resources;
 
+import uk.aidanlee.flurry.api.maths.Hash;
 import haxe.Exception;
 import haxe.io.Path;
 import haxe.ds.ReadOnlyArray;
@@ -42,18 +43,18 @@ using rx.Observable;
      * Map of a parcels ID to all the resources IDs contained within it.
      * Stored since the parcel could be modified by the user and theres no way to know whats inside a pre-packed parcel until its unpacked.
      */
-    final parcelResources : Map<String, Array<String>>;
+    final parcelResources : Map<String, Array<ResourceID>>;
 
     /**
      * All resources stored in this system, keyed by their name.
      */
-    final resourceCache : Map<String, Resource>;
+    final resourceCache : Map<Int, Resource>;
 
     /**
      * How many parcels reference each resource.
      * Prevents storing multiple of the same resource and ensures they aren't removed when still in use.
      */
-    final resourceReferences : Map<String, Int>;
+    final resourceReferences : Map<Int, Int>;
 
     /**
      * Creates a new resources system.
@@ -192,7 +193,18 @@ using rx.Observable;
      * @param _type Class type of the resource.
      * @return T
      */
+    @:deprecated('')
     public function get<T : Resource>(_id : String, _type : Class<T>) : T
+    {
+        return getByName(_id, _type);
+    }
+
+    public function getByName<T : Resource>(_name : String, _type : Class<T>) : T
+    {
+        return getByID(Hash.hash(_name), _type);
+    }
+
+    public function getByID<T : Resource>(_id : ResourceID, _type : Class<T>) : T
     {
         if (resourceCache.exists(_id))
         {
@@ -265,7 +277,7 @@ using rx.Observable;
 
 class InvalidResourceTypeException extends Exception
 {
-    public function new(_resource : String, _type : String)
+    public function new(_resource : ResourceID, _type : String)
     {
         super('resource $_resource is not a $_type');
     }
@@ -273,7 +285,7 @@ class InvalidResourceTypeException extends Exception
 
 class ResourceNotFoundException extends Exception
 {
-    public function new(_resource : String)
+    public function new(_resource : ResourceID)
     {
         super('failed to load "$_resource", it does not exist in the system');
     }
@@ -286,7 +298,7 @@ class ResourceNotFoundException extends Exception
 private enum ParcelEvent
 {
     Resource(_resource : Resource);
-    List(_name : String, _list : Array<String>);
+    List(_name : String, _list : Array<ResourceID>);
     Progress(_value : Float);
 }
 

@@ -72,8 +72,8 @@ class TextGeometry extends Geometry
     {
         super({
             data     : generateGeometry(_options.font, _options.text),
-            textures : Textures([ _options.font ]),
-            samplers : _options.sampler == null ? None : Samplers([ _options.sampler ]),
+            textures : Some([ _options.font.image ]),
+            samplers : _options.sampler == null ? None : Some([ _options.sampler ]),
             shader   : _options.shader,
             uniforms : _options.uniforms,
             depth    : _options.depth,
@@ -119,7 +119,7 @@ class TextGeometry extends Geometry
 
                 if (char == null)
                 {
-                    throw new CharacterNotFoundException(code, _font.id);
+                    throw new CharacterNotFoundException(code, _font.name);
                 }
 
                 addCharacter(vtxBuilder, idxBuilder, char, index, xCursor, yCursor);
