@@ -91,7 +91,7 @@ class ImGuiImpl
         final width  = 0;
         final height = 0;
         final bpp    = 0;
-        
+
         final pWidth  : IntPointer = width;
         final pHeight : IntPointer = height;
         final pBpp    : IntPointer = bpp;
@@ -107,8 +107,6 @@ class ImGuiImpl
             pHeight,
             BGRAUNorm,
             Pointer.fromStar(pixels).toUnmanagedArray(pWidth.toInt() * pHeight.toInt() * pBpp.toInt()));
-
-        trace(pWidth.toInt(), pHeight.toInt(), pBpp.toInt());
 
         resources.addResource(img);
 
