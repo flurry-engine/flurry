@@ -403,11 +403,7 @@ class Batcher
     /**
      * Depth testing options to be used by the batcher.
      */
-    public final depthOptions : DepthState = {
-        depthTesting  : false,
-        depthMasking  : false,
-        depthFunction : Always
-    };
+    public final depthOptions = DepthState.none;
 
     /**
      * Stencil testing options to be used by the batcher.

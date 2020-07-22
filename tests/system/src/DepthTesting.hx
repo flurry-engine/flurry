@@ -1,5 +1,6 @@
 package;
 
+import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.maths.Maths;
@@ -31,11 +32,7 @@ class DepthTesting extends Flurry
         final batcher = renderer.createBatcher({
             shader : resources.getByName('textured', ShaderResource).id,
             camera : camera,
-            depthOptions : {
-                depthTesting: true,
-                depthMasking: true,
-                depthFunction: LessThan
-            }
+            depthOptions : new DepthState(true, true, LessThan)
         });
 
         final frame = resources.getByName('wood', ImageFrameResource);

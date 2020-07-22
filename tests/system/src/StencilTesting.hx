@@ -1,5 +1,6 @@
 package;
 
+import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -33,11 +34,7 @@ class StencilTesting extends Flurry
             depth  : 0,
             shader : resources.getByName('textured', ShaderResource).id,
             camera : camera,
-            depthOptions : {
-                depthTesting: true,
-                depthMasking: true,
-                depthFunction: LessThan
-            },
+            depthOptions : new DepthState(true, true, LessThan),
             stencilOptions: {
                 stencilTesting: true,
 
@@ -59,11 +56,7 @@ class StencilTesting extends Flurry
             depth  : 1,
             shader : resources.getByName('purple', ShaderResource).id,
             camera : camera,
-            depthOptions : {
-                depthTesting: false,
-                depthMasking: true,
-                depthFunction: LessThan
-            },
+            depthOptions : new DepthState(false, true, LessThan),
             stencilOptions: {
                 stencilTesting: true,
 

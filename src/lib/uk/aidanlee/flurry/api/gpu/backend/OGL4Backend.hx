@@ -216,8 +216,8 @@ class OGL4Backend implements IRendererBackend
     final clip     : Rectangle;
     final viewport : Rectangle;
     final blend    : BlendState;
-    final depth    : DepthState;
     final stencil  : StencilState;
+    var depth      : DepthState;
     var ssbo : Int;
     var cmds : Int;
 
@@ -336,11 +336,7 @@ class OGL4Backend implements IRendererBackend
         viewport     = new Rectangle();
         clip         = new Rectangle();
         blend        = new BlendState();
-        depth        = {
-            depthTesting  : false,
-            depthMasking  : false,
-            depthFunction : Always
-        };
+        depth        = new DepthState(false, false, Always);
         stencil      = {
             stencilTesting : false,
 
@@ -1063,29 +1059,29 @@ class OGL4Backend implements IRendererBackend
 
     function updateDepth(_newDepth : DepthState)
     {
-        if (!_newDepth.equals(depth))
+        if (_newDepth != depth)
         {
-            if (!_newDepth.depthTesting)
+            if (!_newDepth.enabled)
             {
                 glDisable(GL_DEPTH_TEST);
             }
             else
             {
-                if (_newDepth.depthTesting != depth.depthTesting)
+                if (_newDepth.enabled != depth.enabled)
                 {
                     glEnable(GL_DEPTH_TEST);
                 }
-                if (_newDepth.depthMasking != depth.depthMasking)
+                if (_newDepth.masking != depth.masking)
                 {
-                    glDepthMask(_newDepth.depthMasking);
+                    glDepthMask(_newDepth.masking);
                 }
-                if (_newDepth.depthFunction != depth.depthFunction)
+                if (_newDepth.func != depth.func)
                 {
-                    glDepthFunc(_newDepth.depthFunction.getComparisonFunc());
+                    glDepthFunc(_newDepth.func.getComparisonFunc());
                 }
             }
 
-            depth.copyFrom(_newDepth);
+            depth = _newDepth;
         }
     }
 

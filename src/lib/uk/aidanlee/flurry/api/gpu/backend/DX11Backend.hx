@@ -605,11 +605,7 @@ class DX11Backend implements IRendererBackend
         cmdClip      = new Rectangle();
         cmdViewport  = new Rectangle();
         blend        = new BlendState();
-        depth        = {
-            depthTesting  : false,
-            depthMasking  : false,
-            depthFunction : Always
-        };
+        depth        = DepthState.none;
         stencil      = {
             stencilTesting : false,
 
@@ -1230,13 +1226,13 @@ class DX11Backend implements IRendererBackend
     {
         var update = false;
         
-        if (!depth.equals(_newDepth))
+        if (depth != _newDepth)
         {
-            depthStencilDescription.depthEnable    = _newDepth.depthTesting;
-            depthStencilDescription.depthWriteMask = _newDepth.depthMasking ? All : Zero;
-            depthStencilDescription.depthFunction  = getComparisonFunction(_newDepth.depthFunction);
+            depthStencilDescription.depthEnable    = _newDepth.enabled;
+            depthStencilDescription.depthWriteMask = if (_newDepth.masking) All else Zero;
+            depthStencilDescription.depthFunction  = getComparisonFunction(_newDepth.func);
 
-            depth.copyFrom(_newDepth);
+            depth = _newDepth;
 
             update = true;
         }
