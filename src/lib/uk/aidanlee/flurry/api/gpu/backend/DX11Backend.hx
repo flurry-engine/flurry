@@ -309,15 +309,15 @@ class DX11Backend implements IRendererBackend
         {0} = SDL_DXGIGetOutputInfo(SDL_GetWindowDisplayIndex({1}), &{2}, &{3});
         {4} = info.info.win.window', success, window, adapterIdx, outputIdx, hwnd);
 
-        if (!success)
-        {
-            throw new Exception('Unable to get DXGI information for the main SDL window : ${ SDL.getError() }');
-        }
+        // if (!success)
+        // {
+        //     throw new Exception('Unable to get DXGI information for the main SDL window : ${ SDL.getError() }');
+        // }
 
         shaderResources  = [];
         textureResources = [];
-        shaderTextureResources = [ for (i in 0...16) null ];
-        shaderTextureSamplers  = [ for (i in 0...16) null ];
+        shaderTextureResources = [ for (_ in 0...16) null ];
+        shaderTextureSamplers  = [ for (_ in 0...16) null ];
 
         // Persistent D3D11 objects and descriptions
         swapchain               = new DxgiSwapChain1();
@@ -342,7 +342,7 @@ class DX11Backend implements IRendererBackend
         // Setup the DXGI factory and get this windows adapter and output.
         final factory = new DxgiFactory2();
         final adapter = new DxgiAdapter();
-        final output  = new DxgiOutput();
+        // final output  = new DxgiOutput();
 
         if (Dxgi.createFactory2(0, factory) != Ok)
         {
@@ -352,10 +352,10 @@ class DX11Backend implements IRendererBackend
         {
             throw new Exception('DXGI Failure enumerating adapter $adapterIdx');
         }
-        if (adapter.enumOutputs(outputIdx, output) != Ok)
-        {
-            throw new Exception('DXGI Failure enumerating output $outputIdx');
-        }
+        // if (adapter.enumOutputs(outputIdx, output) != Ok)
+        // {
+        //     throw new Exception('DXGI Failure enumerating output $outputIdx');
+        // }
 
         // Create the device, context, and swapchain.
         final description = new DxgiSwapChainDescription1();
