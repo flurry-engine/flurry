@@ -1,5 +1,6 @@
 package;
 
+import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
@@ -35,21 +36,7 @@ class StencilTesting extends Flurry
             shader : resources.getByName('textured', ShaderResource).id,
             camera : camera,
             depthOptions : new DepthState(true, true, LessThan),
-            stencilOptions: {
-                stencilTesting: true,
-
-                stencilFrontMask: 0xff,
-                stencilFrontFunction: Always,
-                stencilFrontTestFail: Keep,
-                stencilFrontDepthTestFail: Keep,
-                stencilFrontDepthTestPass: Replace,
-
-                stencilBackMask: 0xff,
-                stencilBackFunction: Always,
-                stencilBackTestFail: Keep,
-                stencilBackDepthTestFail: Keep,
-                stencilBackDepthTestPass: Replace
-            }
+            stencilOptions: new StencilState(true, Always, Keep, Keep, Replace, Always, Keep, Keep, Replace)
         });
 
         final batcher2 = renderer.createBatcher({
@@ -57,21 +44,7 @@ class StencilTesting extends Flurry
             shader : resources.getByName('purple', ShaderResource).id,
             camera : camera,
             depthOptions : new DepthState(false, true, LessThan),
-            stencilOptions: {
-                stencilTesting: true,
-
-                stencilFrontMask: 0x00,
-                stencilFrontFunction: NotEqual,
-                stencilFrontTestFail: Keep,
-                stencilFrontDepthTestFail: Keep,
-                stencilFrontDepthTestPass: Replace,
-
-                stencilBackMask: 0x00,
-                stencilBackFunction: NotEqual,
-                stencilBackTestFail: Keep,
-                stencilBackDepthTestFail: Keep,
-                stencilBackDepthTestPass: Replace
-            }
+            stencilOptions: new StencilState(true, NotEqual, Keep, Keep, Replace, NotEqual, Keep, Keep, Replace)
         });
 
         final frame = resources.getByName('wood', ImageFrameResource);

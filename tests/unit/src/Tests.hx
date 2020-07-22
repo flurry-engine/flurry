@@ -20,7 +20,8 @@ class Tests implements Buddy<[
 
     tests.api.input.InputTests,
 
-    tests.api.gpu.geometry.BlendingTests,
+    tests.api.gpu.state.BlendStateTests,
+    tests.api.gpu.state.StencilStateTests,
     tests.api.gpu.geometry.GeometryTests,
     tests.api.gpu.geometry.VertexBlobTests,
     tests.api.gpu.geometry.IndexBlobTests,

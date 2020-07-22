@@ -214,7 +214,7 @@ class OGL4Backend implements IRendererBackend
     var shader     : ResourceID;
     final clip     : Rectangle;
     final viewport : Rectangle;
-    final stencil  : StencilState;
+    var stencil    : StencilState;
     var blend      : BlendState;
     var depth      : DepthState;
     var ssbo : Int;
@@ -336,21 +336,7 @@ class OGL4Backend implements IRendererBackend
         clip         = new Rectangle();
         blend        = BlendState.none;
         depth        = DepthState.none;
-        stencil      = {
-            stencilTesting : false,
-
-            stencilFrontMask          : 0xff,
-            stencilFrontFunction      : Always,
-            stencilFrontTestFail      : Keep,
-            stencilFrontDepthTestFail : Keep,
-            stencilFrontDepthTestPass : Keep,
-            
-            stencilBackMask          : 0xff,
-            stencilBackFunction      : Always,
-            stencilBackTestFail      : Keep,
-            stencilBackDepthTestFail : Keep,
-            stencilBackDepthTestPass : Keep
-        };
+        stencil      = StencilState.none;
         shader = 0;
         target = Backbuffer;
         ssbo   = 0;
@@ -1085,62 +1071,62 @@ class OGL4Backend implements IRendererBackend
 
     function updateStencil(_newStencil : StencilState)
     {
-        if (!_newStencil.equals(stencil))
-        {
-            if (!_newStencil.stencilTesting)
+        if (_newStencil != stencil)
             {
-                glDisable(GL_STENCIL_TEST);
+                if (!_newStencil.enabled)
+                {
+                    glDisable(GL_STENCIL_TEST);
+                }
+                else
+                {
+                    if (_newStencil.enabled != stencil.enabled)
+                    {
+                        glEnable(GL_STENCIL_TEST);
+                    }
+    
+                    // Front tests
+                    // if (_newStencil.stencilFrontMask != stencil.stencilFrontMask)
+                    // {
+                    //     glStencilMaskSeparate(GL_FRONT, _newStencil.stencilFrontMask);
+                    // }
+                    if (_newStencil.frontFunc != stencil.frontFunc)
+                    {
+                        glStencilFuncSeparate(GL_FRONT, _newStencil.frontFunc.getComparisonFunc(), 1, 0xff);
+                    }
+                    if (_newStencil.frontTestFail != stencil.frontTestFail ||
+                        _newStencil.frontDepthTestFail != stencil.frontDepthTestFail ||
+                        _newStencil.frontDepthTestPass != stencil.frontDepthTestPass)
+                    {
+                        glStencilOpSeparate(
+                            GL_FRONT,
+                            _newStencil.frontTestFail.getStencilFunc(),
+                            _newStencil.frontDepthTestFail.getStencilFunc(),
+                            _newStencil.frontDepthTestPass.getStencilFunc());
+                    }
+    
+                    // Back tests
+                    // if (_newStencil.stencilBackMask != stencil.stencilBackMask)
+                    // {
+                    //     glStencilMaskSeparate(GL_BACK, _newStencil.stencilBackMask);
+                    // }
+                    if (_newStencil.backFunc != stencil.backFunc)
+                    {
+                        glStencilFuncSeparate(GL_BACK, _newStencil.backFunc.getComparisonFunc(), 1, 0xff);
+                    }
+                    if (_newStencil.backTestFail != stencil.backTestFail ||
+                        _newStencil.backDepthTestFail != stencil.backDepthTestFail ||
+                        _newStencil.backDepthTestPass != stencil.backDepthTestPass)
+                    {
+                        glStencilOpSeparate(
+                            GL_BACK,
+                            _newStencil.backTestFail.getStencilFunc(),
+                            _newStencil.backDepthTestFail.getStencilFunc(),
+                            _newStencil.backDepthTestPass.getStencilFunc());
+                    }
+                }
+    
+                stencil = _newStencil;
             }
-            else
-            {
-                if (_newStencil.stencilTesting != stencil.stencilTesting)
-                {
-                    glEnable(GL_STENCIL_TEST);
-                }
-
-                // Front tests
-                if (_newStencil.stencilFrontMask != stencil.stencilFrontMask)
-                {
-                    glStencilMaskSeparate(GL_FRONT, _newStencil.stencilFrontMask);
-                }
-                if (_newStencil.stencilFrontFunction != stencil.stencilFrontFunction)
-                {
-                    glStencilFuncSeparate(GL_FRONT, _newStencil.stencilFrontFunction.getComparisonFunc(), 1, 0xff);
-                }
-                if (_newStencil.stencilFrontTestFail != stencil.stencilFrontTestFail ||
-                    _newStencil.stencilFrontDepthTestFail != stencil.stencilFrontDepthTestFail ||
-                    _newStencil.stencilFrontDepthTestPass != stencil.stencilFrontDepthTestPass)
-                {
-                    glStencilOpSeparate(
-                        GL_FRONT,
-                        _newStencil.stencilFrontTestFail.getStencilFunc(),
-                        _newStencil.stencilFrontDepthTestFail.getStencilFunc(),
-                        _newStencil.stencilFrontDepthTestPass.getStencilFunc());
-                }
-
-                // Back tests
-                if (_newStencil.stencilBackMask != stencil.stencilBackMask)
-                {
-                    glStencilMaskSeparate(GL_BACK, _newStencil.stencilBackMask);
-                }
-                if (_newStencil.stencilBackFunction != stencil.stencilBackFunction)
-                {
-                    glStencilFuncSeparate(GL_BACK, _newStencil.stencilBackFunction.getComparisonFunc(), 1, 0xff);
-                }
-                if (_newStencil.stencilBackTestFail != stencil.stencilBackTestFail ||
-                    _newStencil.stencilBackDepthTestFail != stencil.stencilBackDepthTestFail ||
-                    _newStencil.stencilBackDepthTestPass != stencil.stencilBackDepthTestPass)
-                {
-                    glStencilOpSeparate(
-                        GL_BACK,
-                        _newStencil.stencilBackTestFail.getStencilFunc(),
-                        _newStencil.stencilBackDepthTestFail.getStencilFunc(),
-                        _newStencil.stencilBackDepthTestPass.getStencilFunc());
-                }
-            }
-
-            stencil.copyFrom(_newStencil);
-        }
     }
 
     function updateBlending(_newBlend : BlendState)

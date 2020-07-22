@@ -408,19 +408,5 @@ class Batcher
     /**
      * Stencil testing options to be used by the batcher.
      */
-    public final stencilOptions : StencilState = {
-        stencilTesting : false,
-
-        stencilFrontMask          : 0xff,
-        stencilFrontFunction      : Always,
-        stencilFrontTestFail      : Keep,
-        stencilFrontDepthTestFail : Keep,
-        stencilFrontDepthTestPass : Keep,
-        
-        stencilBackMask          : 0xff,
-        stencilBackFunction      : Always,
-        stencilBackTestFail      : Keep,
-        stencilBackDepthTestFail : Keep,
-        stencilBackDepthTestPass : Keep
-    };
+    public final stencilOptions = StencilState.none;
 }

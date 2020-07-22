@@ -602,25 +602,11 @@ class DX11Backend implements IRendererBackend
             _rendererConfig.clearColour.y,
             _rendererConfig.clearColour.z,
             _rendererConfig.clearColour.w ];
-        cmdClip      = new Rectangle();
-        cmdViewport  = new Rectangle();
-        blend        = BlendState.none;
-        depth        = DepthState.none;
-        stencil      = {
-            stencilTesting : false,
-
-            stencilFrontMask          : 0xff,
-            stencilFrontFunction      : Always,
-            stencilFrontTestFail      : Keep,
-            stencilFrontDepthTestFail : Keep,
-            stencilFrontDepthTestPass : Keep,
-            
-            stencilBackMask          : 0xff,
-            stencilBackFunction      : Always,
-            stencilBackTestFail      : Keep,
-            stencilBackDepthTestFail : Keep,
-            stencilBackDepthTestPass : Keep
-        };
+        cmdClip     = new Rectangle();
+        cmdViewport = new Rectangle();
+        blend       = BlendState.none;
+        depth       = DepthState.none;
+        stencil     = StencilState.none;
 
         // Setup initial state tracker
         topology = Triangles;
@@ -1237,21 +1223,21 @@ class DX11Backend implements IRendererBackend
             update = true;
         }
 
-        if (!stencil.equals(_newStencil))
+        if (stencil != _newStencil)
         {
-            depthStencilDescription.stencilEnable = _newStencil.stencilTesting;
+            depthStencilDescription.stencilEnable = _newStencil.enabled;
 
-            depthStencilDescription.frontFace.stencilFailOp      = getStencilOp(_newStencil.stencilFrontTestFail);
-            depthStencilDescription.frontFace.stencilDepthFailOp = getStencilOp(_newStencil.stencilFrontDepthTestFail);
-            depthStencilDescription.frontFace.stencilPassOp      = getStencilOp(_newStencil.stencilFrontDepthTestPass);
-            depthStencilDescription.frontFace.stencilFunction    = getComparisonFunction(_newStencil.stencilFrontFunction);
+            depthStencilDescription.frontFace.stencilFailOp      = getStencilOp(_newStencil.frontTestFail);
+            depthStencilDescription.frontFace.stencilDepthFailOp = getStencilOp(_newStencil.frontDepthTestFail);
+            depthStencilDescription.frontFace.stencilPassOp      = getStencilOp(_newStencil.frontDepthTestPass);
+            depthStencilDescription.frontFace.stencilFunction    = getComparisonFunction(_newStencil.frontFunc);
 
-            depthStencilDescription.backFace.stencilFailOp      = getStencilOp(_newStencil.stencilBackTestFail);
-            depthStencilDescription.backFace.stencilDepthFailOp = getStencilOp(_newStencil.stencilBackDepthTestFail);
-            depthStencilDescription.backFace.stencilPassOp      = getStencilOp(_newStencil.stencilBackDepthTestPass);
-            depthStencilDescription.backFace.stencilFunction    = getComparisonFunction(_newStencil.stencilBackFunction);
+            depthStencilDescription.backFace.stencilFailOp      = getStencilOp(_newStencil.backTestFail);
+            depthStencilDescription.backFace.stencilDepthFailOp = getStencilOp(_newStencil.backDepthTestFail);
+            depthStencilDescription.backFace.stencilPassOp      = getStencilOp(_newStencil.backDepthTestPass);
+            depthStencilDescription.backFace.stencilFunction    = getComparisonFunction(_newStencil.backFunc);
 
-            stencil.copyFrom(_newStencil);
+            stencil = _newStencil;
 
             update = true;
         }

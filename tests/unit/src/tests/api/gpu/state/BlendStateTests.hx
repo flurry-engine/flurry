@@ -1,4 +1,4 @@
-package tests.api.gpu.geometry;
+package tests.api.gpu.state;
 
 import uk.aidanlee.flurry.api.gpu.BlendMode;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
@@ -6,7 +6,7 @@ import buddy.BuddySuite;
 
 using buddy.Should;
 
-class BlendingTests extends BuddySuite
+class BlendStateTests extends BuddySuite
 {
     public function new()
     {
@@ -35,6 +35,7 @@ class BlendingTests extends BuddySuite
                 final blend3 = new BlendState(false, Zero, OneMinusDstColor, One, OneMinusDstAlpha);
 
                 (blend1 == blend2).should.be(true);
+                (blend1 == blend3).should.be(false);
                 (blend3 == blend2).should.be(false);
             });
         });

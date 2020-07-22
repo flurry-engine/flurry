@@ -1,6 +1,6 @@
 package uk.aidanlee.flurry.api.gpu;
 
-enum abstract StencilFunction(Int)
+enum abstract StencilFunction(Int) to Int
 {
     var Keep;
     var Zero;
