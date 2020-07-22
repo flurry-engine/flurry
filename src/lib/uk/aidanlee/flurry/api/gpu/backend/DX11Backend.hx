@@ -305,8 +305,9 @@ class DX11Backend implements IRendererBackend
 
         untyped __cpp__('SDL_SysWMinfo info;
         SDL_VERSION(&info.version);
-        SDL_GetWindowWMInfo({0}, &info);
-        {1} = info.info.win.window', window, hwnd);
+        SDL_GetWindowWMInfo({1}, &info);
+        {0} = SDL_DXGIGetOutputInfo(SDL_GetWindowDisplayIndex({1}), &{2}, &{3});
+        {4} = info.info.win.window', success, window, adapterIdx, outputIdx, hwnd);
 
         // if (!success)
         // {
@@ -340,17 +341,17 @@ class DX11Backend implements IRendererBackend
 
         // Setup the DXGI factory and get this windows adapter and output.
         final factory = new DxgiFactory2();
-        // final adapter = new DxgiAdapter();
+        final adapter = new DxgiAdapter();
         // final output  = new DxgiOutput();
 
         if (Dxgi.createFactory2(0, factory) != Ok)
         {
             throw new Exception('DXGI Failure creating factory');
         }
-        // if (factory.enumAdapters(adapterIdx, adapter) != Ok)
-        // {
-        //     throw new Exception('DXGI Failure enumerating adapter $adapterIdx');
-        // }
+        if (factory.enumAdapters(adapterIdx, adapter) != Ok)
+        {
+            throw new Exception('DXGI Failure enumerating adapter $adapterIdx');
+        }
         // if (adapter.enumOutputs(outputIdx, output) != Ok)
         // {
         //     throw new Exception('DXGI Failure enumerating output $outputIdx');
@@ -376,7 +377,7 @@ class DX11Backend implements IRendererBackend
             D3d11CreateDeviceFlags.None | D3d11CreateDeviceFlags.SingleThreaded;
 
         // Create our actual device and swapchain
-        if (D3d11.createDevice(null, Warp, null, deviceCreationFlags, [ Level11_1 ], D3d11.SdkVersion, device, null, context) != Ok)
+        if (D3d11.createDevice(adapter, Unknown, null, deviceCreationFlags, [ Level11_1 ], D3d11.SdkVersion, device, null, context) != Ok)
         {
             throw new Dx11ResourceCreationException('ID3D11Device');
         }
