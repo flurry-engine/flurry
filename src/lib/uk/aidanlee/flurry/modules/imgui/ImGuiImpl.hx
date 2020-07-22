@@ -54,27 +54,9 @@ class ImGuiImpl
         renderer  = _renderer;
         shader    = _shader;
         camera    = _renderer.createCamera2D(display.width, display.height);
-        depth     = {
-            depthTesting  : false,
-            depthMasking  : false,
-            depthFunction : Always
-        };
-        stencil = {
-            stencilTesting : false,
-
-            stencilFrontMask          : 0xff,
-            stencilFrontFunction      : Always,
-            stencilFrontTestFail      : Keep,
-            stencilFrontDepthTestFail : Keep,
-            stencilFrontDepthTestPass : Keep,
-            
-            stencilBackMask          : 0xff,
-            stencilBackFunction      : Always,
-            stencilBackTestFail      : Keep,
-            stencilBackDepthTestFail : Keep,
-            stencilBackDepthTestPass : Keep
-        }
-        blend = new BlendState();
+        blend     = BlendState.none;
+        depth     = DepthState.none;
+        stencil   = StencilState.none;
 
         ImGui.createContext();
 
