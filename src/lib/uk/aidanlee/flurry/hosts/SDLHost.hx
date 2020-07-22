@@ -68,7 +68,7 @@ class SDLHost
         Sys.setCwd(Path.directory(Sys.programPath()));
 
         frameRate   = 60;
-        deltaTime   = 1000 / frameRate;
+        deltaTime   = 1 / frameRate;
         time        = 0;
         currentTime = Timer.stamp();
         accumulator = 0;
@@ -82,11 +82,11 @@ class SDLHost
 
         while (true)
         {
-            final newTime   = Timer.stamp() * 1000;
+            final newTime   = Timer.stamp();
             final frameTime = newTime - currentTime;
 
             currentTime = newTime;
-            accumulator = if (frameTime > 250) accumulator + 250 else accumulator + frameTime;
+            accumulator = if (frameTime > 0.25) accumulator + 0.25 else accumulator + frameTime;
 
             while (accumulator >= deltaTime)
             {
