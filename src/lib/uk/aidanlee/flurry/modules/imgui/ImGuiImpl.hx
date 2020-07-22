@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.modules.imgui;
 
+import imgui.IntPointer;
 import cpp.Star;
 import cpp.Stdlib;
 import cpp.Pointer;
@@ -90,17 +91,24 @@ class ImGuiImpl
         final width  = 0;
         final height = 0;
         final bpp    = 0;
+        
+        final pWidth  : IntPointer = width;
+        final pHeight : IntPointer = height;
+        final pBpp    : IntPointer = bpp;
+
         final pixels : cpp.Star<cpp.UInt8> = null;
         final pixelPtr : cpp.Star<cpp.Star<cpp.UInt8>> = pixels.addressOf();
 
-        io.fonts.getTexDataAsRGBA32(pixelPtr, width, height, bpp);
+        io.fonts.getTexDataAsRGBA32(pixelPtr, pWidth, pHeight, pBpp);
 
         final img = new ImageResource(
             'imgui_texture',
-            width,
-            height,
+            pWidth,
+            pHeight,
             BGRAUNorm,
-            Pointer.fromStar(pixels).toUnmanagedArray(width * height * bpp));
+            Pointer.fromStar(pixels).toUnmanagedArray(pWidth.toInt() * pHeight.toInt() * pBpp.toInt()));
+
+        trace(pWidth.toInt(), pHeight.toInt(), pBpp.toInt());
 
         resources.addResource(img);
 
