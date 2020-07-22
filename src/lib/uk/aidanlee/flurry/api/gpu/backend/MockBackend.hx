@@ -1,8 +1,9 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.resources.Resource;
 import haxe.Exception;
 import rx.disposables.ISubscription;
-import uk.aidanlee.flurry.api.resources.Resource;
+import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 
@@ -14,9 +15,9 @@ class MockBackend implements IRendererBackend
 
     final commands : Array<DrawCommand>;
 
-    final textures : Map<String, ImageResource>;
+    final textures : Map<ResourceID, Int>;
 
-    final shaders : Map<String, ShaderResource>;
+    final shaders : Map<ResourceID, Int>;
 
     final resourceCreatedSubscription : ISubscription;
 
@@ -60,20 +61,20 @@ class MockBackend implements IRendererBackend
         {
             case Backbuffer:
             case Texture(_image):
-                if (textures.exists(_image.id))
+                if (textures.exists(_image))
                 {
                     throw new FramebufferNotFoundException();
                 }
         }
 
-        if (!shaders.exists(_command.shader.id))
+        if (!shaders.exists(_command.shader))
         {
             throw new ShaderNotFoundException();
         }
 
         for (texture in _command.textures)
         {
-            if (!textures.exists(texture.id))
+            if (!textures.exists(texture))
             {
                 throw new TextureNotFoundException();
             }
@@ -84,8 +85,8 @@ class MockBackend implements IRendererBackend
     {
         switch _resource.type
         {
-            case Image  : textures.set(_resource.id, cast _resource);
-            case Shader : shaders.set(_resource.id, cast _resource);
+            case Image  : textures.set(_resource.id, _resource.id);
+            case Shader : shaders.set(_resource.id, _resource.id);
             case _:
         }
     }

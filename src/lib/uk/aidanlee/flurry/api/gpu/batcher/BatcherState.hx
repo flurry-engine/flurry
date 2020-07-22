@@ -1,14 +1,12 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import haxe.ds.ReadOnlyArray;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 
 /**
  * Stores all of the state properties for a batcher.
@@ -23,7 +21,7 @@ class BatcherState
     /**
      * The shader currently active in this batcher.
      */
-    public var shader (default, null) : ShaderResource;
+    public var shader (default, null) : ResourceID;
 
     /**
      * The uniform values currently active in this batcher.
@@ -33,7 +31,7 @@ class BatcherState
     /**
      * The textures currently active in this batcher.
      */
-    public var textures (default, null) : Array<ImageFrameResource>;
+    public var textures (default, null) : ReadOnlyArray<ResourceID>;
 
     /**
      * The samplers currently active in this batcher.
@@ -72,7 +70,7 @@ class BatcherState
         uniforms     = [];
         batcher      = _batcher;
         indexed      = false;
-        blend        = new BlendState();
+        blend        = BlendState.none;
     }
 
     /**
@@ -86,9 +84,9 @@ class BatcherState
         final usedShader = switch _geom.shader
         {
             case None : batcher.shader;
-            case Shader(_shader) : _shader;
+            case Some(_shader) : _shader;
         }
-        if (usedShader.id != shader.id)
+        if (usedShader != shader)
         {
             return true;
         }
@@ -97,7 +95,7 @@ class BatcherState
         final usedUniforms = switch _geom.uniforms
         {
             case None : [];
-            case Uniforms(_uniforms) : _uniforms;
+            case Some(_uniforms) : _uniforms;
         }
         if (usedUniforms.length != uniforms.length)
         {
@@ -105,7 +103,7 @@ class BatcherState
         }
         for (i in 0...uniforms.length)
         {
-            if (uniforms[i] != usedUniforms[i]) return true;
+            if (uniforms[i].id != usedUniforms[i].id) return true;
         }
 
         // Check textures
@@ -116,7 +114,7 @@ class BatcherState
                 {
                     return true;
                 }
-            case Textures(_textures):
+            case Some(_textures):
                 if (textures.length != _textures.length)
                 {
                     return true;
@@ -138,7 +136,7 @@ class BatcherState
                 {
                     return true;
                 }
-            case Samplers(_samplers):
+            case Some(_samplers):
                 if (samplers.length != _samplers.length)
                 {
                     return true;
@@ -174,9 +172,9 @@ class BatcherState
         }
 
         // Check other small bits.
-        if (_geom.primitive != primitive ) return true;
+        if (_geom.primitive != primitive) return true;
         if ((_geom.data.getIndex() == 0) != indexed) return true;
-        if (!_geom.blend.equals(blend)) return true;
+        if (_geom.blend != blend) return true;
 
         return false;
     }
@@ -190,49 +188,33 @@ class BatcherState
         shader = switch _geom.shader
         {
             case None : batcher.shader;
-            case Shader(_shader) : _shader;
+            case Some(_shader) : _shader;
         }
         uniforms = switch _geom.uniforms
         {
             case None : [];
-            case Uniforms(_uniforms) : _uniforms;
+            case Some(_uniforms) : _uniforms.copy();
         }
-
-        switch _geom.textures
+        textures = switch _geom.textures
         {
-            case None:
-                textures.resize(0);
-            case Textures(_textures):
-                textures.resize(_textures.length);
-
-                for (i in 0...textures.length)
-                {
-                    textures[i] = _textures[i];
-                }
+            case None: [];
+            case Some(_textures): _textures.copy();
         }
-
-        switch _geom.samplers
+        samplers = switch _geom.samplers
         {
-            case None:
-                samplers.resize(0);
-            case Samplers(_samplers):
-                samplers.resize(_samplers.length);
-
-                for (i in 0...samplers.length)
-                {
-                    samplers[i] = _samplers[i];
-                }
+            case None: [];
+            case Some(_samplers): _samplers.copy();
         }
 
-        primitive      = _geom.primitive;
-        clip           = _geom.clip;
-        indexed        = (_geom.data.getIndex() == 0);
-        blend.copyFrom(_geom.blend);
+        primitive = _geom.primitive;
+        clip      = _geom.clip;
+        indexed   = (_geom.data.getIndex() == 0);
+        blend     = _geom.blend;
     }
 
     public function drop()
     {
-        textures.resize(0);
-        samplers.resize(0);
+        textures = [];
+        samplers = [];
     }
 }

@@ -6,6 +6,7 @@ import commands.Restore;
 import parcel.Packer;
 import haxe.Exception;
 import buddy.SingleSuite;
+import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.resources.Resource;
@@ -53,97 +54,65 @@ class ResourceSystemTests extends SingleSuite
 
         describe('ResourceSystem', {
 
-            it('allows manually adding resources to the system', {
+            describe('Manually Managing Resources', {
                 final sys = new ResourceSystem(new ResourceEvents(), new MockFileSystem([], []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                final res = new TextResource('hello', '');
+                final res = new TextResource('hello', 'world');
+    
+                it('allows manually adding resources to the system', {
+                    sys.addResource(res);
+                });
 
-                sys.addResource(res);
-                sys.get('hello', Resource).should.be(res);
+                it('allows fetching the resource by its name', {
+                    final res = sys.getByName('hello', TextResource);
+                    res.name.should.be('hello');
+                    res.content.should.be('world');
+                });
+
+                it('allows fetching the resource by its ID', {
+                    final id  = Hash.hash('hello');
+                    final res = sys.getByID(id, TextResource);
+                    res.id.should.be(id);
+                    res.content.should.be('world');
+                });
+    
+                it('allows manually removing resources from the system', {
+                    sys.removeResource(res);
+                    sys.getByName.bind('hello', Resource).should.throwType(ResourceNotFoundException);
+                });
             });
 
-            it('allows manually removing resources from the system', {
-                final sys = new ResourceSystem(new ResourceEvents(), new MockFileSystem([], []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                final res = new TextResource('hello', '');
-
-                sys.addResource(res);
-                sys.get('hello', Resource).should.be(res);
-                sys.removeResource(res);
-                sys.get.bind('hello', Resource).should.throwType(ResourceNotFoundException);
-            });
-
-            it('can load a pre-packaged parcels resources', {
+            describe('Managing Parcels', {
                 final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']) ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                system.load([ 'images.parcel' ]);
 
-                final res = system.get('dots', ImageFrameResource);
-                res.id.should.be('dots');
-                res.width.should.be(2);
-                res.height.should.be(2);
-            });
-
-            it('fires events for when images and shaders are added', {
-                final events = new ResourceEvents();
-                events.created.subscribeFunction(_created -> {
-                    switch _created.type
-                    {
-                        case Image:
-                            final res : ImageResource = cast _created;
-                            res.id.should.be('dots');
-                            res.width.should.be(2);
-                            res.height.should.be(2);
-                        case Shader:
-                            final res : ShaderResource = cast _created;
-                            res.id.should.be('shdr');
-                            res.layout.textures.should.containExactly([ 'defaultTexture' ]);
-                            res.layout.blocks.should.containExactly([ ]);
-                            res.ogl3.vertex.toString().should.be('ogl3_vertex');
-                            res.ogl3.fragment.toString().should.be('ogl3_fragment');
-                            res.ogl4.vertex.toString().should.be('ogl4_vertex');
-                            res.ogl4.fragment.toString().should.be('ogl4_fragment');
-                            res.hlsl.vertex.toString().should.be('hlsl_vertex');
-                            res.hlsl.fragment.toString().should.be('hlsl_fragment');
-                        case _:
-                            fail('no other resource type should have been created');
-                    }
+                it('can load a pre-packaged parcels resources', {
+                    system.load([ 'images.parcel' ]);
                 });
 
+                it('allows fetching the resource by its name', {
+                    final res = system.getByName('dots', ImageFrameResource);
+                    res.name.should.be('dots');
+                    res.width.should.be(2);
+                    res.height.should.be(2);
+                });
+
+                it('allows fetching the resource by its ID', {
+                    final id  = Hash.hash('dots');
+                    final res = system.getByID(id, ImageFrameResource);
+                    res.id.should.be(id);
+                    res.width.should.be(2);
+                    res.height.should.be(2);
+                });
+
+                it('can remove a parcels resources from the system', {
+                    system.free('images.parcel');
+                    system.getByName.bind('dots', Resource).should.throwType(ResourceNotFoundException);
+                });
+            });
+
+            describe('Resource Events', {
+                final events = new ResourceEvents();
                 final system = new ResourceSystem(events, new MockFileSystem([], []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                system.addResource(new ImageResource('dots', 2, 2, RGBAUNorm, haxe.io.Bytes.alloc(2 * 2 * 4).getData()));
-                system.addResource(new ShaderResource(
-                    'shdr',
-                    new ShaderLayout([ 'defaultTexture' ], []),
-                    new ShaderSource(false, haxe.io.Bytes.ofString('ogl3_vertex'), haxe.io.Bytes.ofString('ogl3_fragment')),
-                    new ShaderSource(false, haxe.io.Bytes.ofString('ogl4_vertex'), haxe.io.Bytes.ofString('ogl4_fragment')),
-                    new ShaderSource(false, haxe.io.Bytes.ofString('hlsl_vertex'), haxe.io.Bytes.ofString('hlsl_fragment'))));
-            });
-
-            it('fires events for when images and shaders are removed', {
-                final events = new ResourceEvents();
-                events.removed.subscribeFunction(_removed -> {
-                    switch _removed.type
-                    {
-                        case Image:
-                            final res : ImageResource = cast _removed;
-                            res.id.should.be('dots');
-                            res.width.should.be(2);
-                            res.height.should.be(2);
-                        case Shader:
-                            final res : ShaderResource = cast _removed;
-                            res.id.should.be('shdr');
-                            res.layout.textures.should.containExactly([ 'defaultTexture' ]);
-                            res.layout.blocks.should.containExactly([ ]);
-                            res.ogl3.vertex.toString().should.be('ogl3_vertex');
-                            res.ogl3.fragment.toString().should.be('ogl3_fragment');
-                            res.ogl4.vertex.toString().should.be('ogl4_vertex');
-                            res.ogl4.fragment.toString().should.be('ogl4_fragment');
-                            res.hlsl.vertex.toString().should.be('hlsl_vertex');
-                            res.hlsl.fragment.toString().should.be('hlsl_fragment');
-                        case _:
-                            fail('no other resource type should have been created');
-                    }
-                });
-
                 final image  = new ImageResource('dots', 2, 2, RGBAUNorm, haxe.io.Bytes.alloc(2 * 2 * 4).getData());
                 final shader = new ShaderResource(
                     'shdr',
@@ -152,54 +121,120 @@ class ResourceSystemTests extends SingleSuite
                     new ShaderSource(false, haxe.io.Bytes.ofString('ogl4_vertex'), haxe.io.Bytes.ofString('ogl4_fragment')),
                     new ShaderSource(false, haxe.io.Bytes.ofString('hlsl_vertex'), haxe.io.Bytes.ofString('hlsl_fragment')));
 
-                final system = new ResourceSystem(events, new MockFileSystem([], []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                system.addResource(image);
-                system.addResource(shader);
+                it('will fire a create event when adding an image resource', {
+                    final sub = events.created.subscribeFunction(ev -> {
+                        switch ev.type
+                        {
+                            case Image:
+                                final res : ImageResource = cast ev;
+                                res.type.should.equal(Image);
+                                res.name.should.be('dots');
+                                res.width.should.be(2);
+                                res.height.should.be(2);
+                            case _: fail('expected image');
+                        }
+                    });
 
-                system.removeResource(image);
-                system.removeResource(shader);
+                    system.addResource(image);
+                    sub.unsubscribe();
+                });
+
+                it('will fire a create event when adding a shader resource', {
+                    final sub = events.created.subscribeFunction(ev -> {
+                        switch ev.type
+                        {
+                            case Shader:
+                                final res : ShaderResource = cast ev;
+                                res.name.should.be('shdr');
+                                res.layout.textures.should.containExactly([ 'defaultTexture' ]);
+                                res.layout.blocks.should.containExactly([ ]);
+                                res.ogl3.vertex.toString().should.be('ogl3_vertex');
+                                res.ogl3.fragment.toString().should.be('ogl3_fragment');
+                                res.ogl4.vertex.toString().should.be('ogl4_vertex');
+                                res.ogl4.fragment.toString().should.be('ogl4_fragment');
+                                res.hlsl.vertex.toString().should.be('hlsl_vertex');
+                                res.hlsl.fragment.toString().should.be('hlsl_fragment');
+                            case _: fail('expected shader');
+                        }
+                    });
+
+                    system.addResource(image);
+                    sub.unsubscribe();
+                });
+
+                it('will fire a remove event when removing an image resource', {
+                    final sub = events.removed.subscribeFunction(ev -> {
+                        switch ev.type
+                        {
+                            case Image:
+                                final res : ImageResource = cast ev;
+                                res.type.should.equal(Image);
+                                res.name.should.be('dots');
+                                res.width.should.be(2);
+                                res.height.should.be(2);
+                            case _: fail('expected image');
+                        }
+                    });
+
+                    system.removeResource(shader);
+                    sub.unsubscribe();
+                });
+
+                it('will fire a remove event when removing a shader resource', {
+                    final sub = events.removed.subscribeFunction(ev -> {
+                        switch ev.type
+                        {
+                            case Shader:
+                                final res : ShaderResource = cast ev;
+                                res.name.should.be('shdr');
+                                res.layout.textures.should.containExactly([ 'defaultTexture' ]);
+                                res.layout.blocks.should.containExactly([ ]);
+                                res.ogl3.vertex.toString().should.be('ogl3_vertex');
+                                res.ogl3.fragment.toString().should.be('ogl3_fragment');
+                                res.ogl4.vertex.toString().should.be('ogl4_vertex');
+                                res.ogl4.fragment.toString().should.be('ogl4_fragment');
+                                res.hlsl.vertex.toString().should.be('hlsl_vertex');
+                                res.hlsl.fragment.toString().should.be('hlsl_fragment');
+                            case _: fail('expected shader');
+                        }
+                    });
+
+                    system.removeResource(shader);
+                    sub.unsubscribe();
+                });
             });
 
-            it('can remove a parcels resources from the system', {
-                final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']) ];
-                final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                system.load([ 'images.parcel' ]);
-                system.free('images.parcel');
-                
-                system.get.bind('dots', Resource).should.throwType(ResourceNotFoundException);
-            });
-
-            it('will reference count resources so they are only removed when no parcels reference them', {
+            describe('Resource Reference Counting', {
                 final files = [
                     'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']),
                     'assets/parcels/moreImages.parcel' => MockFileData.fromBytes(parcels['moreImages.parcel'])
                 ];
                 final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                system.load([ 'images.parcel', 'moreImages.parcel' ]);
 
-                system.get('dots', Resource).id.should.be('dots');
+                it('can load parcels which contain the same resources', {
+                    system.load([ 'images.parcel', 'moreImages.parcel' ]);
+                });
 
-                system.free('images.parcel');
-                system.get('dots', Resource).id.should.be('dots');
+                it('will not remove a resource if there are multiple references', {
+                    system.free('images.parcel');
 
-                system.free('moreImages.parcel');
-                system.get.bind('dots', Resource).should.throwType(ResourceNotFoundException);
-            });
+                    final res = system.getByName('dots', ImageFrameResource);
+                    res.name.should.be('dots');
+                    res.width.should.be(2);
+                    res.height.should.be(2);
 
-            it('will decremement the references for pre-packaged parcels', {
-                final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']) ];
-                final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
+                    final id  = Hash.hash('dots');
+                    final res = system.getByID(id, ImageFrameResource);
+                    res.id.should.be(id);
+                    res.width.should.be(2);
+                    res.height.should.be(2);
+                });
 
-                system.load([ 'images.parcel' ]);
-                system.get('dots', ImageFrameResource).should.beType(ImageFrameResource);
-                system.free('images.parcel');
-
-                system.get.bind('dots', Resource).should.throwType(ResourceNotFoundException);
-            });
-
-            it('will throw an exception trying to fetch a resource which does not exist', {
-                final sys = new ResourceSystem(mock(ResourceEvents), new MockFileSystem([], []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
-                sys.get.bind('hello', Resource).should.throwType(ResourceNotFoundException);
+                it('will remove the resources once all references have been lost', {
+                    system.free('moreImages.parcel');
+                    system.getByName.bind('dots', Resource).should.throwType(ResourceNotFoundException);
+                    system.getByID.bind(Hash.hash('dots'), Resource).should.throwType(ResourceNotFoundException);
+                });
             });
 
             it('will return an empty observable when trying to load an already loaded parcel', {
@@ -228,7 +263,7 @@ class ResourceSystemTests extends SingleSuite
                 // if we try and bind and use buddys exception catching we get a compile error about not knowing how to cast.
                 try
                 {
-                    system.get('dots', BytesResource);
+                    system.getByName('dots', BytesResource);
                 }
                 catch (e : Exception)
                 {

@@ -72,8 +72,8 @@ class TextGeometry extends Geometry
     {
         super({
             data     : generateGeometry(_options.font, _options.text),
-            textures : Textures([ _options.font ]),
-            samplers : _options.sampler == null ? None : Samplers([ _options.sampler ]),
+            textures : Some([ _options.font.image ]),
+            samplers : Some([ _options.sampler ]),
             shader   : _options.shader,
             uniforms : _options.uniforms,
             depth    : _options.depth,
@@ -119,7 +119,7 @@ class TextGeometry extends Geometry
 
                 if (char == null)
                 {
-                    throw new CharacterNotFoundException(code, _font.id);
+                    throw new CharacterNotFoundException(code, _font.name);
                 }
 
                 addCharacter(vtxBuilder, idxBuilder, char, index, xCursor, yCursor);
@@ -205,7 +205,7 @@ class CharacterNotFoundException extends Exception
      * If null is provided a default sampler is used.
      * Default samplers is clamp uv clipping and nearest neighbour scaling.
      */
-    public final sampler : Null<SamplerState> = null;
+    public final sampler = SamplerState.nearest;
 
     /**
      * Specify a custom shader to be used by this geometry.
@@ -234,7 +234,7 @@ class CharacterNotFoundException extends Exception
     /**
      * Provides custom blending operations for drawing this geometry.
      */
-    public final blend = new BlendState();
+    public final blend = BlendState.none;
 
     /**
      * The batchers to initially add this geometry to.

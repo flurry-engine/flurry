@@ -1,5 +1,7 @@
 package;
 
+import uk.aidanlee.flurry.api.gpu.state.StencilState;
+import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -30,56 +32,22 @@ class StencilTesting extends Flurry
         camera.update(0);
 
         final batcher1 = renderer.createBatcher({
-            shader : resources.get('textured', ShaderResource),
+            depth  : 0,
+            shader : resources.getByName('textured', ShaderResource).id,
             camera : camera,
-            depthOptions : {
-                depthTesting: true,
-                depthMasking: true,
-                depthFunction: LessThan
-            },
-            stencilOptions: {
-                stencilTesting: true,
-
-                stencilFrontMask: 0xff,
-                stencilFrontFunction: Always,
-                stencilFrontTestFail: Keep,
-                stencilFrontDepthTestFail: Keep,
-                stencilFrontDepthTestPass: Keep,
-
-                stencilBackMask: 0xff,
-                stencilBackFunction: Always,
-                stencilBackTestFail: Keep,
-                stencilBackDepthTestFail: Keep,
-                stencilBackDepthTestPass: Keep
-            }
+            depthOptions : new DepthState(true, true, LessThan),
+            stencilOptions: new StencilState(true, Always, Keep, Keep, Replace, Always, Keep, Keep, Replace)
         });
 
         final batcher2 = renderer.createBatcher({
-            shader : resources.get('purple', ShaderResource),
+            depth  : 1,
+            shader : resources.getByName('purple', ShaderResource).id,
             camera : camera,
-            depthOptions : {
-                depthTesting: false,
-                depthMasking: true,
-                depthFunction: LessThan
-            },
-            stencilOptions: {
-                stencilTesting: true,
-
-                stencilFrontMask: 0x00,
-                stencilFrontFunction: Always,
-                stencilFrontTestFail: Keep,
-                stencilFrontDepthTestFail: Keep,
-                stencilFrontDepthTestPass: Keep,
-
-                stencilBackMask: 0x00,
-                stencilBackFunction: Always,
-                stencilBackTestFail: Keep,
-                stencilBackDepthTestFail: Keep,
-                stencilBackDepthTestPass: Keep
-            }
+            depthOptions : new DepthState(false, true, LessThan),
+            stencilOptions: new StencilState(true, NotEqual, Keep, Keep, Replace, NotEqual, Keep, Keep, Replace)
         });
 
-        final frame = resources.get('wood', ImageFrameResource);
+        final frame = resources.getByName('wood', ImageFrameResource);
         final data  = UnIndexed(new VertexBlobBuilder()
             .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v1)
             .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
@@ -157,7 +125,7 @@ class StencilTesting extends Flurry
     {
         return new Geometry({
             batchers : [ _batcher ],
-            textures : Textures([ _frame ]),
+            textures : Some([ _frame.image ]),
             data     : _data
         });
     }

@@ -23,7 +23,7 @@ class ImGuiDrawing extends Flurry
 
     override function onReady()
     {
-        imgui = new ImGuiImpl(events, display, resources, input, renderer, resources.get('textured', ShaderResource));
+        imgui = new ImGuiImpl(events, display, resources, input, renderer, resources.getByName('textured', ShaderResource).id);
     }
 
     override function onPreUpdate()

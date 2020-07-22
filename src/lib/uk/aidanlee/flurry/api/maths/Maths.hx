@@ -134,4 +134,8 @@ class Maths
     public static inline function random() : Float return Math.random();
 
     public static inline function sqrt(_v : Float) : Float return Math.sqrt(_v);
+
+    public static inline function boolToInt(_b) return if (_b) 1 else 0;
+
+    public static inline function intToBool(_i) return if (_i == 0) false else true;
 }

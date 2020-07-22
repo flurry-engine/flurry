@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import haxe.Exception;
 import haxe.io.Bytes;
 import haxe.ds.ReadOnlyArray;
@@ -23,6 +22,7 @@ import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.resources.Resource.Resource;
+import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -128,29 +128,35 @@ class OGL4Backend implements IRendererBackend
     /**
      * Shader programs keyed by their associated shader resource IDs.
      */
-    final shaderPrograms : Map<String, Int>;
+    final shaderPrograms : Map<ResourceID, Int>;
 
     /**
      * Shader uniform locations keyed by their associated shader resource IDs.
      */
-    final shaderUniforms : Map<String, ShaderLocations>;
+    final shaderUniforms : Map<ResourceID, ShaderInformation>;
 
     /**
      * Texture objects keyed by their associated image resource IDs.
      */
-    final textureObjects : Map<String, Int>;
+    final textureObjects : Map<ResourceID, Int>;
+
+    /**
+     * Keep track of all our texture sizes.
+     * After they are created draw calls refer to their IDs so we manually store the dimensions.
+     */
+    final textureInfo : Map<ResourceID, TextureInformation>;
 
     /**
      * The sampler objects which have been created for each specific texture.
      */
-    final samplerObjects : Map<String, Map<Int, Int>>;
+    final samplerObjects : Map<ResourceID, Map<SamplerState, Int>>;
 
     /**
      * Framebuffer objects keyed by their associated image resource IDs.
      * Framebuffers will only be generated when an image resource is used as a target.
      * Will be destroyed when the associated image resource is destroyed.
      */
-    final framebufferObjects : Map<String, Int>;
+    final framebufferObjects : Map<ResourceID, Int>;
 
     /**
      * The default sampler object to use if none is specified.
@@ -205,12 +211,12 @@ class OGL4Backend implements IRendererBackend
     // GL state variables
 
     var target     : TargetState;
-    var shader     : ShaderResource;
+    var shader     : ResourceID;
     final clip     : Rectangle;
     final viewport : Rectangle;
-    final blend    : BlendState;
-    final depth    : DepthState;
-    final stencil  : StencilState;
+    var stencil    : StencilState;
+    var blend      : BlendState;
+    var depth      : DepthState;
     var ssbo : Int;
     var cmds : Int;
 
@@ -328,37 +334,20 @@ class OGL4Backend implements IRendererBackend
         // default state
         viewport     = new Rectangle();
         clip         = new Rectangle();
-        blend        = new BlendState();
-        depth        = {
-            depthTesting  : false,
-            depthMasking  : false,
-            depthFunction : Always
-        };
-        stencil      = {
-            stencilTesting : false,
-
-            stencilFrontMask          : 0xff,
-            stencilFrontFunction      : Always,
-            stencilFrontTestFail      : Keep,
-            stencilFrontDepthTestFail : Keep,
-            stencilFrontDepthTestPass : Keep,
-            
-            stencilBackMask          : 0xff,
-            stencilBackFunction      : Always,
-            stencilBackTestFail      : Keep,
-            stencilBackDepthTestFail : Keep,
-            stencilBackDepthTestPass : Keep
-        };
-        shader       = null;
-        target       = Backbuffer;
-        ssbo         = 0;
-        cmds         = 0;
+        blend        = BlendState.none;
+        depth        = DepthState.none;
+        stencil      = StencilState.none;
+        shader = 0;
+        target = Backbuffer;
+        ssbo   = 0;
+        cmds   = 0;
 
         textureSlots       = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
         samplerSlots       = [ for (_ in 0...GL_MAX_TEXTURE_IMAGE_UNITS) 0 ];
         shaderPrograms     = [];
         shaderUniforms     = [];
         textureObjects     = [];
+        textureInfo        = [];
         samplerObjects     = [];
         framebufferObjects = [];
 
@@ -615,19 +604,23 @@ class OGL4Backend implements IRendererBackend
             updateState(command);
 
             // Bind the correct range for the matrix buffer
+            final info = shaderUniforms[command.shader];
+
             glBindBufferRange(
                 GL_SHADER_STORAGE_BUFFER,
                 findBlockIndexByName("flurry_matrices",
-                command.shader.layout.blocks),
+                info.layout.blocks),
                 glMatrixBuffer,
                 matOffset, 128 + (64 * command.geometry.length));
 
             // Bind the correct range for all uniforms
             for (block in command.uniforms)
             {
+                final info = shaderUniforms[command.shader];
+
                 glBindBufferRange(
                     GL_SHADER_STORAGE_BUFFER,
-                    findBlockIndexByName(block.name, command.shader.layout.blocks),
+                    findBlockIndexByName(block.name, info.layout.blocks),
                     glUniformBuffer,
                     unfOffset,
                     block.buffer.byteLength);
@@ -720,8 +713,8 @@ class OGL4Backend implements IRendererBackend
     {
         switch _resource.type
         {
-            case Image  : removeTexture(cast _resource);
-            case Shader : removeShader(cast _resource);
+            case Image  : removeTexture(_resource.id);
+            case Shader : removeShader(_resource.id);
             case _:
         }
     }
@@ -739,7 +732,7 @@ class OGL4Backend implements IRendererBackend
 
         if (_resource.ogl4 == null)
         {
-            throw new OGL4NoShaderSourceException(_resource.id);
+            throw new OGL4NoShaderSourceException(_resource.name);
         }
 
         var vertex   = 0;
@@ -756,30 +749,30 @@ class OGL4Backend implements IRendererBackend
         }
 
         // Link the shaders into a program.
-        var program = glCreateProgram();
+        final program = glCreateProgram();
         glAttachShader(program, vertex);
         glAttachShader(program, fragment);
         glLinkProgram(program);
 
         if (WebGL.getProgramParameter(program, GL_LINK_STATUS) == 0)
         {
-            throw new OGL4ShaderLinkingException(_resource.id, WebGL.getProgramInfoLog(program));
+            throw new OGL4ShaderLinkingException(_resource.name, WebGL.getProgramInfoLog(program));
         }
 
         // Delete the shaders now that they're linked
         glDeleteShader(vertex);
         glDeleteShader(fragment);
 
-        var textureLocations = [ for (t in _resource.layout.textures) glGetUniformLocation(program, t) ];
-        var blockBindings    = [ for (i in 0..._resource.layout.blocks.length) _resource.layout.blocks[i].binding ];
+        final textureLocations = [ for (t in _resource.layout.textures) glGetUniformLocation(program, t) ];
+        final blockBindings    = [ for (i in 0..._resource.layout.blocks.length) _resource.layout.blocks[i].binding ];
 
         shaderPrograms.set(_resource.id, program);
-        shaderUniforms.set(_resource.id, new ShaderLocations(_resource.layout, textureLocations, blockBindings));
+        shaderUniforms.set(_resource.id, new ShaderInformation(_resource.layout, textureLocations, blockBindings));
     }
 
     function vertexFromSPIRV(_spirv : Bytes) : Int
     {
-        var vertex = glCreateShader(GL_VERTEX_SHADER);
+        final vertex = glCreateShader(GL_VERTEX_SHADER);
         glShaderBinary(1, [ vertex ], GL_SHADER_BINARY_FORMAT_SPIR_V, _spirv.getData(), _spirv.length);
         glSpecializeShader(vertex, 'main', 0, [ 0 ], [ 0 ]);
 
@@ -788,7 +781,7 @@ class OGL4Backend implements IRendererBackend
 
     function fragmentFromSPIRV(_spirv : Bytes) : Int
     {
-        var fragment = glCreateShader(GL_FRAGMENT_SHADER);
+        final fragment = glCreateShader(GL_FRAGMENT_SHADER);
         glShaderBinary(1, [ fragment ], GL_SHADER_BINARY_FORMAT_SPIR_V, _spirv.getData(), _spirv.length);
         glSpecializeShader(fragment, 'main', 0, [ 0 ], [ 0 ]);
 
@@ -797,7 +790,7 @@ class OGL4Backend implements IRendererBackend
 
     function vertexFromSource(_source : String) : Int
     {
-        var vertex = glCreateShader(GL_VERTEX_SHADER);
+        final vertex = glCreateShader(GL_VERTEX_SHADER);
         WebGL.shaderSource(vertex, _source);
         glCompileShader(vertex);
 
@@ -827,12 +820,12 @@ class OGL4Backend implements IRendererBackend
      * Free the GPU resources used by a shader program.
      * @param _resource Shader resource to remove.
      */
-    function removeShader(_resource : ShaderResource)
+    function removeShader(_id : ResourceID)
     {
-        glDeleteProgram(shaderPrograms.get(_resource.id));
+        glDeleteProgram(shaderPrograms[_id]);
 
-        shaderPrograms.remove(_resource.id);
-        shaderUniforms.remove(_resource.id);
+        shaderPrograms.remove(_id);
+        shaderUniforms.remove(_id);
     }
 
     /**
@@ -852,6 +845,7 @@ class OGL4Backend implements IRendererBackend
         glTextureStorage2D(ids[0], 1, GL_RGBA8, _resource.width, _resource.height);
         glTextureSubImage2D(ids[0], 0, 0, 0, _resource.width, _resource.height, _resource.format.getPixelFormat(), GL_UNSIGNED_BYTE, _resource.pixels);
 
+        textureInfo[_resource.id] = new TextureInformation(_resource.width, _resource.height);
         textureObjects[_resource.id] = ids[0];
         samplerObjects[_resource.id] = new Map();
     }
@@ -860,23 +854,23 @@ class OGL4Backend implements IRendererBackend
      * Free the GPU resources used by a texture.
      * @param _resource Image resource to remove.
      */
-    function removeTexture(_resource : ImageResource)
+    function removeTexture(_id : ResourceID)
     {
-        glDeleteTextures(1, [ textureObjects[_resource.id] ]);
+        glDeleteTextures(1, [ textureObjects[_id] ]);
 
-        for (_ => sampler in samplerObjects[_resource.id])
+        for (_ => sampler in samplerObjects[_id])
         {
             glDeleteSamplers(1, [ sampler ]);
         }
 
-        if (framebufferObjects.exists(_resource.id))
+        if (framebufferObjects.exists(_id))
         {
-            glDeleteFramebuffers(1, [ framebufferObjects[_resource.id] ]);
+            glDeleteFramebuffers(1, [ framebufferObjects[_id] ]);
         }
 
-        textureObjects.remove(_resource.id);
-        samplerObjects.remove(_resource.id);
-        framebufferObjects.remove(_resource.id);
+        textureObjects.remove(_id);
+        samplerObjects.remove(_id);
+        framebufferObjects.remove(_id);
     }
 
     // #endregion
@@ -892,7 +886,7 @@ class OGL4Backend implements IRendererBackend
     {
         updateFramebuffer(_command.target);
         updateShader(_command.shader);
-        updateTextures(_command.shader.layout.textures.length, _command.textures, _command.samplers);
+        updateTextures(_command.shader, _command.textures, _command.samplers);
         updateDepth(_command.depth);
         updateStencil(_command.stencil);
         updateBlending(_command.blending);
@@ -906,7 +900,9 @@ class OGL4Backend implements IRendererBackend
                     case Backbuffer:
                         updateViewport(0, 0, backbuffer.width, backbuffer.height);
                     case Texture(_image):
-                        updateViewport(0, 0, _image.width, _image.height);
+                        final info = textureInfo[_image];
+
+                        updateViewport(0, 0, info.width, info.height);
                 }
             case Viewport(_x, _y, _width, _height):
                 updateViewport(_x, _y, _width, _height);
@@ -921,7 +917,9 @@ class OGL4Backend implements IRendererBackend
                     case Backbuffer:
                         updateClip(0, 0, backbuffer.width, backbuffer.height);
                     case Texture(_image):
-                        updateClip(0, 0, _image.width, _image.height);
+                        final info = textureInfo[_image];
+
+                        updateClip(0, 0, info.width, info.height);
                 }
             case Clip(_x, _y, _width, _height):
                 updateClip(_x, _y, _width, _height);
@@ -951,7 +949,7 @@ class OGL4Backend implements IRendererBackend
                     case Backbuffer:
                         updateTextureFramebuffer(_requested);
                     case Texture(_current):
-                        if (_current.id != _requested.id)
+                        if (_current != _requested)
                         {
                             updateTextureFramebuffer(_requested);
                         }
@@ -961,64 +959,66 @@ class OGL4Backend implements IRendererBackend
         target = _newTarget;
     }
 
-    function updateShader(_newShader : ShaderResource)
+    function updateShader(_newShader : ResourceID)
     {
         if (_newShader != shader)
         {
-            glUseProgram(shaderPrograms.get(_newShader.id));
+            glUseProgram(shaderPrograms[_newShader]);
 
             shader = _newShader;
         }
     }
 
-    function updateTextures(_expectedTextures : Int, _textures : ReadOnlyArray<ImageFrameResource>, _samplers : ReadOnlyArray<SamplerState>)
+    function updateTextures(_shader : ResourceID, _textures : ReadOnlyArray<ResourceID>, _samplers : ReadOnlyArray<SamplerState>)
     {
         // If the shader description specifies more textures than the command provides throw an exception.
         // If less is specified than provided we just ignore the extra, maybe we should throw as well?
-        if (_expectedTextures >= _textures.length)
+        final info  = shaderUniforms[_shader];
+        final count = info.layout.textures.length;
+
+        if (count >= _textures.length)
+        {
+            // then go through each texture and bind it if it isn't already.
+            for (i in 0..._textures.length)
             {
-                // then go through each texture and bind it if it isn't already.
-                for (i in 0..._textures.length)
+                // Bind and activate the texture if its not already bound.
+                final glTextureID = textureObjects.get(_textures[i]);
+
+                if (glTextureID != textureSlots[i])
                 {
-                    // Bind and activate the texture if its not already bound.
-                    final glTextureID = textureObjects.get(_textures[i].image);
-    
-                    if (glTextureID != textureSlots[i])
+                    glActiveTexture(GL_TEXTURE0 + i);
+                    glBindTexture(GL_TEXTURE_2D, glTextureID);
+
+                    textureSlots[i] = glTextureID;
+                }
+
+                // Fetch the custom sampler (first create it if a hash of the sampler is not found).
+                var currentSampler = defaultSampler;
+                if (i < _samplers.length)
+                {
+                    final textureSamplers = samplerObjects[_textures[i]];
+
+                    if (!textureSamplers.exists(_samplers[i]))
                     {
-                        glActiveTexture(GL_TEXTURE0 + i);
-                        glBindTexture(GL_TEXTURE_2D, glTextureID);
-    
-                        textureSlots[i] = glTextureID;
+                        textureSamplers[_samplers[i]] = createSamplerObject(_samplers[i]);
                     }
-    
-                    // Fetch the custom sampler (first create it if a hash of the sampler is not found).
-                    var currentSampler = defaultSampler;
-                    if (i < _samplers.length)
-                    {
-                        final samplerHash     = _samplers[i].hash();
-                        final textureSamplers = samplerObjects[_textures[i].image];
-    
-                        if (!textureSamplers.exists(samplerHash))
-                        {
-                            textureSamplers[samplerHash] = createSamplerObject(_samplers[i]);
-                        }
-    
-                        currentSampler = textureSamplers[samplerHash];
-                    }
-    
-                    // If its not already bound bind it and update the bound sampler array.
-                    if (currentSampler != samplerSlots[i])
-                    {
-                        glBindSampler(i, currentSampler);
-    
-                        samplerSlots[i] = currentSampler;
-                    }
+
+                    currentSampler = textureSamplers[_samplers[i]];
+                }
+
+                // If its not already bound bind it and update the bound sampler array.
+                if (currentSampler != samplerSlots[i])
+                {
+                    glBindSampler(i, currentSampler);
+
+                    samplerSlots[i] = currentSampler;
                 }
             }
-            else
-            {
-                throw new OGL4NotEnoughTexturesException(_expectedTextures, _textures.length);
-            }
+        }
+        else
+        {
+            throw new OGL4NotEnoughTexturesException(count, _textures.length);
+        }
     }
 
     function updateClip(_x : Int, _y : Int, _width : Int, _height : Int)
@@ -1043,95 +1043,95 @@ class OGL4Backend implements IRendererBackend
 
     function updateDepth(_newDepth : DepthState)
     {
-        if (!_newDepth.equals(depth))
+        if (_newDepth != depth)
         {
-            if (!_newDepth.depthTesting)
+            if (!_newDepth.enabled)
             {
                 glDisable(GL_DEPTH_TEST);
             }
             else
             {
-                if (_newDepth.depthTesting != depth.depthTesting)
+                if (_newDepth.enabled != depth.enabled)
                 {
                     glEnable(GL_DEPTH_TEST);
                 }
-                if (_newDepth.depthMasking != depth.depthMasking)
+                if (_newDepth.masking != depth.masking)
                 {
-                    glDepthMask(_newDepth.depthMasking);
+                    glDepthMask(_newDepth.masking);
                 }
-                if (_newDepth.depthFunction != depth.depthFunction)
+                if (_newDepth.func != depth.func)
                 {
-                    glDepthFunc(_newDepth.depthFunction.getComparisonFunc());
+                    glDepthFunc(_newDepth.func.getComparisonFunc());
                 }
             }
 
-            depth.copyFrom(_newDepth);
+            depth = _newDepth;
         }
     }
 
     function updateStencil(_newStencil : StencilState)
     {
-        if (!_newStencil.equals(stencil))
-        {
-            if (!_newStencil.stencilTesting)
+        if (_newStencil != stencil)
             {
-                glDisable(GL_STENCIL_TEST);
+                if (!_newStencil.enabled)
+                {
+                    glDisable(GL_STENCIL_TEST);
+                }
+                else
+                {
+                    if (_newStencil.enabled != stencil.enabled)
+                    {
+                        glEnable(GL_STENCIL_TEST);
+                    }
+    
+                    // Front tests
+                    // if (_newStencil.stencilFrontMask != stencil.stencilFrontMask)
+                    // {
+                    //     glStencilMaskSeparate(GL_FRONT, _newStencil.stencilFrontMask);
+                    // }
+                    if (_newStencil.frontFunc != stencil.frontFunc)
+                    {
+                        glStencilFuncSeparate(GL_FRONT, _newStencil.frontFunc.getComparisonFunc(), 1, 0xff);
+                    }
+                    if (_newStencil.frontTestFail != stencil.frontTestFail ||
+                        _newStencil.frontDepthTestFail != stencil.frontDepthTestFail ||
+                        _newStencil.frontDepthTestPass != stencil.frontDepthTestPass)
+                    {
+                        glStencilOpSeparate(
+                            GL_FRONT,
+                            _newStencil.frontTestFail.getStencilFunc(),
+                            _newStencil.frontDepthTestFail.getStencilFunc(),
+                            _newStencil.frontDepthTestPass.getStencilFunc());
+                    }
+    
+                    // Back tests
+                    // if (_newStencil.stencilBackMask != stencil.stencilBackMask)
+                    // {
+                    //     glStencilMaskSeparate(GL_BACK, _newStencil.stencilBackMask);
+                    // }
+                    if (_newStencil.backFunc != stencil.backFunc)
+                    {
+                        glStencilFuncSeparate(GL_BACK, _newStencil.backFunc.getComparisonFunc(), 1, 0xff);
+                    }
+                    if (_newStencil.backTestFail != stencil.backTestFail ||
+                        _newStencil.backDepthTestFail != stencil.backDepthTestFail ||
+                        _newStencil.backDepthTestPass != stencil.backDepthTestPass)
+                    {
+                        glStencilOpSeparate(
+                            GL_BACK,
+                            _newStencil.backTestFail.getStencilFunc(),
+                            _newStencil.backDepthTestFail.getStencilFunc(),
+                            _newStencil.backDepthTestPass.getStencilFunc());
+                    }
+                }
+    
+                stencil = _newStencil;
             }
-            else
-            {
-                if (_newStencil.stencilTesting != stencil.stencilTesting)
-                {
-                    glEnable(GL_STENCIL_TEST);
-                }
-
-                // Front tests
-                if (_newStencil.stencilFrontMask != stencil.stencilFrontMask)
-                {
-                    glStencilMaskSeparate(GL_FRONT, _newStencil.stencilFrontMask);
-                }
-                if (_newStencil.stencilFrontFunction != stencil.stencilFrontFunction)
-                {
-                    glStencilFuncSeparate(GL_FRONT, _newStencil.stencilFrontFunction.getComparisonFunc(), 1, 0xff);
-                }
-                if (_newStencil.stencilFrontTestFail != stencil.stencilFrontTestFail ||
-                    _newStencil.stencilFrontDepthTestFail != stencil.stencilFrontDepthTestFail ||
-                    _newStencil.stencilFrontDepthTestPass != stencil.stencilFrontDepthTestPass)
-                {
-                    glStencilOpSeparate(
-                        GL_FRONT,
-                        _newStencil.stencilFrontTestFail.getStencilFunc(),
-                        _newStencil.stencilFrontDepthTestFail.getStencilFunc(),
-                        _newStencil.stencilFrontDepthTestPass.getStencilFunc());
-                }
-
-                // Back tests
-                if (_newStencil.stencilBackMask != stencil.stencilBackMask)
-                {
-                    glStencilMaskSeparate(GL_BACK, _newStencil.stencilBackMask);
-                }
-                if (_newStencil.stencilBackFunction != stencil.stencilBackFunction)
-                {
-                    glStencilFuncSeparate(GL_BACK, _newStencil.stencilBackFunction.getComparisonFunc(), 1, 0xff);
-                }
-                if (_newStencil.stencilBackTestFail != stencil.stencilBackTestFail ||
-                    _newStencil.stencilBackDepthTestFail != stencil.stencilBackDepthTestFail ||
-                    _newStencil.stencilBackDepthTestPass != stencil.stencilBackDepthTestPass)
-                {
-                    glStencilOpSeparate(
-                        GL_BACK,
-                        _newStencil.stencilBackTestFail.getStencilFunc(),
-                        _newStencil.stencilBackDepthTestFail.getStencilFunc(),
-                        _newStencil.stencilBackDepthTestPass.getStencilFunc());
-                }
-            }
-
-            stencil.copyFrom(_newStencil);
-        }
     }
 
     function updateBlending(_newBlend : BlendState)
     {
-        if (!_newBlend.equals(blend))
+        if (_newBlend != blend)
         {
             if (_newBlend.enabled)
             {
@@ -1141,8 +1141,8 @@ class OGL4Backend implements IRendererBackend
                 }
 
                 glBlendFuncSeparate(
-                    _newBlend.srcRGB.getBlendMode(),
-                    _newBlend.dstRGB.getBlendMode(),
+                    _newBlend.srcRgb.getBlendMode(),
+                    _newBlend.dstRgb.getBlendMode(),
                     _newBlend.srcAlpha.getBlendMode(),
                     _newBlend.dstAlpha.getBlendMode());
             }
@@ -1151,7 +1151,7 @@ class OGL4Backend implements IRendererBackend
                 glDisable(GL_BLEND);
             }
 
-            blend.copyFrom(_newBlend);
+            blend = _newBlend;
         }
     }
 
@@ -1160,24 +1160,24 @@ class OGL4Backend implements IRendererBackend
      * If a framebuffer does not exist for the image, create one and store it.
      * @param _image Image to bind a framebuffer for.
      */
-    function updateTextureFramebuffer(_image : ImageResource)
+    function updateTextureFramebuffer(_id : ResourceID)
     {
-        if (framebufferObjects.exists(_image.id))
+        if (framebufferObjects.exists(_id))
         {
-            glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects[_image.id]);
+            glBindFramebuffer(GL_FRAMEBUFFER, framebufferObjects[_id]);
         }
         else
         {
             var fbo = [ 0 ];
             glCreateFramebuffers(1, fbo);
-            glNamedFramebufferTexture(fbo[0], GL_COLOR_ATTACHMENT0, textureObjects[_image.id], 0);
+            glNamedFramebufferTexture(fbo[0], GL_COLOR_ATTACHMENT0, textureObjects[_id], 0);
 
             if (glCheckNamedFramebufferStatus(fbo[0], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             {
-                throw new OGL4IncompleteFramebufferException(_image.id);
+                throw new OGL4IncompleteFramebufferException(Std.string(_id));
             }
 
-            framebufferObjects[_image.id] = fbo[0];
+            framebufferObjects[_id] = fbo[0];
             glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
         }
     }
@@ -1288,7 +1288,7 @@ private class BackBuffer
 /**
  * Stores the location of all a shaders uniforms
  */
-private class ShaderLocations
+private class ShaderInformation
 {
     /**
      * Layout of the shader.
@@ -1305,11 +1305,24 @@ private class ShaderLocations
      */
     public final blockBindings : Array<Int>;
 
-    public function new(_layout : ShaderLayout, _textureLocations : Array<Int>, _blockBindings : Array<Int>)
+    public function new(_layout, _textureLocations, _blockBindings)
     {
         layout           = _layout;
         textureLocations = _textureLocations;
         blockBindings    = _blockBindings;
+    }
+}
+
+private class TextureInformation
+{
+    public final width : Int;
+
+    public final height : Int;
+
+    public function new(_width, _height)
+    {
+        width  = _width;
+        height = _height;
     }
 }
 

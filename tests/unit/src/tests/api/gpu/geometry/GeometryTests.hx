@@ -1,19 +1,15 @@
 package tests.api.gpu.geometry;
 
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
-import haxe.io.Bytes;
-import uk.aidanlee.flurry.api.gpu.state.BlendState;
-import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
+import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
+import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 import buddy.BuddySuite;
 import mockatoo.Mockatoo.*;
 
@@ -62,37 +58,70 @@ class GeometryTests extends BuddySuite
                 final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                 final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), clip : clipRect });
 
-                geometry1.shader.getIndex().should.be(0);
-                geometry2.clip.should.equal(clipRect);
+                switch geometry1.clip
+                {
+                    case None:
+                    case Clip(_, _, _, _): fail('expected geometry to have no clip region defined');
+                }
+                switch geometry2.clip {
+                    case None: fail('expected geometry to have a clip region');
+                    case Clip(_x, _y, _width, _height):
+                        _x.should.be(12);
+                        _y.should.be(4);
+                        _width.should.be(20);
+                        _height.should.be(7);
+                }
             });
 
             it('Has an array of textures to draw the geometry with', {
-                final image = new ImageFrameResource('', '', 0, 0, 0, 0, 0, 0, 0, 0);
-
-                final textures  = Textures([ image ]);
+                final texture   = 1;
                 final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
-                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), textures : textures });
+                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), textures : Some([ texture ]) });
 
-                geometry1.shader.getIndex().should.be(0);
-                geometry2.textures.should.equal(textures);
+                switch geometry1.textures
+                {
+                    case Some(_): fail('expected geometry to have no textures');
+                    case None:
+                }
+                switch geometry2.textures
+                {
+                    case Some(v): (cast v : Array<ResourceID>).should.containExactly([ texture ]);
+                    case None: fail('expected geometry to have textures');
+                }
             });
 
             it('Has a shader for overriding the batchers shader', {
-                final shader    = Shader(shader());
+                final shader    = 1;
                 final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
-                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), shader : shader });
+                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), shader : Some(shader) });
 
-                geometry1.shader.getIndex().should.be(0);
-                geometry2.shader.should.equal(shader);
+                switch geometry1.shader
+                {
+                    case Some(_): fail('expected geometry to have no haxe');
+                    case None:
+                }
+                switch geometry2.shader
+                {
+                    case Some(v): v.should.be(shader);
+                    case None: fail('expected geometry to have a shader ID');
+                }
             });
 
             it('Has a uniform for overriding the shaders default', {
-                final uniforms  = Uniforms([ mock(UniformBlob) ]);
+                final uniform   = mock(UniformBlob);
                 final geometry1 = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
-                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), uniforms : uniforms });
+                final geometry2 = new Geometry({ data : UnIndexed(mock(VertexBlob)), uniforms : Some([ uniform ]) });
                 
-                geometry1.uniforms.getIndex().should.be(0);
-                geometry2.uniforms.should.equal(uniforms);
+                switch geometry1.uniforms
+                {
+                    case Some(_): fail('expected geometry to have no uniforms');
+                    case None:
+                }
+                switch geometry2.uniforms
+                {
+                    case Some(v): v[0].id.should.be(uniform.id);
+                    case None: fail('expected geometry to have uniforms');
+                }
             });
 
             it('Has a depth to decide when it should be drawn', {
@@ -130,7 +159,7 @@ class GeometryTests extends BuddySuite
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                     geometry.changed.subscribeFunction(_ -> count++);
 
-                    geometry.shader = Shader(shader());
+                    geometry.shader = Some(0);
                     count.should.be(1);
 
                     geometry.shader = None;
@@ -142,7 +171,7 @@ class GeometryTests extends BuddySuite
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                     geometry.changed.subscribeFunction(_ -> count++);
 
-                    geometry.uniforms = Uniforms([ mock(UniformBlob) ]);
+                    geometry.uniforms = Some([ mock(UniformBlob) ]);
                     count.should.be(1);
 
                     geometry.uniforms = None;
@@ -154,7 +183,7 @@ class GeometryTests extends BuddySuite
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                     geometry.changed.subscribeFunction(_ -> count++);
 
-                    geometry.textures = Textures([ new ImageFrameResource('', '', 0, 0, 0, 0, 0, 0, 0, 0) ]);
+                    geometry.textures = Some([ 0 ]);
                     count.should.be(1);
 
                     geometry.textures = None;
@@ -166,7 +195,7 @@ class GeometryTests extends BuddySuite
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                     geometry.changed.subscribeFunction(_ -> count++);
 
-                    geometry.samplers = Samplers([ new SamplerState(Border, Border, Linear, Linear) ]);
+                    geometry.samplers = Some([ new SamplerState(Clamp, Clamp, Linear, Linear) ]);
                     count.should.be(1);
 
                     geometry.samplers = None;
@@ -178,7 +207,7 @@ class GeometryTests extends BuddySuite
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                     geometry.changed.subscribeFunction(_ -> count++);
 
-                    geometry.uniforms = Uniforms([ mock(UniformBlob) ]);
+                    geometry.uniforms = Some([ mock(UniformBlob) ]);
                     count.should.be(1);
 
                     geometry.uniforms = None;
@@ -190,7 +219,7 @@ class GeometryTests extends BuddySuite
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                     geometry.changed.subscribeFunction(_ -> count++);
 
-                    geometry.blend = new BlendState();
+                    geometry.blend = BlendState.none;
                     count.should.be(1);
                 });
                 it('will publish a new onNext event when the primitive is changed', {
@@ -207,10 +236,5 @@ class GeometryTests extends BuddySuite
                 });
             });
         });
-    }
-
-    function shader() : ShaderResource
-    {
-        return new ShaderResource('shader', new ShaderLayout([], []), null, null, null);
     }
 }

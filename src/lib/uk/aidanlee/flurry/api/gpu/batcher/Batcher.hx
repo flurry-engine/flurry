@@ -1,14 +1,14 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
 import haxe.ds.ArraySort;
-import rx.Unit;
-import rx.disposables.ISubscription;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
+import rx.Unit;
+import rx.disposables.ISubscription;
 
 using rx.Observable;
 
@@ -45,7 +45,7 @@ class Batcher
     /**
      * Shader for this batcher to use.
      */
-    public var shader : ShaderResource;
+    public var shader : ResourceID;
 
     /**
      * Target this batcher will be drawn to.
@@ -155,11 +155,11 @@ class Batcher
                     target,
                     state.shader,
                     state.uniforms,
-                    state.textures.copy(),
-                    state.samplers.copy(),
+                    state.textures,
+                    state.samplers,
                     depthOptions,
                     stencilOptions,
-                    state.blend.clone()
+                    state.blend
                 ));
 
                 commandGeom = [];
@@ -181,11 +181,11 @@ class Batcher
                 target,
                 state.shader,
                 state.uniforms,
-                state.textures.copy(),
-                state.samplers.copy(),
+                state.textures,
+                state.samplers,
                 depthOptions,
                 stencilOptions,
-                state.blend.clone()
+                state.blend
             ));
         }
     }
@@ -234,13 +234,13 @@ class Batcher
                     case None: // no op
                     case _: return -1;
                 }
-            case Shader(_shaderA):
+            case Some(_shaderA):
                 switch _b.shader
                 {
                     case None: return 1;
-                    case Shader(_shaderB):
-                        if (_shaderA.id < _shaderB.id) return -1;
-                        if (_shaderA.id > _shaderB.id) return  1;
+                    case Some(_shaderB):
+                        if (_shaderA < _shaderB) return -1;
+                        if (_shaderA > _shaderB) return  1;
                 }
         }
 
@@ -251,13 +251,13 @@ class Batcher
                 switch _b.uniforms
                 {
                     case None: // no op
-                    case Uniforms(_): return -1;
+                    case Some(_): return -1;
                 }
-            case Uniforms(_uniformsA):
+            case Some(_uniformsA):
                 switch _b.uniforms
                 {
                     case None: return 1;
-                    case Uniforms(_uniformsB):
+                    case Some(_uniformsB):
                         if (_uniformsA.length == _uniformsB.length)
                         {
                             for (i in 0..._uniformsA.length)
@@ -282,17 +282,17 @@ class Batcher
                     case None: // no op
                     case _: return -1;
                 }
-            case Textures(_texturesA):
+            case Some(_texturesA):
                 switch _b.textures
                 {
                     case None: return 1;
-                    case Textures(_texturesB):
+                    case Some(_texturesB):
                         if (_texturesA.length == _texturesB.length)
                         {
                             for (i in 0..._texturesA.length)
                             {
-                                if (_texturesA[i].id < _texturesB[i].id) return -1;
-                                if (_texturesA[i].id > _texturesB[i].id) return  1;
+                                if (_texturesA[i] < _texturesB[i]) return -1;
+                                if (_texturesA[i] > _texturesB[i]) return  1;
                             }
                         }
                         else
@@ -311,16 +311,16 @@ class Batcher
                     case None: // no op
                     case _: return -1;
                 }
-            case Samplers(_samplersA):
+            case Some(_samplersA):
                 switch _b.samplers
                 {
                     case None: return 1;
-                    case Samplers(_samplersB):
+                    case Some(_samplersB):
                         if (_samplersA.length == _samplersB.length)
                         {
                             for (i in 0..._samplersA.length)
                             {
-                                if (!_samplersA[i].equal(_samplersB[i]))
+                                if (_samplersA[i] == _samplersB[i])
                                 {
                                     return -1;
                                 }
@@ -355,7 +355,7 @@ class Batcher
         }
 
         // Sort by blend
-        if (!_a.blend.equals(_b.blend))
+        if (_a.blend != _b.blend)
         {
             return -1;
         }
@@ -386,13 +386,13 @@ class Batcher
     /**
      * The shader this batcher will use.
      */
-    public final shader : ShaderResource;
+    public final shader : ResourceID;
 
     /**
      * Optional render target for this batcher.
      * If not specified the backbuffer will be used.
      */
-    public final target : TargetState = Backbuffer;
+    public final target = Backbuffer;
 
     /**
      * Optional initial depth for this batcher.
@@ -403,28 +403,10 @@ class Batcher
     /**
      * Depth testing options to be used by the batcher.
      */
-    public final depthOptions : DepthState = {
-        depthTesting  : false,
-        depthMasking  : false,
-        depthFunction : Always
-    };
+    public final depthOptions = DepthState.none;
 
     /**
      * Stencil testing options to be used by the batcher.
      */
-    public final stencilOptions : StencilState = {
-        stencilTesting : false,
-
-        stencilFrontMask          : 0xff,
-        stencilFrontFunction      : Always,
-        stencilFrontTestFail      : Keep,
-        stencilFrontDepthTestFail : Keep,
-        stencilFrontDepthTestPass : Keep,
-        
-        stencilBackMask          : 0xff,
-        stencilBackFunction      : Always,
-        stencilBackTestFail      : Keep,
-        stencilBackDepthTestFail : Keep,
-        stencilBackDepthTestPass : Keep
-    };
+    public final stencilOptions = StencilState.none;
 }

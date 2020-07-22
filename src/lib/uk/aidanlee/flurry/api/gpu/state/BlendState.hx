@@ -1,69 +1,38 @@
 package uk.aidanlee.flurry.api.gpu.state;
 
-class BlendState
+import uk.aidanlee.flurry.api.maths.Maths;
+
+abstract BlendState(Int)
 {
-    /**
-     * If blending is enabled for this state.
-     */
-    public var enabled : Bool;
+    public static final none = new BlendState(true, SrcAlpha, One, OneMinusSrcAlpha, Zero);
 
-    /**
-     * The source colour for blending.
-     */
-    public var srcRGB : BlendMode;
+    public var enabled (get, never) : Bool;
 
-    /**
-     * The source alpha for blending.
-     */
-    public var srcAlpha : BlendMode;
+    inline function get_enabled() return this & 0x1 == 1;
 
-    /**
-     * The destination color for blending.
-     */
-    public var dstRGB : BlendMode;
+    public var srcRgb (get, never) : BlendMode;
 
-    /**
-     * The destination alpha for blending.
-     */
-    public var dstAlpha : BlendMode;
+    inline function get_srcRgb() return cast this >>> 1 & 0xF;
+
+    public var srcAlpha (get, never) : BlendMode;
+
+    inline function get_srcAlpha() return cast this >>> 5 & 0xF;
+
+    public var dstRgb (get, never) : BlendMode;
+
+    inline function get_dstRgb() return cast this >>> 9 & 0xF;
+
+    public var dstAlpha (get, never) : BlendMode;
+
+    inline function get_dstAlpha() return cast this >>> 13 & 0xF;
 
     public function new(
-        _enabled  : Bool = true,
-        _srcRGB   : BlendMode = SrcAlpha,
-        _srcAlpha : BlendMode = One,
-        _dstRGB   : BlendMode = OneMinusSrcAlpha,
-        _dstAlpha : BlendMode = Zero
-    )
+        _enabled : Bool,
+        _srcRgb : BlendMode,
+        _srcAlpha : BlendMode,
+        _dstRgb : BlendMode,
+        _dstAlpha : BlendMode)
     {
-        enabled  = _enabled;
-        srcRGB   = _srcRGB;
-        srcAlpha = _srcAlpha;
-        dstRGB   = _dstRGB;
-        dstAlpha = _dstAlpha;
-    }
-
-    public function equals(_other : BlendState) : Bool
-    {
-        return enabled  == _other.enabled  &&
-               srcRGB   == _other.srcRGB   &&
-               srcAlpha == _other.srcAlpha &&
-               dstRGB   == _other.dstRGB   &&
-               dstAlpha == _other.dstAlpha;
-    }
-
-    public function copyFrom(_other : BlendState) : BlendState
-    {
-        enabled  = _other.enabled;
-        srcRGB   = _other.srcRGB;
-        srcAlpha = _other.srcAlpha;
-        dstRGB   = _other.dstRGB;
-        dstAlpha = _other.dstAlpha;
-
-        return this;
-    }
-
-    public function clone() : BlendState
-    {
-        return new BlendState(enabled, srcRGB, srcAlpha, dstRGB, dstAlpha);
+        this = (((((((_dstAlpha << 4) | (_dstRgb & 0xF)) << 4) | (_srcAlpha & 0xF)) << 4) | (_srcRgb & 0xF)) << 1) | (Maths.boolToInt(_enabled) & 0x1);
     }
 }

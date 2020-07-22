@@ -23,24 +23,24 @@ class Colourised extends Flurry
     {
         final camera  = renderer.createCamera2D(display.width, display.height);
         final batcher = renderer.createBatcher({
-            shader : resources.get('textured', ShaderResource),
+            shader : resources.getByName('textured', ShaderResource).id,
             camera : camera
         });
 
         new QuadGeometry({
-            texture  : resources.get('tank1', ImageFrameResource),
+            texture  : resources.getByName('tank1', ImageFrameResource),
             batchers : [ batcher ],
             x : 0, y : 128, width : 256, height : 256
         }).setColour(1, 0, 0, 1);
 
         new QuadGeometry({
-            texture  : resources.get('tank2', ImageFrameResource),
+            texture  : resources.getByName('tank2', ImageFrameResource),
             batchers : [ batcher ],
             x : 256, y : 128, width : 256, height : 256
         }).setColour(0, 1, 0, 1);
         
         new QuadGeometry({
-            texture  : resources.get('tank3', ImageFrameResource),
+            texture  : resources.getByName('tank3', ImageFrameResource),
             batchers : [ batcher ],
             x : 512, y : 129, width : 256, height : 256
         }).setColour(0, 0, 1, 1);

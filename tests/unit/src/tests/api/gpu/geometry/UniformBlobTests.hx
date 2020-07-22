@@ -80,11 +80,6 @@ class UniformBlobTests extends BuddySuite
                 buffer.buffer.byteLength.should.be(160);
                 buffer.buffer.bytes.compare(concat.getBytes()).should.be(0);
             });
-            it('contains an integer hash of the uniform blob name', {
-                final buffer = new UniformBlobBuilder('uniforms').uniformBlob();
-                buffer.name.should.be('uniforms');
-                buffer.id.should.be(Hash.hash('uniforms'));
-            });
         });
     }
 }

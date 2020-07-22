@@ -26,11 +26,11 @@ class Transformations extends Flurry
     {
         final axis    = new Vector3(0, 0, 1);
         final camera  = renderer.createCamera2D(display.width, display.height);
-        final batcher = renderer.createBatcher({ shader : resources.get('textured', ShaderResource), camera : camera });
+        final batcher = renderer.createBatcher({ shader : resources.getByName('textured', ShaderResource).id, camera : camera });
 
-        final g1 = new QuadGeometry({ texture : resources.get('tank1', ImageFrameResource), batchers : [ batcher ], sampler : new SamplerState(Clamp, Clamp, Linear, Linear) });
-        final g2 = new QuadGeometry({ texture : resources.get('tank2', ImageFrameResource), batchers : [ batcher ], sampler : new SamplerState(Clamp, Clamp, Linear, Linear) });
-        final g3 = new QuadGeometry({ texture : resources.get('tank3', ImageFrameResource), batchers : [ batcher ], sampler : new SamplerState(Clamp, Clamp, Linear, Linear) });
+        final g1 = new QuadGeometry({ texture : resources.getByName('tank1', ImageFrameResource), batchers : [ batcher ], sampler : new SamplerState(Clamp, Clamp, Linear, Linear) });
+        final g2 = new QuadGeometry({ texture : resources.getByName('tank2', ImageFrameResource), batchers : [ batcher ], sampler : new SamplerState(Clamp, Clamp, Linear, Linear) });
+        final g3 = new QuadGeometry({ texture : resources.getByName('tank3', ImageFrameResource), batchers : [ batcher ], sampler : new SamplerState(Clamp, Clamp, Linear, Linear) });
 
         g1.origin.set_xy(128, 128);
         g2.origin.set_xy(128, 128);

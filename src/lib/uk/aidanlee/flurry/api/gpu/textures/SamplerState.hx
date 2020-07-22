@@ -1,14 +1,26 @@
 package uk.aidanlee.flurry.api.gpu.textures;
 
-class SamplerState
-{   
-    public final uClamping : EdgeClamping;
+abstract SamplerState(Int)
+{
+    public static final nearest = new SamplerState(Clamp, Clamp, Nearest, Nearest);
 
-    public final vClamping : EdgeClamping;
+    public static final linear = new SamplerState(Clamp, Clamp, Linear, Linear);
 
-    public final minification : Filtering;
+    public var uClamping (get, never) : EdgeClamping;
 
-    public final magnification : Filtering;
+    inline function get_uClamping() return cast this & 0x7;
+
+    public var vClamping (get, never) : EdgeClamping;
+
+    inline function get_vClamping() return cast this >>> 3 & 0x7;
+
+    public var minification (get, never) : Filtering;
+
+    inline function get_minification() return cast this >>> 6 & 0x1;
+
+    public var magnification (get, never) : Filtering;
+
+    inline function get_magnification() return cast this >>> 7 & 0x1;
 
     public function new(
         _uClamping     : EdgeClamping,
@@ -16,29 +28,6 @@ class SamplerState
         _minification  : Filtering,
         _magnification : Filtering)
     {
-        uClamping     = _uClamping;
-        vClamping     = _vClamping;
-        minification  = _minification;
-        magnification = _magnification;
-    }
-
-    public function equal(_other : SamplerState)
-    {
-        return
-            uClamping == _other.uClamping &&
-            vClamping == _other.vClamping &&
-            minification == _other.minification &&
-            magnification == _other.magnification;
-    }
-
-    public function hash() : Int
-    {
-        var hash = 23;
-        hash *= 31 + (cast uClamping : Int);
-        hash *= 31 + (cast vClamping : Int);
-        hash *= 31 + (cast minification : Int);
-        hash *= 31 + (cast magnification : Int);
-
-        return hash;
+        this = (_uClamping & 0x7) | ((_vClamping & 0x7) << 3) | ((_minification & 0x1) << 6) | ((_magnification & 0x1) << 7);
     }
 }

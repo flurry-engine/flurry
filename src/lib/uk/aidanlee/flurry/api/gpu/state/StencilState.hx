@@ -1,54 +1,68 @@
 package uk.aidanlee.flurry.api.gpu.state;
 
-@:structInit
-class StencilState
+import uk.aidanlee.flurry.api.maths.Maths;
+
+abstract StencilState(Int)
 {
-    public var stencilTesting (default, null) : Bool;
+    public static final none = new StencilState(false, Always, Keep, Keep, Keep, Always, Keep, Keep, Keep);
 
-    public var stencilFrontMask (default, null) : Int;
-    public var stencilFrontFunction (default, null) : ComparisonFunction;
-    public var stencilFrontTestFail (default, null) : StencilFunction;
-    public var stencilFrontDepthTestFail (default, null) : StencilFunction;
-    public var stencilFrontDepthTestPass (default, null) : StencilFunction;
+    public var enabled (get, never) : Bool;
 
-    public var stencilBackMask (default, null) : Int;
-    public var stencilBackFunction (default, null) : ComparisonFunction;
-    public var stencilBackTestFail (default, null) : StencilFunction;
-    public var stencilBackDepthTestFail (default, null) : StencilFunction;
-    public var stencilBackDepthTestPass (default, null) : StencilFunction;
+    inline function get_enabled() return Maths.intToBool(this & 0x1);
 
-    public function equals(_other : StencilState) : Bool
+    public var frontFunc (get, never) : ComparisonFunction;
+
+    inline function get_frontFunc() return cast this >>> 1 & 0x7;
+
+    public var frontTestFail (get, never) : StencilFunction;
+
+    inline function get_frontTestFail() return cast this >>> 4 & 0x7;
+
+    public var frontDepthTestFail (get, never) : StencilFunction;
+
+    inline function get_frontDepthTestFail() return cast this >>> 7 & 0x7;
+
+    public var frontDepthTestPass (get, never) : StencilFunction;
+
+    inline function get_frontDepthTestPass() return cast this >>> 10 & 0x7;
+
+    public var backFunc (get, never) : ComparisonFunction;
+
+    inline function get_backFunc() return cast this >>> 13 & 0x7;
+
+    public var backTestFail (get, never) : StencilFunction;
+
+    inline function get_backTestFail() return cast this >>> 16 & 0x7;
+
+    public var backDepthTestFail (get, never) : StencilFunction;
+
+    inline function get_backDepthTestFail() return cast this >>> 19 & 0x7;
+
+    public var backDepthTestPass (get, never) : StencilFunction;
+
+    inline function get_backDepthTestPass() return cast this >>> 22 & 0x7;
+
+    public function new(
+        _enabled : Bool,
+        _frontFunc : ComparisonFunction,
+        _frontTestFail : StencilFunction,
+        _frontDepthTestFail : StencilFunction,
+        _frontDepthTestPass : StencilFunction,
+        _backFunc : ComparisonFunction,
+        _backTestFail : StencilFunction,
+        _backDepthTestFail : StencilFunction,
+        _backDepthTestPass : StencilFunction
+    )
     {
-        return
-            stencilTesting == _other.stencilTesting &&
-
-            stencilFrontMask == _other.stencilFrontMask &&
-            stencilFrontFunction == _other.stencilFrontFunction &&
-            stencilFrontTestFail == _other.stencilFrontTestFail &&
-            stencilFrontDepthTestFail == _other.stencilFrontDepthTestFail &&
-            stencilFrontDepthTestPass == _other.stencilFrontDepthTestPass &&
-
-            stencilBackMask == _other.stencilBackMask &&
-            stencilBackFunction == _other.stencilBackFunction &&
-            stencilBackTestFail == _other.stencilBackTestFail &&
-            stencilBackDepthTestFail == _other.stencilBackDepthTestFail &&
-            stencilBackDepthTestPass == _other.stencilBackDepthTestPass;
-    }
-
-    public function copyFrom(_other : StencilState)
-    {
-        stencilTesting = _other.stencilTesting;
-
-        stencilFrontMask          = _other.stencilFrontMask;
-        stencilFrontFunction      = _other.stencilFrontFunction;
-        stencilFrontTestFail      = _other.stencilFrontTestFail;
-        stencilFrontDepthTestFail = _other.stencilFrontDepthTestFail;
-        stencilFrontDepthTestPass = _other.stencilFrontDepthTestPass;
-
-        stencilBackMask          = _other.stencilBackMask;
-        stencilBackFunction      = _other.stencilBackFunction;
-        stencilBackTestFail      = _other.stencilBackTestFail;
-        stencilBackDepthTestFail = _other.stencilBackDepthTestFail;
-        stencilBackDepthTestPass = _other.stencilBackDepthTestPass;
+        this =
+            (Maths.boolToInt(_enabled) & 0x1) |
+            ((_frontFunc & 0x7) << 1) |
+            ((_frontTestFail & 0x7) << 4) |
+            ((_frontDepthTestFail & 0x7) << 7) |
+            ((_frontDepthTestPass & 0x7) << 10) |
+            ((_backFunc & 0x7) << 13) |
+            ((_backTestFail & 0x7) << 16) |
+            ((_backDepthTestFail & 0x7) << 19) |
+            ((_backDepthTestPass & 0x7) << 22);
     }
 }

@@ -23,13 +23,12 @@ class Text extends Flurry
     override function onReady()
     {
         final camera  = renderer.createCamera2D(display.width, display.height);
-        final batcher = renderer.createBatcher({ shader : resources.get('msdf', ShaderResource), camera : camera });
-        final sampler = new SamplerState(Clamp, Clamp, Linear, Linear);
+        final batcher = renderer.createBatcher({ shader : resources.getByName('msdf', ShaderResource).id, camera : camera });
 
         new TextGeometry({
             batchers : [ batcher ],
-            font     : resources.get('roboto', FontResource),
-            sampler  : sampler,
+            font     : resources.getByName('roboto', FontResource),
+            sampler  : SamplerState.linear,
             text     : 'hello world',
             size     : 48,
             x : 32, y : 32
@@ -37,8 +36,8 @@ class Text extends Flurry
 
         new TextGeometry({
             batchers : [ batcher ],
-            font     : resources.get('roboto', FontResource),
-            sampler  : sampler,
+            font     : resources.getByName('roboto', FontResource),
+            sampler  : SamplerState.linear,
             text     : 'Lorem ipsum',
             size     : 96,
             x : 32, y : 96

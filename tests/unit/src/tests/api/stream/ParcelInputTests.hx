@@ -56,7 +56,7 @@ class ParcelInputTests extends BuddySuite
                         });
                         it('will have successfully created a new ImageResource', {
                             final resource = (cast _resources[0] : ImageResource);
-                            resource.id.should.be('new_image');
+                            resource.name.should.be('new_image');
                             resource.width.should.be(4);
                             resource.height.should.be(4);
                             resource.format.should.equal(PixelFormat.BGRAUNorm);
@@ -80,7 +80,7 @@ class ParcelInputTests extends BuddySuite
                         });
                         it('will have successfully created a new ImageResource', {
                             final resource = (cast _resources[0] : ImageResource);
-                            resource.id.should.be('new_image');
+                            resource.name.should.be('new_image');
                             resource.width.should.be(4);
                             resource.height.should.be(4);
                         });
@@ -103,7 +103,7 @@ class ParcelInputTests extends BuddySuite
                         });
                         it('will have successfully created a new ImageResource', {
                             final resource = (cast _resources[0] : ImageResource);
-                            resource.id.should.be('new_image');
+                            resource.name.should.be('new_image');
                             resource.width.should.be(4);
                             resource.height.should.be(4);
                         });
@@ -131,8 +131,7 @@ class ParcelInputTests extends BuddySuite
                             resource.content.should.be(asset.content);
                         });
                         it('will have successfully created a new ImageResource', {
-                            final resource = (cast _resources.find(f -> f.id == 'new_image') : ImageResource);
-                            resource.id.should.be('new_image');
+                            final resource = (cast _resources.find(f -> f.name == 'new_image') : ImageResource);
                             resource.width.should.be(4);
                             resource.height.should.be(4);
                             resource.format.should.equal(PixelFormat.BGRAUNorm);

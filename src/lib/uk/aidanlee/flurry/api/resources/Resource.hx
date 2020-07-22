@@ -1,9 +1,12 @@
 package uk.aidanlee.flurry.api.resources;
 
+import uk.aidanlee.flurry.api.maths.Hash;
 import haxe.io.BytesData;
 import hxbit.Serializer;
 import hxbit.Serializable;
 import haxe.io.Bytes;
+
+typedef ResourceID = Int;
 
 enum ShaderType
 {
@@ -32,12 +35,15 @@ class Resource implements Serializable
 {
     @:s public var type (default, null) : ResourceType;
 
-    @:s public var id (default, null) : String;
+    @:s public var name (default, null) : String;
 
-    public function new(_type : ResourceType, _id : String)
+    @:s public var id (default, null) : Int;
+
+    public function new(_type : ResourceType, _name : String)
     {
         type = _type;
-        id   = _id;
+        name = _name;
+        id   = Hash.hash(name);
     }
 }
 
@@ -45,9 +51,9 @@ class BytesResource extends Resource
 {
     @:s public var bytes (default, null) : Bytes;
 
-    public function new(_id : String, _bytes : Bytes)
+    public function new(_name : String, _bytes : Bytes)
     {
-        super(Bytes, _id);
+        super(Bytes, _name);
 
         bytes = _bytes;
     }
@@ -57,9 +63,9 @@ class TextResource extends Resource
 {
     @:s public var content (default, null) : String;
 
-    public function new(_id : String, _content : String)
+    public function new(_name : String, _content : String)
     {
-        super(Text, _id);
+        super(Text, _name);
 
         content = _content;
     }
@@ -88,9 +94,9 @@ class ImageResource extends Resource
      */
     public var pixels (default, null) : BytesData;
 
-    public function new(_id : String, _width : Int, _height : Int, _format : PixelFormat, _pixels : BytesData)
+    public function new(_name : String, _width : Int, _height : Int, _format : PixelFormat, _pixels : BytesData)
     {
-        super(Image, _id);
+        super(Image, _name);
 
         width  = _width;
         height = _height;
@@ -104,7 +110,7 @@ class ImageFrameResource extends Resource
     /**
      * Unique ID of the `ImageResource` all of the frames are contained within.
      */
-    @:s public var image (default, null) : String;
+    @:s public var image (default, null) : ResourceID;
 
     @:s public var x (default, null) : Int;
 
@@ -122,11 +128,11 @@ class ImageFrameResource extends Resource
 
     @:s public var v2 (default, null) : Float;
 
-    public function new(_id : String, _image : String, _x : Int, _y : Int, _width : Int, _height : Int, _u1 : Float, _v1 : Float, _u2 : Float, _v2 : Float)
+    public function new(_name : String, _image : String, _x : Int, _y : Int, _width : Int, _height : Int, _u1 : Float, _v1 : Float, _u2 : Float, _v2 : Float)
     {
-        super(ImageFrame, _id);
+        super(ImageFrame, _name);
 
-        image  = _image;
+        image  = Hash.hash(_image);
         x      = _x;
         y      = _y;
         width  = _width;
@@ -142,9 +148,9 @@ class SpriteResource extends ImageFrameResource
 {
     @:s public var animations (default, null) : Map<String, Array<SpriteFrameResource>>;
 
-    public function new(_id : String, _image : String, _x : Int, _y : Int, _width : Int, _height : Int, _u1 : Float, _v1 : Float, _u2 : Float, _v2 : Float, _animations : Map<String, Array<SpriteFrameResource>>)
+    public function new(_name : String, _image : String, _x : Int, _y : Int, _width : Int, _height : Int, _u1 : Float, _v1 : Float, _u2 : Float, _v2 : Float, _animations : Map<String, Array<SpriteFrameResource>>)
     {
-        super(_id, _image, _x, _y, _width, _height, _u1, _v1, _u2, _v2);
+        super(_name, _image, _x, _y, _width, _height, _u1, _v1, _u2, _v2);
 
         type       = Sprite;
         animations = _animations;
@@ -194,9 +200,9 @@ class FontResource extends ImageFrameResource
 
     @:s public var lineHeight (default, null) : Float;
 
-    public function new(_id : String, _image : String, _characters : Map<Int, Character>, _lineHeight : Float, _x : Int, _y : Int, _width : Int, _height : Int, _u1 : Float, _v1 : Float, _u2 : Float, _v2 : Float)
+    public function new(_name : String, _image : String, _characters : Map<Int, Character>, _lineHeight : Float, _x : Int, _y : Int, _width : Int, _height : Int, _u1 : Float, _v1 : Float, _u2 : Float, _v2 : Float)
     {
-        super(_id, _image, _x, _y, _width, _height, _u1, _v1, _u2, _v2);
+        super(_name, _image, _x, _y, _width, _height, _u1, _v1, _u2, _v2);
 
         type       = Font;
         characters = _characters;
@@ -257,9 +263,9 @@ class ShaderResource extends Resource
 
     @:s public var hlsl (default, null) : Null<ShaderSource>;
 
-    public function new(_id : String, _layout : ShaderLayout, _ogl3 : Null<ShaderSource>, _ogl4 : Null<ShaderSource>, _hlsl : Null<ShaderSource>)
+    public function new(_name : String, _layout : ShaderLayout, _ogl3 : Null<ShaderSource>, _ogl4 : Null<ShaderSource>, _hlsl : Null<ShaderSource>)
     {
-        super(Shader, _id);
+        super(Shader, _name);
 
         layout   = _layout;
         ogl3     = _ogl3;

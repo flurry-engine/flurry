@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import dxgi.enumerations.DxgiFormat;
 import haxe.Exception;
 import haxe.ds.ReadOnlyArray;
 import cpp.UInt8;
@@ -15,6 +14,7 @@ import dxgi.interfaces.DxgiOutput;
 import dxgi.interfaces.DxgiAdapter;
 import dxgi.interfaces.DxgiFactory;
 import dxgi.interfaces.DxgiSwapChain;
+import dxgi.enumerations.DxgiFormat;
 import d3dcompiler.D3dCompiler;
 import d3dcommon.interfaces.D3dBlob;
 import d3d11.D3d11;
@@ -242,12 +242,12 @@ class DX11Backend implements IRendererBackend
     /**
      * Map of shader name to the D3D11 resources required to use the shader.
      */
-    final shaderResources : Map<String, ShaderInformation>;
+    final shaderResources : Map<ResourceID, ShaderInformation>;
 
     /**
      * Map of texture name to the D3D11 resources required to use the texture.
      */
-    final textureResources : Map<String, TextureInformation>;
+    final textureResources : Map<ResourceID, TextureInformation>;
 
     /**
      * Sampler to use when none is provided.
@@ -283,8 +283,8 @@ class DX11Backend implements IRendererBackend
     var stencil  : StencilState;
     var blend    : BlendState;
     var topology : PrimitiveType;
-    var shader   : String;
-    var texture  : String;
+    var shader   : ResourceID;
+    var texture  : ResourceID;
     var target   : TargetState;
 
     // SDL Window
@@ -602,35 +602,17 @@ class DX11Backend implements IRendererBackend
             _rendererConfig.clearColour.y,
             _rendererConfig.clearColour.z,
             _rendererConfig.clearColour.w ];
-        cmdClip      = new Rectangle();
-        cmdViewport  = new Rectangle();
-        blend        = new BlendState();
-        depth        = {
-            depthTesting  : false,
-            depthMasking  : false,
-            depthFunction : Always
-        };
-        stencil      = {
-            stencilTesting : false,
-
-            stencilFrontMask          : 0xff,
-            stencilFrontFunction      : Always,
-            stencilFrontTestFail      : Keep,
-            stencilFrontDepthTestFail : Keep,
-            stencilFrontDepthTestPass : Keep,
-            
-            stencilBackMask          : 0xff,
-            stencilBackFunction      : Always,
-            stencilBackTestFail      : Keep,
-            stencilBackDepthTestFail : Keep,
-            stencilBackDepthTestPass : Keep
-        };
+        cmdClip     = new Rectangle();
+        cmdViewport = new Rectangle();
+        blend       = BlendState.none;
+        depth       = DepthState.none;
+        stencil     = StencilState.none;
 
         // Setup initial state tracker
         topology = Triangles;
         target   = Backbuffer;
-        shader   = '';
-        texture  = '';
+        shader   = 0;
+        texture  = 0;
 
         resourceCreatedSubscription = resourceEvents.created.subscribeFunction(onResourceCreated);
         resourceRemovedSubscription = resourceEvents.removed.subscribeFunction(onResourceRemoved);
@@ -814,7 +796,7 @@ class DX11Backend implements IRendererBackend
 
         if (_resource.hlsl == null)
         {
-            throw new DX11NoShaderSourceException(_resource.id);
+            throw new DX11NoShaderSourceException(_resource.name);
         }
 
         var vertexBytecode = new D3dBlob();
@@ -839,13 +821,13 @@ class DX11Backend implements IRendererBackend
             var vertexErrors = new D3dBlob();
             if (D3dCompiler.compile(_resource.hlsl.vertex.getData(), null, null, null, 'VShader', 'vs_5_0', 0, 0, vertexBytecode, vertexErrors) != 0)
             {
-                throw new DX11VertexCompilationError(_resource.id, '');
+                throw new DX11VertexCompilationError(_resource.name, '');
             }
 
             var pixelErrors = new D3dBlob();
             if (D3dCompiler.compile(_resource.hlsl.fragment.getData(), null, null, null, 'PShader', 'ps_5_0', 0, 0, pixelBytecode, pixelErrors) != 0)
             {
-                throw new DX11FragmentCompilationError(_resource.id, '');
+                throw new DX11FragmentCompilationError(_resource.name, '');
             }
         }
 
@@ -919,13 +901,13 @@ class DX11Backend implements IRendererBackend
     function createTexture(_resource : ImageResource)
     {
         // Sub resource struct to hold the raw image bytes.
-        var imgData = new D3d11SubResourceData();
+        final imgData = new D3d11SubResourceData();
         imgData.systemMemory           = _resource.pixels;
         imgData.systemMemoryPitch      = 4 * _resource.width;
         imgData.systemMemorySlicePatch = 0;
 
         // Texture description struct. Describes how our raw image data is formated and usage of the texture.
-        var imgDesc = new D3d11Texture2DDescription();
+        final imgDesc = new D3d11Texture2DDescription();
         imgDesc.width              = _resource.width;
         imgDesc.height             = _resource.height;
         imgDesc.mipLevels          = 1;
@@ -938,9 +920,9 @@ class DX11Backend implements IRendererBackend
         imgDesc.cpuAccessFlags     = 0;
         imgDesc.miscFlags          = 0;
 
-        var texture = new D3d11Texture2D();
-        var resView = new D3d11ShaderResourceView();
-        var rtvView = new D3d11RenderTargetView();
+        final texture = new D3d11Texture2D();
+        final resView = new D3d11ShaderResourceView();
+        final rtvView = new D3d11RenderTargetView();
 
         if (device.createTexture2D(imgDesc, imgData, texture) != Ok)
         {
@@ -955,7 +937,7 @@ class DX11Backend implements IRendererBackend
             throw new Dx11ResourceCreationException('D3D11RenderTargetView');
         }
 
-        textureResources.set(_resource.id, new TextureInformation(texture, resView, rtvView));
+        textureResources.set(_resource.id, new TextureInformation(texture, resView, rtvView, imgDesc));
     }
 
     /**
@@ -1075,14 +1057,15 @@ class DX11Backend implements IRendererBackend
                 final buffer = [ uniformBuffer ];
                 final offset = [ cast unfOffset / 16 ];
                 final length = [ Maths.nextMultipleOff(block.buffer.byteLength, 256) ];
+                final info   = shaderResources[command.shader];
 
                 context.vsSetConstantBuffers1(
-                    findBlockIndexByName(block.name, command.shader.layout.blocks),
+                    findBlockIndexByName(block.name, info.layout.blocks),
                     buffer,
                     offset,
                     length);
                 context.psSetConstantBuffers1(
-                    findBlockIndexByName(block.name, command.shader.layout.blocks),
+                    findBlockIndexByName(block.name, info.layout.blocks),
                     buffer,
                     offset,
                     length);
@@ -1096,9 +1079,10 @@ class DX11Backend implements IRendererBackend
                 final buffer = [ matrixBuffer ];
                 final offset = [ cast matOffset / 16 ];
                 final length = [ 256 ];
+                final info   = shaderResources[command.shader];
 
                 context.vsSetConstantBuffers1(
-                    findBlockIndexByName('flurry_matrices', command.shader.layout.blocks),
+                    findBlockIndexByName('flurry_matrices', info.layout.blocks),
                     buffer,
                     offset,
                     length);
@@ -1145,19 +1129,10 @@ class DX11Backend implements IRendererBackend
     {
         updateFramebuffer(_command.target);
         updateShader(_command.shader);
-        updateTextures(_command.shader.layout.textures.length, _command.textures, _command.samplers);
+        updateTextures(_command.shader, _command.textures, _command.samplers);
         updateBlend(_command.blending);
         updateTopology(_command.primitive);
-
-        if (updateDepth(_command.depth) || updateStencil(_command.stencil))
-        {
-            if (device.createDepthStencilState(depthStencilDescription, depthStencilState) != Ok)
-            {
-                throw new Dx11ResourceCreationException('ID3D11DepthStencilState');
-            }
-
-            context.omSetDepthStencilState(depthStencilState, 1);
-        }
+        updateDepthStencil(_command.depth, _command.stencil);
 
         switch _command.camera.viewport
         {
@@ -1166,8 +1141,9 @@ class DX11Backend implements IRendererBackend
                 {
                     case Backbuffer:
                         updateViewport(0, 0, backbuffer.width, backbuffer.height);
-                    case Texture(_image):
-                        updateViewport(0, 0, _image.width, _image.height);
+                    case Texture(_id):
+                        final info = textureResources[_id];
+                        updateViewport(0, 0, info.description.width, info.description.height);
                 }
             case Viewport(_x, _y, _width, _height):
                 updateViewport(_x, _y, _width, _height);
@@ -1180,8 +1156,9 @@ class DX11Backend implements IRendererBackend
                 {
                     case Backbuffer:
                         updateClip(0, 0, backbuffer.width, backbuffer.height);
-                    case Texture(_image):
-                        updateClip(0, 0, _image.width, _image.height);
+                    case Texture(_id):
+                        final info = textureResources[_id];
+                        updateViewport(0, 0, info.description.width, info.description.height);
                 }
             case Clip(_x, _y, _width, _height):
                 updateClip(_x, _y, _width, _height);
@@ -1203,11 +1180,11 @@ class DX11Backend implements IRendererBackend
                 switch target
                 {
                     case Backbuffer:
-                        context.omSetRenderTargets([ textureResources[_requested.id].renderTargetView ], null);
+                        context.omSetRenderTargets([ textureResources[_requested].renderTargetView ], null);
                     case Texture(_current):
-                        if (_current.id != _requested.id)
+                        if (_current != _requested)
                         {
-                            context.omSetRenderTargets([ textureResources[_requested.id].renderTargetView ], null);
+                            context.omSetRenderTargets([ textureResources[_requested].renderTargetView ], null);
                         }
                 }
         }
@@ -1215,74 +1192,75 @@ class DX11Backend implements IRendererBackend
         target = _newTarget;
     }
 
-    function updateShader(_newShader : ShaderResource)
+    function updateShader(_newShader : ResourceID)
     {
         // Write shader cbuffers and set it
-        if (shader != _newShader.id)
+        if (shader != _newShader)
         {
             // Apply the actual shader and input layout.
-            final shaderResource = shaderResources.get(_newShader.id);
+            final shaderResource = shaderResources[_newShader];
 
             context.iaSetInputLayout(shaderResource.inputLayout);
             context.vsSetShader(shaderResource.vertexShader, null);
             context.psSetShader(shaderResource.pixelShader, null);
         }
 
-        shader = _newShader.id;
+        shader = _newShader;
     }
 
-    function updateDepth(_newDepth : DepthState) : Bool
+    function updateDepthStencil(_newDepth : DepthState, _newStencil : StencilState)
     {
-        if (!_newDepth.equals(depth))
+        var update = false;
+        
+        if (depth != _newDepth)
         {
-            depthStencilDescription.depthEnable    = _newDepth.depthTesting;
-            depthStencilDescription.depthWriteMask = _newDepth.depthMasking ? All : Zero;
-            depthStencilDescription.depthFunction  = getComparisonFunction(_newDepth.depthFunction);
+            depthStencilDescription.depthEnable    = _newDepth.enabled;
+            depthStencilDescription.depthWriteMask = if (_newDepth.masking) All else Zero;
+            depthStencilDescription.depthFunction  = getComparisonFunction(_newDepth.func);
 
-            depth.copyFrom(_newDepth);
+            depth = _newDepth;
 
-            return true;
+            update = true;
         }
-        else
+
+        if (stencil != _newStencil)
         {
-            return false;
+            depthStencilDescription.stencilEnable = _newStencil.enabled;
+
+            depthStencilDescription.frontFace.stencilFailOp      = getStencilOp(_newStencil.frontTestFail);
+            depthStencilDescription.frontFace.stencilDepthFailOp = getStencilOp(_newStencil.frontDepthTestFail);
+            depthStencilDescription.frontFace.stencilPassOp      = getStencilOp(_newStencil.frontDepthTestPass);
+            depthStencilDescription.frontFace.stencilFunction    = getComparisonFunction(_newStencil.frontFunc);
+
+            depthStencilDescription.backFace.stencilFailOp      = getStencilOp(_newStencil.backTestFail);
+            depthStencilDescription.backFace.stencilDepthFailOp = getStencilOp(_newStencil.backDepthTestFail);
+            depthStencilDescription.backFace.stencilPassOp      = getStencilOp(_newStencil.backDepthTestPass);
+            depthStencilDescription.backFace.stencilFunction    = getComparisonFunction(_newStencil.backFunc);
+
+            stencil = _newStencil;
+
+            update = true;
         }
-    }
 
-    function updateStencil(_newStencil : StencilState) : Bool
-    {
-        if (!_newStencil.equals(stencil))
+        if (update)
         {
-            depthStencilDescription.stencilEnable = _newStencil.stencilTesting;
+            if (device.createDepthStencilState(depthStencilDescription, depthStencilState) != Ok)
+            {
+                throw new Dx11ResourceCreationException('ID3D11DepthStencilState');
+            }
 
-            depthStencilDescription.frontFace.stencilFailOp      = getStencilOp(_newStencil.stencilFrontTestFail);
-            depthStencilDescription.frontFace.stencilDepthFailOp = getStencilOp(_newStencil.stencilFrontDepthTestFail);
-            depthStencilDescription.frontFace.stencilPassOp      = getStencilOp(_newStencil.stencilFrontDepthTestPass);
-            depthStencilDescription.frontFace.stencilFunction    = getComparisonFunction(_newStencil.stencilFrontFunction);
-
-            depthStencilDescription.backFace.stencilFailOp      = getStencilOp(_newStencil.stencilBackTestFail);
-            depthStencilDescription.backFace.stencilDepthFailOp = getStencilOp(_newStencil.stencilBackDepthTestFail);
-            depthStencilDescription.backFace.stencilPassOp      = getStencilOp(_newStencil.stencilBackDepthTestPass);
-            depthStencilDescription.backFace.stencilFunction    = getComparisonFunction(_newStencil.stencilBackFunction);
-
-            stencil.copyFrom(_newStencil);
-
-            return true;
-        }
-        else
-        {
-            return false;
+            context.omSetDepthStencilState(depthStencilState, 1);
         }
     }
 
     function updateBlend(_newBlend : BlendState)
     {
-        if (!_newBlend.equals(blend))
+        if (_newBlend != blend)
         {
             blendDescription.renderTarget[0].blendEnable    = _newBlend.enabled;
-            blendDescription.renderTarget[0].srcBlend       = getBlend(_newBlend.srcRGB);
+            blendDescription.renderTarget[0].srcBlend       = getBlend(_newBlend.srcRgb);
             blendDescription.renderTarget[0].srcBlendAlpha  = getBlend(_newBlend.srcAlpha);
-            blendDescription.renderTarget[0].destBlend      = getBlend(_newBlend.dstRGB);
+            blendDescription.renderTarget[0].destBlend      = getBlend(_newBlend.dstRgb);
             blendDescription.renderTarget[0].destBlendAlpha = getBlend(_newBlend.dstAlpha);
 
             if (device.createBlendState(blendDescription, blendState) != 0)
@@ -1292,7 +1270,7 @@ class DX11Backend implements IRendererBackend
 
             context.omSetBlendState(blendState, [ 1, 1, 1, 1 ], 0xffffffff);
 
-            blend.copyFrom(_newBlend);
+            blend = _newBlend;
         }
     }
 
@@ -1331,11 +1309,14 @@ class DX11Backend implements IRendererBackend
         }
     }
 
-    function updateTextures(_expectedTextures : Int, _textures : ReadOnlyArray<ImageFrameResource>, _samplers : ReadOnlyArray<SamplerState>)
+    function updateTextures(_shader : ResourceID, _textures : ReadOnlyArray<ResourceID>, _samplers : ReadOnlyArray<SamplerState>)
     {
         // If the shader description specifies more textures than the command provides throw an exception.
         // If less is specified than provided we just ignore the extra, maybe we should throw as well?
-        if (_expectedTextures >= _textures.length)
+        final info  = shaderResources[_shader];
+        final count = info.layout.textures.length;
+
+        if (count >= _textures.length)
         {
             shaderTextureResources.resize(_textures.length);
             shaderTextureSamplers.resize(_textures.length);
@@ -1343,19 +1324,18 @@ class DX11Backend implements IRendererBackend
             // then go through each texture and bind it if it isn't already.
             for (i in 0..._textures.length)
             {
-                var texture = textureResources.get(_textures[i].image);
+                var texture = textureResources[_textures[i]];
                 var sampler = defaultSampler;
                 if (i < _samplers.length)
                 {
-                    final samplerHash = _samplers[i].hash();
-                    if (!texture.samplers.exists(samplerHash))
+                    if (!texture.samplers.exists(_samplers[i]))
                     {
                         sampler = createSampler(_samplers[i]);
-                        texture.samplers[samplerHash] = sampler;
+                        texture.samplers[_samplers[i]] = sampler;
                     }
                     else
                     {
-                        sampler = texture.samplers[samplerHash];
+                        sampler = texture.samplers[_samplers[i]];
                     }
                 }
 
@@ -1368,7 +1348,7 @@ class DX11Backend implements IRendererBackend
         }
         else
         {
-            throw new Exception('Not enough textures provided by the draw command. Expected $_expectedTextures but received ${_textures.length}');
+            throw new Exception('Not enough textures provided by the draw command. Expected $count but received ${_textures.length}');
         }
     }
 
@@ -1555,15 +1535,21 @@ private class TextureInformation
     public final renderTargetView : D3d11RenderTargetView;
 
     /**
+     * D3D11 Texture 2D description, contains info on the underlying texture data.
+     */
+    public final description : D3d11Texture2DDescription;
+
+    /**
      * D3D11 Sampler State to sample the textures data.
      */
-    public final samplers : Map<Int, D3d11SamplerState>;
+    public final samplers : Map<SamplerState, D3d11SamplerState>;
 
-    public function new(_texture : D3d11Texture2D, _resView : D3d11ShaderResourceView, _rtvView : D3d11RenderTargetView)
+    public function new(_texture, _resView, _rtvView, _description)
     {
         texture            = _texture;
         shaderResourceView = _resView;
         renderTargetView   = _rtvView;
+        description        = _description;
         samplers           = [];
     }
 

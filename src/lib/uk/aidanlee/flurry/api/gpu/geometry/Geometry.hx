@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
+import haxe.ds.Option;
 import haxe.ds.ReadOnlyArray;
 import rx.Unit;
 import rx.Subject;
@@ -15,10 +16,7 @@ import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Transformation;
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-
-using Safety;
+import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 
 enum GeometryData
 {
@@ -26,29 +24,13 @@ enum GeometryData
     UnIndexed(_vertices : VertexBlob);
 }
 
-enum GeometryShader
-{
-    None;
-    Shader(_shader : ShaderResource);
-}
+typedef GeometryShader = Option<ResourceID>;
 
-enum GeometryUniforms
-{
-    None;
-    Uniforms(_uniforms : ReadOnlyArray<UniformBlob>);
-}
+typedef GeometryUniforms = Option<ReadOnlyArray<UniformBlob>>;
 
-enum GeometryTextures
-{
-    None;
-    Textures(_textures : ReadOnlyArray<ImageFrameResource>);
-}
+typedef GeometryTextures = Option<ReadOnlyArray<ResourceID>>;
 
-enum GeometrySamplers
-{
-    None;
-    Samplers(_samplers : ReadOnlyArray<SamplerState>);
-}
+typedef GeometrySamplers = Option<ReadOnlyArray<SamplerState>>;
 
 /**
  * The geometry class is the primary way of displaying visuals to the screen.
@@ -228,15 +210,15 @@ class Geometry
         changed = new Subject<Unit>();
 
         data           = _options.data;
-        transformation = _options.transform .or(new Transformation());
-        depth          = _options.depth     .or(0);
-        shader         = _options.shader    .or(None);
-        uniforms       = _options.uniforms  .or(None);
-        textures       = _options.textures  .or(None);
-        samplers       = _options.samplers  .or(None);
-        clip           = _options.clip      .or(None);
-        blend          = _options.blend     .or(new BlendState());
-        primitive      = _options.primitive .or(Triangles);
+        transformation = _options.transform;
+        depth          = _options.depth;
+        shader         = _options.shader;
+        uniforms       = _options.uniforms;
+        textures       = _options.textures;
+        samplers       = _options.samplers;
+        clip           = _options.clip;
+        blend          = _options.blend;
+        primitive      = _options.primitive;
 
         if (_options.batchers != null)
         {
@@ -300,7 +282,7 @@ class Geometry
     /**
      * Provides custom blending operations for drawing this geometry.
      */
-    public final blend = new BlendState();
+    public final blend = BlendState.none;
 
     /**
      * The primitive to draw this geometries vertex data with.

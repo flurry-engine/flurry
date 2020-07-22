@@ -11,8 +11,7 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
+import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 
 /**
  * A draw command describes how to draw a set amount of data within a vertex buffer.
@@ -48,7 +47,7 @@ class DrawCommand
     /**
      * Shader to be used to draw this data.
      */
-    public final shader : ShaderResource;
+    public final shader : ResourceID;
 
     /**
      * If provided uniform values are fetch from here before the shader defaults.
@@ -58,7 +57,7 @@ class DrawCommand
     /**
      * Textures to be used with this draw command.
      */
-    public final textures : ReadOnlyArray<ImageFrameResource>;
+    public final textures : ReadOnlyArray<ResourceID>;
 
     /**
      * Samples to be used with this draw command.
@@ -88,9 +87,9 @@ class DrawCommand
         _primitive  : PrimitiveType,
         _clip       : ClipState,
         _target     : TargetState,
-        _shader     : ShaderResource,
+        _shader     : ResourceID,
         _uniforms   : ReadOnlyArray<UniformBlob>,
-        _textures   : ReadOnlyArray<ImageFrameResource>,
+        _textures   : ReadOnlyArray<ResourceID>,
         _samplers   : ReadOnlyArray<SamplerState>,
         _depth      : DepthState,
         _stencil    : StencilState,

@@ -1,12 +1,14 @@
 package tests;
 
+import uk.aidanlee.flurry.api.resources.Resource.ResourceType;
+import uk.aidanlee.flurry.api.maths.Hash;
 import parcel.Types.JsonAtlas;
 import parcel.Types.JsonAtlasPage;
 import parcel.Types.JsonSprite;
 import parcel.Types.JsonFontDefinition;
 import haxe.io.BytesOutput;
 import haxe.io.Path;
-import haxe.io.Bytes;
+import haxe.io.Bytes in HaxeBytes;
 import haxe.io.BytesInput;
 import Types.Project;
 import parcel.Packer;
@@ -94,15 +96,17 @@ class PackerTests extends BuddySuite
                             {
                                 case Success(resources):
                                     resources.length.should.be(1);
-                                    resources.count(r -> r.id == 'shader' && r.type == Shader).should.be(1);
+                                    resources.count(r -> r.name == 'shader').should.be(1);
         
                                     // Check our compiled hlsl shader
-                                    final resource = (cast resources.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
+                                    final resource = (cast resources.find(r -> r.name == 'shader') : ShaderResource);
+                                    resource.id.should.be(Hash.hash(resource.name));
+                                    resource.type.should.equal(ResourceType.Shader);
                                     resource.ogl3.should.be(null);
                                     resource.ogl4.should.be(null);
                                     resource.hlsl.compiled.should.be(true);
-                                    resource.hlsl.vertex.compare(Bytes.ofString('vs_5_0')).should.be(0);
-                                    resource.hlsl.fragment.compare(Bytes.ofString('ps_5_0')).should.be(0);
+                                    resource.hlsl.vertex.compare(HaxeBytes.ofString('vs_5_0')).should.be(0);
+                                    resource.hlsl.fragment.compare(HaxeBytes.ofString('ps_5_0')).should.be(0);
                                 case Failure(message):
                                     fail(message);
                             }
@@ -168,15 +172,17 @@ class PackerTests extends BuddySuite
                             {
                                 case Success(resources):
                                     resources.length.should.be(1);
-                                    resources.count(r -> r.id == 'shader' && r.type == Shader).should.be(1);
+                                    resources.count(r -> r.name == 'shader').should.be(1);
 
                                     // Check our compiled glsl shader
-                                    final resource = (cast resources.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
+                                    final resource = (cast resources.find(r -> r.name == 'shader') : ShaderResource);
+                                    resource.id.should.be(Hash.hash(resource.name));
+                                    resource.type.should.equal(ResourceType.Shader);
                                     resource.hlsl.should.be(null);
                                     resource.ogl3.should.be(null);
                                     resource.ogl4.compiled.should.be(true);
-                                    resource.ogl4.vertex.compare(Bytes.ofString('vert')).should.be(0);
-                                    resource.ogl4.fragment.compare(Bytes.ofString('frag')).should.be(0);
+                                    resource.ogl4.vertex.compare(HaxeBytes.ofString('vert')).should.be(0);
+                                    resource.ogl4.fragment.compare(HaxeBytes.ofString('frag')).should.be(0);
                                 case Failure(message):
                                     fail(message);
                             }
@@ -233,15 +239,17 @@ class PackerTests extends BuddySuite
                             {
                                 case Success(resources):
                                     resources.length.should.be(1);
-                                    resources.count(r -> r.id == 'shader' && r.type == Shader).should.be(1);
+                                    resources.count(r -> r.name == 'shader').should.be(1);
         
                                     // Check our compiled hlsl shader
-                                    final resource = (cast resources.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
+                                    final resource = (cast resources.find(r -> r.name == 'shader') : ShaderResource);
+                                    resource.id.should.be(Hash.hash(resource.name));
+                                    resource.type.should.equal(ResourceType.Shader);
                                     resource.ogl3.should.be(null);
                                     resource.ogl4.should.be(null);
                                     resource.hlsl.compiled.should.be(false);
-                                    resource.hlsl.vertex.compare(Bytes.ofString('plain text vert')).should.be(0);
-                                    resource.hlsl.fragment.compare(Bytes.ofString('plain text frag')).should.be(0);
+                                    resource.hlsl.vertex.compare(HaxeBytes.ofString('plain text vert')).should.be(0);
+                                    resource.hlsl.fragment.compare(HaxeBytes.ofString('plain text frag')).should.be(0);
                                 case Failure(message):
                                     fail(message);
                             }
@@ -298,15 +306,17 @@ class PackerTests extends BuddySuite
                             {
                                 case Success(resources):
                                     resources.length.should.be(1);
-                                    resources.count(r -> r.id == 'shader' && r.type == Shader).should.be(1);
+                                    resources.count(r -> r.name == 'shader').should.be(1);
 
                                     // Check our compiled glsl shader
-                                    final resource = (cast resources.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
+                                    final resource = (cast resources.find(r -> r.name == 'shader') : ShaderResource);
+                                    resource.id.should.be(Hash.hash(resource.name));
+                                    resource.type.should.equal(ResourceType.Shader);
                                     resource.hlsl.should.be(null);
                                     resource.ogl3.should.be(null);
                                     resource.ogl4.compiled.should.be(false);
-                                    resource.ogl4.vertex.compare(Bytes.ofString('plain text vert')).should.be(0);
-                                    resource.ogl4.fragment.compare(Bytes.ofString('plain text frag')).should.be(0);
+                                    resource.ogl4.vertex.compare(HaxeBytes.ofString('plain text vert')).should.be(0);
+                                    resource.ogl4.fragment.compare(HaxeBytes.ofString('plain text frag')).should.be(0);
                                 case Failure(message):
                                     fail(message);
                             }
@@ -374,23 +384,27 @@ class PackerTests extends BuddySuite
                             {
                                 case Success(resources):
                                     resources.length.should.be(2);
-                                    resources.count(r -> r.id == 'shader1' && r.type == Shader).should.be(1);
-                                    resources.count(r -> r.id == 'shader2' && r.type == Shader).should.be(1);
+                                    resources.count(r -> r.name == 'shader1').should.be(1);
+                                    resources.count(r -> r.name == 'shader2').should.be(1);
 
                                     // Check our compiled glsl shader
-                                    final resource = (cast resources.find(r -> r.id == 'shader1' && r.type == Shader) : ShaderResource);
+                                    final resource = (cast resources.find(r -> r.name == 'shader1') : ShaderResource);
+                                    resource.id.should.be(Hash.hash(resource.name));
+                                    resource.type.should.equal(ResourceType.Shader);
                                     resource.hlsl.should.be(null);
                                     resource.ogl4.should.be(null);
                                     resource.ogl3.compiled.should.be(false);
-                                    resource.ogl3.vertex.compare(Bytes.ofString('plain text vert1')).should.be(0);
-                                    resource.ogl3.fragment.compare(Bytes.ofString('plain text frag1')).should.be(0);
+                                    resource.ogl3.vertex.compare(HaxeBytes.ofString('plain text vert1')).should.be(0);
+                                    resource.ogl3.fragment.compare(HaxeBytes.ofString('plain text frag1')).should.be(0);
 
-                                    final resource = (cast resources.find(r -> r.id == 'shader2' && r.type == Shader) : ShaderResource);
+                                    final resource = (cast resources.find(r -> r.name == 'shader2') : ShaderResource);
+                                    resource.id.should.be(Hash.hash(resource.name));
+                                    resource.type.should.equal(ResourceType.Shader);
                                     resource.hlsl.should.be(null);
                                     resource.ogl4.should.be(null);
                                     resource.ogl3.compiled.should.be(false);
-                                    resource.ogl3.vertex.compare(Bytes.ofString('plain text vert2')).should.be(0);
-                                    resource.ogl3.fragment.compare(Bytes.ofString('plain text frag2')).should.be(0);
+                                    resource.ogl3.vertex.compare(HaxeBytes.ofString('plain text vert2')).should.be(0);
+                                    resource.ogl3.fragment.compare(HaxeBytes.ofString('plain text frag2')).should.be(0);
                                 case Failure(message):
                                     fail(message);
                             }
@@ -462,7 +476,9 @@ class PackerTests extends BuddySuite
                             {
                                 case Success(resources):
                                     // Check our compiled glsl shader
-                                    final resource = (cast resources.find(r -> r.id == 'shader' && r.type == Shader) : ShaderResource);
+                                    final resource = (cast resources.find(r -> r.name == 'shader') : ShaderResource);
+                                    resource.id.should.be(Hash.hash(resource.name));
+                                    resource.type.should.equal(ResourceType.Shader);
 
                                     resource.layout.textures.length.should.be(2);
                                     resource.layout.textures[0].should.be('texture1');
@@ -543,15 +559,17 @@ class PackerTests extends BuddySuite
                         {
                             case Success(resources):
                                 // Check the image that should have been made from packing the font
-                                final resource = (cast resources.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
-                                resource.width.should.be(8);
-                                resource.height.should.be(8);
+                                final image = (cast resources.find(r -> r.name == 'parcel.png') : ImageResource);
+                                image.id.should.be(Hash.hash(image.name));
+                                image.type.should.equal(ResourceType.Image);
+                                image.width.should.be(8);
+                                image.height.should.be(8);
 
                                 // Check our font
-                                final resource = (cast resources.find(r -> r.id == 'custom_font' && r.type == Font) : FontResource);
-
-                                resource.id.should.be('custom_font');
-                                resource.image.should.be('parcel.png');
+                                final resource = (cast resources.find(r -> r.name == 'custom_font') : FontResource);
+                                resource.id.should.be(Hash.hash(resource.name));
+                                resource.type.should.equal(ResourceType.Font);
+                                resource.image.should.be(image.id);
                                 resource.x.should.be(0);
                                 resource.y.should.be(0);
                                 resource.width.should.be(8);
@@ -620,12 +638,16 @@ class PackerTests extends BuddySuite
                         switch unpack(fs.file.getBytes(data[0].file))
                         {
                             case Success(resources):
-                                final image = (cast resources.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
+                                final image = (cast resources.find(r -> r.name == 'parcel.png') : ImageResource);
+                                image.id.should.be(Hash.hash(image.name));
+                                image.type.should.equal(ResourceType.Image);
                                 image.width.should.be(22);
                                 image.height.should.be(6);
         
-                                final resource = (cast resources.find(r -> r.id == 'img1' && r.type == ImageFrame) : ImageFrameResource);
-                                resource.image.should.be('parcel.png');
+                                final resource = (cast resources.find(r -> r.name == 'img1') : ImageFrameResource);
+                                resource.id.should.be(Hash.hash(resource.name));
+                                resource.type.should.equal(ResourceType.ImageFrame);
+                                resource.image.should.be(image.id);
                                 resource.x.should.be(0);
                                 resource.y.should.be(0);
                                 resource.width.should.be(4);
@@ -635,8 +657,10 @@ class PackerTests extends BuddySuite
                                 resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
                                 resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
         
-                                final resource = (cast resources.find(r -> r.id == 'img2' && r.type == ImageFrame) : ImageFrameResource);
-                                resource.image.should.be('parcel.png');
+                                final resource = (cast resources.find(r -> r.name == 'img2') : ImageFrameResource);
+                                resource.id.should.be(Hash.hash(resource.name));
+                                resource.type.should.equal(ResourceType.ImageFrame);
+                                resource.image.should.be(image.id);
                                 resource.x.should.be(4);
                                 resource.y.should.be(0);
                                 resource.width.should.be(8);
@@ -646,8 +670,10 @@ class PackerTests extends BuddySuite
                                 resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
                                 resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
         
-                                final resource = (cast resources.find(r -> r.id == 'img3' && r.type == ImageFrame) : ImageFrameResource);
-                                resource.image.should.be('parcel.png');
+                                final resource = (cast resources.find(r -> r.name == 'img3') : ImageFrameResource);
+                                resource.id.should.be(Hash.hash(resource.name));
+                                resource.type.should.equal(ResourceType.ImageFrame);
+                                resource.image.should.be(image.id);
                                 resource.x.should.be(12);
                                 resource.y.should.be(0);
                                 resource.width.should.be(10);
@@ -785,12 +811,16 @@ class PackerTests extends BuddySuite
                         switch unpack(fs.file.getBytes(data[0].file))
                         {
                             case Success(resources):
-                                final image = (cast resources.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
+                                final image = (cast resources.find(r -> r.name == 'parcel.png') : ImageResource);
+                                image.id.should.be(Hash.hash(image.name));
+                                image.type.should.equal(ResourceType.Image);
                                 image.width.should.be(64);
                                 image.height.should.be(32);
         
-                                final resource = (cast resources.find(r -> r.id == 'sprite' && r.type == Sprite) : SpriteResource);
-                                resource.image.should.be('parcel.png');
+                                final resource = (cast resources.find(r -> r.name == 'sprite') : SpriteResource);
+                                resource.id.should.be(Hash.hash(resource.name));
+                                resource.type.should.equal(ResourceType.Sprite);
+                                resource.image.should.be(image.id);
                                 resource.x.should.be(0);
                                 resource.y.should.be(0);
                                 resource.width.should.be(64);
@@ -911,12 +941,16 @@ class PackerTests extends BuddySuite
                         switch unpack(fs.file.getBytes(data[0].file))
                         {
                             case Success(resources):
-                                final image = (cast resources.find(r -> r.id == 'parcel.png' && r.type == Image) : ImageResource);
+                                final image = (cast resources.find(r -> r.name == 'parcel.png') : ImageResource);
+                                image.type.should.equal(ResourceType.Image);
+                                image.id.should.be(Hash.hash(image.name));
                                 image.width.should.be(1024);
                                 image.height.should.be(256);
         
-                                final resource = (cast resources.find(r -> r.id == 'section_1' && r.type == ImageFrame) : ImageFrameResource);
-                                resource.image.should.be('parcel.png');
+                                final resource = (cast resources.find(r -> r.name == 'section_1') : ImageFrameResource);
+                                resource.id.should.be(Hash.hash(resource.name));
+                                resource.type.should.equal(ResourceType.ImageFrame);
+                                resource.image.should.be(image.id);
                                 resource.x.should.be(4);
                                 resource.y.should.be(128);
                                 resource.width.should.be(64);
@@ -926,8 +960,10 @@ class PackerTests extends BuddySuite
                                 resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
                                 resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
         
-                                final resource = (cast resources.find(r -> r.id == 'section_2' && r.type == ImageFrame) : ImageFrameResource);
-                                resource.image.should.be('parcel.png');
+                                final resource = (cast resources.find(r -> r.name == 'section_2') : ImageFrameResource);
+                                resource.id.should.be(Hash.hash(resource.name));
+                                resource.type.should.equal(ResourceType.ImageFrame);
+                                resource.image.should.be(image.id);
                                 resource.x.should.be(16);
                                 resource.y.should.be(0);
                                 resource.width.should.be(48);
@@ -937,8 +973,10 @@ class PackerTests extends BuddySuite
                                 resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
                                 resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
         
-                                final resource = (cast resources.find(r -> r.id == 'section_3' && r.type == ImageFrame) : ImageFrameResource);
-                                resource.image.should.be('parcel.png');
+                                final resource = (cast resources.find(r -> r.name == 'section_3') : ImageFrameResource);
+                                resource.id.should.be(Hash.hash(resource.name));
+                                resource.type.should.equal(ResourceType.ImageFrame);
+                                resource.image.should.be(image.id);
                                 resource.x.should.be(560);
                                 resource.y.should.be(95);
                                 resource.width.should.be(184);
@@ -948,8 +986,10 @@ class PackerTests extends BuddySuite
                                 resource.u2.should.beCloseTo((resource.x + resource.width) / image.width);
                                 resource.v2.should.beCloseTo((resource.y + resource.height) / image.height);
         
-                                final resource = (cast resources.find(r -> r.id == 'section_4' && r.type == ImageFrame) : ImageFrameResource);
-                                resource.image.should.be('parcel.png');
+                                final resource = (cast resources.find(r -> r.name == 'section_4') : ImageFrameResource);
+                                resource.id.should.be(Hash.hash(resource.name));
+                                resource.type.should.equal(ResourceType.ImageFrame);
+                                resource.image.should.be(image.id);
                                 resource.x.should.be(554);
                                 resource.y.should.be(16);
                                 resource.width.should.be(45);
@@ -968,7 +1008,7 @@ class PackerTests extends BuddySuite
         });
     }
 
-    function unpack(_bytes : Bytes) : Result<Array<Resource>, String>
+    function unpack(_bytes : HaxeBytes) : Result<Array<Resource>, String>
     {
         final input  = new BytesInput(_bytes);
         final stream = new ParcelInput(input);
@@ -1029,11 +1069,11 @@ class PackerTests extends BuddySuite
         return tink.Json.stringify(data);
     }
 
-    function createDummyPng(_width = 8, _height = 8) : Bytes
+    function createDummyPng(_width = 8, _height = 8) : HaxeBytes
     {
         final output = new BytesOutput();
         final writer = new format.png.Writer(output);
-        final data   = format.png.Tools.build32BGRA(_width, _height, Bytes.alloc(_width * _height * 4));
+        final data   = format.png.Tools.build32BGRA(_width, _height, HaxeBytes.alloc(_width * _height * 4));
         
         writer.write(data);
 

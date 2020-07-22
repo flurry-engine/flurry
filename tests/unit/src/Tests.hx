@@ -20,7 +20,8 @@ class Tests implements Buddy<[
 
     tests.api.input.InputTests,
 
-    tests.api.gpu.geometry.BlendingTests,
+    tests.api.gpu.state.BlendStateTests,
+    tests.api.gpu.state.StencilStateTests,
     tests.api.gpu.geometry.GeometryTests,
     tests.api.gpu.geometry.VertexBlobTests,
     tests.api.gpu.geometry.IndexBlobTests,
@@ -28,6 +29,7 @@ class Tests implements Buddy<[
     tests.api.gpu.geometry.shapes.QuadGeometryTests,
     tests.api.gpu.geometry.shapes.TextGeometryTests,
     tests.api.gpu.geometry.shapes.SpriteGeometryTests,
+    tests.api.gpu.textures.SamplerStateTests,
     tests.api.gpu.batcher.BatcherStateTests,
     tests.api.gpu.batcher.BatcherTests,
     
