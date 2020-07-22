@@ -311,7 +311,7 @@ class SpriteGeometry extends QuadGeometry
     /**
      * Provides custom blending operations for drawing this geometry.
      */
-    public final blend = new BlendState();
+    public final blend = BlendState.none;
 
     /**
      * The batchers to initially add this geometry to.

@@ -70,7 +70,7 @@ class BatcherState
         uniforms     = [];
         batcher      = _batcher;
         indexed      = false;
-        blend        = new BlendState();
+        blend        = BlendState.none;
     }
 
     /**
@@ -174,7 +174,7 @@ class BatcherState
         // Check other small bits.
         if (_geom.primitive != primitive) return true;
         if ((_geom.data.getIndex() == 0) != indexed) return true;
-        if (!_geom.blend.equals(blend)) return true;
+        if (_geom.blend != blend) return true;
 
         return false;
     }
@@ -206,10 +206,10 @@ class BatcherState
             case Some(_samplers): _samplers.copy();
         }
 
-        primitive      = _geom.primitive;
-        clip           = _geom.clip;
-        indexed        = (_geom.data.getIndex() == 0);
-        blend.copyFrom(_geom.blend);
+        primitive = _geom.primitive;
+        clip      = _geom.clip;
+        indexed   = (_geom.data.getIndex() == 0);
+        blend     = _geom.blend;
     }
 
     public function drop()

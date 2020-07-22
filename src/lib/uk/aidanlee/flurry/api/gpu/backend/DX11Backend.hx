@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import dxgi.enumerations.DxgiFormat;
 import haxe.Exception;
 import haxe.ds.ReadOnlyArray;
 import cpp.UInt8;
@@ -15,6 +14,7 @@ import dxgi.interfaces.DxgiOutput;
 import dxgi.interfaces.DxgiAdapter;
 import dxgi.interfaces.DxgiFactory;
 import dxgi.interfaces.DxgiSwapChain;
+import dxgi.enumerations.DxgiFormat;
 import d3dcompiler.D3dCompiler;
 import d3dcommon.interfaces.D3dBlob;
 import d3d11.D3d11;
@@ -604,7 +604,7 @@ class DX11Backend implements IRendererBackend
             _rendererConfig.clearColour.w ];
         cmdClip      = new Rectangle();
         cmdViewport  = new Rectangle();
-        blend        = new BlendState();
+        blend        = BlendState.none;
         depth        = DepthState.none;
         stencil      = {
             stencilTesting : false,
@@ -1269,12 +1269,12 @@ class DX11Backend implements IRendererBackend
 
     function updateBlend(_newBlend : BlendState)
     {
-        if (!_newBlend.equals(blend))
+        if (_newBlend != blend)
         {
             blendDescription.renderTarget[0].blendEnable    = _newBlend.enabled;
-            blendDescription.renderTarget[0].srcBlend       = getBlend(_newBlend.srcRGB);
+            blendDescription.renderTarget[0].srcBlend       = getBlend(_newBlend.srcRgb);
             blendDescription.renderTarget[0].srcBlendAlpha  = getBlend(_newBlend.srcAlpha);
-            blendDescription.renderTarget[0].destBlend      = getBlend(_newBlend.dstRGB);
+            blendDescription.renderTarget[0].destBlend      = getBlend(_newBlend.dstRgb);
             blendDescription.renderTarget[0].destBlendAlpha = getBlend(_newBlend.dstAlpha);
 
             if (device.createBlendState(blendDescription, blendState) != 0)
@@ -1284,7 +1284,7 @@ class DX11Backend implements IRendererBackend
 
             context.omSetBlendState(blendState, [ 1, 1, 1, 1 ], 0xffffffff);
 
-            blend.copyFrom(_newBlend);
+            blend = _newBlend;
         }
     }
 

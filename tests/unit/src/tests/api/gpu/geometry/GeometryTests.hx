@@ -219,7 +219,7 @@ class GeometryTests extends BuddySuite
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
                     geometry.changed.subscribeFunction(_ -> count++);
 
-                    geometry.blend = new BlendState();
+                    geometry.blend = BlendState.none;
                     count.should.be(1);
                 });
                 it('will publish a new onNext event when the primitive is changed', {

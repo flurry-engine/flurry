@@ -1,8 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import uk.aidanlee.flurry.api.maths.Vector2;
-import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import haxe.Exception;
 import haxe.io.BytesData;
 import haxe.io.Bytes;
@@ -32,6 +29,7 @@ import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.resources.Resource.Resource;
+import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
@@ -213,8 +211,8 @@ class OGL3Backend implements IRendererBackend
     var shader     : ResourceID;
     final clip     : Rectangle;
     final viewport : Rectangle;
-    final blend    : BlendState;
     final stencil  : StencilState;
+    var blend      : BlendState;
     var depth      : DepthState;
 
     // SDL Window and GL Context
@@ -291,8 +289,8 @@ class OGL3Backend implements IRendererBackend
         // default state
         viewport     = new Rectangle();
         clip         = new Rectangle();
-        blend        = new BlendState();
-        depth        = new DepthState(false, false, Always);
+        blend        = BlendState.none;
+        depth        = DepthState.none;
         stencil      = {
             stencilTesting : false,
 
@@ -1074,7 +1072,7 @@ class OGL3Backend implements IRendererBackend
 
     function updateBlending(_newBlend : BlendState)
     {
-        if (!_newBlend.equals(blend))
+        if (_newBlend != blend)
         {
             if (_newBlend.enabled)
             {
@@ -1084,8 +1082,8 @@ class OGL3Backend implements IRendererBackend
                 }
 
                 glBlendFuncSeparate(
-                    _newBlend.srcRGB.getBlendMode(),
-                    _newBlend.dstRGB.getBlendMode(),
+                    _newBlend.srcRgb.getBlendMode(),
+                    _newBlend.dstRgb.getBlendMode(),
                     _newBlend.srcAlpha.getBlendMode(),
                     _newBlend.dstAlpha.getBlendMode());
             }
@@ -1094,7 +1092,7 @@ class OGL3Backend implements IRendererBackend
                 glDisable(GL_BLEND);
             }
 
-            blend.copyFrom(_newBlend);
+            blend = _newBlend;
         }
     }
 

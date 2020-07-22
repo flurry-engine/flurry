@@ -1,6 +1,6 @@
 package uk.aidanlee.flurry.api.gpu;
 
-enum abstract BlendMode(Int)
+enum abstract BlendMode(Int) to Int
 {
     var Zero;
     var One;

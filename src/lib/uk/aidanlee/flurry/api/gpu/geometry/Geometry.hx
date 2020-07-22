@@ -18,8 +18,6 @@ import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Transformation;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 
-using Safety;
-
 enum GeometryData
 {
     Indexed(_vertices : VertexBlob, _indices : IndexBlob);
@@ -212,15 +210,15 @@ class Geometry
         changed = new Subject<Unit>();
 
         data           = _options.data;
-        transformation = _options.transform .or(new Transformation());
-        depth          = _options.depth     .or(0);
-        shader         = _options.shader    .or(None);
-        uniforms       = _options.uniforms  .or(None);
-        textures       = _options.textures  .or(None);
-        samplers       = _options.samplers  .or(None);
-        clip           = _options.clip      .or(None);
-        blend          = _options.blend     .or(new BlendState());
-        primitive      = _options.primitive .or(Triangles);
+        transformation = _options.transform;
+        depth          = _options.depth;
+        shader         = _options.shader;
+        uniforms       = _options.uniforms;
+        textures       = _options.textures;
+        samplers       = _options.samplers;
+        clip           = _options.clip;
+        blend          = _options.blend;
+        primitive      = _options.primitive;
 
         if (_options.batchers != null)
         {
@@ -284,7 +282,7 @@ class Geometry
     /**
      * Provides custom blending operations for drawing this geometry.
      */
-    public final blend = new BlendState();
+    public final blend = BlendState.none;
 
     /**
      * The primitive to draw this geometries vertex data with.

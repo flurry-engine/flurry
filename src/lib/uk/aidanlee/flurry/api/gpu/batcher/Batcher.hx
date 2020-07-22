@@ -159,7 +159,7 @@ class Batcher
                     state.samplers,
                     depthOptions,
                     stencilOptions,
-                    state.blend.clone()
+                    state.blend
                 ));
 
                 commandGeom = [];
@@ -185,7 +185,7 @@ class Batcher
                 state.samplers,
                 depthOptions,
                 stencilOptions,
-                state.blend.clone()
+                state.blend
             ));
         }
     }
@@ -355,7 +355,7 @@ class Batcher
         }
 
         // Sort by blend
-        if (!_a.blend.equals(_b.blend))
+        if (_a.blend != _b.blend)
         {
             return -1;
         }

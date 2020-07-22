@@ -70,7 +70,7 @@ class BatcherStateTests extends BuddySuite
             });
 
             it('can detect when geometries blend state changes', {
-                final blend1 = new BlendState(false);
+                final blend1 = new BlendState(false, One, Zero, OneMinusDstColor, SrcAlphaSaturate);
                 final blend2 = new BlendState(true, One, Zero, OneMinusDstColor, SrcAlphaSaturate);
 
                 final batcher = new Batcher({
@@ -88,12 +88,12 @@ class BatcherStateTests extends BuddySuite
 
                 state.requiresChange(geometry2).should.be(true);
                 state.change(geometry2);
-                state.blend.equals(blend1).should.be(true);
+                (state.blend == blend1).should.be(true);
                 state.requiresChange(geometry2).should.be(false);
 
                 state.requiresChange(geometry3).should.be(true);
                 state.change(geometry3);
-                state.blend.equals(blend2).should.be(true);
+                (state.blend == blend2).should.be(true);
                 state.requiresChange(geometry3).should.be(false);
             });
 

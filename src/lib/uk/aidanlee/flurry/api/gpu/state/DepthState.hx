@@ -22,8 +22,4 @@ abstract DepthState(Int)
 	{
 		this = (((_func << 1) | (Maths.boolToInt(_masking) & 1)) << 1) | (Maths.boolToInt(_enabled) & 0x1);
     }
-    
-    public inline function equal(_rhs : Int) return this == _rhs;
-
-    public inline function notEqual(_rhs : Int) return this != _rhs;
 }
