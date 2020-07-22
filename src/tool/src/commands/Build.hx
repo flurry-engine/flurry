@@ -173,6 +173,7 @@ class Build
         if (project!.build!.profile.or(Debug) == Release || release)
         {
             user.noTraces();
+            user.addDefine('no-debug');
         }
         else
         {
