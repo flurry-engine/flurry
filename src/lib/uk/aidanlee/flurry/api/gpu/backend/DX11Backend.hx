@@ -433,8 +433,8 @@ class DX11Backend implements IRendererBackend
         rasterDescription.depthBias             = 0;
         rasterDescription.slopeScaledDepthBias  = 0;
         rasterDescription.depthBiasClamp        = 0;
-        rasterDescription.depthClipEnable       = true;
         rasterDescription.scissorEnable         = true;
+        rasterDescription.depthClipEnable       = false;
         rasterDescription.multisampleEnable     = false;
         rasterDescription.antialiasedLineEnable = false;
 
