@@ -185,7 +185,6 @@ class Build
         user.addDefine('desktop');
         user.addDefine('snow_native');
         user.addDefine('HXCPP_M64');
-        user.addDefine('HXCPP_GC_GENERATIONAL');
         user.addDefine('flurry-entry-point', project.app.main);
         user.addMacro('Safety.safeNavigation("uk.aidanlee.flurry")');
 
@@ -207,7 +206,6 @@ class Build
         for (d in project!.build!.dependencies.or([]))
         {
             user.addLibrary(d.lib, d.version);
-            user.addDefine(d.lib);
         }
     }
 }
