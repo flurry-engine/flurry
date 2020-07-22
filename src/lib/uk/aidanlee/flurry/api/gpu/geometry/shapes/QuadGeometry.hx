@@ -35,7 +35,7 @@ class QuadGeometry extends Geometry
                     .indexBlob()
             ),
             textures : Some([ _options.texture.image ]),
-            samplers : _options.sampler == null ? None : Some([ _options.sampler ]),
+            samplers : Some([ _options.sampler ]),
             shader   : _options.shader,
             uniforms : _options.uniforms,
             depth    : _options.depth,
@@ -186,7 +186,7 @@ class QuadGeometry extends Geometry
      * If null is provided a default sampler is used.
      * Default samplers is clamp uv clipping and nearest neighbour scaling.
      */
-    public final sampler : Null<SamplerState> = null;
+    public final sampler = SamplerState.nearest;
 
     /**
      * Specify a custom shader to be used by this geometry.

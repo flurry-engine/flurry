@@ -147,7 +147,7 @@ class OGL3Backend implements IRendererBackend
     /**
      * The sampler objects which have been created for each specific texture.
      */
-    final samplerObjects : Map<ResourceID, Map<Int, Int>>;
+    final samplerObjects : Map<ResourceID, Map<SamplerState, Int>>;
 
     /**
      * Framebuffer objects keyed by their associated image resource IDs.
@@ -893,15 +893,14 @@ class OGL3Backend implements IRendererBackend
                 var currentSampler = defaultSampler;
                 if (i < _samplers.length)
                 {
-                    final samplerHash     = _samplers[i].hash();
                     final textureSamplers = samplerObjects[_textures[i]];
 
-                    if (!textureSamplers.exists(samplerHash))
+                    if (!textureSamplers.exists(_samplers[i]))
                     {
-                        textureSamplers[samplerHash] = createSamplerObject(_samplers[i]);
+                        textureSamplers[_samplers[i]] = createSamplerObject(_samplers[i]);
                     }
 
-                    currentSampler = textureSamplers[samplerHash];
+                    currentSampler = textureSamplers[_samplers[i]];
                 }
 
                 // If its not already bound bind it and update the bound sampler array.

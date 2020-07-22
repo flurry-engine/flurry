@@ -282,7 +282,7 @@ class SpriteGeometry extends QuadGeometry
      * If null is provided a default sampler is used.
      * Default samplers is clamp uv clipping and nearest neighbour scaling.
      */
-    public final sampler : Null<SamplerState> = null;
+    public final sampler = SamplerState.nearest;
 
     /**
      * Specify a custom shader to be used by this geometry.

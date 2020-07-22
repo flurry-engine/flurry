@@ -320,7 +320,7 @@ class Batcher
                         {
                             for (i in 0..._samplersA.length)
                             {
-                                if (!_samplersA[i].equal(_samplersB[i]))
+                                if (_samplersA[i] == _samplersB[i])
                                 {
                                     return -1;
                                 }

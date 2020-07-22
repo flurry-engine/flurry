@@ -1342,15 +1342,14 @@ class DX11Backend implements IRendererBackend
                 var sampler = defaultSampler;
                 if (i < _samplers.length)
                 {
-                    final samplerHash = _samplers[i].hash();
-                    if (!texture.samplers.exists(samplerHash))
+                    if (!texture.samplers.exists(_samplers[i]))
                     {
                         sampler = createSampler(_samplers[i]);
-                        texture.samplers[samplerHash] = sampler;
+                        texture.samplers[_samplers[i]] = sampler;
                     }
                     else
                     {
-                        sampler = texture.samplers[samplerHash];
+                        sampler = texture.samplers[_samplers[i]];
                     }
                 }
 
@@ -1557,7 +1556,7 @@ private class TextureInformation
     /**
      * D3D11 Sampler State to sample the textures data.
      */
-    public final samplers : Map<Int, D3d11SamplerState>;
+    public final samplers : Map<SamplerState, D3d11SamplerState>;
 
     public function new(_texture, _resView, _rtvView, _description)
     {

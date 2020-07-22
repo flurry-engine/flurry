@@ -73,7 +73,7 @@ class TextGeometry extends Geometry
         super({
             data     : generateGeometry(_options.font, _options.text),
             textures : Some([ _options.font.image ]),
-            samplers : _options.sampler == null ? None : Some([ _options.sampler ]),
+            samplers : Some([ _options.sampler ]),
             shader   : _options.shader,
             uniforms : _options.uniforms,
             depth    : _options.depth,
@@ -205,7 +205,7 @@ class CharacterNotFoundException extends Exception
      * If null is provided a default sampler is used.
      * Default samplers is clamp uv clipping and nearest neighbour scaling.
      */
-    public final sampler : Null<SamplerState> = null;
+    public final sampler = SamplerState.nearest;
 
     /**
      * Specify a custom shader to be used by this geometry.

@@ -128,35 +128,35 @@ class OGL4Backend implements IRendererBackend
     /**
      * Shader programs keyed by their associated shader resource IDs.
      */
-    final shaderPrograms : Map<Int, Int>;
+    final shaderPrograms : Map<ResourceID, Int>;
 
     /**
      * Shader uniform locations keyed by their associated shader resource IDs.
      */
-    final shaderUniforms : Map<Int, ShaderInformation>;
+    final shaderUniforms : Map<ResourceID, ShaderInformation>;
 
     /**
      * Texture objects keyed by their associated image resource IDs.
      */
-    final textureObjects : Map<Int, Int>;
+    final textureObjects : Map<ResourceID, Int>;
 
     /**
      * Keep track of all our texture sizes.
      * After they are created draw calls refer to their IDs so we manually store the dimensions.
      */
-    final textureInfo : Map<Int, TextureInformation>;
+    final textureInfo : Map<ResourceID, TextureInformation>;
 
     /**
      * The sampler objects which have been created for each specific texture.
      */
-    final samplerObjects : Map<Int, Map<Int, Int>>;
+    final samplerObjects : Map<ResourceID, Map<SamplerState, Int>>;
 
     /**
      * Framebuffer objects keyed by their associated image resource IDs.
      * Framebuffers will only be generated when an image resource is used as a target.
      * Will be destroyed when the associated image resource is destroyed.
      */
-    final framebufferObjects : Map<Int, Int>;
+    final framebufferObjects : Map<ResourceID, Int>;
 
     /**
      * The default sampler object to use if none is specified.
@@ -1010,15 +1010,14 @@ class OGL4Backend implements IRendererBackend
                 var currentSampler = defaultSampler;
                 if (i < _samplers.length)
                 {
-                    final samplerHash     = _samplers[i].hash();
                     final textureSamplers = samplerObjects[_textures[i]];
 
-                    if (!textureSamplers.exists(samplerHash))
+                    if (!textureSamplers.exists(_samplers[i]))
                     {
-                        textureSamplers[samplerHash] = createSamplerObject(_samplers[i]);
+                        textureSamplers[_samplers[i]] = createSamplerObject(_samplers[i]);
                     }
 
-                    currentSampler = textureSamplers[samplerHash];
+                    currentSampler = textureSamplers[_samplers[i]];
                 }
 
                 // If its not already bound bind it and update the bound sampler array.

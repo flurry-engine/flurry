@@ -318,9 +318,9 @@ class BatcherStateTests extends BuddySuite
                     state.change(geometry2);
                     (cast state.samplers : Array<SamplerState>).should.containExactly([ sampler, sampler ]);
                 });
-                it('can detect changes when geometries provide the same number of samplers but are different objects', {
-                    final sampler1 = new SamplerState(Border, Border, Linear, Linear);
-                    final sampler2 = new SamplerState(Border, Border, Linear, Linear);
+                it('can detect changes when geometries provide the same number of samplers but are different', {
+                    final sampler1 = SamplerState.linear;
+                    final sampler2 = SamplerState.nearest;
                     final batcher  = new Batcher({
                         shader: 0,
                         camera: new Camera2D(0, 0, TopLeft, ZeroToNegativeOne)
