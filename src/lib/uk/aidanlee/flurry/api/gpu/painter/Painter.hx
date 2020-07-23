@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.painter;
 
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
@@ -80,9 +81,99 @@ class Painter
         vtxCount += 4;
     }
 
-    public function drawNineSlice(_frame : ImageFrameResource, _x : Float, _y : Float, _w : Float, _y : Float, _top : Float, _left : Float, _bottom : Float, _right : Float)
+    public function drawNineSlice(_frame : ImageFrameResource, _image : ImageResource, _x : Float, _y : Float, _w : Float, _h : Float, _top : Float, _left : Float, _bottom : Float, _right : Float)
     {
-        //
+        checkFlush(_image.id, Triangles);
+
+        final x1 = _x + 0;
+        final x2 = _x + _left;
+        final x3 = _x + _w - _right;
+        final x4 = _x + _w;
+
+        final y1 = _y + 0;
+        final y2 = _y + _top;
+        final y3 = _y + _h - _bottom;
+        final y4 = _y + _h;
+
+        final u1 =  _frame.x / _image.width;
+        final u2 = (_frame.x + _left) / _image.width;
+        final u3 = (_frame.x + (_frame.width - _right)) / _image.width;
+        final u4 = (_frame.x + _frame.width) / _image.width;
+
+        final v1 =  _frame.y / _image.height;
+        final v2 = (_frame.y + _top) / _image.height;
+        final v3 = (_frame.y + (_frame.height - _bottom)) / _image.height;
+        final v4 = (_frame.y + _frame.height) / _image.height;
+
+        vtxBuffer
+            // Top Left
+            .addFloat3(x1, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v2)
+            .addFloat3(x2, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v2)
+            .addFloat3(x1, y1, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v1)
+            .addFloat3(x2, y1, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v1)
+
+            // Top Middle
+            .addFloat3(x2, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v2)
+            .addFloat3(x3, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v2)
+            .addFloat3(x2, y1, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v1)
+            .addFloat3(x3, y1, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v1)
+
+            // Top Right
+            .addFloat3(x3, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v2)
+            .addFloat3(x4, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u4, v2)
+            .addFloat3(x3, y1, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v1)
+            .addFloat3(x4, y1, 0).addFloat4(1, 1, 1, 1).addFloat2(u4, v1)
+
+            // Middle Left
+            .addFloat3(x1, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v3)
+            .addFloat3(x2, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v3)
+            .addFloat3(x1, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v2)
+            .addFloat3(x2, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v2)
+
+            // Middle Middle
+            .addFloat3(x2, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v3)
+            .addFloat3(x3, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v3)
+            .addFloat3(x2, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v2)
+            .addFloat3(x3, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v2)
+
+            // Middle Right
+            .addFloat3(x3, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v3)
+            .addFloat3(x4, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u4, v3)
+            .addFloat3(x3, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v2)
+            .addFloat3(x4, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u4, v2)
+
+            // Bottom Left
+            .addFloat3(x1, y4, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v4)
+            .addFloat3(x2, y4, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v4)
+            .addFloat3(x1, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v3)
+            .addFloat3(x2, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v3)
+
+            // Bottom Middle
+            .addFloat3(x2, y4, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v4)
+            .addFloat3(x3, y4, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v4)
+            .addFloat3(x2, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v3)
+            .addFloat3(x3, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v3)
+
+            // Bottom Right
+            .addFloat3(x3, y4, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v4)
+            .addFloat3(x4, y4, 0).addFloat4(1, 1, 1, 1).addFloat2(u4, v4)
+            .addFloat3(x3, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v3)
+            .addFloat3(x4, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u4, v3);
+
+        idxBuffer
+            .addInts([ vtxCount + 0, vtxCount + 1, vtxCount + 2, vtxCount + 2, vtxCount + 1, vtxCount + 3 ])
+            .addInts([ vtxCount + 4 + 0, vtxCount + 4 + 1, vtxCount + 4 + 2, vtxCount + 4 + 2, vtxCount + 4 + 1, vtxCount + 4 + 3 ])
+            .addInts([ vtxCount + 8 + 0, vtxCount + 8 + 1, vtxCount + 8 + 2, vtxCount + 8 + 2, vtxCount + 8 + 1, vtxCount + 8 + 3 ])
+
+            .addInts([ vtxCount + 12 + 0, vtxCount + 12 + 1, vtxCount + 12 + 2, vtxCount + 12 + 2, vtxCount + 12 + 1, vtxCount + 12 + 3 ])
+            .addInts([ vtxCount + 16 + 0, vtxCount + 16 + 1, vtxCount + 16 + 2, vtxCount + 16 + 2, vtxCount + 16 + 1, vtxCount + 16 + 3 ])
+            .addInts([ vtxCount + 20 + 0, vtxCount + 20 + 1, vtxCount + 20 + 2, vtxCount + 20 + 2, vtxCount + 20 + 1, vtxCount + 20 + 3 ])
+
+            .addInts([ vtxCount + 24 + 0, vtxCount + 24 + 1, vtxCount + 24 + 2, vtxCount + 24 + 2, vtxCount + 24 + 1, vtxCount + 24 + 3 ])
+            .addInts([ vtxCount + 28 + 0, vtxCount + 28 + 1, vtxCount + 28 + 2, vtxCount + 28 + 2, vtxCount + 28 + 1, vtxCount + 28 + 3 ])
+            .addInts([ vtxCount + 32 + 0, vtxCount + 32 + 1, vtxCount + 32 + 2, vtxCount + 32 + 2, vtxCount + 32 + 1, vtxCount + 32 + 3 ]);
+
+        vtxCount += 9 * 4;
     }
 
     public function end()
