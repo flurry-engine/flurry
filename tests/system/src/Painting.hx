@@ -1,5 +1,6 @@
 package;
 
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
@@ -34,12 +35,15 @@ class Painting extends Flurry
     override function onUpdate(_dt)
     {
         painter.begin();
-        painter.drawFrame(resources.getByName('tank2', ImageFrameResource),   0, 128);
+        painter.drawFrame(resources.getByName('tank2', ImageFrameResource), 0, 128);
 
         final f = resources.getByName('ui_frame', ImageFrameResource);
         final i = resources.getByID(f.image, ImageResource);
 
+        painter.pushSampler(SamplerState.linear);
         painter.drawNineSlice(f, i, 32, 32, 256, 96, 25, 25, 25, 25);
+        painter.popSampler();
+
         painter.drawFrame(resources.getByName('tank1', ImageFrameResource), 256, 128);
         painter.drawFrame(resources.getByName('tank2', ImageFrameResource), 512, 128);
         painter.end();

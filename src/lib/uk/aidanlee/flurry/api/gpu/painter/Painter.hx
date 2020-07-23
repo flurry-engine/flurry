@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.painter;
 
+import haxe.ds.List;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
@@ -11,13 +12,8 @@ import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 import uk.aidanlee.flurry.api.resources.Resource.FontResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
-import uk.aidanlee.flurry.api.gpu.batcher.BatcherState;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
-import uk.aidanlee.flurry.api.maths.Vector2;
-import uk.aidanlee.flurry.api.maths.Transformation;
-import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
-import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 
 class Painter
 {
@@ -25,13 +21,15 @@ class Painter
     
     final camera : Camera2D;
 
+    final samplers : List<SamplerState>;
+
+    final shaders : List<ResourceID>;
+
     var vtxCount : Int;
 
     var vtxBuffer : VertexBlobBuilder;
 
     var idxBuffer : IndexBlobBuilder;
-
-    var shader : ResourceID;
 
     var texture : ResourceID;
 
@@ -41,9 +39,50 @@ class Painter
     {
         queue     = _queue;
         camera    = _camera;
-        shader    = _shader;
+        shaders   = new List();
+        samplers  = new List();
         texture   = 0;
         primitive = Triangles;
+
+        shaders.push(_shader);
+        samplers.push(SamplerState.nearest);
+    }
+
+    public function pushShader(_shader : ResourceID)
+    {
+        shaders.push(_shader);
+    }
+
+    public function popShader()
+    {
+        if (shaders.length > 1)
+        {
+            shaders.pop();
+        }
+    }
+
+    /**
+     * Update the sampler used by this painter.
+     * If it is different from the current active sampler it will flush the contents.
+     * @param _sampler Sampler to use.
+     */
+    public function pushSampler(_sampler : SamplerState)
+    {
+        checkFlush(texture, primitive, _sampler);
+
+        samplers.push(_sampler);
+    }
+
+    /**
+     * Removes the sampler at the top of the stack.
+     * If the next sampler on the stack is not equal to the one remove, the contents will be flushed.
+     */
+    public function popSampler()
+    {
+        if (samplers.length > 1)
+        {
+            checkFlush(texture, primitive, samplers.pop());
+        }
     }
 
     public function begin()
@@ -53,22 +92,22 @@ class Painter
 
     public function drawRectangle(_x : Float, _y : Float, _width : Float, _height : Float)
     {
-        checkFlush(texture, Triangles);
+        //
     }
 
     public function drawLine()
     {
-        checkFlush(texture, Lines);
+        //
     }
 
     public function drawText(_font : FontResource, _x : Float, _y : Float, _size : Float, _text : String)
     {
-        checkFlush(_font.image, Triangles);
+        //
     }
 
     public function drawFrame(_frame : ImageFrameResource, _x : Float, _y : Float)
     {
-        checkFlush(_frame.image, Triangles);
+        checkFlush(_frame.image, Triangles, samplers.first());
 
         vtxBuffer
             .addFloat3(_x               , _y + _frame.height, 0).addFloat4(1, 1, 1, 1).addFloat2(_frame.u1, _frame.v2)
@@ -83,7 +122,7 @@ class Painter
 
     public function drawNineSlice(_frame : ImageFrameResource, _image : ImageResource, _x : Float, _y : Float, _w : Float, _h : Float, _top : Float, _left : Float, _bottom : Float, _right : Float)
     {
-        checkFlush(_image.id, Triangles);
+        checkFlush(_image.id, Triangles, samplers.first());
 
         final x1 = _x + 0;
         final x2 = _x + _left;
@@ -161,7 +200,7 @@ class Painter
             .addFloat3(x4, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u4, v3);
 
         idxBuffer
-            .addInts([ vtxCount + 0, vtxCount + 1, vtxCount + 2, vtxCount + 2, vtxCount + 1, vtxCount + 3 ])
+            .addInts([ vtxCount + 0    , vtxCount + 1    , vtxCount + 2    , vtxCount + 2    , vtxCount + 1    , vtxCount + 3 ])
             .addInts([ vtxCount + 4 + 0, vtxCount + 4 + 1, vtxCount + 4 + 2, vtxCount + 4 + 2, vtxCount + 4 + 1, vtxCount + 4 + 3 ])
             .addInts([ vtxCount + 8 + 0, vtxCount + 8 + 1, vtxCount + 8 + 2, vtxCount + 8 + 2, vtxCount + 8 + 1, vtxCount + 8 + 3 ])
 
@@ -183,43 +222,16 @@ class Painter
             return;
         }
 
-        queue(new DrawCommand(
-            [ new Geometry({ data : Indexed(vtxBuffer.vertexBlob(), idxBuffer.indexBlob()) }) ],
-            camera,
-            primitive,
-            None,
-            Backbuffer,
-            shader,
-            [],
-            [ texture ],
-            [ SamplerState.nearest ],
-            DepthState.none,
-            StencilState.none,
-            BlendState.none
-        ));
+        dispatch();
     }
 
-    function checkFlush(_newTexture : ResourceID, _newPrimitive : PrimitiveType)
+    function checkFlush(_newTexture : ResourceID, _newPrimitive : PrimitiveType, _sampler : SamplerState)
     {
-        final needsFlush = (texture != _newTexture || primitive != _newPrimitive);
+        final needsFlush = (texture != _newTexture || primitive != _newPrimitive || samplers.first() != _sampler );
 
         if (needsFlush && vtxCount > 0)
         {
-            queue(new DrawCommand(
-                [ new Geometry({ data : Indexed(vtxBuffer.vertexBlob(), idxBuffer.indexBlob()) }) ],
-                camera,
-                primitive,
-                None,
-                Backbuffer,
-                shader,
-                [],
-                [ texture ],
-                [ SamplerState.nearest ],
-                DepthState.none,
-                StencilState.none,
-                BlendState.none
-            ));
-
+            dispatch();
             reset();
         }
 
@@ -232,5 +244,23 @@ class Painter
         vtxCount  = 0;
         vtxBuffer = new VertexBlobBuilder();
         idxBuffer = new IndexBlobBuilder();
+    }
+
+    function dispatch()
+    {
+        queue(new DrawCommand(
+            [ new Geometry({ data : Indexed(vtxBuffer.vertexBlob(), idxBuffer.indexBlob()) }) ],
+            camera,
+            primitive,
+            None,
+            Backbuffer,
+            shaders.first(),
+            [],
+            [ texture ],
+            [ samplers.first() ],
+            DepthState.none,
+            StencilState.none,
+            BlendState.none
+        ));
     }
 }
