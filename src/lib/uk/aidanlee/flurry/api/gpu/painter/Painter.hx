@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.painter;
 
+import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
 import haxe.ds.List;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
@@ -185,11 +186,6 @@ class Painter
         vtxCount += 2;
     }
 
-    public function drawText(_font : FontResource, _x : Float, _y : Float, _size : Float, _text : String)
-    {
-        //
-    }
-
     public function drawFrame(_frame : ImageFrameResource, _x : Float, _y : Float)
     {
         if (requireFlush(_frame.image, shaders.first(), Triangles, samplers.first()))
@@ -207,6 +203,34 @@ class Painter
             .addFloat3(_x + _frame.width, _y + _frame.height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(_frame.u2, _frame.v2)
             .addFloat3(_x               , _y                , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(_frame.u1, _frame.v1)
             .addFloat3(_x + _frame.width, _y                , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(_frame.u2, _frame.v1);
+        idxBuffer
+            .addInt(vtxCount + 0).addInt(vtxCount + 1).addInt(vtxCount + 2).addInt(vtxCount + 2).addInt(vtxCount + 1).addInt(vtxCount + 3);
+
+        vtxCount += 4;
+    }
+
+    public function drawSprite(_sprite : SpriteResource, _animation : String, _idx : Int, _x : Float, _y : Float, _xFlip : Bool, _yFlip : Bool)
+    {
+        if (requireFlush(_sprite.image, shaders.first(), Triangles, samplers.first()))
+        {
+            flush(texture, shaders.first(), primitive, samplers.first());
+
+            texture   = _sprite.image;
+            primitive = Triangles;
+        }
+
+        final frame  = _sprite.animations[_animation][_idx];
+        final colour = colours.first();
+        final u1     = if (_xFlip) frame.u2 else frame.u1;
+        final u2     = if (_xFlip) frame.u1 else frame.u2;
+        final v1     = if (_yFlip) frame.v2 else frame.v1;
+        final v2     = if (_yFlip) frame.v1 else frame.v2;
+
+        vtxBuffer
+            .addFloat3(_x              , _y + frame.height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v2)
+            .addFloat3(_x + frame.width, _y + frame.height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v2)
+            .addFloat3(_x              , _y               , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v1)
+            .addFloat3(_x + frame.width, _y               , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v1);
         idxBuffer
             .addInt(vtxCount + 0).addInt(vtxCount + 1).addInt(vtxCount + 2).addInt(vtxCount + 2).addInt(vtxCount + 1).addInt(vtxCount + 3);
 

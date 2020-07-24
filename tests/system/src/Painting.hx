@@ -1,5 +1,6 @@
 package;
 
+import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
 import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
@@ -56,6 +57,8 @@ class Painting extends Flurry
         painter.drawRectangle(48, 32, 512, 245);
         painter.drawRectangleFilled(80, 64, 448, 181);
         painter.popShader();
+
+        painter.drawSprite(resources.getByName('character', SpriteResource), 'default', 2, 128, 384, true, false);
 
         painter.end();
     }
