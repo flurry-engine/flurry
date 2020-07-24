@@ -1,13 +1,13 @@
 package;
 
-import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.painter.Painter;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 
 class Painting extends Flurry
 {
@@ -45,6 +45,11 @@ class Painting extends Flurry
         painter.popSampler();
 
         painter.drawFrame(resources.getByName('tank1', ImageFrameResource), 256, 128);
+
+        painter.pushShader(resources.getByName('purple', ShaderResource).id);
+        painter.drawLine(48, 32, 512, 245);
+        painter.popShader();
+
         painter.drawFrame(resources.getByName('tank2', ImageFrameResource), 512, 128);
         painter.end();
     }
