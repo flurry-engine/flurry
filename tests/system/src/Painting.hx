@@ -1,5 +1,6 @@
 package;
 
+import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
@@ -37,6 +38,10 @@ class Painting extends Flurry
         painter.begin();
         painter.drawFrame(resources.getByName('tank2', ImageFrameResource), 0, 128);
 
+        painter.pushColour(new Vector4(1, 0, 0, 1));
+        painter.drawFrame(resources.getByName('tank3', ImageFrameResource), 512, 128);
+        painter.popColour();
+
         final f = resources.getByName('ui_frame', ImageFrameResource);
         final i = resources.getByID(f.image, ImageResource);
 
@@ -52,7 +57,6 @@ class Painting extends Flurry
         painter.drawRectangleFilled(80, 64, 448, 181);
         painter.popShader();
 
-        painter.drawFrame(resources.getByName('tank2', ImageFrameResource), 512, 128);
         painter.end();
     }
 }

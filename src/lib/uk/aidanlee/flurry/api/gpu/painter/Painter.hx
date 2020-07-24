@@ -10,6 +10,7 @@ import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
+import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 import uk.aidanlee.flurry.api.resources.Resource.FontResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
@@ -20,6 +21,8 @@ class Painter
     final queue : (_command : DrawCommand)->Void;
     
     final camera : Camera2D;
+
+    final colours : List<Vector4>;
 
     final samplers : List<SamplerState>;
 
@@ -39,13 +42,25 @@ class Painter
     {
         queue     = _queue;
         camera    = _camera;
+        colours   = new List();
         shaders   = new List();
         samplers  = new List();
         texture   = 0;
         primitive = Triangles;
 
+        colours.push(new Vector4(1, 1, 1, 1));
         shaders.push(_shader);
         samplers.push(SamplerState.nearest);
+    }
+
+    public function pushColour(_colour : Vector4)
+    {
+        colours.push(_colour);
+    }
+
+    public function popColour()
+    {
+        colours.pop();
     }
 
     public function pushShader(_shader : ResourceID)
@@ -114,12 +129,14 @@ class Painter
 
         primitive = LineStrip;
 
+        final colour = colours.first();
+
         vtxBuffer
-            .addFloat3(_x         , _y          , 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
-            .addFloat3(_x + _width, _y          , 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
-            .addFloat3(_x + _width, _y + _height, 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
-            .addFloat3(_x         , _y + _height, 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
-            .addFloat3(_x         , _y          , 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0);
+            .addFloat3(_x         , _y          , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
+            .addFloat3(_x + _width, _y          , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
+            .addFloat3(_x + _width, _y + _height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
+            .addFloat3(_x         , _y + _height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
+            .addFloat3(_x         , _y          , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0);
         idxBuffer
             .addInt(vtxCount + 0).addInt(vtxCount + 1).addInt(vtxCount + 2).addInt(vtxCount + 3).addInt(vtxCount + 4);
 
@@ -135,11 +152,13 @@ class Painter
             primitive = Triangles;
         }
 
+        final colour = colours.first();
+
         vtxBuffer
-            .addFloat3(_x         , _y + _height, 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
-            .addFloat3(_x + _width, _y + _height, 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
-            .addFloat3(_x         , _y          , 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
-            .addFloat3(_x + _width, _y          , 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0);
+            .addFloat3(_x         , _y + _height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
+            .addFloat3(_x + _width, _y + _height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
+            .addFloat3(_x         , _y          , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
+            .addFloat3(_x + _width, _y          , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0);
         idxBuffer
             .addInt(vtxCount + 0).addInt(vtxCount + 1).addInt(vtxCount + 2).addInt(vtxCount + 2).addInt(vtxCount + 1).addInt(vtxCount + 3);
 
@@ -155,9 +174,11 @@ class Painter
             primitive = Lines;
         }
 
+        final colour = colours.first();
+
         vtxBuffer
-            .addFloat3(_x1, _y1, 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
-            .addFloat3(_x2, _y2, 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0);
+            .addFloat3(_x1, _y1, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
+            .addFloat3(_x2, _y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0);
         idxBuffer
             .addInt(vtxCount + 0).addInt(vtxCount + 1);
 
@@ -179,11 +200,13 @@ class Painter
             primitive = Triangles;
         }
 
+        final colour = colours.first();
+
         vtxBuffer
-            .addFloat3(_x               , _y + _frame.height, 0).addFloat4(1, 1, 1, 1).addFloat2(_frame.u1, _frame.v2)
-            .addFloat3(_x + _frame.width, _y + _frame.height, 0).addFloat4(1, 1, 1, 1).addFloat2(_frame.u2, _frame.v2)
-            .addFloat3(_x               , _y                , 0).addFloat4(1, 1, 1, 1).addFloat2(_frame.u1, _frame.v1)
-            .addFloat3(_x + _frame.width, _y                , 0).addFloat4(1, 1, 1, 1).addFloat2(_frame.u2, _frame.v1);
+            .addFloat3(_x               , _y + _frame.height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(_frame.u1, _frame.v2)
+            .addFloat3(_x + _frame.width, _y + _frame.height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(_frame.u2, _frame.v2)
+            .addFloat3(_x               , _y                , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(_frame.u1, _frame.v1)
+            .addFloat3(_x + _frame.width, _y                , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(_frame.u2, _frame.v1);
         idxBuffer
             .addInt(vtxCount + 0).addInt(vtxCount + 1).addInt(vtxCount + 2).addInt(vtxCount + 2).addInt(vtxCount + 1).addInt(vtxCount + 3);
 
@@ -220,60 +243,62 @@ class Painter
         final v3 = (_frame.y + (_frame.height - _bottom)) / _image.height;
         final v4 = (_frame.y + _frame.height) / _image.height;
 
+        final colour = colours.first();
+
         vtxBuffer
             // Top Left
-            .addFloat3(x1, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v2)
-            .addFloat3(x2, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v2)
-            .addFloat3(x1, y1, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v1)
-            .addFloat3(x2, y1, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v1)
+            .addFloat3(x1, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v2)
+            .addFloat3(x2, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v2)
+            .addFloat3(x1, y1, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v1)
+            .addFloat3(x2, y1, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v1)
 
             // Top Middle
-            .addFloat3(x2, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v2)
-            .addFloat3(x3, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v2)
-            .addFloat3(x2, y1, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v1)
-            .addFloat3(x3, y1, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v1)
+            .addFloat3(x2, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v2)
+            .addFloat3(x3, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u3, v2)
+            .addFloat3(x2, y1, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v1)
+            .addFloat3(x3, y1, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u3, v1)
 
             // Top Right
-            .addFloat3(x3, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v2)
-            .addFloat3(x4, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u4, v2)
-            .addFloat3(x3, y1, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v1)
-            .addFloat3(x4, y1, 0).addFloat4(1, 1, 1, 1).addFloat2(u4, v1)
+            .addFloat3(x3, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u3, v2)
+            .addFloat3(x4, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u4, v2)
+            .addFloat3(x3, y1, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u3, v1)
+            .addFloat3(x4, y1, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u4, v1)
 
             // Middle Left
-            .addFloat3(x1, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v3)
-            .addFloat3(x2, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v3)
-            .addFloat3(x1, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v2)
-            .addFloat3(x2, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v2)
+            .addFloat3(x1, y3, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v3)
+            .addFloat3(x2, y3, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v3)
+            .addFloat3(x1, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v2)
+            .addFloat3(x2, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v2)
 
             // Middle Middle
-            .addFloat3(x2, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v3)
-            .addFloat3(x3, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v3)
-            .addFloat3(x2, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v2)
-            .addFloat3(x3, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v2)
+            .addFloat3(x2, y3, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v3)
+            .addFloat3(x3, y3, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u3, v3)
+            .addFloat3(x2, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v2)
+            .addFloat3(x3, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u3, v2)
 
             // Middle Right
-            .addFloat3(x3, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v3)
-            .addFloat3(x4, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u4, v3)
-            .addFloat3(x3, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v2)
-            .addFloat3(x4, y2, 0).addFloat4(1, 1, 1, 1).addFloat2(u4, v2)
+            .addFloat3(x3, y3, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u3, v3)
+            .addFloat3(x4, y3, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u4, v3)
+            .addFloat3(x3, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u3, v2)
+            .addFloat3(x4, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u4, v2)
 
             // Bottom Left
-            .addFloat3(x1, y4, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v4)
-            .addFloat3(x2, y4, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v4)
-            .addFloat3(x1, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u1, v3)
-            .addFloat3(x2, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v3)
+            .addFloat3(x1, y4, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v4)
+            .addFloat3(x2, y4, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v4)
+            .addFloat3(x1, y3, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v3)
+            .addFloat3(x2, y3, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v3)
 
             // Bottom Middle
-            .addFloat3(x2, y4, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v4)
-            .addFloat3(x3, y4, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v4)
-            .addFloat3(x2, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u2, v3)
-            .addFloat3(x3, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v3)
+            .addFloat3(x2, y4, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v4)
+            .addFloat3(x3, y4, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u3, v4)
+            .addFloat3(x2, y3, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v3)
+            .addFloat3(x3, y3, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u3, v3)
 
             // Bottom Right
-            .addFloat3(x3, y4, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v4)
-            .addFloat3(x4, y4, 0).addFloat4(1, 1, 1, 1).addFloat2(u4, v4)
-            .addFloat3(x3, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u3, v3)
-            .addFloat3(x4, y3, 0).addFloat4(1, 1, 1, 1).addFloat2(u4, v3);
+            .addFloat3(x3, y4, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u3, v4)
+            .addFloat3(x4, y4, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u4, v4)
+            .addFloat3(x3, y3, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u3, v3)
+            .addFloat3(x4, y3, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u4, v3);
 
         idxBuffer
             .addInts([ vtxCount + 0    , vtxCount + 1    , vtxCount + 2    , vtxCount + 2    , vtxCount + 1    , vtxCount + 3 ])
