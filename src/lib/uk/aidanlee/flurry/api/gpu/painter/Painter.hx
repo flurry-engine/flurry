@@ -110,7 +110,40 @@ class Painter
 
     public function drawRectangle(_x : Float, _y : Float, _width : Float, _height : Float)
     {
-        //
+        flush(texture, shaders.first(), primitive, samplers.first());
+
+        primitive = LineStrip;
+
+        vtxBuffer
+            .addFloat3(_x         , _y          , 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
+            .addFloat3(_x + _width, _y          , 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
+            .addFloat3(_x + _width, _y + _height, 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
+            .addFloat3(_x         , _y + _height, 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
+            .addFloat3(_x         , _y          , 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0);
+        idxBuffer
+            .addInt(vtxCount + 0).addInt(vtxCount + 1).addInt(vtxCount + 2).addInt(vtxCount + 3).addInt(vtxCount + 4);
+
+        vtxCount += 4;
+    }
+
+    public function drawRectangleFilled(_x : Float, _y : Float, _width : Float, _height : Float)
+    {
+        if (requireFlush(texture, shaders.first(), Triangles, samplers.first()))
+        {
+            flush(texture, shaders.first(), primitive, samplers.first());
+
+            primitive = Triangles;
+        }
+
+        vtxBuffer
+            .addFloat3(_x         , _y + _height, 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
+            .addFloat3(_x + _width, _y + _height, 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
+            .addFloat3(_x         , _y          , 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0)
+            .addFloat3(_x + _width, _y          , 0).addFloat4(1, 1, 1, 1).addFloat2(0, 0);
+        idxBuffer
+            .addInt(vtxCount + 0).addInt(vtxCount + 1).addInt(vtxCount + 2).addInt(vtxCount + 2).addInt(vtxCount + 1).addInt(vtxCount + 3);
+
+        vtxCount += 4;
     }
 
     public function drawLine(_x1 : Float, _y1 : Float, _x2 : Float, _y2 : Float)

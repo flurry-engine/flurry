@@ -47,7 +47,9 @@ class Painting extends Flurry
         painter.drawFrame(resources.getByName('tank1', ImageFrameResource), 256, 128);
 
         painter.pushShader(resources.getByName('purple', ShaderResource).id);
-        painter.drawLine(48, 32, 512, 245);
+        painter.drawLine(48, 32, 560, 277);
+        painter.drawRectangle(48, 32, 512, 245);
+        painter.drawRectangleFilled(80, 64, 448, 181);
         painter.popShader();
 
         painter.drawFrame(resources.getByName('tank2', ImageFrameResource), 512, 128);
