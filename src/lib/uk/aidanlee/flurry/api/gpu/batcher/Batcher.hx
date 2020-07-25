@@ -15,7 +15,7 @@ using rx.Observable;
 /**
  * Batchers sort geometry to preserve the visual order and reduce the amount of work the renderer backends need to do.
  */
-class Batcher
+class Batcher implements IBatchable
 {
     /**
      * All of the geometry in this batcher.
@@ -86,33 +86,11 @@ class Batcher
         dirty = false;
     }
 
-    /**
-     * Add a geometry to this batcher.
-     * This causes the batcher to sort all geometry for the next drawn frame.
-     * @param _geom Geometry to add.
-     */
-    public function addGeometry(_geom : Geometry)
-    {
-        geometry.push(_geom);
-        subscriptions[_geom.id] = _geom.changed.subscribeFunction(setDirty);
+    public function getDepth() return depth;
 
-        dirty = true;
-    }
+    public function getTarget() return target;
 
-    /**
-     * Remove a geometry from this batcher.
-     * This causes the batcher to sort all geometry for the next drawn frame.
-     * @param _geom Geometry to remove.
-     */
-    public function removeGeometry(_geom : Geometry)
-    {
-        geometry.remove(_geom);
-
-        subscriptions[_geom.id].unsubscribe();
-        subscriptions.remove(_geom.id);
-
-        dirty = true;
-    }
+    public function getShader() return shader;
 
     /**
      * Generate a series of draw commands to optimally draw the contained geometry.
@@ -188,6 +166,34 @@ class Batcher
                 state.blend
             ));
         }
+    }
+
+    /**
+     * Add a geometry to this batcher.
+     * This causes the batcher to sort all geometry for the next drawn frame.
+     * @param _geom Geometry to add.
+     */
+    public function addGeometry(_geom : Geometry)
+    {
+        geometry.push(_geom);
+        subscriptions[_geom.id] = _geom.changed.subscribeFunction(setDirty);
+
+        dirty = true;
+    }
+
+    /**
+     * Remove a geometry from this batcher.
+     * This causes the batcher to sort all geometry for the next drawn frame.
+     * @param _geom Geometry to remove.
+     */
+    public function removeGeometry(_geom : Geometry)
+    {
+        geometry.remove(_geom);
+
+        subscriptions[_geom.id].unsubscribe();
+        subscriptions.remove(_geom.id);
+
+        dirty = true;
     }
 
     /**

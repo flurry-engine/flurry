@@ -36,7 +36,8 @@ class SystemTests(unittest.TestCase):
             "Sprites",
             "Transformations",
             "TransformationTree",
-            "ImGuiDrawing"
+            "ImGuiDrawing",
+            "Painting"
         ]
 
         for x in test_cases:
