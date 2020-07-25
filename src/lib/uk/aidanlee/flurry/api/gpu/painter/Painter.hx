@@ -73,13 +73,13 @@ class Painter implements IBatchable
 
     public function getTarget() return target;
 
-    public function getShader() return shaders.last().sure();
+    public function getShader() return shaders.last().unsafe();
 
     public function batch(_queue : (_geometry : DrawCommand) -> Void)
     {
         while (queue.length > 0)
         {
-            _queue(queue.pop().sure());
+            _queue(queue.pop().unsafe());
         }
     }
 
