@@ -1,11 +1,10 @@
-package tests.api.gpu.painter;
+package tests.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
-import uk.aidanlee.flurry.api.gpu.painter.Painter;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
+import uk.aidanlee.flurry.api.gpu.batcher.Painter;
 import buddy.BuddySuite;
-import mockatoo.Mockatoo.*;
 
 using buddy.Should;
 using mockatoo.Mockatoo;

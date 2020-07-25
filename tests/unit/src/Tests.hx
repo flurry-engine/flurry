@@ -32,7 +32,7 @@ class Tests implements Buddy<[
     tests.api.gpu.textures.SamplerStateTests,
     tests.api.gpu.batcher.BatcherStateTests,
     tests.api.gpu.batcher.BatcherTests,
-    tests.api.gpu.painter.PainterTests,
+    tests.api.gpu.batcher.PainterTests,
     
     tests.api.stream.OutputCompressorTests,
     tests.api.stream.InputDecompressorTests,

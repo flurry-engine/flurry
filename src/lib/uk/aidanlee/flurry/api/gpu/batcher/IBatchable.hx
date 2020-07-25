@@ -1,4 +1,4 @@
-package uk.aidanlee.flurry.api.gpu;
+package uk.aidanlee.flurry.api.gpu.batcher;
 
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;

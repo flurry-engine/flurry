@@ -1,15 +1,15 @@
 package;
 
-import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
-import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
-import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
-import uk.aidanlee.flurry.api.gpu.painter.Painter;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.gpu.batcher.Painter;
+import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
+import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
+import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 

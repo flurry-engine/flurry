@@ -1,4 +1,4 @@
-package uk.aidanlee.flurry.api.gpu.painter;
+package uk.aidanlee.flurry.api.gpu.batcher;
 
 import haxe.ds.List;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
