@@ -24,7 +24,8 @@ class SystemTests(unittest.TestCase):
             "Sprites",
             "Transformations",
             "TransformationTree",
-            "ImGuiDrawing"
+            "ImGuiDrawing",
+            "Painting"
         ]
 
         myEnv = os.environ.copy()
