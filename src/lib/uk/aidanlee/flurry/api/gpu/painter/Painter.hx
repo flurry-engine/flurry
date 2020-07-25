@@ -1,11 +1,12 @@
 package uk.aidanlee.flurry.api.gpu.painter;
 
-import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
 import haxe.ds.List;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
-import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
-import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
+import uk.aidanlee.flurry.api.gpu.state.TargetState;
+import uk.aidanlee.flurry.api.gpu.state.StencilState;
+import uk.aidanlee.flurry.api.gpu.camera.Camera;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher.BatcherOptions;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
@@ -13,15 +14,25 @@ import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
 import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
-import uk.aidanlee.flurry.api.resources.Resource.FontResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 
-class Painter
+using Safety;
+
+class Painter implements IBatchable
 {
-    final queue : (_command : DrawCommand)->Void;
+    final queue : List<DrawCommand>;
+
+    final target : TargetState;
     
-    final camera : Camera2D;
+    final camera : Camera;
+
+    final depth : Float;
+
+    final depthState : DepthState;
+
+    final stencilState : StencilState;
 
     final colours : List<Vector4>;
 
@@ -39,19 +50,37 @@ class Painter
 
     var primitive : PrimitiveType;
 
-    public function new(_queue, _camera, _shader)
+    public function new(_options : BatcherOptions)
     {
-        queue     = _queue;
-        camera    = _camera;
-        colours   = new List();
-        shaders   = new List();
-        samplers  = new List();
-        texture   = 0;
-        primitive = Triangles;
+        queue        = new List();
+        camera       = _options.camera;
+        target       = _options.target;
+        depth        = _options.depth;
+        depthState   = _options.depthOptions;
+        stencilState = _options.stencilOptions;
+        colours      = new List();
+        shaders      = new List();
+        samplers     = new List();
+        texture      = 0;
+        primitive    = Triangles;
 
         colours.push(new Vector4(1, 1, 1, 1));
-        shaders.push(_shader);
+        shaders.push(_options.shader);
         samplers.push(SamplerState.nearest);
+    }
+
+    public function getDepth() return depth;
+
+    public function getTarget() return target;
+
+    public function getShader() return shaders.last().sure();
+
+    public function batch(_queue : (_geometry : DrawCommand) -> Void)
+    {
+        while (queue.length > 0)
+        {
+            _queue(queue.pop().sure());
+        }
     }
 
     public function pushColour(_colour : Vector4)
@@ -366,18 +395,18 @@ class Painter
             return;
         }
 
-        queue(new DrawCommand(
+        queue.add(new DrawCommand(
             [ new Geometry({ data : Indexed(vtxBuffer.vertexBlob(), idxBuffer.indexBlob()) }) ],
             camera,
             _primitive,
             None,
-            Backbuffer,
+            target,
             _shader,
             [],
             [ _texture ],
             [ _sampler ],
-            DepthState.none,
-            StencilState.none,
+            depthState,
+            stencilState,
             BlendState.none
         ));
 

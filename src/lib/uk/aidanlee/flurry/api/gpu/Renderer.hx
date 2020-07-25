@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.gpu;
 
-import haxe.Exception;
 import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.macros.ApiSelector;
@@ -10,6 +9,7 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
+import uk.aidanlee.flurry.api.gpu.painter.Painter;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
@@ -29,7 +29,7 @@ class Renderer
     /**
      * Batcher manager, responsible for creating, deleteing, and sorting batchers.
      */
-    final batchers : Array<Batcher>;
+    final batchers : Array<IBatchable>;
 
     /**
      * Queue of all draw commands for this frame.
@@ -69,11 +69,20 @@ class Renderer
      */
     public function createBatcher(_options : BatcherOptions) : Batcher
     {
-        var batcher = new Batcher(_options);
+        final batcher = new Batcher(_options);
 
         batchers.push(batcher);
 
         return batcher;
+    }
+
+    public function createPainter(_options : BatcherOptions) : Painter
+    {
+        final painter = new Painter(_options);
+
+        batchers.push(painter);
+
+        return painter;
     }
 
     /**
@@ -131,23 +140,23 @@ class Renderer
      * @param _b Batcher b
      * @return Int
      */
-    function sortBatchers(_a : Batcher, _b : Batcher) : Int
+    function sortBatchers(_a : IBatchable, _b : IBatchable) : Int
     {
         // Sort by depth
-        if (_a.depth < _b.depth) return -1;
-        if (_a.depth > _b.depth) return  1;
+        if (_a.getDepth() < _b.getDepth()) return -1;
+        if (_a.getDepth() > _b.getDepth()) return  1;
 
         // Then target
-        switch _a.target
+        switch _a.getTarget()
         {
             case Backbuffer:
-                switch _b.target
+                switch _b.getTarget()
                 {
                     case Backbuffer: // no op
                     case Texture(_): return 1;
                 }
             case Texture(_imageA):
-                switch _b.target
+                switch _b.getTarget()
                 {
                     case Backbuffer: return -1;
                     case Texture(_imageB):
@@ -157,27 +166,21 @@ class Renderer
         }
 
         // Lastly shader
-        if (_a.shader < _b.shader) return -1;
-        if (_a.shader > _b.shader) return  1;
+        if (_a.getShader() < _b.getShader()) return -1;
+        if (_a.getShader() > _b.getShader()) return  1;
 
         return 0;
     }
 
-    function getOrigin() return switch api {
+    function getOrigin() return switch api
+    {
         case Ogl3, Ogl4 : BottomLeft;
         case Dx11, Mock : TopLeft;
     }
 
-    function getNdcRange() return switch api {
+    function getNdcRange() return switch api
+    {
         case Ogl3 : NegativeOneToNegativeOne;
         case Ogl4, Dx11, Mock : ZeroToNegativeOne;
-    }
-}
-
-class BackendNotAvailableException extends Exception
-{
-    public function new(_backend : RendererBackend)
-    {
-        super('$_backend is not available on this platform');
     }
 }

@@ -1,5 +1,7 @@
 package;
 
+import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
+import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
 import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.Flurry;
@@ -14,6 +16,8 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 class Painting extends Flurry
 {
     var camera : Camera2D;
+
+    var batcher : Batcher;
 
     var painter : Painter;
 
@@ -31,13 +35,19 @@ class Painting extends Flurry
     override function onReady()
     {
         camera  = renderer.createCamera2D(display.width, display.height);
-        painter = new Painter(renderer.backend.queue, camera, resources.getByName('textured', ShaderResource).id);
+        batcher = renderer.createBatcher({ shader : resources.getByName('textured', ShaderResource).id, camera : camera, depth : 0 });
+        painter = renderer.createPainter({ shader : resources.getByName('textured', ShaderResource).id, camera : camera, depth : 1 });
+
+        new QuadGeometry({
+            texture  : resources.getByName('tank1', ImageFrameResource),
+            batchers : [ batcher ],
+            x : 0, y : 128
+        });
     }
 
     override function onUpdate(_dt)
     {
         painter.begin();
-        painter.drawFrame(resources.getByName('tank2', ImageFrameResource), 0, 128);
 
         painter.pushColour(new Vector4(1, 0, 0, 1));
         painter.drawFrame(resources.getByName('tank3', ImageFrameResource), 512, 128);
@@ -50,7 +60,7 @@ class Painting extends Flurry
         painter.drawNineSlice(f, i, 32, 32, 256, 96, 25, 25, 25, 25);
         painter.popSampler();
 
-        painter.drawFrame(resources.getByName('tank1', ImageFrameResource), 256, 128);
+        painter.drawFrame(resources.getByName('tank2', ImageFrameResource), 256, 128);
 
         painter.pushShader(resources.getByName('purple', ShaderResource).id);
         painter.drawLine(48, 32, 560, 277);
