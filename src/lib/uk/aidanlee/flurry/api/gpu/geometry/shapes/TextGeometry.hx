@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
+import uk.aidanlee.flurry.api.maths.Vector4;
+import haxe.ds.ReadOnlyArray;
 import haxe.Exception;
 import haxe.io.StringInput;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
@@ -91,6 +93,61 @@ class TextGeometry extends Geometry
         position.y = _options.y;
 
         ignore = false;
+    }
+
+    public function rebuild(_lines : ReadOnlyArray<String>, _colour : Vector4)
+    {
+        final vtxBuilder = new VertexBlobBuilder();
+        final idxBuilder = new IndexBlobBuilder();
+
+        var x   = 0.0;
+        var y   = 0.0;
+        var idx = 0;
+
+        for (line in _lines)
+        {
+            for (i in 0...line.length)
+            {
+                final code = line.charCodeAt(i).unsafe();
+                final char = font.characters[code].unsafe();
+
+                // bottom left
+                vtxBuilder.addFloat3(x + char.x, y + char.height, 0);
+                vtxBuilder.addFloat4(_colour.x, _colour.y, _colour.z, _colour.w);
+                vtxBuilder.addFloat2(char.u1, char.v2);
+
+                // Bottom right
+                vtxBuilder.addFloat3(x + char.width, y + char.height, 0);
+                vtxBuilder.addFloat4(_colour.x, _colour.y, _colour.z, _colour.w);
+                vtxBuilder.addFloat2(char.u2, char.v2);
+
+                // Top left
+                vtxBuilder.addFloat3(x + char.x, y + char.y, 0);
+                vtxBuilder.addFloat4(_colour.x, _colour.y, _colour.z, _colour.w);
+                vtxBuilder.addFloat2(char.u1, char.v1);
+
+                // Top right
+                vtxBuilder.addFloat3(x + char.width, y + char.y, 0);
+                vtxBuilder.addFloat4(_colour.x, _colour.y, _colour.z, _colour.w);
+                vtxBuilder.addFloat2(char.u2, char.v1);
+
+                // indicies
+                idxBuilder.addInt(idx + 0);
+                idxBuilder.addInt(idx + 1);
+                idxBuilder.addInt(idx + 2);
+                idxBuilder.addInt(idx + 2);
+                idxBuilder.addInt(idx + 1);
+                idxBuilder.addInt(idx + 3);
+
+                idx += 4;
+                x   += char.xAdvance;
+            }
+
+            y += font.lineHeight;
+            x  = 0;
+        }
+
+        data = Indexed(vtxBuilder.vertexBlob(), idxBuilder.indexBlob());
     }
 
     /**
