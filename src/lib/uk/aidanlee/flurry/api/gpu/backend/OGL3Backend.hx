@@ -40,7 +40,7 @@ using rx.Observable;
 using cpp.NativeArray;
 using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
 
-class OGL3Backend implements IRendererBackend
+@:nullSafety(Off) class OGL3Backend implements IRendererBackend
 {
     /**
      * The number of floats in each vertex.

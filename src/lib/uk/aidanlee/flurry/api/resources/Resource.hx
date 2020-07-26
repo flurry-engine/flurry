@@ -31,7 +31,7 @@ enum PixelFormat
     BGRAUNorm;
 }
 
-class Resource implements Serializable
+@:nullSafety(Off) class Resource implements Serializable
 {
     @:s public var type (default, null) : ResourceType;
 
@@ -47,7 +47,7 @@ class Resource implements Serializable
     }
 }
 
-class BytesResource extends Resource
+@:nullSafety(Off) class BytesResource extends Resource
 {
     @:s public var bytes (default, null) : Bytes;
 
@@ -59,7 +59,7 @@ class BytesResource extends Resource
     }
 }
 
-class TextResource extends Resource
+@:nullSafety(Off) class TextResource extends Resource
 {
     @:s public var content (default, null) : String;
 
@@ -71,7 +71,7 @@ class TextResource extends Resource
     }
 }
 
-class ImageResource extends Resource
+@:nullSafety(Off) class ImageResource extends Resource
 {
     /**
      * Pixel width of this texture.
@@ -105,7 +105,7 @@ class ImageResource extends Resource
     }
 }
 
-class ImageFrameResource extends Resource
+@:nullSafety(Off) class ImageFrameResource extends Resource
 {
     /**
      * Unique ID of the `ImageResource` all of the frames are contained within.
@@ -144,7 +144,7 @@ class ImageFrameResource extends Resource
     }
 }
 
-class SpriteResource extends ImageFrameResource
+@:nullSafety(Off) class SpriteResource extends ImageFrameResource
 {
     @:s public var animations (default, null) : Map<String, Array<SpriteFrameResource>>;
 
@@ -157,7 +157,7 @@ class SpriteResource extends ImageFrameResource
     }
 }
 
-class SpriteFrameResource implements Serializable
+@:nullSafety(Off) class SpriteFrameResource implements Serializable
 {
     /**
      * Pixel width of this sprite frame.
@@ -194,7 +194,7 @@ class SpriteFrameResource implements Serializable
     }
 }
 
-class FontResource extends ImageFrameResource
+@:nullSafety(Off) class FontResource extends ImageFrameResource
 {
     @:s public var characters (default, null) : Map<Int, Character>;
 
@@ -210,7 +210,7 @@ class FontResource extends ImageFrameResource
     }
 }
 
-class Character implements Serializable
+@:nullSafety(Off) class Character implements Serializable
 {
     @:s public var x (default, null) : Float;
 
@@ -253,7 +253,7 @@ class Character implements Serializable
     }
 }
 
-class ShaderResource extends Resource
+@:nullSafety(Off) class ShaderResource extends Resource
 {
     @:s public var layout (default, null) : ShaderLayout;
 
@@ -274,7 +274,7 @@ class ShaderResource extends Resource
     }
 }
 
-class ShaderSource implements Serializable
+@:nullSafety(Off) class ShaderSource implements Serializable
 {
     /**
      * If this shader has been compiled offline.
@@ -299,7 +299,7 @@ class ShaderSource implements Serializable
     }
 }
 
-class ShaderLayout implements Serializable
+@:nullSafety(Off) class ShaderLayout implements Serializable
 {
     /**
      * Name of all the textures used in the fragment shader.
@@ -320,7 +320,7 @@ class ShaderLayout implements Serializable
     }
 }
 
-class ShaderBlock implements Serializable
+@:nullSafety(Off) class ShaderBlock implements Serializable
 {
     /**
      * Name of this shader block.
@@ -347,7 +347,7 @@ class ShaderBlock implements Serializable
     }
 }
 
-class ShaderValue implements Serializable
+@:nullSafety(Off) class ShaderValue implements Serializable
 {
     @:s public var name (default, null) : String;
 

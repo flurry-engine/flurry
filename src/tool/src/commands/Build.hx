@@ -187,6 +187,8 @@ class Build
         user.addDefine('HXCPP_M64');
         user.addDefine('flurry-entry-point', project.app.main);
         user.addMacro('Safety.safeNavigation("uk.aidanlee.flurry")');
+        user.addMacro('nullSafety("uk.aidanlee.flurry.modules", Strict)');
+        user.addMacro('nullSafety("uk.aidanlee.flurry.api", Strict)');
 
         for (p in project.app.codepaths)
         {           

@@ -30,7 +30,7 @@ using cpp.Native;
 using cpp.NativeArray;
 using rx.Observable;
 
-class ImGuiImpl
+@:nullSafety(Off) class ImGuiImpl
 {
     final events    : FlurryEvents;
     final display   : Display;
