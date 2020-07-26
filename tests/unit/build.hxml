@@ -18,6 +18,6 @@
 
 --dce full
 
---macro nullSafety('uk.aidanlee.flurry.modules.differ', Loose)
---macro nullSafety('uk.aidanlee.flurry.api.maths', Loose)
+--macro nullSafety('uk.aidanlee.flurry.modules', Strict)
+--macro nullSafety('uk.aidanlee.flurry.api', Strict)
 --macro Safety.safeNavigation('')

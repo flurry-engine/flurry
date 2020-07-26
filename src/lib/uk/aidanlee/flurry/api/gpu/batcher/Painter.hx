@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.gpu.geometry.shapes.SpriteGeometry.AnimationNotFoundException;
 import haxe.ds.List;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
@@ -40,15 +41,15 @@ class Painter implements IBatchable
 
     final shaders : List<ResourceID>;
 
-    var vtxCount : Int;
+    var texture = 0;
 
-    var vtxBuffer : VertexBlobBuilder;
+    var primitive = PrimitiveType.Triangles;
 
-    var idxBuffer : IndexBlobBuilder;
+    var vtxCount = 0;
 
-    var texture : ResourceID;
+    var vtxBuffer = new VertexBlobBuilder();
 
-    var primitive : PrimitiveType;
+    var idxBuffer = new IndexBlobBuilder();
 
     public function new(_options : BatcherOptions)
     {
@@ -61,8 +62,6 @@ class Painter implements IBatchable
         colours      = new List();
         shaders      = new List();
         samplers     = new List();
-        texture      = 0;
-        primitive    = Triangles;
 
         colours.push(new Vector4(1, 1, 1, 1));
         shaders.push(_options.shader);
@@ -90,14 +89,17 @@ class Painter implements IBatchable
 
     public function popColour()
     {
-        colours.pop();
+        if (colours.length > 0)
+        {
+            colours.pop();
+        }
     }
 
     public function pushShader(_shader : ResourceID)
     {
-        if (requireFlush(texture, _shader, primitive, samplers.first()))
+        if (requireFlush(texture, _shader, primitive, samplers.first().unsafe()))
         {
-            flush(texture, shaders.first(), primitive, samplers.first());
+            flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
         }
 
         shaders.push(_shader);
@@ -107,11 +109,11 @@ class Painter implements IBatchable
     {
         if (shaders.length > 1)
         {
-            final removed = shaders.pop();
+            final removed = shaders.pop().unsafe();
 
-            if (requireFlush(texture, removed, primitive, samplers.first()))
+            if (requireFlush(texture, removed, primitive, samplers.first().unsafe()))
             {
-                flush(texture, removed, primitive, samplers.first());
+                flush(texture, removed, primitive, samplers.first().unsafe());
             }
         }
     }
@@ -123,9 +125,9 @@ class Painter implements IBatchable
      */
     public function pushSampler(_sampler : SamplerState)
     {
-        if (requireFlush(texture, shaders.first(), primitive, _sampler))
+        if (requireFlush(texture, shaders.first().unsafe(), primitive, _sampler))
         {
-            flush(texture, shaders.first(), primitive, samplers.first());
+            flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
         }
 
         samplers.push(_sampler);
@@ -139,11 +141,11 @@ class Painter implements IBatchable
     {
         if (samplers.length > 1)
         {
-            final removed = samplers.pop();
+            final removed = samplers.pop().unsafe();
 
-            if (requireFlush(texture, shaders.first(), primitive, removed))
+            if (requireFlush(texture, shaders.first().unsafe(), primitive, removed))
             {
-                flush(texture, shaders.first(), primitive, removed);
+                flush(texture, shaders.first().unsafe(), primitive, removed);
             }
         }
     }
@@ -155,11 +157,11 @@ class Painter implements IBatchable
 
     public function drawRectangle(_x : Float, _y : Float, _width : Float, _height : Float)
     {
-        flush(texture, shaders.first(), primitive, samplers.first());
+        flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
 
         primitive = LineStrip;
 
-        final colour = colours.first();
+        final colour = colours.first().unsafe();
 
         vtxBuffer
             .addFloat3(_x         , _y          , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
@@ -175,14 +177,14 @@ class Painter implements IBatchable
 
     public function drawRectangleFilled(_x : Float, _y : Float, _width : Float, _height : Float)
     {
-        if (requireFlush(texture, shaders.first(), Triangles, samplers.first()))
+        if (requireFlush(texture, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
         {
-            flush(texture, shaders.first(), primitive, samplers.first());
+            flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
 
             primitive = Triangles;
         }
 
-        final colour = colours.first();
+        final colour = colours.first().unsafe();
 
         vtxBuffer
             .addFloat3(_x         , _y + _height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
@@ -197,14 +199,14 @@ class Painter implements IBatchable
 
     public function drawLine(_x1 : Float, _y1 : Float, _x2 : Float, _y2 : Float)
     {
-        if (requireFlush(texture, shaders.first(), Lines, samplers.first()))
+        if (requireFlush(texture, shaders.first().unsafe(), Lines, samplers.first().unsafe()))
         {
-            flush(texture, shaders.first(), primitive, samplers.first());
+            flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
 
             primitive = Lines;
         }
 
-        final colour = colours.first();
+        final colour = colours.first().unsafe();
 
         vtxBuffer
             .addFloat3(_x1, _y1, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
@@ -217,15 +219,15 @@ class Painter implements IBatchable
 
     public function drawFrame(_frame : ImageFrameResource, _x : Float, _y : Float)
     {
-        if (requireFlush(_frame.image, shaders.first(), Triangles, samplers.first()))
+        if (requireFlush(_frame.image, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
         {
-            flush(texture, shaders.first(), primitive, samplers.first());
+            flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
 
             texture   = _frame.image;
             primitive = Triangles;
         }
 
-        final colour = colours.first();
+        final colour = colours.first().unsafe();
 
         vtxBuffer
             .addFloat3(_x               , _y + _frame.height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(_frame.u1, _frame.v2)
@@ -240,16 +242,21 @@ class Painter implements IBatchable
 
     public function drawSprite(_sprite : SpriteResource, _animation : String, _idx : Int, _x : Float, _y : Float, _xFlip : Bool, _yFlip : Bool)
     {
-        if (requireFlush(_sprite.image, shaders.first(), Triangles, samplers.first()))
+        if (requireFlush(_sprite.image, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
         {
-            flush(texture, shaders.first(), primitive, samplers.first());
+            flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
 
             texture   = _sprite.image;
             primitive = Triangles;
         }
 
-        final frame  = _sprite.animations[_animation][_idx];
-        final colour = colours.first();
+        if (!_sprite.animations.exists(_animation))
+        {
+            throw new AnimationNotFoundException(_animation);
+        }
+
+        final frame  = _sprite.animations[_animation].unsafe()[_idx];
+        final colour = colours.first().unsafe();
         final u1     = if (_xFlip) frame.u2 else frame.u1;
         final u2     = if (_xFlip) frame.u1 else frame.u2;
         final v1     = if (_yFlip) frame.v2 else frame.v1;
@@ -268,9 +275,9 @@ class Painter implements IBatchable
 
     public function drawNineSlice(_frame : ImageFrameResource, _image : ImageResource, _x : Float, _y : Float, _w : Float, _h : Float, _top : Float, _left : Float, _bottom : Float, _right : Float)
     {
-        if (requireFlush(_frame.image, shaders.first(), Triangles, samplers.first()))
+        if (requireFlush(_frame.image, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
         {
-            flush(texture, shaders.first(), primitive, samplers.first());
+            flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
 
             texture   = _frame.image;
             primitive = Triangles;
@@ -296,7 +303,7 @@ class Painter implements IBatchable
         final v3 = (_frame.y + (_frame.height - _bottom)) / _image.height;
         final v4 = (_frame.y + _frame.height) / _image.height;
 
-        final colour = colours.first();
+        final colour = colours.first().unsafe();
 
         vtxBuffer
             // Top Left
@@ -376,16 +383,16 @@ class Painter implements IBatchable
             return;
         }
 
-        flush(texture, shaders.first(), primitive, samplers.first());
+        flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
     }
 
     function requireFlush(_newTexture : ResourceID, _newShader : ResourceID, _newPrimitive : PrimitiveType, _newSampler : SamplerState)
     {
         return
             _newTexture != texture ||
-            _newShader != shaders.first() ||
+            _newShader != shaders.first().unsafe() ||
             _newPrimitive != primitive ||
-            _newSampler != samplers.first();
+            _newSampler != samplers.first().unsafe();
     }
 
     function flush(_texture : ResourceID, _shader : ResourceID, _primitive : PrimitiveType, _sampler : SamplerState)

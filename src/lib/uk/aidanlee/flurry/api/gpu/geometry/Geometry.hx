@@ -18,6 +18,8 @@ import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Transformation;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 
+using Safety;
+
 enum GeometryData
 {
     Indexed(_vertices : VertexBlob, _indices : IndexBlob);
@@ -63,7 +65,7 @@ class Geometry
     /**
      * The depth of this mesh within the batcher.
      */
-    public var depth (default, set) : Float;
+    public var depth (default, set) = 0.0;
 
     inline function set_depth(_depth : Float) : Float {
         if (depth != _depth)
@@ -160,7 +162,7 @@ class Geometry
     /**
      * The primitive type of this geometry.
      */
-    public var primitive (default, set) : PrimitiveType;
+    public var primitive (default, set) = PrimitiveType.Triangles;
 
     inline function set_primitive(_primitive : PrimitiveType) : PrimitiveType {
         if (primitive != _primitive)

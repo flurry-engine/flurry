@@ -10,6 +10,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 import rx.Unit;
 import rx.disposables.ISubscription;
 
+using Safety;
 using rx.Observable;
 
 /**
@@ -73,6 +74,7 @@ class Batcher implements IBatchable
      */
     public function new(_options : BatcherOptions)
     {
+        dirty          = false;
         geometry       = [];
         subscriptions  = [];
         shader         = _options.shader;
@@ -83,7 +85,6 @@ class Batcher implements IBatchable
         stencilOptions = _options.stencilOptions;
 
         state = new BatcherState(this);
-        dirty = false;
     }
 
     public function getDepth() return depth;
@@ -188,12 +189,13 @@ class Batcher implements IBatchable
      */
     public function removeGeometry(_geom : Geometry)
     {
-        geometry.remove(_geom);
-
-        subscriptions[_geom.id].unsubscribe();
-        subscriptions.remove(_geom.id);
-
-        dirty = true;
+        if (geometry.remove(_geom))
+        {
+            subscriptions[_geom.id].unsafe().unsubscribe();
+            subscriptions.remove(_geom.id);
+    
+            dirty = true;
+        }
     }
 
     /**
@@ -201,15 +203,10 @@ class Batcher implements IBatchable
      */
     public function drop()
     {
-        state.drop();
-        
-        for (geom in geometry)
+        while (geometry.length > 0)
         {
-            subscriptions[geom.id].unsubscribe();
-            subscriptions.remove(geom.id);
+            removeGeometry(geometry.pop().unsafe());
         }
-
-        geometry.resize(0);
 
         dirty = true;
     }

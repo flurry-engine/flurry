@@ -19,7 +19,7 @@ class Scancodes
             res = scanecodeNames[_scancode];
         }
 
-        return res != null ? res : '';
+        return if (res != null) res else '';
     }
 
         //special value remains caps
@@ -389,7 +389,7 @@ class Scancodes
     public static inline var app1 : Int               = 283;
     public static inline var app2 : Int               = 284;
 
-    static var scanecodeNames : Array<String> = [
+    static var scanecodeNames : Array<Null<String>> = [
         null, null, null, null,
         'A',
         'B',

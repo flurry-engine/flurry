@@ -91,7 +91,7 @@ using cpp.NativeArray;
     <lib name = "d3d11.lib"       if = "windows" unless = "static_link" />
     <lib name = "d3dcompiler.lib" if = "windows" unless = "static_link" />
 </target>')
-class DX11Backend implements IRendererBackend
+@:nullSafety(Off) class DX11Backend implements IRendererBackend
 {
     /**
      * The number of floats in each vertex.

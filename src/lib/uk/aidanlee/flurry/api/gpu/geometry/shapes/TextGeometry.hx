@@ -12,6 +12,8 @@ import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.resources.Resource.FontResource;
 import uk.aidanlee.flurry.api.resources.Resource.Character;
 
+using Safety;
+
 /**
  * Geometry class which will draw a string with a bitmap font.
  */
@@ -98,7 +100,7 @@ class TextGeometry extends Geometry
      * @param _text String to generate geometry from.
      * @return GeometryData
      */
-    function generateGeometry(_font : FontResource, _text: String) : GeometryData
+    static function generateGeometry(_font : FontResource, _text: String) : GeometryData
     {
         final input      = new StringInput(_text);
         final vtxBuilder = new VertexBlobBuilder();
@@ -114,13 +116,14 @@ class TextGeometry extends Geometry
 
             for (i in 0...line.length)
             {
-                final code = line.charCodeAt(i);
-                final char = _font.characters.get(code);
+                final code = line.charCodeAt(i).unsafe();
 
-                if (char == null)
+                if (!_font.characters.exists(code))
                 {
                     throw new CharacterNotFoundException(code, _font.name);
                 }
+
+                final char = _font.characters.get(code).unsafe();
 
                 addCharacter(vtxBuilder, idxBuilder, char, index, xCursor, yCursor);
 
@@ -137,7 +140,7 @@ class TextGeometry extends Geometry
         return Indexed(vtxBuilder.vertexBlob(), idxBuilder.indexBlob());
     }
 
-    function addCharacter(
+    static function addCharacter(
         _vtxBuilder : VertexBlobBuilder,
         _idxBuilder : IndexBlobBuilder,
         _char : Character,

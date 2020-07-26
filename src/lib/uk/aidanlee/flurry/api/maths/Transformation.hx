@@ -7,6 +7,7 @@ import rx.disposables.ISubscription;
 import rx.observables.IObservable;
 
 using rx.Observable;
+using Safety;
 
 class Transformation implements IObservable<Unit>
 {
@@ -156,7 +157,7 @@ class Transformation implements IObservable<Unit>
 
         if (parent != null)
         {
-            world.matrix.multiplyMatrices(parent.world.matrix, local.matrix);
+            world.matrix.multiplyMatrices(parent.unsafe().world.matrix, local.matrix);
         }
         else
         {

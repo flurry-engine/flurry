@@ -40,7 +40,7 @@ using rx.Observable;
 using cpp.NativeArray;
 using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
 
-class OGL4Backend implements IRendererBackend
+@:nullSafety(Off) class OGL4Backend implements IRendererBackend
 {
     static final BUFFERING_COUNT = 3;
 

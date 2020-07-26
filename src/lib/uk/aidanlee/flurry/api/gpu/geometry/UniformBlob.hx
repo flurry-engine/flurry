@@ -8,6 +8,8 @@ import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.api.buffers.BufferData;
 
+using Safety;
+
 /**
  * Contains a byte buffer which will be copied to the gpu for use in shaders.
  * Has several functions for updating the attributes contained within.
@@ -61,7 +63,7 @@ class UniformBlob
     {
         if (locations.exists(_name))
         {
-            final byteOffset = buffer.byteOffset + locations[_name];
+            final byteOffset = buffer.byteOffset + locations[_name].unsafe();
             final byteMatrix = (_matrix : BufferData);
 
             buffer.bytes.blit(byteOffset, byteMatrix.bytes, byteMatrix.byteOffset, 64);
@@ -77,7 +79,7 @@ class UniformBlob
     {
         if (locations.exists(_name))
         {
-            final byteOffset = buffer.byteOffset + locations[_name];
+            final byteOffset = buffer.byteOffset + locations[_name].unsafe();
             final byteVector = (_vector : BufferData);
 
             buffer.bytes.blit(byteOffset, byteVector.bytes, byteVector.byteOffset, 16);
