@@ -121,6 +121,8 @@ class SpriteGeometry extends QuadGeometry
         currentAnimation = [];
         onAnimation      = new Subject<String>();
         onFrame          = new Subject<Int>();
+
+        play(_options.animation);
     }
 
     /**

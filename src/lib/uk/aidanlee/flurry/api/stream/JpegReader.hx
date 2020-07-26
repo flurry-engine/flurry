@@ -36,6 +36,7 @@ private abstract FastBytes(haxe.io.Bytes) {
 	}
 }
 
+@:nullSafety(Off)
 private class Component {
 	public var cid : Int;
 	public var ssx : Int;
@@ -52,7 +53,7 @@ private class Component {
 	}
 }
 
-@:noDebug
+@:noDebug @:nullSafety(Off)
 class JpegReader {
 
 	static inline var BLOCKSIZE = 64;
