@@ -50,7 +50,7 @@ class SpriteGeometry extends QuadGeometry
      * The current width of the sprite.
      * Current frame width multipled by the x scale.
      */
-    public var width (get, null) : Float;
+    public var width (get, never) : Float;
 
     inline function get_width() return currentAnimation[index].width * scale.x;
 
@@ -58,7 +58,7 @@ class SpriteGeometry extends QuadGeometry
      * The current height of the sprite.
      * Current frame height multiplied by the y scale.
      */
-    public var height (get, null) : Float;
+    public var height (get, never) : Float;
 
     inline function get_height() return currentAnimation[index].height * scale.y;
 
@@ -108,19 +108,19 @@ class SpriteGeometry extends QuadGeometry
             y        : _options.y
         });
 
-        animations  = _options.sprite.animations;
-        scale.x     = _options.xScale;
-        scale.y     = _options.yScale;
-        origin.x    = _options.xOrigin;
-        origin.y    = _options.yOrigin;
-        angle       = _options.angle;
-        speed       = _options.speed;
-        index       = 0;
-        time        = 0;
-        onAnimation = new Subject<String>();
-        onFrame     = new Subject<Int>();
-
-        play(_options.animation);
+        animations       = _options.sprite.animations;
+        scale.x          = _options.xScale;
+        scale.y          = _options.yScale;
+        origin.x         = _options.xOrigin;
+        origin.y         = _options.yOrigin;
+        angle            = _options.angle;
+        speed            = _options.speed;
+        index            = 0;
+        time             = 0;
+        playing          = false;
+        currentAnimation = [];
+        onAnimation      = new Subject<String>();
+        onFrame          = new Subject<Int>();
     }
 
     /**
@@ -132,7 +132,7 @@ class SpriteGeometry extends QuadGeometry
     {
         if (animations.exists(_name))
         {
-            currentAnimation = animations[_name];
+            currentAnimation = animations[_name].unsafe();
             playing          = true;
             index            = 0;
             time             = 0;

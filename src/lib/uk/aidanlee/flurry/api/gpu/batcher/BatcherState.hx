@@ -71,6 +71,9 @@ class BatcherState
         batcher      = _batcher;
         indexed      = false;
         blend        = BlendState.none;
+        clip         = None;
+        primitive    = Triangles;
+        shader       = 0;
     }
 
     /**
@@ -210,11 +213,5 @@ class BatcherState
         clip      = _geom.clip;
         indexed   = (_geom.data.getIndex() == 0);
         blend     = _geom.blend;
-    }
-
-    public function drop()
-    {
-        textures = [];
-        samplers = [];
     }
 }
