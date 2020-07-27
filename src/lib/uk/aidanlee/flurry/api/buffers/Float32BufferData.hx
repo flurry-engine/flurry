@@ -63,7 +63,7 @@ abstract Float32BufferData(BufferData) from BufferData to BufferData
 
     @:arrayAccess public inline function get(_idx : Int) : Float
     {
-#if cpp
+#if (cpp && flurry_unsafe_buffers)
         return untyped __global__.__hxcpp_memory_get_float(this.bytes.getData(), (_idx << 2) + this.byteOffset);
 #else
         return this.bytes.getFloat((_idx << 2) + this.byteOffset);
@@ -72,7 +72,7 @@ abstract Float32BufferData(BufferData) from BufferData to BufferData
 
     @:arrayAccess public inline function set(_idx : Int, _val : Float) : Float
     {
-#if cpp
+#if (cpp && flurry_unsafe_buffers)
         untyped __global__.__hxcpp_memory_set_float(this.bytes.getData(), (_idx << 2) + this.byteOffset, _val);
 #else
         this.bytes.setFloat((_idx << 2) + this.byteOffset, _val);
@@ -87,7 +87,7 @@ abstract Float32BufferAccess(BufferData) from BufferData
 {
     @:arrayAccess public inline function get(_idx : Int) : Float
     {
-#if cpp
+#if (cpp && flurry_unsafe_buffers)
         return untyped __global__.__hxcpp_memory_get_float(this.bytes.getData(), (_idx << 2) + this.byteOffset);
 #else
         return this.bytes.getFloat((_idx << 2) + this.byteOffset);
@@ -96,7 +96,7 @@ abstract Float32BufferAccess(BufferData) from BufferData
 
     @:arrayAccess public inline function set(_idx : Int, _val : Float) : Float
     {
-#if cpp
+#if (cpp && flurry_unsafe_buffers)
         untyped __global__.__hxcpp_memory_set_float(this.bytes.getData(), (_idx << 2) + this.byteOffset, _val);
 #else
         this.bytes.setFloat((_idx << 2) + this.byteOffset, _val);
