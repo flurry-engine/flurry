@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.input;
 
+import haxe.ds.ReadOnlyArray;
+
 /**
  * The values below come directly from SDL header include files, but they aren't specific to SDL so they are used generically.
  */
@@ -22,13 +24,13 @@ class Scancodes
         return if (res != null) res else '';
     }
 
-        //special value remains caps
+    //special value remains caps
     public static inline var MASK:Int                      = (1 << 30);
 
     public static inline var unknown : Int                 = 0;
 
-       // Usage page 0x07
-       // These values are from usage page 0x07 (USB keyboard page).
+    // Usage page 0x07
+    // These values are from usage page 0x07 (USB keyboard page).
 
     public static inline var key_a : Int                   =  4;
     public static inline var key_b : Int                   =  5;
@@ -389,7 +391,7 @@ class Scancodes
     public static inline var app1 : Int               = 283;
     public static inline var app2 : Int               = 284;
 
-    static var scanecodeNames : Array<Null<String>> = [
+    static var scanecodeNames : ReadOnlyArray<Null<String>> = [
         null, null, null, null,
         'A',
         'B',

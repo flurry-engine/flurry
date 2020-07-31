@@ -20,14 +20,14 @@ class Keycodes
      */
     public static function toScan(_keycode : Int) : Int
     {
-            //quite a lot map directly to a masked scancode
-            //if that's the case, return it directly
+        //quite a lot map directly to a masked scancode
+        //if that's the case, return it directly
         if ((_keycode & Scancodes.MASK) != 0)
         {
             return _keycode &~ Scancodes.MASK;
         }
 
-            //now we translate them to the scan where unmapped
+        //now we translate them to the scan where unmapped
 
         return switch (_keycode)
         {
@@ -82,11 +82,12 @@ class Keycodes
             default: Scancodes.unknown;
 
 
-                //These are unmappable because they are not keys
-                //but values on the key (like a shift key combo)
-                //and to hardcode them to the key you think it is,
-                //would be to map it to a fixed locale probably.
-                //They don't have scancodes, so we don't return one
+            //These are unmappable because they are not keys
+            //but values on the key (like a shift key combo)
+            //and to hardcode them to the key you think it is,
+            //would be to map it to a fixed locale probably.
+            //They don't have scancodes, so we don't return one
+            
             // case exclaim:      ;
             // case quotedbl:     ;
             // case hash:         ;
@@ -113,8 +114,8 @@ class Keycodes
 
     /**
      * Convert a keycode to a string
-     * @param keycode 
-     * @return String name
+     * @param keycode keycode value
+     * @return key name or the letter code value.
      */
     public static function name(_keycode : Int) : String
     {
@@ -135,260 +136,248 @@ class Keycodes
             case Keycodes.space:     Scancodes.name(Scancodes.space);
             case Keycodes.delete:    Scancodes.name(Scancodes.delete);
 
-            default:
-                return new UnicodeString(Std.string(_keycode));
+            case _: Std.string(_keycode);
         }
     }
 
-    public static inline final unknown : Int              = 0;
+    public static inline final unknown    = 0;
+    public static inline final enter      = 13;
+    public static inline final escape     = 27;
+    public static inline final backspace  = 8;
+    public static inline final tab        = 9;
+    public static inline final space      = 32;
+    public static inline final exclaim    = 33;
+    public static inline final quotedbl   = 34;
+    public static inline final hash       = 35;
+    public static inline final percent    = 37;
+    public static inline final dollar     = 36;
+    public static inline final ampersand  = 38;
+    public static inline final quote      = 39;
+    public static inline final leftparen  = 40;
+    public static inline final rightparen = 41;
+    public static inline final asterisk   = 42;
+    public static inline final plus       = 43;
+    public static inline final comma      = 44;
+    public static inline final minus      = 45;
+    public static inline final period     = 46;
+    public static inline final slash      = 47;
+    public static inline final key_0      = 48;
+    public static inline final key_1      = 49;
+    public static inline final key_2      = 50;
+    public static inline final key_3      = 51;
+    public static inline final key_4      = 52;
+    public static inline final key_5      = 53;
+    public static inline final key_6      = 54;
+    public static inline final key_7      = 55;
+    public static inline final key_8      = 56;
+    public static inline final key_9      = 57;
+    public static inline final colon      = 58;
+    public static inline final semicolon  = 59;
+    public static inline final less       = 60;
+    public static inline final equals     = 61;
+    public static inline final greater    = 62;
+    public static inline final question   = 63;
+    public static inline final at         = 64;
 
-    public static inline final enter : Int                = 13;
-    public static inline final escape : Int               = 27;
-    public static inline final backspace : Int            = 8;
-    public static inline final tab : Int                  = 9;
-    public static inline final space : Int                = 32;
-    public static inline final exclaim : Int              = 33;
-    public static inline final quotedbl : Int             = 34;
-    public static inline final hash : Int                 = 35;
-    public static inline final percent : Int              = 37;
-    public static inline final dollar : Int               = 36;
-    public static inline final ampersand : Int            = 38;
-    public static inline final quote : Int                = 39;
-    public static inline final leftparen : Int            = 40;
-    public static inline final rightparen : Int           = 41;
-    public static inline final asterisk : Int             = 42;
-    public static inline final plus : Int                 = 43;
-    public static inline final comma : Int                = 44;
-    public static inline final minus : Int                = 45;
-    public static inline final period : Int               = 46;
-    public static inline final slash : Int                = 47;
-    public static inline final key_0 : Int                = 48;
-    public static inline final key_1 : Int                = 49;
-    public static inline final key_2 : Int                = 50;
-    public static inline final key_3 : Int                = 51;
-    public static inline final key_4 : Int                = 52;
-    public static inline final key_5 : Int                = 53;
-    public static inline final key_6 : Int                = 54;
-    public static inline final key_7 : Int                = 55;
-    public static inline final key_8 : Int                = 56;
-    public static inline final key_9 : Int                = 57;
-    public static inline final colon : Int                = 58;
-    public static inline final semicolon : Int            = 59;
-    public static inline final less : Int                 = 60;
-    public static inline final equals : Int               = 61;
-    public static inline final greater : Int              = 62;
-    public static inline final question : Int             = 63;
-    public static inline final at : Int                   = 64;
+    // Skip uppercase letters
 
-       // Skip uppercase letters
+    public static inline final leftbracket  = 91;
+    public static inline final backslash    = 92;
+    public static inline final rightbracket = 93;
+    public static inline final caret        = 94;
+    public static inline final underscore   = 95;
+    public static inline final backquote    = 96;
+    public static inline final key_a        = 97;
+    public static inline final key_b        = 98;
+    public static inline final key_c        = 99;
+    public static inline final key_d        = 100;
+    public static inline final key_e        = 101;
+    public static inline final key_f        = 102;
+    public static inline final key_g        = 103;
+    public static inline final key_h        = 104;
+    public static inline final key_i        = 105;
+    public static inline final key_j        = 106;
+    public static inline final key_k        = 107;
+    public static inline final key_l        = 108;
+    public static inline final key_m        = 109;
+    public static inline final key_n        = 110;
+    public static inline final key_o        = 111;
+    public static inline final key_p        = 112;
+    public static inline final key_q        = 113;
+    public static inline final key_r        = 114;
+    public static inline final key_s        = 115;
+    public static inline final key_t        = 116;
+    public static inline final key_u        = 117;
+    public static inline final key_v        = 118;
+    public static inline final key_w        = 119;
+    public static inline final key_x        = 120;
+    public static inline final key_y        = 121;
+    public static inline final key_z        = 122;
 
-    public static inline final leftbracket : Int          = 91;
-    public static inline final backslash : Int            = 92;
-    public static inline final rightbracket : Int         = 93;
-    public static inline final caret : Int                = 94;
-    public static inline final underscore : Int           = 95;
-    public static inline final backquote : Int            = 96;
-    public static inline final key_a : Int                = 97;
-    public static inline final key_b : Int                = 98;
-    public static inline final key_c : Int                = 99;
-    public static inline final key_d : Int                = 100;
-    public static inline final key_e : Int                = 101;
-    public static inline final key_f : Int                = 102;
-    public static inline final key_g : Int                = 103;
-    public static inline final key_h : Int                = 104;
-    public static inline final key_i : Int                = 105;
-    public static inline final key_j : Int                = 106;
-    public static inline final key_k : Int                = 107;
-    public static inline final key_l : Int                = 108;
-    public static inline final key_m : Int                = 109;
-    public static inline final key_n : Int                = 110;
-    public static inline final key_o : Int                = 111;
-    public static inline final key_p : Int                = 112;
-    public static inline final key_q : Int                = 113;
-    public static inline final key_r : Int                = 114;
-    public static inline final key_s : Int                = 115;
-    public static inline final key_t : Int                = 116;
-    public static inline final key_u : Int                = 117;
-    public static inline final key_v : Int                = 118;
-    public static inline final key_w : Int                = 119;
-    public static inline final key_x : Int                = 120;
-    public static inline final key_y : Int                = 121;
-    public static inline final key_z : Int                = 122;
-
-    public static final capslock : Int             = fromScan(Scancodes.capslock);
-
-    public static final f1 : Int                   = fromScan(Scancodes.f1);
-    public static final f2 : Int                   = fromScan(Scancodes.f2);
-    public static final f3 : Int                   = fromScan(Scancodes.f3);
-    public static final f4 : Int                   = fromScan(Scancodes.f4);
-    public static final f5 : Int                   = fromScan(Scancodes.f5);
-    public static final f6 : Int                   = fromScan(Scancodes.f6);
-    public static final f7 : Int                   = fromScan(Scancodes.f7);
-    public static final f8 : Int                   = fromScan(Scancodes.f8);
-    public static final f9 : Int                   = fromScan(Scancodes.f9);
-    public static final f10 : Int                  = fromScan(Scancodes.f10);
-    public static final f11 : Int                  = fromScan(Scancodes.f11);
-    public static final f12 : Int                  = fromScan(Scancodes.f12);
-
-    public static final printscreen : Int          = fromScan(Scancodes.printscreen);
-    public static final scrolllock : Int           = fromScan(Scancodes.scrolllock);
-    public static final pause : Int                = fromScan(Scancodes.pause);
-    public static final insert : Int               = fromScan(Scancodes.insert);
-    public static final home : Int                 = fromScan(Scancodes.home);
-    public static final pageup : Int               = fromScan(Scancodes.pageup);
-    public static final delete : Int               = 127;
-    public static final end : Int                  = fromScan(Scancodes.end);
-    public static final pagedown : Int             = fromScan(Scancodes.pagedown);
-    public static final right : Int                = fromScan(Scancodes.right);
-    public static final left : Int                 = fromScan(Scancodes.left);
-    public static final down : Int                 = fromScan(Scancodes.down);
-    public static final up : Int                   = fromScan(Scancodes.up);
-
-    public static final numlockclear : Int         = fromScan(Scancodes.numlockclear);
-    public static final kp_divide : Int            = fromScan(Scancodes.kp_divide);
-    public static final kp_multiply : Int          = fromScan(Scancodes.kp_multiply);
-    public static final kp_minus : Int             = fromScan(Scancodes.kp_minus);
-    public static final kp_plus : Int              = fromScan(Scancodes.kp_plus);
-    public static final kp_enter : Int             = fromScan(Scancodes.kp_enter);
-    public static final kp_1 : Int                 = fromScan(Scancodes.kp_1);
-    public static final kp_2 : Int                 = fromScan(Scancodes.kp_2);
-    public static final kp_3 : Int                 = fromScan(Scancodes.kp_3);
-    public static final kp_4 : Int                 = fromScan(Scancodes.kp_4);
-    public static final kp_5 : Int                 = fromScan(Scancodes.kp_5);
-    public static final kp_6 : Int                 = fromScan(Scancodes.kp_6);
-    public static final kp_7 : Int                 = fromScan(Scancodes.kp_7);
-    public static final kp_8 : Int                 = fromScan(Scancodes.kp_8);
-    public static final kp_9 : Int                 = fromScan(Scancodes.kp_9);
-    public static final kp_0 : Int                 = fromScan(Scancodes.kp_0);
-    public static final kp_period : Int            = fromScan(Scancodes.kp_period);
-
-    public static final application : Int          = fromScan(Scancodes.application);
-    public static final power : Int                = fromScan(Scancodes.power);
-    public static final kp_equals : Int            = fromScan(Scancodes.kp_equals);
-    public static final f13 : Int                  = fromScan(Scancodes.f13);
-    public static final f14 : Int                  = fromScan(Scancodes.f14);
-    public static final f15 : Int                  = fromScan(Scancodes.f15);
-    public static final f16 : Int                  = fromScan(Scancodes.f16);
-    public static final f17 : Int                  = fromScan(Scancodes.f17);
-    public static final f18 : Int                  = fromScan(Scancodes.f18);
-    public static final f19 : Int                  = fromScan(Scancodes.f19);
-    public static final f20 : Int                  = fromScan(Scancodes.f20);
-    public static final f21 : Int                  = fromScan(Scancodes.f21);
-    public static final f22 : Int                  = fromScan(Scancodes.f22);
-    public static final f23 : Int                  = fromScan(Scancodes.f23);
-    public static final f24 : Int                  = fromScan(Scancodes.f24);
-    public static final execute : Int              = fromScan(Scancodes.execute);
-    public static final help : Int                 = fromScan(Scancodes.help);
-    public static final menu : Int                 = fromScan(Scancodes.menu);
-    public static final select : Int               = fromScan(Scancodes.select);
-    public static final stop : Int                 = fromScan(Scancodes.stop);
-    public static final again : Int                = fromScan(Scancodes.again);
-    public static final undo : Int                 = fromScan(Scancodes.undo);
-    public static final cut : Int                  = fromScan(Scancodes.cut);
-    public static final copy : Int                 = fromScan(Scancodes.copy);
-    public static final paste : Int                = fromScan(Scancodes.paste);
-    public static final find : Int                 = fromScan(Scancodes.find);
-    public static final mute : Int                 = fromScan(Scancodes.mute);
-    public static final volumeup : Int             = fromScan(Scancodes.volumeup);
-    public static final volumedown : Int           = fromScan(Scancodes.volumedown);
-    public static final kp_comma : Int             = fromScan(Scancodes.kp_comma);
-    public static final kp_equalsas400 : Int       = fromScan(Scancodes.kp_equalsas400);
-
-    public static final alterase : Int             = fromScan(Scancodes.alterase);
-    public static final sysreq : Int               = fromScan(Scancodes.sysreq);
-    public static final cancel : Int               = fromScan(Scancodes.cancel);
-    public static final clear : Int                = fromScan(Scancodes.clear);
-    public static final prior : Int                = fromScan(Scancodes.prior);
-    public static final return2 : Int              = fromScan(Scancodes.return2);
-    public static final separator : Int            = fromScan(Scancodes.separator);
-    public static final out : Int                  = fromScan(Scancodes.out);
-    public static final oper : Int                 = fromScan(Scancodes.oper);
-    public static final clearagain : Int           = fromScan(Scancodes.clearagain);
-    public static final crsel : Int                = fromScan(Scancodes.crsel);
-    public static final exsel : Int                = fromScan(Scancodes.exsel);
-
-    public static final kp_00 : Int                = fromScan(Scancodes.kp_00);
-    public static final kp_000 : Int               = fromScan(Scancodes.kp_000);
-    public static final thousandsseparator : Int   = fromScan(Scancodes.thousandsseparator);
-    public static final decimalseparator : Int     = fromScan(Scancodes.decimalseparator);
-    public static final currencyunit : Int         = fromScan(Scancodes.currencyunit);
-    public static final currencysubunit : Int      = fromScan(Scancodes.currencysubunit);
-    public static final kp_leftparen : Int         = fromScan(Scancodes.kp_leftparen);
-    public static final kp_rightparen : Int        = fromScan(Scancodes.kp_rightparen);
-    public static final kp_leftbrace : Int         = fromScan(Scancodes.kp_leftbrace);
-    public static final kp_rightbrace : Int        = fromScan(Scancodes.kp_rightbrace);
-    public static final kp_tab : Int               = fromScan(Scancodes.kp_tab);
-    public static final kp_backspace : Int         = fromScan(Scancodes.kp_backspace);
-    public static final kp_a : Int                 = fromScan(Scancodes.kp_a);
-    public static final kp_b : Int                 = fromScan(Scancodes.kp_b);
-    public static final kp_c : Int                 = fromScan(Scancodes.kp_c);
-    public static final kp_d : Int                 = fromScan(Scancodes.kp_d);
-    public static final kp_e : Int                 = fromScan(Scancodes.kp_e);
-    public static final kp_f : Int                 = fromScan(Scancodes.kp_f);
-    public static final kp_xor : Int               = fromScan(Scancodes.kp_xor);
-    public static final kp_power : Int             = fromScan(Scancodes.kp_power);
-    public static final kp_percent : Int           = fromScan(Scancodes.kp_percent);
-    public static final kp_less : Int              = fromScan(Scancodes.kp_less);
-    public static final kp_greater : Int           = fromScan(Scancodes.kp_greater);
-    public static final kp_ampersand : Int         = fromScan(Scancodes.kp_ampersand);
-    public static final kp_dblampersand : Int      = fromScan(Scancodes.kp_dblampersand);
-    public static final kp_verticalbar : Int       = fromScan(Scancodes.kp_verticalbar);
-    public static final kp_dblverticalbar : Int    = fromScan(Scancodes.kp_dblverticalbar);
-    public static final kp_colon : Int             = fromScan(Scancodes.kp_colon);
-    public static final kp_hash : Int              = fromScan(Scancodes.kp_hash);
-    public static final kp_space : Int             = fromScan(Scancodes.kp_space);
-    public static final kp_at : Int                = fromScan(Scancodes.kp_at);
-    public static final kp_exclam : Int            = fromScan(Scancodes.kp_exclam);
-    public static final kp_memstore : Int          = fromScan(Scancodes.kp_memstore);
-    public static final kp_memrecall : Int         = fromScan(Scancodes.kp_memrecall);
-    public static final kp_memclear : Int          = fromScan(Scancodes.kp_memclear);
-    public static final kp_memadd : Int            = fromScan(Scancodes.kp_memadd);
-    public static final kp_memsubtract : Int       = fromScan(Scancodes.kp_memsubtract);
-    public static final kp_memmultiply : Int       = fromScan(Scancodes.kp_memmultiply);
-    public static final kp_memdivide : Int         = fromScan(Scancodes.kp_memdivide);
-    public static final kp_plusminus : Int         = fromScan(Scancodes.kp_plusminus);
-    public static final kp_clear : Int             = fromScan(Scancodes.kp_clear);
-    public static final kp_clearentry : Int        = fromScan(Scancodes.kp_clearentry);
-    public static final kp_binary : Int            = fromScan(Scancodes.kp_binary);
-    public static final kp_octal : Int             = fromScan(Scancodes.kp_octal);
-    public static final kp_decimal : Int           = fromScan(Scancodes.kp_decimal);
-    public static final kp_hexadecimal : Int       = fromScan(Scancodes.kp_hexadecimal);
-
-    public static final lctrl : Int                = fromScan(Scancodes.lctrl);
-    public static final lshift : Int               = fromScan(Scancodes.lshift);
-    public static final lalt : Int                 = fromScan(Scancodes.lalt);
-    public static final lmeta : Int                = fromScan(Scancodes.lmeta);
-    public static final rctrl : Int                = fromScan(Scancodes.rctrl);
-    public static final rshift : Int               = fromScan(Scancodes.rshift);
-    public static final ralt : Int                 = fromScan(Scancodes.ralt);
-    public static final rmeta : Int                = fromScan(Scancodes.rmeta);
-
-    public static final mode : Int                 = fromScan(Scancodes.mode);
-
-    public static final audionext : Int            = fromScan(Scancodes.audionext);
-    public static final audioprev : Int            = fromScan(Scancodes.audioprev);
-    public static final audiostop : Int            = fromScan(Scancodes.audiostop);
-    public static final audioplay : Int            = fromScan(Scancodes.audioplay);
-    public static final audiomute : Int            = fromScan(Scancodes.audiomute);
-    public static final mediaselect : Int          = fromScan(Scancodes.mediaselect);
-    public static final www : Int                  = fromScan(Scancodes.www);
-    public static final mail : Int                 = fromScan(Scancodes.mail);
-    public static final calculator : Int           = fromScan(Scancodes.calculator);
-    public static final computer : Int             = fromScan(Scancodes.computer);
-    public static final ac_search : Int            = fromScan(Scancodes.ac_search);
-    public static final ac_home : Int              = fromScan(Scancodes.ac_home);
-    public static final ac_back : Int              = fromScan(Scancodes.ac_back);
-    public static final ac_forward : Int           = fromScan(Scancodes.ac_forward);
-    public static final ac_stop : Int              = fromScan(Scancodes.ac_stop);
-    public static final ac_refresh : Int           = fromScan(Scancodes.ac_refresh);
-    public static final ac_bookmarks : Int         = fromScan(Scancodes.ac_bookmarks);
-
-    public static final brightnessdown : Int       = fromScan(Scancodes.brightnessdown);
-    public static final brightnessup : Int         = fromScan(Scancodes.brightnessup);
-    public static final displayswitch : Int        = fromScan(Scancodes.displayswitch);
-    public static final kbdillumtoggle : Int       = fromScan(Scancodes.kbdillumtoggle);
-    public static final kbdillumdown : Int         = fromScan(Scancodes.kbdillumdown);
-    public static final kbdillumup : Int           = fromScan(Scancodes.kbdillumup);
-    public static final eject : Int                = fromScan(Scancodes.eject);
-    public static final sleep : Int                = fromScan(Scancodes.sleep);
+    public static final capslock            = fromScan(Scancodes.capslock);
+    public static final f1                  = fromScan(Scancodes.f1);
+    public static final f2                  = fromScan(Scancodes.f2);
+    public static final f3                  = fromScan(Scancodes.f3);
+    public static final f4                  = fromScan(Scancodes.f4);
+    public static final f5                  = fromScan(Scancodes.f5);
+    public static final f6                  = fromScan(Scancodes.f6);
+    public static final f7                  = fromScan(Scancodes.f7);
+    public static final f8                  = fromScan(Scancodes.f8);
+    public static final f9                  = fromScan(Scancodes.f9);
+    public static final f10                 = fromScan(Scancodes.f10);
+    public static final f11                 = fromScan(Scancodes.f11);
+    public static final f12                 = fromScan(Scancodes.f12);
+    public static final printscreen         = fromScan(Scancodes.printscreen);
+    public static final scrolllock          = fromScan(Scancodes.scrolllock);
+    public static final pause               = fromScan(Scancodes.pause);
+    public static final insert              = fromScan(Scancodes.insert);
+    public static final home                = fromScan(Scancodes.home);
+    public static final pageup              = fromScan(Scancodes.pageup);
+    public static final delete              = 127;
+    public static final end                 = fromScan(Scancodes.end);
+    public static final pagedown            = fromScan(Scancodes.pagedown);
+    public static final right               = fromScan(Scancodes.right);
+    public static final left                = fromScan(Scancodes.left);
+    public static final down                = fromScan(Scancodes.down);
+    public static final up                  = fromScan(Scancodes.up);
+    public static final numlockclear        = fromScan(Scancodes.numlockclear);
+    public static final kp_divide           = fromScan(Scancodes.kp_divide);
+    public static final kp_multiply         = fromScan(Scancodes.kp_multiply);
+    public static final kp_minus            = fromScan(Scancodes.kp_minus);
+    public static final kp_plus             = fromScan(Scancodes.kp_plus);
+    public static final kp_enter            = fromScan(Scancodes.kp_enter);
+    public static final kp_1                = fromScan(Scancodes.kp_1);
+    public static final kp_2                = fromScan(Scancodes.kp_2);
+    public static final kp_3                = fromScan(Scancodes.kp_3);
+    public static final kp_4                = fromScan(Scancodes.kp_4);
+    public static final kp_5                = fromScan(Scancodes.kp_5);
+    public static final kp_6                = fromScan(Scancodes.kp_6);
+    public static final kp_7                = fromScan(Scancodes.kp_7);
+    public static final kp_8                = fromScan(Scancodes.kp_8);
+    public static final kp_9                = fromScan(Scancodes.kp_9);
+    public static final kp_0                = fromScan(Scancodes.kp_0);
+    public static final kp_period           = fromScan(Scancodes.kp_period);
+    public static final application         = fromScan(Scancodes.application);
+    public static final power               = fromScan(Scancodes.power);
+    public static final kp_equals           = fromScan(Scancodes.kp_equals);
+    public static final f13                 = fromScan(Scancodes.f13);
+    public static final f14                 = fromScan(Scancodes.f14);
+    public static final f15                 = fromScan(Scancodes.f15);
+    public static final f16                 = fromScan(Scancodes.f16);
+    public static final f17                 = fromScan(Scancodes.f17);
+    public static final f18                 = fromScan(Scancodes.f18);
+    public static final f19                 = fromScan(Scancodes.f19);
+    public static final f20                 = fromScan(Scancodes.f20);
+    public static final f21                 = fromScan(Scancodes.f21);
+    public static final f22                 = fromScan(Scancodes.f22);
+    public static final f23                 = fromScan(Scancodes.f23);
+    public static final f24                 = fromScan(Scancodes.f24);
+    public static final execute             = fromScan(Scancodes.execute);
+    public static final help                = fromScan(Scancodes.help);
+    public static final menu                = fromScan(Scancodes.menu);
+    public static final select              = fromScan(Scancodes.select);
+    public static final stop                = fromScan(Scancodes.stop);
+    public static final again               = fromScan(Scancodes.again);
+    public static final undo                = fromScan(Scancodes.undo);
+    public static final cut                 = fromScan(Scancodes.cut);
+    public static final copy                = fromScan(Scancodes.copy);
+    public static final paste               = fromScan(Scancodes.paste);
+    public static final find                = fromScan(Scancodes.find);
+    public static final mute                = fromScan(Scancodes.mute);
+    public static final volumeup            = fromScan(Scancodes.volumeup);
+    public static final volumedown          = fromScan(Scancodes.volumedown);
+    public static final kp_comma            = fromScan(Scancodes.kp_comma);
+    public static final kp_equalsas400      = fromScan(Scancodes.kp_equalsas400);
+    public static final alterase            = fromScan(Scancodes.alterase);
+    public static final sysreq              = fromScan(Scancodes.sysreq);
+    public static final cancel              = fromScan(Scancodes.cancel);
+    public static final clear               = fromScan(Scancodes.clear);
+    public static final prior               = fromScan(Scancodes.prior);
+    public static final return2             = fromScan(Scancodes.return2);
+    public static final separator           = fromScan(Scancodes.separator);
+    public static final out                 = fromScan(Scancodes.out);
+    public static final oper                = fromScan(Scancodes.oper);
+    public static final clearagain          = fromScan(Scancodes.clearagain);
+    public static final crsel               = fromScan(Scancodes.crsel);
+    public static final exsel               = fromScan(Scancodes.exsel);
+    public static final kp_00               = fromScan(Scancodes.kp_00);
+    public static final kp_000              = fromScan(Scancodes.kp_000);
+    public static final thousandsseparator  = fromScan(Scancodes.thousandsseparator);
+    public static final decimalseparator    = fromScan(Scancodes.decimalseparator);
+    public static final currencyunit        = fromScan(Scancodes.currencyunit);
+    public static final currencysubunit     = fromScan(Scancodes.currencysubunit);
+    public static final kp_leftparen        = fromScan(Scancodes.kp_leftparen);
+    public static final kp_rightparen       = fromScan(Scancodes.kp_rightparen);
+    public static final kp_leftbrace        = fromScan(Scancodes.kp_leftbrace);
+    public static final kp_rightbrace       = fromScan(Scancodes.kp_rightbrace);
+    public static final kp_tab              = fromScan(Scancodes.kp_tab);
+    public static final kp_backspace        = fromScan(Scancodes.kp_backspace);
+    public static final kp_a                = fromScan(Scancodes.kp_a);
+    public static final kp_b                = fromScan(Scancodes.kp_b);
+    public static final kp_c                = fromScan(Scancodes.kp_c);
+    public static final kp_d                = fromScan(Scancodes.kp_d);
+    public static final kp_e                = fromScan(Scancodes.kp_e);
+    public static final kp_f                = fromScan(Scancodes.kp_f);
+    public static final kp_xor              = fromScan(Scancodes.kp_xor);
+    public static final kp_power            = fromScan(Scancodes.kp_power);
+    public static final kp_percent          = fromScan(Scancodes.kp_percent);
+    public static final kp_less             = fromScan(Scancodes.kp_less);
+    public static final kp_greater          = fromScan(Scancodes.kp_greater);
+    public static final kp_ampersand        = fromScan(Scancodes.kp_ampersand);
+    public static final kp_dblampersand     = fromScan(Scancodes.kp_dblampersand);
+    public static final kp_verticalbar      = fromScan(Scancodes.kp_verticalbar);
+    public static final kp_dblverticalbar   = fromScan(Scancodes.kp_dblverticalbar);
+    public static final kp_colon            = fromScan(Scancodes.kp_colon);
+    public static final kp_hash             = fromScan(Scancodes.kp_hash);
+    public static final kp_space            = fromScan(Scancodes.kp_space);
+    public static final kp_at               = fromScan(Scancodes.kp_at);
+    public static final kp_exclam           = fromScan(Scancodes.kp_exclam);
+    public static final kp_memstore         = fromScan(Scancodes.kp_memstore);
+    public static final kp_memrecall        = fromScan(Scancodes.kp_memrecall);
+    public static final kp_memclear         = fromScan(Scancodes.kp_memclear);
+    public static final kp_memadd           = fromScan(Scancodes.kp_memadd);
+    public static final kp_memsubtract      = fromScan(Scancodes.kp_memsubtract);
+    public static final kp_memmultiply      = fromScan(Scancodes.kp_memmultiply);
+    public static final kp_memdivide        = fromScan(Scancodes.kp_memdivide);
+    public static final kp_plusminus        = fromScan(Scancodes.kp_plusminus);
+    public static final kp_clear            = fromScan(Scancodes.kp_clear);
+    public static final kp_clearentry       = fromScan(Scancodes.kp_clearentry);
+    public static final kp_binary           = fromScan(Scancodes.kp_binary);
+    public static final kp_octal            = fromScan(Scancodes.kp_octal);
+    public static final kp_decimal          = fromScan(Scancodes.kp_decimal);
+    public static final kp_hexadecimal      = fromScan(Scancodes.kp_hexadecimal);
+    public static final lctrl               = fromScan(Scancodes.lctrl);
+    public static final lshift              = fromScan(Scancodes.lshift);
+    public static final lalt                = fromScan(Scancodes.lalt);
+    public static final lmeta               = fromScan(Scancodes.lmeta);
+    public static final rctrl               = fromScan(Scancodes.rctrl);
+    public static final rshift              = fromScan(Scancodes.rshift);
+    public static final ralt                = fromScan(Scancodes.ralt);
+    public static final rmeta               = fromScan(Scancodes.rmeta);
+    public static final mode                = fromScan(Scancodes.mode);
+    public static final audionext           = fromScan(Scancodes.audionext);
+    public static final audioprev           = fromScan(Scancodes.audioprev);
+    public static final audiostop           = fromScan(Scancodes.audiostop);
+    public static final audioplay           = fromScan(Scancodes.audioplay);
+    public static final audiomute           = fromScan(Scancodes.audiomute);
+    public static final mediaselect         = fromScan(Scancodes.mediaselect);
+    public static final www                 = fromScan(Scancodes.www);
+    public static final mail                = fromScan(Scancodes.mail);
+    public static final calculator          = fromScan(Scancodes.calculator);
+    public static final computer            = fromScan(Scancodes.computer);
+    public static final ac_search           = fromScan(Scancodes.ac_search);
+    public static final ac_home             = fromScan(Scancodes.ac_home);
+    public static final ac_back             = fromScan(Scancodes.ac_back);
+    public static final ac_forward          = fromScan(Scancodes.ac_forward);
+    public static final ac_stop             = fromScan(Scancodes.ac_stop);
+    public static final ac_refresh          = fromScan(Scancodes.ac_refresh);
+    public static final ac_bookmarks        = fromScan(Scancodes.ac_bookmarks);
+    public static final brightnessdown      = fromScan(Scancodes.brightnessdown);
+    public static final brightnessup        = fromScan(Scancodes.brightnessup);
+    public static final displayswitch       = fromScan(Scancodes.displayswitch);
+    public static final kbdillumtoggle      = fromScan(Scancodes.kbdillumtoggle);
+    public static final kbdillumdown        = fromScan(Scancodes.kbdillumdown);
+    public static final kbdillumup          = fromScan(Scancodes.kbdillumup);
+    public static final eject               = fromScan(Scancodes.eject);
+    public static final sleep               = fromScan(Scancodes.sleep);
 }

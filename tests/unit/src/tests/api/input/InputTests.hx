@@ -47,6 +47,36 @@ class InputTests extends BuddySuite
                 input.update();
             });
 
+            it('Can will not continually reset the key state for repeat events', {
+                var event = new InputEvents();
+                var input = new Input(event);
+
+                event.keyDown.onNext(new InputEventKeyState(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
+                input.update();
+
+                event.keyDown.onNext(new InputEventKeyState(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), true, new EnumFlags()));
+                input.wasKeyPressed(Keycodes.key_w).should.be(false);
+                input.isKeyDown(Keycodes.key_w).should.be(true);
+                input.update();
+
+                event.keyDown.onNext(new InputEventKeyState(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), true, new EnumFlags()));
+                input.wasKeyPressed(Keycodes.key_w).should.be(false);
+                input.isKeyDown(Keycodes.key_w).should.be(true);
+                input.update();
+
+                event.keyUp.onNext(new InputEventKeyState(Keycodes.key_w, Keycodes.toScan(Keycodes.key_w), false, new EnumFlags()));
+
+                input.wasKeyPressed(Keycodes.key_w).should.be(false);
+                input.isKeyDown(Keycodes.key_w).should.be(false);
+                input.wasKeyReleased(Keycodes.key_w).should.be(true);
+                input.update();
+
+                input.wasKeyPressed(Keycodes.key_w).should.be(false);
+                input.isKeyDown(Keycodes.key_w).should.be(false);
+                input.wasKeyReleased(Keycodes.key_w).should.be(false);
+                input.update();
+            });
+
             it('Can track the state of mouse buttons from input events', {
                 var event = new InputEvents();
                 var input = new Input(event);

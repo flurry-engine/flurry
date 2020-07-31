@@ -19,6 +19,8 @@ class Tests implements Buddy<[
     tests.api.display.DisplayTests,
 
     tests.api.input.InputTests,
+    tests.api.input.KeycodesTests,
+    tests.api.input.ScancodesTests,
 
     tests.api.gpu.state.BlendStateTests,
     tests.api.gpu.state.StencilStateTests,
