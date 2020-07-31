@@ -14,9 +14,6 @@ class SamplerStateTests extends BuddySuite
         describe('SamplerState', {
             it('can create a default nearest neighbour clamp sampler', {
                 final sampler = SamplerState.nearest;
-
-                trace(sampler);
-
                 sampler.uClamping.should.be(Clamp);
                 sampler.vClamping.should.be(Clamp);
                 sampler.minification.should.be(Nearest);
@@ -24,9 +21,6 @@ class SamplerStateTests extends BuddySuite
             });
             it('can create a default linear neighbour clamp sampler', {
                 final sampler = SamplerState.linear;
-
-                trace(sampler);
-
                 sampler.uClamping.should.be(Clamp);
                 sampler.vClamping.should.be(Clamp);
                 sampler.minification.should.be(Linear);
@@ -34,9 +28,6 @@ class SamplerStateTests extends BuddySuite
             });
             it('allows you to create a custom sampler through the constructor', {
                 final sampler = new SamplerState(Border, Mirror, Nearest, Linear);
-
-                trace(sampler);
-
                 sampler.uClamping.should.be(Border);
                 sampler.vClamping.should.be(Mirror);
                 sampler.minification.should.be(Nearest);
