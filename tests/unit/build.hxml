@@ -15,9 +15,11 @@
 -L RxHaxe
 -L tink_json
 -L akifox-asynchttp
+-L instrument
 
 --dce full
 
 --macro nullSafety('uk.aidanlee.flurry.modules', Strict)
 --macro nullSafety('uk.aidanlee.flurry.api', Strict)
---macro Safety.safeNavigation('')
+--macro Safety.safeNavigation('uk.aidanlee.flurry')
+--macro Safety.safeNavigation('parcel')
