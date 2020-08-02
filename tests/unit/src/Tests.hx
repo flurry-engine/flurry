@@ -15,6 +15,7 @@ class Tests implements Buddy<[
 
     tests.api.buffers.Float32BufferDataTests,
     tests.api.buffers.UInt16BufferDataTests,
+    tests.api.buffers.GrowingBufferTests,
 
     tests.api.display.DisplayTests,
 

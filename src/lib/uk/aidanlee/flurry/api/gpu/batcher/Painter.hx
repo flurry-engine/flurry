@@ -1,6 +1,8 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
-import uk.aidanlee.flurry.api.gpu.geometry.shapes.SpriteGeometry.AnimationNotFoundException;
+import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
+import uk.aidanlee.flurry.api.buffers.BufferData;
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import haxe.ds.List;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
@@ -13,7 +15,9 @@ import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
+import uk.aidanlee.flurry.api.gpu.geometry.shapes.SpriteGeometry.AnimationNotFoundException;
 import uk.aidanlee.flurry.api.maths.Vector4;
+import uk.aidanlee.flurry.api.buffers.GrowingBuffer;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
@@ -47,9 +51,9 @@ class Painter implements IBatchable
 
     var vtxCount = 0;
 
-    var vtxBuffer = new VertexBlobBuilder();
+    var vtxBuffer = new GrowingBuffer();
 
-    var idxBuffer = new IndexBlobBuilder();
+    var idxBuffer = new GrowingBuffer();
 
     public function new(_options : BatcherOptions)
     {
@@ -170,7 +174,7 @@ class Painter implements IBatchable
             .addFloat3(_x         , _y + _height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
             .addFloat3(_x         , _y          , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0);
         idxBuffer
-            .addInt(vtxCount + 0).addInt(vtxCount + 1).addInt(vtxCount + 2).addInt(vtxCount + 3).addInt(vtxCount + 4);
+            .addUInt16(vtxCount + 0).addUInt16(vtxCount + 1).addUInt16(vtxCount + 2).addUInt16(vtxCount + 3).addUInt16(vtxCount + 4);
 
         vtxCount += 4;
     }
@@ -192,7 +196,7 @@ class Painter implements IBatchable
             .addFloat3(_x         , _y          , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
             .addFloat3(_x + _width, _y          , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0);
         idxBuffer
-            .addInt(vtxCount + 0).addInt(vtxCount + 1).addInt(vtxCount + 2).addInt(vtxCount + 2).addInt(vtxCount + 1).addInt(vtxCount + 3);
+            .addUInt16(vtxCount + 0).addUInt16(vtxCount + 1).addUInt16(vtxCount + 2).addUInt16(vtxCount + 2).addUInt16(vtxCount + 1).addUInt16(vtxCount + 3);
 
         vtxCount += 4;
     }
@@ -212,7 +216,7 @@ class Painter implements IBatchable
             .addFloat3(_x1, _y1, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
             .addFloat3(_x2, _y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0);
         idxBuffer
-            .addInt(vtxCount + 0).addInt(vtxCount + 1);
+            .addUInt16(vtxCount + 0).addUInt16(vtxCount + 1);
 
         vtxCount += 2;
     }
@@ -235,7 +239,7 @@ class Painter implements IBatchable
             .addFloat3(_x               , _y                , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(_frame.u1, _frame.v1)
             .addFloat3(_x + _frame.width, _y                , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(_frame.u2, _frame.v1);
         idxBuffer
-            .addInt(vtxCount + 0).addInt(vtxCount + 1).addInt(vtxCount + 2).addInt(vtxCount + 2).addInt(vtxCount + 1).addInt(vtxCount + 3);
+            .addUInt16(vtxCount + 0).addUInt16(vtxCount + 1).addUInt16(vtxCount + 2).addUInt16(vtxCount + 2).addUInt16(vtxCount + 1).addUInt16(vtxCount + 3);
 
         vtxCount += 4;
     }
@@ -268,7 +272,7 @@ class Painter implements IBatchable
             .addFloat3(_x              , _y               , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v1)
             .addFloat3(_x + frame.width, _y               , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v1);
         idxBuffer
-            .addInt(vtxCount + 0).addInt(vtxCount + 1).addInt(vtxCount + 2).addInt(vtxCount + 2).addInt(vtxCount + 1).addInt(vtxCount + 3);
+            .addUInt16(vtxCount + 0).addUInt16(vtxCount + 1).addUInt16(vtxCount + 2).addUInt16(vtxCount + 2).addUInt16(vtxCount + 1).addUInt16(vtxCount + 3);
 
         vtxCount += 4;
     }
@@ -361,17 +365,17 @@ class Painter implements IBatchable
             .addFloat3(x4, y3, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u4, v3);
 
         idxBuffer
-            .addInts([ vtxCount + 0    , vtxCount + 1    , vtxCount + 2    , vtxCount + 2    , vtxCount + 1    , vtxCount + 3 ])
-            .addInts([ vtxCount + 4 + 0, vtxCount + 4 + 1, vtxCount + 4 + 2, vtxCount + 4 + 2, vtxCount + 4 + 1, vtxCount + 4 + 3 ])
-            .addInts([ vtxCount + 8 + 0, vtxCount + 8 + 1, vtxCount + 8 + 2, vtxCount + 8 + 2, vtxCount + 8 + 1, vtxCount + 8 + 3 ])
+            .addUInt16s([ vtxCount + 0    , vtxCount + 1    , vtxCount + 2    , vtxCount + 2    , vtxCount + 1    , vtxCount + 3 ])
+            .addUInt16s([ vtxCount + 4 + 0, vtxCount + 4 + 1, vtxCount + 4 + 2, vtxCount + 4 + 2, vtxCount + 4 + 1, vtxCount + 4 + 3 ])
+            .addUInt16s([ vtxCount + 8 + 0, vtxCount + 8 + 1, vtxCount + 8 + 2, vtxCount + 8 + 2, vtxCount + 8 + 1, vtxCount + 8 + 3 ])
 
-            .addInts([ vtxCount + 12 + 0, vtxCount + 12 + 1, vtxCount + 12 + 2, vtxCount + 12 + 2, vtxCount + 12 + 1, vtxCount + 12 + 3 ])
-            .addInts([ vtxCount + 16 + 0, vtxCount + 16 + 1, vtxCount + 16 + 2, vtxCount + 16 + 2, vtxCount + 16 + 1, vtxCount + 16 + 3 ])
-            .addInts([ vtxCount + 20 + 0, vtxCount + 20 + 1, vtxCount + 20 + 2, vtxCount + 20 + 2, vtxCount + 20 + 1, vtxCount + 20 + 3 ])
+            .addUInt16s([ vtxCount + 12 + 0, vtxCount + 12 + 1, vtxCount + 12 + 2, vtxCount + 12 + 2, vtxCount + 12 + 1, vtxCount + 12 + 3 ])
+            .addUInt16s([ vtxCount + 16 + 0, vtxCount + 16 + 1, vtxCount + 16 + 2, vtxCount + 16 + 2, vtxCount + 16 + 1, vtxCount + 16 + 3 ])
+            .addUInt16s([ vtxCount + 20 + 0, vtxCount + 20 + 1, vtxCount + 20 + 2, vtxCount + 20 + 2, vtxCount + 20 + 1, vtxCount + 20 + 3 ])
 
-            .addInts([ vtxCount + 24 + 0, vtxCount + 24 + 1, vtxCount + 24 + 2, vtxCount + 24 + 2, vtxCount + 24 + 1, vtxCount + 24 + 3 ])
-            .addInts([ vtxCount + 28 + 0, vtxCount + 28 + 1, vtxCount + 28 + 2, vtxCount + 28 + 2, vtxCount + 28 + 1, vtxCount + 28 + 3 ])
-            .addInts([ vtxCount + 32 + 0, vtxCount + 32 + 1, vtxCount + 32 + 2, vtxCount + 32 + 2, vtxCount + 32 + 1, vtxCount + 32 + 3 ]);
+            .addUInt16s([ vtxCount + 24 + 0, vtxCount + 24 + 1, vtxCount + 24 + 2, vtxCount + 24 + 2, vtxCount + 24 + 1, vtxCount + 24 + 3 ])
+            .addUInt16s([ vtxCount + 28 + 0, vtxCount + 28 + 1, vtxCount + 28 + 2, vtxCount + 28 + 2, vtxCount + 28 + 1, vtxCount + 28 + 3 ])
+            .addUInt16s([ vtxCount + 32 + 0, vtxCount + 32 + 1, vtxCount + 32 + 2, vtxCount + 32 + 2, vtxCount + 32 + 1, vtxCount + 32 + 3 ]);
 
         vtxCount += 9 * 4;
     }
@@ -402,8 +406,13 @@ class Painter implements IBatchable
             return;
         }
 
+        final vtxBytes = vtxBuffer.getBytes();
+        final vtxBlob  = new VertexBlob(new BufferData(vtxBytes, 0, vtxBytes.length));
+        final idxBytes = idxBuffer.getBytes();
+        final idxBlob  = new IndexBlob(new BufferData(idxBytes, 0, idxBytes.length));
+
         queue.add(new DrawCommand(
-            [ new Geometry({ data : Indexed(vtxBuffer.vertexBlob(), idxBuffer.indexBlob()) }) ],
+            [ new Geometry({ data : Indexed(vtxBlob, idxBlob) }) ],
             camera,
             _primitive,
             None,
@@ -423,7 +432,7 @@ class Painter implements IBatchable
     function reset()
     {
         vtxCount  = 0;
-        vtxBuffer = new VertexBlobBuilder();
-        idxBuffer = new IndexBlobBuilder();
+        vtxBuffer.reset();
+        idxBuffer.reset();
     }
 }

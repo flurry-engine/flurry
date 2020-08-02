@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
-import haxe.io.BytesBuffer;
 import uk.aidanlee.flurry.api.buffers.BufferData;
+import uk.aidanlee.flurry.api.buffers.GrowingBuffer;
 import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
 
 /**
@@ -32,11 +32,11 @@ class IndexBlob
  */
 class IndexBlobBuilder
 {
-    final builder : BytesBuffer;
+    final builder : GrowingBuffer;
 
     public function new()
     {
-        builder = new BytesBuffer();
+        builder = new GrowingBuffer();
     }
 
     public function addInts(_array : Array<Int>) : IndexBlobBuilder
@@ -51,8 +51,7 @@ class IndexBlobBuilder
 
     public function addInt(_val : Int) : IndexBlobBuilder
     {
-        builder.addByte(_val & 0xff);
-        builder.addByte(_val >> 8);
+        builder.addUInt16(_val);
 
         return this;
     }

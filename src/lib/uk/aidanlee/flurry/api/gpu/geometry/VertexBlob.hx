@@ -1,11 +1,11 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
-import haxe.io.BytesBuffer;
 import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Vector2;
-import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.buffers.BufferData;
+import uk.aidanlee.flurry.api.buffers.GrowingBuffer;
+import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 
 /**
  * Container class for vertex bytes data.
@@ -35,11 +35,11 @@ class VertexBlob
  */
 class VertexBlobBuilder
 {
-    final builder : BytesBuffer;
+    final builder : GrowingBuffer;
 
     public function new()
     {
-        builder = new BytesBuffer();
+        builder = new GrowingBuffer();
     }
 
     public function addFloat(_val : Float) : VertexBlobBuilder
