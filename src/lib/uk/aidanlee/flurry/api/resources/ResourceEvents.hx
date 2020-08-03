@@ -2,7 +2,7 @@ package uk.aidanlee.flurry.api.resources;
 
 import rx.Subject;
 
-@:nullSafety(Loose) class ResourceEvents
+class ResourceEvents
 {
     public final created : Subject<Resource>;
 

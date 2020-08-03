@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.resources;
 
-import uk.aidanlee.flurry.api.maths.Hash;
 import haxe.Exception;
 import haxe.io.Path;
 import haxe.ds.ReadOnlyArray;
@@ -16,7 +15,7 @@ import uk.aidanlee.flurry.api.resources.Resource;
 using Safety;
 using rx.Observable;
 
-@:nullSafety(Loose) class ResourceSystem
+class ResourceSystem
 {
     /**
      * Event bus the resource system can fire events into as and when resources and created and removed.
@@ -43,12 +42,17 @@ using rx.Observable;
      * Map of a parcels ID to all the resources IDs contained within it.
      * Stored since the parcel could be modified by the user and theres no way to know whats inside a pre-packed parcel until its unpacked.
      */
-    final parcelResources : Map<String, Array<ResourceID>>;
+    final parcelResources : Map<String, ReadOnlyArray<ResourceID>>;
 
     /**
-     * All resources stored in this system, keyed by their name.
+     * Map of all resources in this system keyed by their unique ID.
      */
-    final resourceCache : Map<Int, Resource>;
+    final resourceIDCache : Map<Int, Resource>;
+
+    /**
+     * Map of all resources in this system keyed by their unique name.
+     */
+    final resourceNameCache : Map<String, Resource>;
 
     /**
      * How many parcels reference each resource.
@@ -67,13 +71,14 @@ using rx.Observable;
         workScheduler      = _workScheduler;
         syncScheduler      = _syncScheduler;
         parcelResources    = [];
-        resourceCache      = [];
+        resourceIDCache    = [];
+        resourceNameCache  = [];
         resourceReferences = [];
     }
 
     /**
      * Loads the provided parcels resources into the system.
-     * If the parcel has already been loaded an empty observable is returned.
+     * If a parcel in the list has already been added its resources will not be added again.
      * @param _parcels List parcel files to load.
      * @return Observable<Float> Observable of loading progress (normalised 0 - 1)
      */
@@ -131,9 +136,9 @@ using rx.Observable;
         {
             for (res in parcelResources[_name].unsafe())
             {
-                if (resourceCache.exists(res))
+                if (resourceIDCache.exists(res))
                 {
-                    removeResource(resourceCache[res].unsafe());
+                    removeResource(resourceIDCache[res].unsafe());
                 }
             }
 
@@ -142,7 +147,8 @@ using rx.Observable;
     }
 
     /**
-     * Manually attempt to add a resource to this system.
+     * Add a resource to this system.
+     * If the resource has already been added to this system the reference count is increased by one.
      * @param _resource The resource to add.
      */
     public function addResource(_resource : Resource)
@@ -155,27 +161,34 @@ using rx.Observable;
         {
             resourceReferences[_resource.id] = 1;
 
-            resourceCache[_resource.id] = _resource;
+            resourceIDCache[_resource.id] = _resource;
+            resourceNameCache[_resource.name] = _resource;
 
             events.created.onNext(_resource);
         }
     }
 
     /**
-     * Manually attempt to remove a resource from this system.
+     * Manually remove a resource from this system.
+     * If there are multiple references to this resource the count is decreased by one.
+     * The resource will only be fully removed once there are no references to it.
      * @param _resource The resource to remove.
      */
     public function removeResource(_resource : Resource)
     {
         if (resourceReferences.exists(_resource.id))
         {
-            var referenceCount = resourceReferences[_resource.id].unsafe();
+            final referenceCount = resourceReferences[_resource.id].unsafe();
             if (referenceCount == 1)
             {
-                if (resourceCache.exists(_resource.id))
+                if (resourceIDCache.exists(_resource.id))
                 {
-                    events.removed.onNext(resourceCache[_resource.id].unsafe());
-                    resourceCache.remove(_resource.id);
+                    final toRemove = resourceIDCache[_resource.id].unsafe();
+
+                    resourceIDCache.remove(_resource.id);
+                    resourceNameCache.remove(_resource.name);
+
+                    events.removed.onNext(toRemove);
                 }
 
                 resourceReferences.remove(_resource.id);
@@ -188,40 +201,65 @@ using rx.Observable;
     }
 
     /**
-     * Get a loaded resource from this system.
-     * @param _id   ID of the resource.
+     * Retrieve a resource from the system based on its unique string name.
+     * @param _name Name of the resource.
      * @param _type Class type of the resource.
-     * @return T
+     * @return Resource object.
+     * @throws InvalidResourceTypeException If the resource cannot be cast to the specified resource class.
+     * @throws ResourceNotFoundException If a resource with the provided name is not in the system.
      */
-    @:deprecated('Use getByName instead')
-    public function get<T : Resource>(_id : String, _type : Class<T>) : T
-    {
-        return getByName(_id, _type);
-    }
-
     public function getByName<T : Resource>(_name : String, _type : Class<T>) : T
     {
-        return getByID(Hash.hash(_name), _type);
-    }
-
-    public function getByID<T : Resource>(_id : ResourceID, _type : Class<T>) : T
-    {
-        if (resourceCache.exists(_id))
+        if (resourceNameCache.exists(_name))
         {
-            var res = resourceCache[_id].unsafe();
-            var obj = Std.downcast(res, _type);
+            final res = resourceNameCache[_name].unsafe();
+            final obj = Std.downcast(res, _type);
             
             if (obj != null)
             {
                 return obj;
             }
 
-            throw new InvalidResourceTypeException(_id, Type.getClassName(_type));
+            throw new InvalidResourceTypeException(_name, Type.getClassName(_type));
         }
         
-        throw new ResourceNotFoundException(_id);
+        throw new ResourceNotFoundException(_name);
     }
 
+    /**
+     * Retrieve a resource from the system based on its unique ID.
+     * @param _id ID of the resource.
+     * @param _type Class type of the resource.
+     * @return Resource object.
+     * @throws InvalidResourceTypeException If the resource cannot be cast to the specified resource class.
+     * @throws ResourceNotFoundException If a resource with the provided ID is not in the system.
+     */
+    public function getByID<T : Resource>(_id : ResourceID, _type : Class<T>) : T
+    {
+        if (resourceIDCache.exists(_id))
+        {
+            final res = resourceIDCache[_id].unsafe();
+            final obj = Std.downcast(res, _type);
+            
+            if (obj != null)
+            {
+                return obj;
+            }
+
+            throw new InvalidResourceTypeException(Std.string(_id), Type.getClassName(_type));
+        }
+        
+        throw new ResourceNotFoundException(Std.string(_id));
+    }
+
+    /**
+     * Loads a parcel and passes events into the observer.
+     * @param _file Parcel file to open. Should be relative to the projects parcel directory (`assets/parcels`).
+     * @param _index When multiple parcels are being loaded together this is the index of the parcel.
+     * @param _max The total number of parcels being loaded.
+     * @param _observer Observer to pump events into.
+     * @return If the parcel was successfully loaded.
+     */
     function loadParcel(_file : String, _index : Int, _max : Int, _observer : IObserver<ParcelEvent>) : Bool
     {
         final path = Path.join([ 'assets', 'parcels', _file ]);
@@ -277,7 +315,7 @@ using rx.Observable;
 
 class InvalidResourceTypeException extends Exception
 {
-    public function new(_resource : ResourceID, _type : String)
+    public function new(_resource : String, _type : String)
     {
         super('resource $_resource is not a $_type');
     }
@@ -285,7 +323,7 @@ class InvalidResourceTypeException extends Exception
 
 class ResourceNotFoundException extends Exception
 {
-    public function new(_resource : ResourceID)
+    public function new(_resource : String)
     {
         super('failed to load "$_resource", it does not exist in the system');
     }
