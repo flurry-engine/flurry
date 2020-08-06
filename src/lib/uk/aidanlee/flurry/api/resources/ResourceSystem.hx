@@ -1,7 +1,9 @@
 package uk.aidanlee.flurry.api.resources;
 
+import rx.disposables.ISubscription;
 import haxe.Exception;
 import haxe.io.Path;
+import haxe.ds.Vector;
 import haxe.ds.ReadOnlyArray;
 import rx.Subscription;
 import rx.subjects.Behavior;
@@ -42,7 +44,7 @@ class ResourceSystem
      * Map of a parcels ID to all the resources IDs contained within it.
      * Stored since the parcel could be modified by the user and theres no way to know whats inside a pre-packed parcel until its unpacked.
      */
-    final parcelResources : Map<String, ReadOnlyArray<ResourceID>>;
+    final parcelResources : Map<String, Array<ResourceID>>;
 
     /**
      * Map of all resources in this system keyed by their unique ID.
@@ -80,48 +82,32 @@ class ResourceSystem
      * Loads the provided parcels resources into the system.
      * If a parcel in the list has already been added its resources will not be added again.
      * @param _parcels List parcel files to load.
-     * @return Observable<Float> Observable of loading progress (normalised 0 - 1)
+     * @return Observable of loading progress (normalised 0 - 1)
      */
     public function load(_parcels : ReadOnlyArray<String>) : IObservable<Float>
     {
         final progress = new Behavior(0.0);
 
-        // This observable performs the loading work.
-        // It subscribes on the work scheduler and observable functions are called on the sync scheduler.
-        // These are probably some sort of thread pool and them main app thread.
-        // We manually track if the loading was successful otherwise we could fire onError and onComplete events.
-        // We also recursivly call `loadPrePackaged` for dependencies which could fire onComplete before all resources have loaded.
         Observable
-            .create((_observer : IObserver<ParcelEvent>) -> {
-                for (i => path in _parcels)
+            .of_enum(cast _parcels)
+            .flatMap(file -> Observable
+                .create(observer -> loadParcel(file, observer))
+                .subscribeOn(workScheduler)
+                .observeOn(syncScheduler))
+            .map(v -> {
+                if (!parcelResources.exists(v.parcel))
                 {
-                    if (!loadParcel(path, i, _parcels.length, _observer))
-                    {
-                        return Subscription.empty();
-                    }
+                    parcelResources[v.parcel] = [];
                 }
 
-                _observer.onCompleted();
+                addResource(v.resource);
 
-                return Subscription.empty();
+                parcelResources[v.parcel].unsafe().push(v.resource.id);
+
+                v.progress;
             })
-            .subscribeOn(workScheduler)
-            .observeOn(syncScheduler)
-            .subscribeFunction(
-                _v -> {
-                    switch _v
-                    {
-                        case Resource(_resource):
-                            addResource(_resource);
-                        case Progress(_time):
-                            progress.onNext(_time);
-                        case List(_name, _list):
-                            parcelResources[_name] = _list;
-                    }
-                },
-                progress.onError,
-                progress.onCompleted
-            );
+            .scan(0.0, (_acc, _next) -> _acc + (_next / _parcels.length))
+            .subscribe(progress);
 
         return progress;
     }
@@ -255,12 +241,10 @@ class ResourceSystem
     /**
      * Loads a parcel and passes events into the observer.
      * @param _file Parcel file to open. Should be relative to the projects parcel directory (`assets/parcels`).
-     * @param _index When multiple parcels are being loaded together this is the index of the parcel.
-     * @param _max The total number of parcels being loaded.
      * @param _observer Observer to pump events into.
      * @return If the parcel was successfully loaded.
      */
-    function loadParcel(_file : String, _index : Int, _max : Int, _observer : IObserver<ParcelEvent>) : Bool
+    function loadParcel(_file : String, _observer : IObserver<ParcelLoadingEvent>) : ISubscription
     {
         final path = Path.join([ 'assets', 'parcels', _file ]);
 
@@ -268,50 +252,55 @@ class ResourceSystem
         {
             _observer.onError('failed to load "${_file}", "${path}" does not exist');
 
-            return false;
+            return Subscription.empty();
         }
 
-        // If the parcel has already been loaded immediately progress by the max amount for a parcel segment.
+        // TODO : Should probably progress by 1 as overall load tracking will be off.
         if (parcelResources.exists(_file))
         {
-            final segment  = 1 / _max;
-            final nextBase = (_index + 1) * segment;
+            _observer.onCompleted();
 
-            _observer.onNext(Progress(nextBase));
-
-            return true;
+            return Subscription.empty();
         }
 
         final reader = new ParcelInput(fileSystem.file.read(path));
-
-        return switch reader.read()
+        
+        switch reader.readHeader()
         {
-            case Success(_assets):
-                for (i => asset in _assets)
+            case Success(header):
+                for (_ in 0...header.assets)
                 {
-                    final segment = 1 / _max;
-                    final current = (_index * segment) + ((i / _assets.length) / _max);
-
-                    _observer.onNext(Resource(asset));
-                    _observer.onNext(Progress(current));
+                    switch reader.readAsset()
+                    {
+                        case Success(asset):
+                            _observer.onNext({
+                                parcel   : _file,
+                                resource : asset,
+                                progress : 1 / header.assets
+                            });
+                        case Failure(reason):
+                            _observer.onError(reason);
+        
+                            reader.close();
+        
+                            return Subscription.empty();
+                    }
                 }
-
-                _observer.onNext(List(_file, [ for (res in _assets) res.id ]));
-
-                reader.close();
-
-                true;
-            case Failure(_message):
-                _observer.onError(_message);
+            case Failure(reason):
+                _observer.onError(reason);
 
                 reader.close();
 
-                false;
+                return Subscription.empty();
         }
+
+        _observer.onCompleted();
+
+        reader.close();
+
+        return Subscription.empty();
     }
 }
-
-// #region exceptions
 
 class InvalidResourceTypeException extends Exception
 {
@@ -329,16 +318,11 @@ class ResourceNotFoundException extends Exception
     }
 }
 
-// #endregion
-
-// #region event classes
-
-private enum ParcelEvent
+@:structInit @:publicFields class ParcelLoadingEvent
 {
-    Resource(_resource : Resource);
-    List(_name : String, _list : Array<ResourceID>);
-    Progress(_value : Float);
+    final parcel : String;
+
+    final resource : Resource;
+
+    final progress : Float;
 }
-
-
-// #endregion

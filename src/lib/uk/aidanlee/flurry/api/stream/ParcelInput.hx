@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.stream;
 
+import haxe.Exception;
 import uk.aidanlee.flurry.api.core.Result;
 import uk.aidanlee.flurry.api.stream.Compression;
 import uk.aidanlee.flurry.api.stream.ImageFormat;
@@ -19,122 +20,122 @@ class ParcelInput
 {
     final serialiser : Serializer;
 
-    final input : Input;
+    final origin : Input;
+
+    var reader : Input;
+
+    var assets : Int;
+
+    var compression : Compression;
 
     public function new(_input : Input)
     {
-        serialiser = new Serializer();
-        input      = _input;
+        serialiser  = new Serializer();
+        origin      = _input;
+        reader      = _input;
+        assets      = 0;
+        compression = None;
     }
 
     /**
-     * Attempt to read all resources stored in the parcel.
-     * @return Array of resources or error string.
+     * Read the header.
      */
-    public function read() : Result<Array<Resource>, String>
+    public function readHeader() : Result<ParcelHeader, String>
     {
-        final resources = [];
-
         // Read magic bytes
-        if ('PRCL' != input.readString(4))
+        if ('PRCL' != origin.readString(4))
         {
-            return Failure('invalid magic bytes');
+            return Failure('Provided input stream is not a parcel');
         }
 
-        // Read Compression info
-        final compressionByte = input.readByte();
-        final compression     = switch compressionByte
+        compression = switch origin.readByte()
         {
             case 0: None;
             case 1:
-                final level     = input.readByte();
-                final chunkSize = input.readInt32();
+                final level     = origin.readByte();
+                final chunkSize = origin.readInt32();
 
                 Deflate(level, chunkSize);
-            case other:
-                return Failure('Unknown compression type $other');
+            case other: return Failure('unexpected compression byte $other');
         }
-
-        // Read payload info
-        final payloadLength = input.readInt32();
-
-        // Get out data input stream based on the compression
-        final dataInput = switch compression
+        reader = switch compression
         {
-            case None: input;
-            case Deflate(_, _chunkSize): new InputDecompressor(input, _chunkSize);
+            case None: origin;
+            case Deflate(_, _chunkSize): new InputDecompressor(origin, _chunkSize);
         }
+        assets = origin.readInt32();
 
-        // Read the expected number of payload entries
-        for (_ in 0...payloadLength)
+        return Success({
+            compression : compression,
+            assets      : assets
+        });
+    }
+
+    public function readAsset() : Result<Resource, String>
+    {
+        final id = reader.readByte();
+
+        switch id
         {
-            final id = dataInput.readByte();
+            case 0:
+                // hxbit serialised resource.
+                final length = reader.readInt32();
+                final tmp    = Bytes.alloc(length);
+                final read   = reader.readBytes(tmp, 0, length);
 
-            switch id
-            {
-                case 0:
-                    // hxbit serialised resource.
-                    final length = dataInput.readInt32();
-                    final tmp    = Bytes.alloc(length);
-                    final read   = dataInput.readBytes(tmp, 0, length);
+                if (length != read)
+                {
+                    return Failure('did not read the expected number of bytes');
+                }
 
-                    if (length != read)
-                    {
-                        return Failure('did not read the expected number of bytes');
-                    }
+                return Success(serialiser.unserialize(tmp, Resource));
+            case 1:
+                // Image data
+                final format = reader.readByte();
+                final width  = reader.readInt32();
+                final height = reader.readInt32();
+                final length = reader.readInt32();
+                final name   = reader.readString(length);
+                final length = reader.readInt32();
+                final tmp    = Bytes.alloc(length);
+                final read   = reader.readBytes(tmp, 0, length);
 
-                    resources.push(serialiser.unserialize(tmp, Resource));
-                case 1:
-                    // Image data
-                    final format = dataInput.readByte();
-                    final width  = dataInput.readInt32();
-                    final height = dataInput.readInt32();
-                    final length = dataInput.readInt32();
-                    final name   = dataInput.readString(length);
-                    final length = dataInput.readInt32();
-                    final tmp    = Bytes.alloc(length);
-                    final read   = dataInput.readBytes(tmp, 0, length);
+                if (length != read)
+                {
+                    return Failure('did not read the expected number of bytes');
+                }
 
-                    if (length != read)
-                    {
-                        return Failure('did not read the expected number of bytes');
-                    }
-
-                    switch format
-                    {
-                        case RawBGRA:
-                            resources.push(new ImageResource(name, width, height, BGRAUNorm, tmp.getData()));
-                        case Png:
+                return switch format
+                {
+                    case RawBGRA:
+                        Success(new ImageResource(name, width, height, BGRAUNorm, tmp.getData()));
+                    case Png:
 #if linc_stb
-                            final image = stb.Image.load_from_memory(tmp.getData(), read, 4);
+                        final image = stb.Image.load_from_memory(tmp.getData(), read, 4);
 
-                            resources.push(new ImageResource(name, width, height, RGBAUNorm, image.bytes));
+                        Success(new ImageResource(name, width, height, RGBAUNorm, image.bytes));
 #else
-                            final input  = new BytesInput(tmp);
-                            final reader = new PngReader(input);
-                            final data   = reader.read();
-                            final pixels = PngTools.extract32(data);
+                        final input  = new BytesInput(tmp);
+                        final data   = new PngReader(input).read();
+                        final pixels = PngTools.extract32(data);
 
-                            resources.push(new ImageResource(name, width, height, BGRAUNorm ,pixels.getData()));
+                        Success(new ImageResource(name, width, height, BGRAUNorm ,pixels.getData()));
 #end
-                        case Jpeg:
+                    case Jpeg:
 #if linc_stb
-                            final image = stb.Image.load_from_memory(tmp.getData(), read, 4);
+                        final image = stb.Image.load_from_memory(tmp.getData(), read, 4);
 
-                            resources.push(new ImageResource(name, width, height, RGBAUNorm, image.bytes));
+                        Success(new ImageResource(name, width, height, RGBAUNorm, image.bytes));
 #else
-                            final image = JpegReader.decode(tmp, Chromatic);
-                                                        
-                            resources.push(new ImageResource(name, image.width, image.height, RGBAUNorm, image.pixels.getData()));
+                        final image = JpegReader.decode(tmp, Chromatic);
+                                                    
+                        Success(new ImageResource(name, image.width, image.height, RGBAUNorm, image.pixels.getData()));
 #end
-                    }
+                    case other: Failure('Unknown image format $other');
+                }
 
-                case other:
-                    return Failure('Unknown payload type $other');
-            }
+            case other: return Failure('Unknown payload type $other');
         }
-
-        return Success(resources);
     }
 
     /**
@@ -142,6 +143,13 @@ class ParcelInput
      */
     public function close()
     {
-        input.close();
+        origin.close();
     }
+}
+
+@:structInit @:publicFields private class ParcelHeader
+{
+    final compression : Compression;
+
+    final assets : Int;
 }

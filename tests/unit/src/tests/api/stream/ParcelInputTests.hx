@@ -1,15 +1,16 @@
 package tests.api.stream;
 
 import hxbit.Serializer;
-import uk.aidanlee.flurry.api.resources.Resource.PixelFormat;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.stream.Compression;
 import uk.aidanlee.flurry.api.stream.ParcelInput;
 import uk.aidanlee.flurry.api.stream.ParcelOutput.Payload;
+import uk.aidanlee.flurry.api.resources.Resource.PixelFormat;
 import uk.aidanlee.flurry.api.resources.Resource.TextResource;
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import haxe.io.Bytes;
+import haxe.io.BytesInput;
 import haxe.io.BytesOutput;
 import haxe.zip.Compress;
-import haxe.io.BytesInput;
-import haxe.io.Bytes;
 import buddy.BuddySuite;
 
 using Lambda;
@@ -20,25 +21,67 @@ class ParcelInputTests extends BuddySuite
     public function new()
     {
         describe('ParcelInput Tests', {
+            describe('Header Reading', {
+                it('will fail reading if the four magic bytes are not present', {
+                    final bytes  = Bytes.ofString('BADH');
+                    final input  = new BytesInput(bytes);
+                    final parcel = new ParcelInput(input);
+    
+                    switch parcel.readHeader()
+                    {
+                        case Failure(_):
+                        case Success(_): fail('expected to fail reading due to invalid magic bytes');
+                    }
+                });
+    
+                it('will fail reading if it cannot detect the compression type', {
+                    final bytes  = Bytes.alloc(5);
+                    bytes.set(0, 'P'.code);
+                    bytes.set(1, 'R'.code);
+                    bytes.set(2, 'C'.code);
+                    bytes.set(3, 'L'.code);
+                    bytes.set(4, 2);
+    
+                    final input  = new BytesInput(bytes);
+                    final parcel = new ParcelInput(input);
+    
+                    switch parcel.readHeader()
+                    {
+                        case Failure(_):
+                        case Success(_): fail('expected to fail reading due to invalid compression type');
+                    }
+                });
+            });
+            describe('Asset Reading', {
+                //
+            });
+
             describe('Reading uncompressed serialised resources', {
-                final asset    = new TextResource('text_id', 'hello world!');
-                final expected = createParcel([ SerialisedResource(asset) ]);
+                final text     = new TextResource('text_id', 'hello world!');
+                final expected = createParcel([ SerialisedResource(text) ]);
                 final input    = new BytesInput(expected);
                 final stream   = new ParcelInput(input);
 
-                switch stream.read()
+                switch stream.readHeader()
                 {
-                    case Success(_resources):
+                    case Success(header):
                         it('should have 1 resource', {
-                            _resources.length.should.be(1);
+                            header.assets.should.be(1);
                         });
+                        it('should be uncompressed', {
+                            header.compression.should.equal(Compression.None);
+                        });
+                    case Failure(reason): fail('unable to read parcel header : reason');
+                }
+                switch stream.readAsset()
+                {
+                    case Success(asset):
                         it('will have successfully deserialised the asset', {
-                            final resource = (cast _resources[0] : TextResource);
+                            final resource = (cast asset : TextResource);
                             resource.id.should.be(asset.id);
-                            resource.content.should.be(asset.content);
+                            resource.content.should.be(text.content);
                         });
-                    case Failure(_):
-                        fail('was not able to read the parcel');
+                    case Failure(reason): fail('was not able to read the parcel : $reason');
                 }
             });
 
@@ -48,21 +91,28 @@ class ParcelInputTests extends BuddySuite
                 final input    = new BytesInput(expected);
                 final stream   = new ParcelInput(input);
 
-                switch stream.read()
+                switch stream.readHeader()
                 {
-                    case Success(_resources):
+                    case Success(header):
                         it('should have 1 resource', {
-                            _resources.length.should.be(1);
+                            header.assets.should.be(1);
                         });
+                        it('should be uncompressed', {
+                            header.compression.should.equal(Compression.None);
+                        });
+                    case Failure(reason): fail('unable to read parcel header : $reason');
+                }
+                switch stream.readAsset()
+                {
+                    case Success(asset):
                         it('will have successfully created a new ImageResource', {
-                            final resource = (cast _resources[0] : ImageResource);
+                            final resource = (cast asset : ImageResource);
                             resource.name.should.be('new_image');
                             resource.width.should.be(4);
                             resource.height.should.be(4);
                             resource.format.should.equal(PixelFormat.BGRAUNorm);
                         });
-                    case Failure(_):
-                        fail('was not able to read the parcel');
+                    case Failure(reason): fail('was not able to read the parcel : $reason');
                 }
             });
 
@@ -72,20 +122,27 @@ class ParcelInputTests extends BuddySuite
                 final input    = new BytesInput(expected);
                 final stream   = new ParcelInput(input);
 
-                switch stream.read()
+                switch stream.readHeader()
                 {
-                    case Success(_resources):
+                    case Success(header):
                         it('should have 1 resource', {
-                            _resources.length.should.be(1);
+                            header.assets.should.be(1);
                         });
+                        it('should be uncompressed', {
+                            header.compression.should.equal(Compression.None);
+                        });
+                    case Failure(reason): fail('unable to read parcel header : reason');
+                }
+                switch stream.readAsset()
+                {
+                    case Success(asset):
                         it('will have successfully created a new ImageResource', {
-                            final resource = (cast _resources[0] : ImageResource);
+                            final resource = (cast asset : ImageResource);
                             resource.name.should.be('new_image');
                             resource.width.should.be(4);
                             resource.height.should.be(4);
                         });
-                    case Failure(_):
-                        fail('was not able to read the parcel');
+                    case Failure(reason): fail('was not able to read the parcel : $reason');
                 }
             });
 
@@ -95,20 +152,27 @@ class ParcelInputTests extends BuddySuite
                 final input    = new BytesInput(expected);
                 final stream   = new ParcelInput(input);
 
-                switch stream.read()
+                switch stream.readHeader()
                 {
-                    case Success(_resources):
+                    case Success(header):
                         it('should have 1 resource', {
-                            _resources.length.should.be(1);
+                            header.assets.should.be(1);
                         });
+                        it('should be uncompressed', {
+                            header.compression.should.equal(Compression.None);
+                        });
+                    case Failure(reason): fail('unable to read parcel header : $reason');
+                }
+                switch stream.readAsset()
+                {
+                    case Success(asset):
                         it('will have successfully created a new ImageResource', {
-                            final resource = (cast _resources[0] : ImageResource);
+                            final resource = (cast asset : ImageResource);
                             resource.name.should.be('new_image');
                             resource.width.should.be(4);
                             resource.height.should.be(4);
                         });
-                    case Failure(_):
-                        fail('was not able to read the parcel');
+                    case Failure(reason): fail('was not able to read the parcel : $reason');
                 }
             });
 
@@ -118,56 +182,40 @@ class ParcelInputTests extends BuddySuite
                 final expected = createCompressedParcel([ SerialisedResource(asset), ImageData(image, RawBGRA, 4, 4, 'new_image') ], 4);
                 final input    = new BytesInput(expected);
                 final stream   = new ParcelInput(input);
+                final read     = [];
 
-                switch stream.read()
+                switch stream.readHeader()
                 {
-                    case Success(_resources):
-                        it('should have 1 resource', {
-                            _resources.length.should.be(2);
+                    case Success(header):
+                        it('should have 2 resources', {
+                            header.assets.should.be(2);
                         });
+                        it('should be uncompressed', {
+                            header.compression.should.equal(Compression.Deflate(4, 10000000));
+                        });
+
+                        for (_ in 0...header.assets)
+                        {
+                            switch stream.readAsset()
+                            {
+                                case Success(asset): read.push(asset);
+                                case Failure(_): fail('was not able to read the parcel');
+                            }
+                        }
+
                         it('will have successfully deserialised the asset', {
-                            final resource = (cast _resources.find(f -> f.id == asset.id) : TextResource);
+                            final resource = (cast read.find(f -> f.id == asset.id) : TextResource);
                             resource.id.should.be(asset.id);
                             resource.content.should.be(asset.content);
                         });
                         it('will have successfully created a new ImageResource', {
-                            final resource = (cast _resources.find(f -> f.name == 'new_image') : ImageResource);
+                            final resource = (cast read.find(f -> f.name == 'new_image') : ImageResource);
                             resource.width.should.be(4);
                             resource.height.should.be(4);
                             resource.format.should.equal(PixelFormat.BGRAUNorm);
                         });
-                    case Failure(_):
-                        fail('was not able to read the parcel');
-                }
-            });
 
-            it('will fail reading if the four magic bytes are not present', {
-                final bytes  = Bytes.ofString('BADH');
-                final input  = new BytesInput(bytes);
-                final parcel = new ParcelInput(input);
-
-                switch parcel.read()
-                {
-                    case Failure(_):
-                    case Success(_): fail('expected to fail reading due to invalid magic bytes');
-                }
-            });
-
-            it('will fail reading if it cannot detect the compression type', {
-                final bytes  = Bytes.alloc(5);
-                bytes.set(0, 'P'.code);
-                bytes.set(1, 'R'.code);
-                bytes.set(2, 'C'.code);
-                bytes.set(3, 'L'.code);
-                bytes.set(4, 2);
-
-                final input  = new BytesInput(bytes);
-                final parcel = new ParcelInput(input);
-
-                switch parcel.read()
-                {
-                    case Failure(_):
-                    case Success(_): fail('expected to fail reading due to invalid compression type');
+                    case Failure(reason): fail('unable to read parcel header : $reason');
                 }
             });
         });
