@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.stream;
 
-import haxe.Exception;
 import uk.aidanlee.flurry.api.core.Result;
 import uk.aidanlee.flurry.api.stream.Compression;
 import uk.aidanlee.flurry.api.stream.ImageFormat;
@@ -38,7 +37,9 @@ class ParcelInput
     }
 
     /**
-     * Read the header.
+     * Read the header data from the parcel.
+     * Returns `Failure` if the input stream is not a valid parcel.
+     * @return Result<ParcelHeader, String>
      */
     public function readHeader() : Result<ParcelHeader, String>
     {
@@ -71,6 +72,10 @@ class ParcelInput
         });
     }
 
+    /**
+     * Read a resource from the input stream.
+     * @return Result<Resource, String>
+     */
     public function readAsset() : Result<Resource, String>
     {
         final id = reader.readByte();
@@ -147,9 +152,18 @@ class ParcelInput
     }
 }
 
+/**
+ * Stores information about the parcels data.
+ */
 @:structInit @:publicFields private class ParcelHeader
 {
+    /**
+     * Compression level applied to this parcel.
+     */
     final compression : Compression;
 
+    /**
+     * Number of resources stored in this parcel.
+     */
     final assets : Int;
 }

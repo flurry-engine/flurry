@@ -1012,11 +1012,29 @@ class PackerTests extends BuddySuite
     {
         final input  = new BytesInput(_bytes);
         final stream = new ParcelInput(input);
-        final result = stream.read();
+        final read   = [];
+
+        switch stream.readHeader()
+        {
+            case Success(header):
+                for (_ in 0...header.assets)
+                {
+                    switch stream.readAsset()
+                    {
+                        case Success(asset): read.push(asset);
+                        case Failure(reason):
+                            stream.close();
+                            return Failure(reason);
+                    }
+                }
+            case Failure(reason):
+                stream.close();
+                return Failure(reason);
+        }
 
         stream.close();
 
-        return result;
+        return Success(read);
     }
 
     function project() : Project
