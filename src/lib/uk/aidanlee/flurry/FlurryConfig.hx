@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry;
 
+import uk.aidanlee.flurry.macros.Project;
 import uk.aidanlee.flurry.api.maths.Vector4;
 
 class FlurryConfig
@@ -19,11 +20,14 @@ class FlurryConfig
      */
     public final resources : FlurryResourceConfig;
 
+    public final project : FlurryProjectConfig;
+
     public function new()
     {
         window    = new FlurryWindowConfig();
         renderer  = new FlurryRendererConfig();
         resources = new FlurryResourceConfig();
+        project   = new FlurryProjectConfig();
     }
 }
 
@@ -268,5 +272,18 @@ class FlurryResourceConfig
     public function new()
     {
         preload = null;
+    }
+}
+
+class FlurryProjectConfig
+{
+    public final name : String;
+
+    public final author : String;
+
+    public function new()
+    {
+        name   = Project.name();
+        author = Project.author();
     }
 }

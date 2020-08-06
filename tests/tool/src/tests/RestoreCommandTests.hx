@@ -79,7 +79,7 @@ class RestoreCommandTests extends BuddySuite
         return {
             app : {
                 name      : "ExecutableName",
-                namespace : "com.project.namespace",
+                author: "flurry",
                 output    : "bin",
                 main      : "Main",
                 codepaths : [ "src" ],

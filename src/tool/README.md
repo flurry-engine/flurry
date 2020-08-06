@@ -4,7 +4,7 @@ Build File Format
 {
     "app" : {
         "name"      : "ExecutableName",
-        "namespace" : "com.project.namespace",
+        "author"   : "My Name",
         "output"    : "bin",
         "main"      : "Main",
         "codepaths" : [ "src" ],

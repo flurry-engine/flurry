@@ -60,9 +60,9 @@ typedef App = {
     final name : String;
 
     /**
-     * The bundle/package/app identifier, should be unique to you / your organisation.
+     * individual or organisation name of the projects creator / owner.
      */
-    final namespace : String;
+    final author : String;
 
     /**
      * The output directory.

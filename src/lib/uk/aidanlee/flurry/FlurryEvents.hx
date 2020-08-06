@@ -6,7 +6,6 @@ import uk.aidanlee.flurry.api.display.DisplayEvents;
 
 class FlurryEvents
 {
-
     public final input : InputEvents;
 
     public final resource : ResourceEvents;
