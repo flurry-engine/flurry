@@ -275,10 +275,20 @@ class FlurryResourceConfig
     }
 }
 
+/**
+ * Provides read-access runtime info about the project.
+ * These values are fetched from the build file at compile time.
+ */
 class FlurryProjectConfig
 {
+    /**
+     * Name of the project.
+     */
     public final name : String;
 
+    /**
+     * Author of the project.
+     */
     public final author : String;
 
     public function new()

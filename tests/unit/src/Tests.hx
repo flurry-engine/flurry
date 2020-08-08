@@ -52,6 +52,8 @@ class Tests implements Buddy<[
 
     tests.api.resources.ResourceSystemTests,
 
+    tests.api.io.FileSystemIOTests,
+
 #end
 
     tests.modules.differ.shapes.CircleTests,
