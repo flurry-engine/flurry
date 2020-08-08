@@ -1,5 +1,6 @@
 package;
 
+import haxe.io.Path;
 import sys.io.File;
 import sys.io.abstractions.concrete.FileSystem;
 import tink.Cli;
@@ -104,7 +105,7 @@ class Main
                 case _:
             }
         }
-        switch new Build(project, release, clean).run()
+        switch new Build(project, release, clean, sys.FileSystem.absolutePath(buildFile)).run()
         {
             case Failure(_message):
                 Sys.println('failed to build project $buildFile : $_message');
@@ -129,7 +130,7 @@ class Main
         }
         if (!noBuild)
         {
-            switch new Build(project, release, clean).run()
+            switch new Build(project, release, clean, sys.FileSystem.absolutePath(buildFile)).run()
             {
                 case Failure(_message):
                     Sys.println('failed to build project $buildFile : $_message');

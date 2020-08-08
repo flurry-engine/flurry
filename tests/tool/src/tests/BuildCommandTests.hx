@@ -34,11 +34,30 @@ class BuildCommandTests extends BuddySuite
                 Mockatoo.returns(proc.run(), Success(Unit.value));
                 Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
-                new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
+                new Build(project, false, false, '', fs, packer, proc).run().should.equal(Success(Unit.value));
     
                 fs.file.exists('bin/windows.build/build.hxml').should.be(true);
     
                 fs.file.getText('bin/windows.build/build.hxml').contains('-D flurry-entry-point=${ project.app.main }').should.be(true);
+            });
+            it('will set the flurry build file define in the build.hxml', {
+                final path    = '/path/to/build/file.json';
+                final project = project();
+                final fs      = new MockFileSystem([
+                    'bin/windows.build/cpp/SDLHost-debug.exe' => MockFileData.fromText('exe'),
+                    'bin/temp/parcels/parcel' => MockFileData.fromText(''),
+                ], []);
+                final packer  = mock(Packer);
+                final proc    = mock(Proc);
+    
+                Mockatoo.returns(proc.run(), Success(Unit.value));
+                Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
+    
+                new Build(project, false, false, path, fs, packer, proc).run().should.equal(Success(Unit.value));
+    
+                fs.file.exists('bin/windows.build/build.hxml').should.be(true);
+    
+                fs.file.getText('bin/windows.build/build.hxml').contains('-D flurry-build-file=${ path }').should.be(true);
             });
             it('will set the entry point to be SDLHost in the build.hxml', {
                 final project = project();
@@ -52,7 +71,7 @@ class BuildCommandTests extends BuddySuite
                 Mockatoo.returns(proc.run(), Success(Unit.value));
                 Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
-                new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
+                new Build(project, false, false, '', fs, packer, proc).run().should.equal(Success(Unit.value));
     
                 fs.file.exists('bin/windows.build/build.hxml').should.be(true);
                 fs.file.getText('bin/windows.build/build.hxml').contains('-m uk.aidanlee.flurry.hosts.SDLHost').should.be(true);
@@ -69,7 +88,7 @@ class BuildCommandTests extends BuddySuite
                 Mockatoo.returns(proc.run(), Success(Unit.value));
                 Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
-                new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
+                new Build(project, false, false, '', fs, packer, proc).run().should.equal(Success(Unit.value));
     
                 fs.file.exists('bin/windows.build/build.hxml').should.be(true);
     
@@ -92,7 +111,7 @@ class BuildCommandTests extends BuddySuite
                 Mockatoo.returns(proc.run(), Success(Unit.value));
                 Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
-                new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
+                new Build(project, false, false, '', fs, packer, proc).run().should.equal(Success(Unit.value));
     
                 fs.file.exists('bin/windows.build/build.hxml').should.be(true);
     
@@ -115,7 +134,7 @@ class BuildCommandTests extends BuddySuite
                 Mockatoo.returns(proc.run(), Success(Unit.value));
                 Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
-                new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
+                new Build(project, false, false, '', fs, packer, proc).run().should.equal(Success(Unit.value));
     
                 fs.file.exists('bin/windows.build/build.hxml').should.be(true);
     
@@ -140,7 +159,7 @@ class BuildCommandTests extends BuddySuite
                 Mockatoo.returns(proc.run(), Success(Unit.value));
                 Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
-                new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
+                new Build(project, false, false, '', fs, packer, proc).run().should.equal(Success(Unit.value));
     
                 fs.file.exists('bin/windows.build/build.hxml').should.be(true);
     
@@ -165,7 +184,7 @@ class BuildCommandTests extends BuddySuite
                 Mockatoo.returns(proc.run(), Success(Unit.value));
                 Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
-                new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
+                new Build(project, false, false, '', fs, packer, proc).run().should.equal(Success(Unit.value));
 
                 Mockatoo.verify(proc.run('npx', customMatcher(obj -> {
                     if (obj.length == 2)
@@ -192,7 +211,7 @@ class BuildCommandTests extends BuddySuite
                 Mockatoo.returns(proc.run(), Success(Unit.value));
                 Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
-                new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
+                new Build(project, false, false, '', fs, packer, proc).run().should.equal(Success(Unit.value));
 
                 Mockatoo.verify(packer.create('path/to/assets.json'), 1);
             });
@@ -212,7 +231,7 @@ class BuildCommandTests extends BuddySuite
                     { name : 'parcel2', file : 'bin/temp/parcel/parcel2' }
                 ]));
 
-                new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
+                new Build(project, false, false, '', fs, packer, proc).run().should.equal(Success(Unit.value));
 
                 fs.file.exists(Path.join([ Utils.buildPath(project), 'cpp', 'assets', 'parcels', 'parcel1' ])).should.be(true);
                 fs.file.exists(Path.join([ Utils.buildPath(project), 'cpp', 'assets', 'parcels', 'parcel2' ])).should.be(true);
@@ -238,7 +257,7 @@ class BuildCommandTests extends BuddySuite
                 Mockatoo.returns(proc.run(), Success(Unit.value));
                 Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
-                new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
+                new Build(project, false, false, '', fs, packer, proc).run().should.equal(Success(Unit.value));
             });
             it('will copy the executable to the release folder', {
                 final project = project();
@@ -252,7 +271,7 @@ class BuildCommandTests extends BuddySuite
                 Mockatoo.returns(proc.run(), Success(Unit.value));
                 Mockatoo.returns(packer.create(), Success([ { name : 'parcel', file : 'bin/temp/parcels/parcel' } ]));
     
-                new Build(project, false, false, fs, packer, proc).run().should.equal(Success(Unit.value));
+                new Build(project, false, false, '', fs, packer, proc).run().should.equal(Success(Unit.value));
 
                 fs.files.exists(Path.join([ Utils.releasePath(project), '${ project.app.name }.exe' ])).should.be(true);
             });
