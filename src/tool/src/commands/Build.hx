@@ -29,6 +29,11 @@ class Build
     final clean : Bool;
 
     /**
+     * Absolute path to the build file.
+     */
+    final buildFile : String;
+
+    /**
      * Location of the tools directory for the current platform.
      */
     final toolPath : String;
@@ -64,7 +69,7 @@ class Build
      */
     final fs : IFileSystem;
 
-    public function new(_project : Project, _release : Bool, _clean : Bool, _fs : IFileSystem = null, _packer : Packer = null, _proc : Proc = null)
+    public function new(_project : Project, _release : Bool, _clean : Bool, _buildFile : String, _fs : IFileSystem = null, _packer : Packer = null, _proc : Proc = null)
     {
         project     = _project;
         toolPath    = project.toolPath();
@@ -72,6 +77,7 @@ class Build
         releasePath = project.releasePath();
         release     = _release;
         clean       = _clean;
+        buildFile   = _buildFile;
         user        = new Hxml();
         fs          = _fs.or(new FileSystem());
         packer      = _packer.or(new Packer(project, fs));
@@ -186,6 +192,7 @@ class Build
         user.addDefine('snow_native');
         user.addDefine('HXCPP_M64');
         user.addDefine('flurry-entry-point', project.app.main);
+        user.addDefine('flurry-build-file', buildFile);
         user.addMacro('Safety.safeNavigation("uk.aidanlee.flurry")');
         user.addMacro('nullSafety("uk.aidanlee.flurry.modules", Strict)');
         user.addMacro('nullSafety("uk.aidanlee.flurry.api", Strict)');

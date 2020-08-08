@@ -4,7 +4,7 @@
         "main"      : "{TEST_CASE}",
         "output"    : "bin",
         "codepaths" : [ "src", "../../src/lib" ],
-        "namespace" : "uk.aidanlee.flurry.tests.system",
+        "author"    : "Aidan Lee",
         "backend"   : "Sdl"
     },
     "build" : {

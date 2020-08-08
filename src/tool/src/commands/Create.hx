@@ -31,7 +31,7 @@ class Create
                 codepaths : [ 'src' ],
                 main      : 'Main',
                 output    : 'bin',
-                namespace : 'com.organisation.Project'
+                author    : 'Flurry'
             },
             build : {
                 dependencies : [

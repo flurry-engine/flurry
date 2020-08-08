@@ -35,7 +35,7 @@ class ResourceSystemTests extends SingleSuite
                 codepaths : [],
                 main      : '',
                 output    : 'bin',
-                namespace : ''
+                author    : ''
             },
             parcels: [ 'assets/assets.json' ]
         };
