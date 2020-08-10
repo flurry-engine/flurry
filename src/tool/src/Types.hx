@@ -130,6 +130,12 @@ typedef Building = {
     final ?defines : Array<Define>;
 
     /**
+     * Collection of file glob patterns which will be copied into the specified directory.
+     * Key is the glob pattern, value is the directory relative to the output executable to copy the matched files into.
+     */
+    final ?files : Map<String, String>;
+
+    /**
      * All snow specific build options.
      */
     final ?snow : BuildingSnow;

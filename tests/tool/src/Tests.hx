@@ -8,7 +8,8 @@ class Tests implements Buddy<[
     tests.RestoreCommandTests,
     tests.CreateCommandTests,
     tests.BuildCommandTests,
-    tests.PackerTests
+    tests.PackerTests,
+    tests.UtilsTests
 ]>
 {
     //

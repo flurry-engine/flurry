@@ -1,3 +1,4 @@
+import sys.io.abstractions.IFileSystem;
 import haxe.io.Path;
 import Types.Project;
 import Types.Platform;
@@ -67,4 +68,67 @@ class Utils
             case Windows : Path.join([ 'C:', 'Program Files', 'Aseprite', 'aseprite.exe' ]);
             case _ : 'aseprite';
         }
+
+    /**
+     * Returns the substring before the first occurance of the provided string.
+     * If the source string does not contain the provided delimeter the entire source string is returned.
+     * @param _str source string.
+     * @param _search delimeter
+     */
+    public static function substringBefore(_str : String, _search : String)
+    {
+        final idx = _str.indexOf(_search);
+
+        return if (idx == -1) _str else _str.substring(0, idx);
+    }
+
+    /**
+     * Returns a substring from the first position until the last occurence of the provided character.
+     * If the string does not contain the provided character the entire string is returned.
+     * @param _str source string.
+     * @param _search character code to search for.
+     */
+    public static function substringBeforeLast(_str : String, _search : Int)
+    {
+        final length = _str.length;
+        var idx = length - 1;
+
+        while (idx >= 0)
+        {
+            if (_str.charCodeAt(idx) == _search)
+            {
+                break;
+            }
+
+            --idx;
+        }
+
+        return if (idx <= 0) _str else _str.substr(0, idx);
+    }
+    
+    /**
+     * Recursively search the provided directory returning an array of all found files.
+     * @param _fs File system interface.
+     * @param _dir Directory to search.
+     * @param _collection array to place files into.
+     * @return All files found so far.
+     */
+    public static function walk(_fs : IFileSystem, _dir : String, _collection : Array<String>) : Array<String>
+    {
+        for (item in _fs.directory.read(_dir))
+        {
+            final path = Path.join([ _dir, item ]);
+
+            if (_fs.directory.isDirectory(path))
+            {
+                walk(_fs, path, _collection);
+            }
+            else
+            {
+                _collection.push(path);
+            }
+        }
+
+        return _collection;
+    }
 }

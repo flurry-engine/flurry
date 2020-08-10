@@ -164,6 +164,31 @@ class Build
 
         fs.directory.remove(project.baseTempDir());
 
+        // Post build tasks.
+
+        // Copy globbed files
+        if (project!.build!.files != null)
+        {
+            for (glob => dst in project!.build!.files.unsafe())
+            {
+                final ereg       = GlobPatterns.toEReg(glob);
+                final source     = glob.substringBefore('*').substringBeforeLast('/'.code);
+                final buildDst   = Path.join([ buildPath, 'cpp', dst ]);
+                final releaseDst = Path.join([ releasePath, dst ]);
+
+                for (file in fs.walk(source, []))
+                {
+                    if (ereg.match(file))
+                    {
+                        final path = new Path(file);
+
+                        fs.file.copy(file, Path.join([ buildDst, '${ path.file }.${ path.ext }' ]));
+                        fs.file.copy(file, Path.join([ releaseDst, '${ path.file }.${ path.ext }' ]));
+                    }
+                }
+            }
+        }
+
         return Success(Unit.value);
     }
 
