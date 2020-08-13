@@ -45,6 +45,8 @@ class Packer
      */
     final tempParcels : String;
 
+    final tempShaders : String;
+
     /**
      * Directory where this platforms pre-compiled tools are found.
      */
@@ -56,6 +58,8 @@ class Packer
      */
     final prepared : Map<String, Resource>;
 
+    final shaders : Shaders;
+
     public function new(_project : Project, _fs : IFileSystem = null, _proc : Proc = null)
     {
         fs          = _fs.or(new FileSystem());
@@ -64,13 +68,16 @@ class Packer
         tempSprites = _project.tempSprites();
         tempAssets  = _project.tempAssets();
         tempParcels = _project.tempParcels();
+        tempShaders = _project.tempShaders();
         toolsDir    = _project.toolPath();
         prepared    = [];
+        shaders     = new Shaders(toolsDir, proc);
 
         fs.directory.create(tempFonts);
         fs.directory.create(tempAssets);
         fs.directory.create(tempSprites);
         fs.directory.create(tempParcels);
+        fs.directory.create(tempShaders);
     }
 
     public function create(_path : String) : Result<Array<{ name : String, file : String }>, String>
@@ -83,15 +90,13 @@ class Packer
 
         for (shader in assets.assets.shaders)
         {
-            switch createShader(baseDir, shader)
+            switch shaders.compile(baseDir, tempShaders, shader)
             {
                 case Success(data):
                     prepared[shader.id] = data;
                 case Failure(message):
                     return Failure(message);
             }
-
-            clean(tempAssets);
         }
 
         for (text in assets.assets.texts)
@@ -509,145 +514,6 @@ class Packer
         }
 
         return Success(Unit.value);
-    }
-
-    /**
-     * Given a shader json object it will collect and compile all defined shader sources and create a layout of all the blocks and textures.
-     * @param _baseDir Base directory to prefix to all paths.
-     * @param _shader Shader definition.
-     * @return Result<ShaderResource>
-     */
-    function createShader(_baseDir : String, _shader : JsonShaderResource) : Result<ShaderResource, String>
-    {
-        final definition : JsonShaderDefinition = tink.Json.parse(fs.file.getText(Path.join([ _baseDir, _shader.path ])));
-
-        final layout = new ShaderLayout(definition.textures, [
-            for (block in definition.blocks)
-                new ShaderBlock(block.name, block.binding, [
-                    for (value in block.values) new ShaderValue(value.name, value.type)
-                ])
-        ]);
-
-        var ogl3Source : Null<ShaderSource> = null;
-        var ogl4Source : Null<ShaderSource> = null;
-        var hlslSource : Null<ShaderSource> = null;
-
-        if (_shader.ogl3 != null)
-        {
-            ogl3Source = new ShaderSource(
-                false,
-                fs.file.getBytes(Path.join([ _baseDir, _shader.ogl3.vertex ])),
-                fs.file.getBytes(Path.join([ _baseDir, _shader.ogl3.fragment ])));
-        }
-        if (_shader.ogl4 != null)
-        {
-            if (_shader.ogl4.compiled)
-            {
-                final vertPath = Path.join([ _baseDir, _shader.ogl4.vertex ]);
-                final fragPath = Path.join([ _baseDir, _shader.ogl4.fragment ]);
-
-                switch ogl4Compile(vertPath, fragPath)
-                {
-                    case Success(data):
-                        ogl4Source = data;
-                    case Failure(message):
-                        return Failure(message);
-                }
-            }
-            else
-            {
-                ogl4Source = new ShaderSource(
-                    false,
-                    fs.file.getBytes(Path.join([ _baseDir, _shader.ogl4.vertex ])),
-                    fs.file.getBytes(Path.join([ _baseDir, _shader.ogl4.fragment ])));
-            }
-        }
-        if (_shader.hlsl != null)
-        {
-            if (_shader.hlsl.compiled)
-            {
-                final vertPath = Path.join([ _baseDir, _shader.hlsl.vertex ]);
-                final fragPath = Path.join([ _baseDir, _shader.hlsl.fragment ]);
-
-                switch hlslCompile(vertPath, fragPath)
-                {
-                    case Success(data):
-                        hlslSource = data;
-                    case Failure(message):
-                        return Failure(message);
-                }
-            }
-            else
-            {
-                hlslSource = new ShaderSource(
-                    false,
-                    fs.file.getBytes(Path.join([ _baseDir, _shader.hlsl.vertex ])),
-                    fs.file.getBytes(Path.join([ _baseDir, _shader.hlsl.fragment ])));
-            }
-        }
-
-        return Success(new ShaderResource(_shader.id, layout, ogl3Source, ogl4Source, hlslSource));
-    }
-
-    /**
-     * Call glslangValidator and compile a glsl file to spirv.
-     * @param _vert Path to the glsl vertex source.
-     * @param _frag Path to the glsl fragment source.
-     * @return ShaderSource object containing compiled spirv bytes.
-     */
-    function ogl4Compile(_vert : String, _frag : String) : Result<ShaderSource, String>
-    {
-        switch proc.run('glslangValidator', [ '-G', '-S', 'vert', _vert, '-o', Path.join([ tempAssets, 'vert.out' ]) ])
-        {
-            case Failure(message): return Failure(message);
-            case _:
-        }
-        switch proc.run('glslangValidator', [ '-G', '-S', 'frag', _frag, '-o', Path.join([ tempAssets, 'frag.out' ]) ])
-        {
-            case Failure(message): return Failure(message);
-            case _:
-        }
-
-        return Success(new ShaderSource(
-            true,
-            fs.file.getBytes(Path.join([ tempAssets, 'vert.out' ])),
-            fs.file.getBytes(Path.join([ tempAssets, 'frag.out' ]))));
-    }
-
-    /**
-     * Call fxc.exe and compile a hlsl file to a compiled shader object.
-     * @param _vert Path to the hlsl vertex source.
-     * @param _frag Path to the hlsl fragment source.
-     * @return ShaderSource
-     */
-    function hlslCompile(_vert : String, _frag : String) : Result<ShaderSource, String>
-    {
-        if (Utils.platform() != Windows)
-        {
-            Sys.println('Cannot compile HLSL shaders on non-windows platforms');
-            Sys.println('    Creating un-compiled hlsl shader source');
-
-            return Success(new ShaderSource(
-                false,
-                fs.file.getBytes(_vert),
-                fs.file.getBytes(_frag)));
-        }
-
-        switch proc.run('fxc', [ '/T', 'vs_5_0', '/E', 'VShader', '/Fo', Path.join([ tempAssets, 'vert.out' ]), _vert ])
-        {
-            case Failure(message): return Failure(message);
-            case _:
-        }
-        switch proc.run('fxc', [ '/T', 'ps_5_0', '/E', 'PShader', '/Fo', Path.join([ tempAssets, 'frag.out' ]), _frag ])
-        {
-            case Failure(message): return Failure(message);
-            case _:
-        }
-
-        return Success(new ShaderSource(
-            true,
-            fs.file.getBytes(Path.join([ tempAssets, 'vert.out' ])),
-            fs.file.getBytes(Path.join([ tempAssets, 'frag.out' ]))));
     }
 
     /**

@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.resources;
 
+import haxe.ds.ReadOnlyArray;
 import uk.aidanlee.flurry.api.maths.Hash;
 import haxe.io.BytesData;
 import hxbit.Serializer;
@@ -8,10 +9,15 @@ import haxe.io.Bytes;
 
 typedef ResourceID = Int;
 
-enum ShaderType
+enum abstract ShaderType(Int)
 {
-    Matrix4;
-    Vector4;
+    var Matrix4;
+    var Vector2;
+    var Vector3;
+    var Vector4;
+    var Texture2D;
+    var Sampler;
+    var TFloat;
 }
 
 enum ResourceType
@@ -255,107 +261,85 @@ enum PixelFormat
 
 @:nullSafety(Off) class ShaderResource extends Resource
 {
-    @:s public var layout (default, null) : ShaderLayout;
+    @:s public var vertSource (default, null) : Bytes;
 
-    @:s public var ogl3 (default, null) : Null<ShaderSource>;
+    @:s public var fragSource (default, null) : Bytes;
 
-    @:s public var ogl4 (default, null) : Null<ShaderSource>;
+    @:s public var vertInfo (default, null) : ShaderVertInfo;
 
-    @:s public var hlsl (default, null) : Null<ShaderSource>;
+    @:s public var fragInfo (default, null) : ShaderFragInfo;
 
-    public function new(_name : String, _layout : ShaderLayout, _ogl3 : Null<ShaderSource>, _ogl4 : Null<ShaderSource>, _hlsl : Null<ShaderSource>)
+    public function new(_name, _vertSource, _fragSource, _vertInfo, _fragInfo)
     {
         super(Shader, _name);
 
-        layout   = _layout;
-        ogl3     = _ogl3;
-        ogl4     = _ogl4;
-        hlsl     = _hlsl;
+        vertSource = _vertSource;
+        fragSource = _fragSource;
+        vertInfo   = _vertInfo;
+        fragInfo   = _fragInfo;
     }
 }
 
-@:nullSafety(Off) class ShaderSource implements Serializable
+@:nullSafety(Off) class ShaderVertInfo implements Serializable
 {
-    /**
-     * If this shader has been compiled offline.
-     */
-    @:s public var compiled (default, null) : Bool;
+    @:s public var input (default, null) : ReadOnlyArray<ShaderInput>;
 
-    /**
-     * Shaders vertex stage data.
-     */
-    @:s public var vertex (default, null) : Bytes;
+    @:s public var blocks (default, null) : ReadOnlyArray<ShaderBlock>;
 
-    /**
-     * Shaders fragment stage data.
-     */
-    @:s public var fragment (default, null) : Bytes;
-
-    public function new(_compiled : Bool, _vertex : Bytes, _fragment : Bytes)
+    public function new(_input, _blocks)
     {
-        compiled = _compiled;
-        vertex   = _vertex;
-        fragment = _fragment;
+        input  = _input;
+        blocks = _blocks;
     }
 }
 
-@:nullSafety(Off) class ShaderLayout implements Serializable
+@:nullSafety(Off) class ShaderFragInfo implements Serializable
 {
-    /**
-     * Name of all the textures used in the fragment shader.
-     * Names only really matter in Ogl3 shaders, in others the strings location in the array is used as the binding location.
-     * So positioning within this array does matter!
-     */
-    @:s public var textures (default, null) : Array<String>;
+    @:s public var textures (default, null) : ReadOnlyArray<ShaderInput>;
 
-    /**
-     * All of the UBOs / SSBOs / CBuffers used in this shader.
-     */
-    @:s public var blocks (default, null) : Array<ShaderBlock>;
+    @:s public var samplers (default, null) : ReadOnlyArray<ShaderInput>;
 
-    public function new(_textures : Array<String>, _blocks : Array<ShaderBlock>)
+    @:s public var blocks (default, null) : ReadOnlyArray<ShaderBlock>;
+
+    public function new(_textures, _samplers, _blocks)
     {
         textures = _textures;
+        samplers = _samplers;
         blocks   = _blocks;
     }
 }
 
-@:nullSafety(Off) class ShaderBlock implements Serializable
-{
-    /**
-     * Name of this shader block.
-     * A shader block named "defaultMatrices" must have 3 4x4 matrices inside it.
-     */
-    @:s public var name (default, null) : String;
-
-    /**
-     * The location this buffer is bound to.
-     * Is not used with the Ogl3 backend.
-     */
-    @:s public var binding (default, null) : Int;
-
-    /**
-     * All of the values in this block.
-     */
-    @:s public var values (default, null) : Array<ShaderValue>;
-
-    public function new(_name : String, _binding : Int, _values : Array<ShaderValue>)
-    {
-        name    = _name;
-        binding = _binding;
-        values  = _values;
-    }
-}
-
-@:nullSafety(Off) class ShaderValue implements Serializable
+@:nullSafety(Off) class ShaderInput implements Serializable
 {
     @:s public var name (default, null) : String;
 
     @:s public var type (default, null) : ShaderType;
 
-    public function new(_name : String, _type : ShaderType)
+    @:s public var location (default, null) : Int;
+
+    public function new(_name, _type, _location)
     {
-        name = _name;
-        type = _type;
+        name     = _name;
+        type     = _type;
+        location = _location;
+    }
+}
+
+@:nullSafety(Off) class ShaderBlock implements Serializable
+{
+    @:s public var name (default, null) : String;
+
+    @:s public var size (default, null) : Int;
+
+    @:s public var binding (default, null) : Int;
+
+    @:s public var members (default, null) : ReadOnlyArray<ShaderInput>;
+
+    public function new(_name, _size, _binding, _members)
+    {
+        name    = _name;
+        size    = _size;
+        binding = _binding;
+        members = _members;
     }
 }

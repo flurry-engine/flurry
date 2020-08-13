@@ -25,16 +25,10 @@ typedef JsonShaderDefinition = {
     final blocks : Array<JsonShaderBlock>;
 }
 
-typedef JsonShaderSource = {
+typedef JsonShaderResource = {
+    final id : String;
     final vertex : String;
     final fragment : String;
-    final compiled : Bool;
-}
-
-typedef JsonShaderResource = JsonResource & {
-    final ?ogl3 : JsonShaderSource;
-    final ?ogl4 : JsonShaderSource;
-    final ?hlsl : JsonShaderSource;
 }
 
 typedef JsonParcel = {

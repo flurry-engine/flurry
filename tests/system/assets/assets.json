@@ -22,31 +22,23 @@
         "shaders" : [
             {
                 "id" : "textured",
-                "path" : "shaders/textured.json",
-                "ogl3" : { "vertex" : "shaders/ogl3/textured.vert.glsl", "fragment" : "shaders/ogl3/textured.frag.glsl", "compiled" : false },
-                "ogl4" : { "vertex" : "shaders/ogl4/textured.vert.glsl", "fragment" : "shaders/ogl4/textured.frag.glsl", "compiled" : false },
-                "hlsl" : { "vertex" : "shaders/hlsl/textured.hlsl", "fragment" : "shaders/hlsl/textured.hlsl", "compiled" : false }
+                "vertex" : "shaders/ogl4/textured.vert.glsl",
+                "fragment" : "shaders/ogl4/textured.frag.glsl"
             },
             {
                 "id" : "colourise",
-                "path" : "shaders/colourise.json",
-                "ogl3" : { "vertex" : "shaders/ogl3/colourise.vert.glsl", "fragment" : "shaders/ogl3/colourise.frag.glsl", "compiled" : false },
-                "ogl4" : { "vertex" : "shaders/ogl4/colourise.vert.glsl", "fragment" : "shaders/ogl4/colourise.frag.glsl", "compiled" : false },
-                "hlsl" : { "vertex" : "shaders/hlsl/colourise.hlsl", "fragment" : "shaders/hlsl/colourise.hlsl", "compiled" : false }
+                "vertex" : "shaders/ogl4/colourise.vert.glsl",
+                "fragment" : "shaders/ogl4/colourise.frag.glsl"
             },
             {
                 "id" : "purple",
-                "path" : "shaders/purple.json",
-                "ogl3" : { "vertex" : "shaders/ogl3/purple.vert.glsl", "fragment" : "shaders/ogl3/purple.frag.glsl", "compiled" : false },
-                "ogl4" : { "vertex" : "shaders/ogl4/purple.vert.glsl", "fragment" : "shaders/ogl4/purple.frag.glsl", "compiled" : false },
-                "hlsl" : { "vertex" : "shaders/hlsl/purple.hlsl", "fragment" : "shaders/hlsl/purple.hlsl", "compiled" : false }
+                "vertex" : "shaders/ogl4/purple.vert.glsl",
+                "fragment" : "shaders/ogl4/purple.frag.glsl"
             },
             {
                 "id" : "msdf",
-                "path" : "shaders/textured.json",
-                "ogl3" : { "vertex" : "shaders/ogl3/textured.vert.glsl", "fragment" : "shaders/ogl3/msdf.frag.glsl", "compiled" : false },
-                "ogl4" : { "vertex" : "shaders/ogl4/textured.vert.glsl", "fragment" : "shaders/ogl4/msdf.frag.glsl", "compiled" : false },
-                "hlsl" : { "vertex" : "shaders/hlsl/msdf.hlsl", "fragment" : "shaders/hlsl/msdf.hlsl", "compiled" : false }
+                "vertex" : "shaders/ogl4/textured.vert.glsl",
+                "fragment" : "shaders/ogl4/msdf.frag.glsl"
             }
         ]
     },

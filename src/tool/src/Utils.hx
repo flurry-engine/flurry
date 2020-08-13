@@ -34,6 +34,9 @@ class Utils
     public static function tempParcels(_project : Project)
         return Path.join([ baseTempDir(_project), 'parcels' ]);
 
+    public static function tempShaders(_project : Project)
+        return Path.join([ baseTempDir(_project), 'shaders' ]);
+
     public static function executable(_project : Project)
         return switch platform()
         {

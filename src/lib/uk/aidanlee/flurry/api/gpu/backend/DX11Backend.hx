@@ -73,7 +73,6 @@ import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.maths.Maths;
@@ -794,52 +793,30 @@ using cpp.NativeArray;
             return;
         }
 
-        if (_resource.hlsl == null)
+        final vertexBytecode = new D3dBlob();
+        final pixelBytecode  = new D3dBlob();
+
+        if (D3dCompiler.createBlob(_resource.vertSource.length, vertexBytecode) != 0)
         {
-            throw new DX11NoShaderSourceException(_resource.name);
+            throw new Dx11ResourceCreationException('ID3DBlob');
+        }
+        if (D3dCompiler.createBlob(_resource.fragSource.length, pixelBytecode) != 0)
+        {
+            throw new Dx11ResourceCreationException('ID3DBlob');
         }
 
-        var vertexBytecode = new D3dBlob();
-        var pixelBytecode  = new D3dBlob();
-
-        if (_resource.hlsl.compiled)
-        {
-            if (D3dCompiler.createBlob(_resource.hlsl.vertex.length, vertexBytecode) != 0)
-            {
-                throw new Dx11ResourceCreationException('ID3DBlob');
-            }
-            if (D3dCompiler.createBlob(_resource.hlsl.fragment.length, pixelBytecode) != 0)
-            {
-                throw new Dx11ResourceCreationException('ID3DBlob');
-            }
-
-            memcpy(vertexBytecode.getBufferPointer(), _resource.hlsl.vertex.getData().address(0), _resource.hlsl.vertex.length);
-            memcpy(pixelBytecode.getBufferPointer(), _resource.hlsl.fragment.getData().address(0), _resource.hlsl.fragment.length);
-        }
-        else
-        {
-            var vertexErrors = new D3dBlob();
-            if (D3dCompiler.compile(_resource.hlsl.vertex.getData(), null, null, null, 'VShader', 'vs_5_0', 0, 0, vertexBytecode, vertexErrors) != 0)
-            {
-                throw new DX11VertexCompilationError(_resource.name, '');
-            }
-
-            var pixelErrors = new D3dBlob();
-            if (D3dCompiler.compile(_resource.hlsl.fragment.getData(), null, null, null, 'PShader', 'ps_5_0', 0, 0, pixelBytecode, pixelErrors) != 0)
-            {
-                throw new DX11FragmentCompilationError(_resource.name, '');
-            }
-        }
+        memcpy(vertexBytecode.getBufferPointer(), _resource.vertSource.getData().address(0), _resource.vertSource.length);
+        memcpy(pixelBytecode.getBufferPointer(), _resource.fragSource.getData().address(0), _resource.fragSource.length);
 
         // Create the vertex shader
-        var vertexShader = new D3d11VertexShader();
+        final vertexShader = new D3d11VertexShader();
         if (device.createVertexShader(vertexBytecode, null, vertexShader) != Ok)
         {
             throw new Dx11ResourceCreationException('ID3D11VertexShader');
         }
 
         // Create the fragment shader
-        var pixelShader = new D3d11PixelShader();
+        final pixelShader = new D3d11PixelShader();
         if (device.createPixelShader(pixelBytecode, null, pixelShader) != Ok)
         {
             throw new Dx11ResourceCreationException('ID3D11PixelShader');
@@ -847,7 +824,7 @@ using cpp.NativeArray;
 
         // Create the shader layout.
         var elementPos = new D3d11InputElementDescription();
-        elementPos.semanticName         = "POSITION";
+        elementPos.semanticName         = "TEXCOORD";
         elementPos.semanticIndex        = 0;
         elementPos.format               = R32G32B32Float;
         elementPos.inputSlot            = 0;
@@ -855,8 +832,8 @@ using cpp.NativeArray;
         elementPos.inputSlotClass       = PerVertexData;
         elementPos.instanceDataStepRate = 0;
         var elementCol = new D3d11InputElementDescription();
-        elementCol.semanticName         = "COLOR";
-        elementCol.semanticIndex        = 0;
+        elementCol.semanticName         = "TEXCOORD";
+        elementCol.semanticIndex        = 1;
         elementCol.format               = R32G32B32A32Float;
         elementCol.inputSlot            = 0;
         elementCol.alignedByteOffset    = 12;
@@ -864,7 +841,7 @@ using cpp.NativeArray;
         elementCol.instanceDataStepRate = 0;
         var elementTex = new D3d11InputElementDescription();
         elementTex.semanticName         = "TEXCOORD";
-        elementTex.semanticIndex        = 0;
+        elementTex.semanticIndex        = 2;
         elementTex.format               = R32G32Float;
         elementTex.inputSlot            = 0;
         elementTex.alignedByteOffset    = 28;
@@ -878,7 +855,7 @@ using cpp.NativeArray;
         }
 
         // Create our shader and a class to store its resources.
-        shaderResources.set(_resource.id, new ShaderInformation(_resource.layout, vertexShader, pixelShader, inputLayout));
+        shaderResources.set(_resource.id, new ShaderInformation(_resource.vertInfo, _resource.fragInfo, vertexShader, pixelShader, inputLayout));
     }
 
     /**
@@ -1059,33 +1036,35 @@ using cpp.NativeArray;
                 final length = [ Maths.nextMultipleOff(block.buffer.byteLength, 256) ];
                 final info   = shaderResources[command.shader];
 
-                context.vsSetConstantBuffers1(
-                    findBlockIndexByName(block.name, info.layout.blocks),
-                    buffer,
-                    offset,
-                    length);
-                context.psSetConstantBuffers1(
-                    findBlockIndexByName(block.name, info.layout.blocks),
-                    buffer,
-                    offset,
-                    length);
+                final location = findBlockIndexByName(block.name, info.vertInfo.blocks);
+                if (location != -1)
+                {
+                    context.vsSetConstantBuffers1(location, buffer, offset, length);
+                }
+
+                final location = findBlockIndexByName(block.name, info.fragInfo.blocks);
+                if (location != -1)
+                {
+                    context.psSetConstantBuffers1(location, buffer, offset, length);
+                }
 
                 unfOffset = Maths.nextMultipleOff(unfOffset + block.buffer.byteLength, 256);
             }
 
+            final shader   = shaderResources[command.shader];
+            final location = findBlockIndexByName('flurry_matrices', shader.vertInfo.blocks);
+
             for (geometry in command.geometry)
             {
-                // Bind Matrix CBuffer
-                final buffer = [ matrixBuffer ];
-                final offset = [ cast matOffset / 16 ];
-                final length = [ 256 ];
-                final info   = shaderResources[command.shader];
+                if (location != -1)
+                {
+                    // Bind Matrix CBuffer
+                    final buffer = [ matrixBuffer ];
+                    final offset = [ cast matOffset / 16 ];
+                    final length = [ 256 ];
 
-                context.vsSetConstantBuffers1(
-                    findBlockIndexByName('flurry_matrices', info.layout.blocks),
-                    buffer,
-                    offset,
-                    length);
+                    context.vsSetConstantBuffers1(location, buffer, offset, length);
+                }
 
                 matOffset += 256;
                 
@@ -1117,7 +1096,7 @@ using cpp.NativeArray;
             }
         }
 
-        throw new Exception('Unable to find a uniform block with that name "$_name"');
+        return -1;
     }
 
     /**
@@ -1314,7 +1293,7 @@ using cpp.NativeArray;
         // If the shader description specifies more textures than the command provides throw an exception.
         // If less is specified than provided we just ignore the extra, maybe we should throw as well?
         final info  = shaderResources[_shader];
-        final count = info.layout.textures.length;
+        final count = info.fragInfo.textures.length;
 
         if (count >= _textures.length)
         {
@@ -1571,10 +1550,9 @@ private class TextureInformation
  */
 private class ShaderInformation
 {
-    /**
-     * JSON structure describing the textures and blocks in the shader.
-     */
-    public final layout : ShaderLayout;
+    public final vertInfo : ShaderVertInfo;
+
+    public final fragInfo : ShaderFragInfo;
 
     /**
      * D3D11 vertex shader pointer.
@@ -1591,12 +1569,13 @@ private class ShaderInformation
      */
     public final inputLayout : D3d11InputLayout;
 
-    public function new(_layout : ShaderLayout, _vertex : D3d11VertexShader, _pixel : D3d11PixelShader, _input : D3d11InputLayout)
+    public function new(_vertInfo : ShaderVertInfo, _fragInfo : ShaderFragInfo, _vertex : D3d11VertexShader, _pixel : D3d11PixelShader, _input : D3d11InputLayout)
     {
-        layout          = _layout;
-        vertexShader    = _vertex;
-        pixelShader     = _pixel;
-        inputLayout     = _input;
+        vertInfo     = _vertInfo;
+        fragInfo     = _fragInfo;
+        vertexShader = _vertex;
+        pixelShader  = _pixel;
+        inputLayout  = _input;
     }
 
     public function destroy()
