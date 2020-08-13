@@ -62,6 +62,13 @@ class Utils
             case _ : 'glslangValidator';
         }
 
+    public static function spirvCrossExecutable()
+        return switch platform()
+        {
+            case Windows : 'spirv-cross.exe';
+            case _ : 'spirv-cross';
+        }
+
     public static function asepriteExecutable()
         return switch platform()
         {
