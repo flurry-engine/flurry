@@ -1,5 +1,6 @@
 package commands;
 
+import haxe.zip.Uncompress;
 import Types.Project;
 import haxe.io.Path;
 import haxe.io.BytesInput;
@@ -116,12 +117,21 @@ class Restore
         return switch net.download(url, proc)
         {
             case Success(data):
-                final input = new BytesInput(data);
+                final input  = new BytesInput(data);
+                final target = 'bin/glslangValidator${ switch Utils.platform() {
+                    case Windows: '.exe';
+                    case Mac, Linux: '';
+                } }';
 
                 for (entry in new format.zip.Reader(input).read())
                 {
-                    if (entry.fileName.startsWith('bin/glslangValidator'))
+                    if (entry.fileName == target)
                     {
+                        if (entry.compressed)
+                        {
+                            format.zip.Tools.uncompress(entry);
+                        }
+
                         fs.file.writeBytes(tool, entry.data.sure());
 
                         if (Utils.platform() != Windows)
@@ -162,11 +172,15 @@ class Restore
         return switch net.download(url, proc)
         {
             case Success(data):
-                final input = new BytesInput(data);
+                final input  = new BytesInput(data);
+                final target = 'bin/spirv-cross${ switch Utils.platform() {
+                    case Windows: '.exe';
+                    case Mac, Linux: '';
+                } }';
 
                 for (entry in new Reader(input).read())
                 {
-                    if (entry.fileName.startsWith('bin/spirv-cross'))
+                    if (entry.fileName == target)
                     {
                         fs.file.writeBytes(tool, entry.data.sure());
 

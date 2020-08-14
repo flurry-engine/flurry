@@ -9,22 +9,6 @@ typedef JsonResource = {
     final path : String;
 }
 
-typedef JsonShaderValue = {
-    final type : ShaderType;
-    final name : String;
-}
-
-typedef JsonShaderBlock = {
-    final name : String;
-    final binding : Int;
-    final values : Array<JsonShaderValue>;
-}
-
-typedef JsonShaderDefinition = {
-    final textures : Array<String>;
-    final blocks : Array<JsonShaderBlock>;
-}
-
 typedef JsonShaderResource = {
     final id : String;
     final vertex : String;
