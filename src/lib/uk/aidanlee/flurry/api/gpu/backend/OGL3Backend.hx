@@ -23,13 +23,16 @@ import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
+import uk.aidanlee.flurry.api.gpu.textures.Filtering;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
+import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.resources.Resource.Resource;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
+import uk.aidanlee.flurry.api.resources.Resource.PixelFormat;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderInput;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
@@ -38,7 +41,6 @@ import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
 using rx.Observable;
 using cpp.NativeArray;
-using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
 
 @:nullSafety(Off) class OGL3Backend implements IRendererBackend
 {
@@ -567,7 +569,7 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _resource.width, _resource.height, 0, _resource.format.getPixelFormat(), GL_UNSIGNED_BYTE, _resource.pixels);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _resource.width, _resource.height, 0, getPixelFormat(_resource.format), GL_UNSIGNED_BYTE, _resource.pixels);
 
         glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -767,7 +769,7 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                         final length = _indices.shortAccess.length;
 
                         untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})',
-                            command.primitive.getPrimitiveType(),
+                            getPrimitiveType(command.primitive),
                             length,
                             GL_UNSIGNED_SHORT,
                             idxOffset,
@@ -777,7 +779,7 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                         vtxOffset += Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
                     case UnIndexed(_vertices):
                         final numOfVerts = Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
-                        final primitive  = command.primitive.getPrimitiveType();
+                        final primitive  = getPrimitiveType(command.primitive);
 
                         glDrawArrays(primitive, vtxOffset, numOfVerts);
 
@@ -982,7 +984,7 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                 }
                 if (_newDepth.func != depth.func)
                 {
-                    glDepthFunc(_newDepth.func.getComparisonFunc());
+                    glDepthFunc(getComparisonFunc(_newDepth.func));
                 }
             }
 
@@ -1006,13 +1008,9 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                 }
 
                 // Front tests
-                // if (_newStencil.stencilFrontMask != stencil.stencilFrontMask)
-                // {
-                //     glStencilMaskSeparate(GL_FRONT, _newStencil.stencilFrontMask);
-                // }
                 if (_newStencil.frontFunc != stencil.frontFunc)
                 {
-                    glStencilFuncSeparate(GL_FRONT, _newStencil.frontFunc.getComparisonFunc(), 1, 0xff);
+                    glStencilFuncSeparate(GL_FRONT, getComparisonFunc(_newStencil.frontFunc), 1, 0xff);
                 }
                 if (_newStencil.frontTestFail != stencil.frontTestFail ||
                     _newStencil.frontDepthTestFail != stencil.frontDepthTestFail ||
@@ -1020,19 +1018,15 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                 {
                     glStencilOpSeparate(
                         GL_FRONT,
-                        _newStencil.frontTestFail.getStencilFunc(),
-                        _newStencil.frontDepthTestFail.getStencilFunc(),
-                        _newStencil.frontDepthTestPass.getStencilFunc());
+                        getStencilFunc(_newStencil.frontTestFail),
+                        getStencilFunc(_newStencil.frontDepthTestFail),
+                        getStencilFunc(_newStencil.frontDepthTestPass));
                 }
 
                 // Back tests
-                // if (_newStencil.stencilBackMask != stencil.stencilBackMask)
-                // {
-                //     glStencilMaskSeparate(GL_BACK, _newStencil.stencilBackMask);
-                // }
                 if (_newStencil.backFunc != stencil.backFunc)
                 {
-                    glStencilFuncSeparate(GL_BACK, _newStencil.backFunc.getComparisonFunc(), 1, 0xff);
+                    glStencilFuncSeparate(GL_BACK, getComparisonFunc(_newStencil.backFunc), 1, 0xff);
                 }
                 if (_newStencil.backTestFail != stencil.backTestFail ||
                     _newStencil.backDepthTestFail != stencil.backDepthTestFail ||
@@ -1040,9 +1034,9 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                 {
                     glStencilOpSeparate(
                         GL_BACK,
-                        _newStencil.backTestFail.getStencilFunc(),
-                        _newStencil.backDepthTestFail.getStencilFunc(),
-                        _newStencil.backDepthTestPass.getStencilFunc());
+                        getStencilFunc(_newStencil.backTestFail),
+                        getStencilFunc(_newStencil.backDepthTestFail),
+                        getStencilFunc(_newStencil.backDepthTestPass));
                 }
             }
 
@@ -1062,10 +1056,10 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                 }
 
                 glBlendFuncSeparate(
-                    _newBlend.srcRgb.getBlendMode(),
-                    _newBlend.dstRgb.getBlendMode(),
-                    _newBlend.srcAlpha.getBlendMode(),
-                    _newBlend.dstAlpha.getBlendMode());
+                    getBlendMode(_newBlend.srcRgb),
+                    getBlendMode(_newBlend.dstRgb),
+                    getBlendMode(_newBlend.srcAlpha),
+                    getBlendMode(_newBlend.dstAlpha));
             }
             else
             {
@@ -1113,10 +1107,10 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
     {
         var samplers = [ 0 ];
         glGenSamplers(1, samplers);
-        glSamplerParameteri(samplers[0], GL_TEXTURE_MAG_FILTER, _sampler.minification.getFilterType());
-        glSamplerParameteri(samplers[0], GL_TEXTURE_MIN_FILTER, _sampler.magnification.getFilterType());
-        glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_S, _sampler.uClamping.getEdgeClamping());
-        glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_T, _sampler.vClamping.getEdgeClamping());
+        glSamplerParameteri(samplers[0], GL_TEXTURE_MAG_FILTER, getFilterType(_sampler.minification));
+        glSamplerParameteri(samplers[0], GL_TEXTURE_MIN_FILTER, getFilterType(_sampler.magnification));
+        glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_S, getEdgeClamping(_sampler.uClamping));
+        glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_T, getEdgeClamping(_sampler.vClamping));
 
         return samplers[0];
     }
@@ -1240,6 +1234,96 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
         }
 
         return distinct;
+    }
+
+    function getPrimitiveType(_primitive : PrimitiveType)
+    {
+        return switch _primitive
+        {
+            case Points        : GL_POINTS;
+            case Lines         : GL_LINES;
+            case LineStrip     : GL_LINE_STRIP;
+            case Triangles     : GL_TRIANGLES;
+            case TriangleStrip : GL_TRIANGLE_STRIP;
+        }
+    }
+
+    function getBlendMode(_mode : BlendMode)
+    {
+        return switch _mode
+        {
+            case Zero             : GL_ZERO;
+            case One              : GL_ONE;
+            case SrcAlphaSaturate : GL_SRC_ALPHA_SATURATE;
+            case SrcColor         : GL_SRC_COLOR;
+            case OneMinusSrcColor : GL_ONE_MINUS_SRC_COLOR;
+            case SrcAlpha         : GL_SRC_ALPHA;
+            case OneMinusSrcAlpha : GL_ONE_MINUS_SRC_ALPHA;
+            case DstAlpha         : GL_DST_ALPHA;
+            case OneMinusDstAlpha : GL_ONE_MINUS_DST_ALPHA;
+            case DstColor         : GL_DST_COLOR;
+            case OneMinusDstColor : GL_ONE_MINUS_DST_COLOR;
+            case _: 0;
+        }
+    }
+
+    function getComparisonFunc(_func : ComparisonFunction)
+    {
+        return switch _func
+        {
+            case Always             : GL_ALWAYS;
+            case Never              : GL_NEVER;
+            case LessThan           : GL_LESS;
+            case Equal              : GL_EQUAL;
+            case LessThanOrEqual    : GL_LEQUAL;
+            case GreaterThan        : GL_GREATER;
+            case GreaterThanOrEqual : GL_GEQUAL;
+            case NotEqual           : GL_NOTEQUAL;
+        }
+    }
+
+    function getStencilFunc(_func : StencilFunction)
+    {
+        return switch _func
+        {
+            case Keep          : GL_KEEP;
+            case Zero          : GL_ZERO;
+            case Replace       : GL_REPLACE;
+            case Invert        : GL_INVERT;
+            case Increment     : GL_INCR;
+            case IncrementWrap : GL_INCR_WRAP;
+            case Decrement     : GL_DECR;
+            case DecrementWrap : GL_DECR_WRAP;
+        }
+    }
+
+    function getFilterType(_filter : Filtering)
+    {
+        return switch _filter
+        {
+            case Nearest : GL_NEAREST;
+            case Linear  : GL_LINEAR;
+        }
+    }
+
+    function getEdgeClamping(_clamping : EdgeClamping)
+    {
+        return switch _clamping
+        {
+            case Wrap   : GL_REPEAT;
+            case Mirror : GL_MIRRORED_REPEAT;
+            case Clamp  : GL_CLAMP_TO_EDGE;
+            case Border : GL_CLAMP_TO_BORDER;
+        }
+    }
+
+    function getPixelFormat(_format : PixelFormat)
+    {
+        return switch _format
+        {
+            case BGRAUNorm: GL_BGRA;
+            case RGBAUNorm: GL_RGBA;
+        }
     }
 }
 
