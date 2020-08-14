@@ -30,10 +30,10 @@ import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.resources.Resource.Resource;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderInput;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
 using rx.Observable;
@@ -499,14 +499,9 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
             return;
         }
 
-        if (_resource.ogl3 == null)
-        {
-            throw new OGL3NoShaderSourceException(_resource.name);
-        }
-
         // Create vertex shader.
         var vertex = glCreateShader(GL_VERTEX_SHADER);
-        shaderSource(vertex, _resource.ogl3.vertex.toString());
+        shaderSource(vertex, _resource.vertSource.toString());
         glCompileShader(vertex);
 
         if (getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
@@ -516,7 +511,7 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
 
         // Create fragment shader.
         var fragment = glCreateShader(GL_FRAGMENT_SHADER);
-        shaderSource(fragment, _resource.ogl3.fragment.toString());
+        shaderSource(fragment, _resource.fragSource.toString());
         glCompileShader(fragment);
 
         if (getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
@@ -540,17 +535,18 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
         glDeleteShader(fragment);
 
         // Fetch the location of all the shaders texture and interface blocks, also bind blocks to a binding point.
-        var textureLocations = [ for (t in _resource.layout.textures) glGetUniformLocation(program, t) ];
-        var blockLocations   = [ for (b in _resource.layout.blocks) glGetUniformBlockIndex(program, b.name) ];
-        var blockBindings    = [ for (i in 0..._resource.layout.blocks.length) _resource.layout.blocks[i].binding ];
 
-        for (i in 0..._resource.layout.blocks.length)
+        final distinctBlocks   = getDistinctBlocks(_resource.vertInfo.blocks, _resource.fragInfo.blocks);
+        final textureLocations = [ for (i in 0..._resource.fragInfo.samplers.length) findCombinedSampler(_resource.fragInfo.textures[i], _resource.fragInfo.samplers[i], program) ];
+        final blockLocations   = [ for (b in distinctBlocks) glGetUniformBlockIndex(program, b.name) ];
+
+        for (idx => block in distinctBlocks)
         {
-            glUniformBlockBinding(program, blockLocations[i], blockBindings[i]);
+            glUniformBlockBinding(program, blockLocations[idx], block.binding);
         }
 
         shaderPrograms.set(_resource.id, program);
-        shaderUniforms.set(_resource.id, new ShaderInformation(_resource.layout, textureLocations, blockBindings));
+        shaderUniforms.set(_resource.id, new ShaderInformation(distinctBlocks, textureLocations));
     }
 
     function removeShader(_id : ResourceID)
@@ -742,13 +738,12 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
             for (block in command.uniforms)
             {
                 final info = shaderUniforms[command.shader];
+                final idx  = findBlockIndexByName(block.name, info.blocks);
 
-                glBindBufferRange(
-                    GL_UNIFORM_BUFFER,
-                    findBlockIndexByName(block.name, info.layout.blocks),
-                    glUniformBuffer,
-                    unfOffset,
-                    block.buffer.byteLength);
+                if (idx != -1)
+                {
+                    glBindBufferRange(GL_UNIFORM_BUFFER, idx, glUniformBuffer, unfOffset, block.buffer.byteLength);
+                }
     
                 unfOffset = Maths.nextMultipleOff(unfOffset + block.buffer.byteLength, glUboAlignment);
             }
@@ -757,13 +752,12 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
             {
                 // Bind the correct range for the matrix buffer
                 final info = shaderUniforms[command.shader];
+                final idx  = findBlockIndexByName("flurry_matrices", info.blocks);
 
-                glBindBufferRange(
-                    GL_UNIFORM_BUFFER,
-                    findBlockIndexByName("flurry_matrices", info.layout.blocks),
-                    glMatrixBuffer,
-                    matOffset,
-                    192);
+                if (idx != -1)
+                {
+                    glBindBufferRange(GL_UNIFORM_BUFFER, idx, glMatrixBuffer, matOffset, 192);
+                }
 
                 switch geometry.data
                 {
@@ -857,7 +851,7 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
         // If the shader description specifies more textures than the command provides throw an exception.
         // If less is specified than provided we just ignore the extra, maybe we should throw as well?
         final info  = shaderUniforms[_shader];
-        final count = info.layout.textures.length;
+        final count = info.textureLocations.length;
 
         if (count >= _textures.length)
         {
@@ -866,10 +860,11 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
             {
                 // Bind and activate the texture if its not already bound.
                 final glTextureID = textureObjects[_textures[i]];
+                final textureUnit = info.textureLocations[i];
 
                 if (glTextureID != textureSlots[i])
                 {
-                    glActiveTexture(GL_TEXTURE0 + i);
+                    glActiveTexture(GL_TEXTURE0 + textureUnit);
                     glBindTexture(GL_TEXTURE_2D, glTextureID);
 
                     textureSlots[i] = glTextureID;
@@ -892,7 +887,7 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                 // If its not already bound bind it and update the bound sampler array.
                 if (currentSampler != samplerSlots[i])
                 {
-                    glBindSampler(i, currentSampler);
+                    glBindSampler(textureUnit, currentSampler);
 
                     samplerSlots[i] = currentSampler;
                 }
@@ -1209,7 +1204,42 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
             }
         }
 
-        throw new OGL3UniformBlockNotFoundException(_name);
+        return -1;
+    }
+
+    /**
+     * Generate the combined sampler name from the provided texture and sampler.
+     * This assumes that the default spirv combined sampler generation is used.
+     * @param _texture Texture object.
+     * @param _sampler Sampler object.
+     * @param _program Shader program to get the location from.
+     */
+    function findCombinedSampler(_texture : ShaderInput, _sampler : ShaderInput, _program : Int)
+    {
+        final combinedName = 'SPIRV_Cross_Combined${ _texture.name }${ _sampler.name }';
+
+        return glGetUniformLocation(_program, combinedName);
+    }
+
+    /**
+     * Returns all unique blocks from the vertex and fragment stage.
+     * @param _vertBlocks UBOs found in the vertex stage.
+     * @param _fragBlocks UBOs found in the fragment stage.
+     * @return ReadOnlyArray<ShaderBlock>
+     */
+    function getDistinctBlocks(_vertBlocks : ReadOnlyArray<ShaderBlock>, _fragBlocks : ReadOnlyArray<ShaderBlock>) : ReadOnlyArray<ShaderBlock>
+    {
+        final distinct = _vertBlocks.copy();
+
+        for (block in _fragBlocks)
+        {
+            if (!Lambda.exists(distinct, b -> b.name == block.name))
+            {
+                distinct.push(block);
+            }
+        }
+
+        return distinct;
     }
 }
 
@@ -1247,25 +1277,19 @@ private class BackBuffer
 private class ShaderInformation
 {
     /**
-     * Layout of the shader.
+     * All unique UBOs in this shader.
      */
-    public final layout : ShaderLayout;
+    public final blocks : ReadOnlyArray<ShaderBlock>;
 
     /**
      * Location of all texture uniforms.
      */
-    public final textureLocations : Array<Int>;
+    public final textureLocations : ReadOnlyArray<Int>;
 
-    /**
-     * Binding points of all shader blocks.
-     */
-    public final blockBindings : Array<Int>;
-
-    public function new(_layout, _textureLocations, _blockBindings)
+    public function new(_blocks, _textureLocations)
     {
-        layout           = _layout;
+        blocks           = _blocks;
         textureLocations = _textureLocations;
-        blockBindings    = _blockBindings;
     }
 }
 

@@ -1,5 +1,6 @@
 package parcel;
 
+import Types.GraphicsBackend;
 import haxe.Exception;
 import haxe.DynamicAccess;
 import haxe.io.Path;
@@ -69,14 +70,17 @@ class Shaders
 
     final proc : Proc;
 
+    final gpu : GraphicsBackend;
+
     final glslang : String;
 
     final spirvCross : String;
 
-    public function new(_toolsDir, _proc)
+    public function new(_toolsDir, _proc, _gpu)
     {
         toolsDir   = _toolsDir;
         proc       = _proc;
+        gpu        = _gpu;
         glslang    = Path.join([ toolsDir, Utils.glslangExecutable() ]);
         spirvCross = Path.join([ toolsDir, Utils.spirvCrossExecutable() ]);
     }
@@ -121,53 +125,57 @@ class Shaders
         final vertInfo = generateVertexInfo(tink.Json.parse(sys.io.File.getContent(vertJsonPath)));
         final fragInfo = generateFragmentInfo(tink.Json.parse(sys.io.File.getContent(fragJsonPath)));
 
-        // Stage 3, generate opengl 3.3 glsl and shader model 5 hlsl from the spirv
+        // Stage 3, generate opengl 3.3 glsl or shader model 5 hlsl from the spirv
 
-        final vertGlslPath = Path.join([ _tempAssets, '${ _shader.id }.vert.glsl' ]);
-        final fragGlslPath = Path.join([ _tempAssets, '${ _shader.id }.frag.glsl' ]);
-
-        final vertHlslPath = Path.join([ _tempAssets, '${ _shader.id }.vert.hlsl' ]);
-        final fragHlslPath = Path.join([ _tempAssets, '${ _shader.id }.frag.hlsl' ]);
-
-        switch proc.run(spirvCross, [ vertSpvPath, '--stage', 'vert', '--entry', 'main', '--version', '330', '--no-420pack-extension', '--output', vertGlslPath ])
+        return switch gpu
         {
-            case Success(_): trace('generated vert glsl');
-            case Failure(_): return Failure('failed to generated vert glsl');
-        }
-        switch proc.run(spirvCross, [ fragSpvPath, '--stage', 'frag', '--entry', 'main', '--version', '330', '--no-420pack-extension', '--output', fragGlslPath ])
-        {
-            case Success(_): trace('generated frag glsl');
-            case Failure(_): return Failure('failed to generated frag glsl');
-        }
+            case Mock, Ogl3:
+                final vertGlslPath = Path.join([ _tempAssets, '${ _shader.id }.vert.glsl' ]);
+                final fragGlslPath = Path.join([ _tempAssets, '${ _shader.id }.frag.glsl' ]);
 
-        switch proc.run(spirvCross, [ vertSpvPath, '--stage', 'vert', '--entry', 'main', '--hlsl', '--shader-model', '50', '--output', vertHlslPath ])
-        {
-            case Success(_): trace('generated vert hlsl');
-            case Failure(_): return Failure('failed to generated vert hlsl');
-        }
-        switch proc.run(spirvCross, [ fragSpvPath, '--stage', 'frag', '--entry', 'main', '--hlsl', '--shader-model', '50', '--output', fragHlslPath ])
-        {
-            case Success(_): trace('generated frag hlsl');
-            case Failure(_): return Failure('failed to generated frag hlsl');
-        }
+                switch proc.run(spirvCross, [ vertSpvPath, '--stage', 'vert', '--entry', 'main', '--version', '330', '--no-420pack-extension', '--output', vertGlslPath ])
+                {
+                    case Success(_): trace('generated vert glsl');
+                    case Failure(_): return Failure('failed to generated vert glsl');
+                }
+                switch proc.run(spirvCross, [ fragSpvPath, '--stage', 'frag', '--entry', 'main', '--version', '330', '--no-420pack-extension', '--output', fragGlslPath ])
+                {
+                    case Success(_): trace('generated frag glsl');
+                    case Failure(_): return Failure('failed to generated frag glsl');
+                }
 
-        // Stage 4 (windows only), invoke fxc and compile the hlsl
+                Success(new ShaderResource(_shader.id, sys.io.File.getBytes(vertGlslPath), sys.io.File.getBytes(fragGlslPath), vertInfo, fragInfo));
+            case D3d11:
+                final vertHlslPath = Path.join([ _tempAssets, '${ _shader.id }.vert.hlsl' ]);
+                final fragHlslPath = Path.join([ _tempAssets, '${ _shader.id }.frag.hlsl' ]);
 
-        final vertDxbcPath = Path.join([ _tempAssets, '${ _shader.id }.vert.dxbc' ]);
-        final fragDxbcPath = Path.join([ _tempAssets, '${ _shader.id }.frag.dxbc' ]);
+                switch proc.run(spirvCross, [ vertSpvPath, '--stage', 'vert', '--entry', 'main', '--hlsl', '--shader-model', '50', '--output', vertHlslPath ])
+                {
+                    case Success(_): trace('generated vert hlsl');
+                    case Failure(_): return Failure('failed to generated vert hlsl');
+                }
+                switch proc.run(spirvCross, [ fragSpvPath, '--stage', 'frag', '--entry', 'main', '--hlsl', '--shader-model', '50', '--output', fragHlslPath ])
+                {
+                    case Success(_): trace('generated frag hlsl');
+                    case Failure(_): return Failure('failed to generated frag hlsl');
+                }
 
-        switch proc.run('fxc', [ '/T', 'vs_5_0', '/E', 'main', '/Fo', vertDxbcPath, vertHlslPath ])
-        {
-            case Success(_): trace('generated vert dxbc');
-            case Failure(_): return Failure('failed to generated vert dxbc');
+                final vertDxbcPath = Path.join([ _tempAssets, '${ _shader.id }.vert.dxbc' ]);
+                final fragDxbcPath = Path.join([ _tempAssets, '${ _shader.id }.frag.dxbc' ]);
+
+                switch proc.run('fxc', [ '/T', 'vs_5_0', '/E', 'main', '/Fo', vertDxbcPath, vertHlslPath ])
+                {
+                    case Success(_): trace('generated vert dxbc');
+                    case Failure(_): return Failure('failed to generated vert dxbc');
+                }
+                switch proc.run('fxc', [ '/T', 'ps_5_0', '/E', 'main', '/Fo', fragDxbcPath, fragHlslPath ])
+                {
+                    case Success(_): trace('generated frag dxbc');
+                    case Failure(_): return Failure('failed to generated frag dxbc');
+                }
+
+                Success(new ShaderResource(_shader.id, sys.io.File.getBytes(vertDxbcPath), sys.io.File.getBytes(fragDxbcPath), vertInfo, fragInfo));
         }
-        switch proc.run('fxc', [ '/T', 'ps_5_0', '/E', 'main', '/Fo', fragDxbcPath, fragHlslPath ])
-        {
-            case Success(_): trace('generated frag dxbc');
-            case Failure(_): return Failure('failed to generated frag dxbc');
-        }
-
-        return Success(new ShaderResource(_shader.id, sys.io.File.getBytes(vertDxbcPath), sys.io.File.getBytes(fragDxbcPath), vertInfo, fragInfo));
     }
 
     function generateVertexInfo(_input : SpvcReflection) : ShaderVertInfo

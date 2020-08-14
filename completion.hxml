@@ -16,6 +16,7 @@
 -D format
 -D threads
 -D flurry-entry-point=uk.aidanlee.flurry.Flurry
+-D flurry-gpu-api=ogl3
 
 -lib hxcpp
 -lib linc_imgui

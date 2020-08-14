@@ -1,5 +1,6 @@
 package parcel;
 
+import Types.GraphicsBackend;
 import haxe.io.Path;
 import haxe.io.Bytes;
 import haxe.ds.ReadOnlyArray;
@@ -60,7 +61,7 @@ class Packer
 
     final shaders : Shaders;
 
-    public function new(_project : Project, _fs : IFileSystem = null, _proc : Proc = null)
+    public function new(_project : Project, _gpu : GraphicsBackend, _fs : IFileSystem = null, _proc : Proc = null)
     {
         fs          = _fs.or(new FileSystem());
         proc        = _proc.or(new Proc());
@@ -71,7 +72,7 @@ class Packer
         tempShaders = _project.tempShaders();
         toolsDir    = _project.toolPath();
         prepared    = [];
-        shaders     = new Shaders(toolsDir, proc);
+        shaders     = new Shaders(toolsDir, proc, _gpu);
 
         fs.directory.create(tempFonts);
         fs.directory.create(tempAssets);
