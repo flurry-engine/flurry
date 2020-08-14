@@ -823,7 +823,7 @@ using cpp.NativeArray;
         }
 
         // Create the shader layout.
-        var elementPos = new D3d11InputElementDescription();
+        final elementPos = new D3d11InputElementDescription();
         elementPos.semanticName         = "TEXCOORD";
         elementPos.semanticIndex        = 0;
         elementPos.format               = R32G32B32Float;
@@ -831,7 +831,7 @@ using cpp.NativeArray;
         elementPos.alignedByteOffset    = 0;
         elementPos.inputSlotClass       = PerVertexData;
         elementPos.instanceDataStepRate = 0;
-        var elementCol = new D3d11InputElementDescription();
+        final elementCol = new D3d11InputElementDescription();
         elementCol.semanticName         = "TEXCOORD";
         elementCol.semanticIndex        = 1;
         elementCol.format               = R32G32B32A32Float;
@@ -839,7 +839,7 @@ using cpp.NativeArray;
         elementCol.alignedByteOffset    = 12;
         elementCol.inputSlotClass       = PerVertexData;
         elementCol.instanceDataStepRate = 0;
-        var elementTex = new D3d11InputElementDescription();
+        final elementTex = new D3d11InputElementDescription();
         elementTex.semanticName         = "TEXCOORD";
         elementTex.semanticIndex        = 2;
         elementTex.format               = R32G32Float;
@@ -1295,13 +1295,13 @@ using cpp.NativeArray;
         final info  = shaderResources[_shader];
         final count = info.fragInfo.textures.length;
 
-        if (count >= _textures.length)
+        if (_textures.length >= count)
         {
-            shaderTextureResources.resize(_textures.length);
-            shaderTextureSamplers.resize(_textures.length);
+            shaderTextureResources.resize(count);
+            shaderTextureSamplers.resize(count);
 
             // then go through each texture and bind it if it isn't already.
-            for (i in 0..._textures.length)
+            for (i in 0...count)
             {
                 var texture = textureResources[_textures[i]];
                 var sampler = defaultSampler;

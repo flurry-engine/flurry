@@ -855,10 +855,10 @@ using cpp.NativeArray;
         final info  = shaderUniforms[_shader];
         final count = info.textureLocations.length;
 
-        if (count >= _textures.length)
+        if (_textures.length >= count)
         {
             // then go through each texture and bind it if it isn't already.
-            for (i in 0..._textures.length)
+            for (i in 0...count)
             {
                 // Bind and activate the texture if its not already bound.
                 final glTextureID = textureObjects[_textures[i]];
