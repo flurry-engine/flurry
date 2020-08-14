@@ -3,8 +3,6 @@ package tests.api.gpu.geometry.shapes;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.SpriteGeometry;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
 import uk.aidanlee.flurry.api.resources.Resource.SpriteFrameResource;
 import buddy.BuddySuite;

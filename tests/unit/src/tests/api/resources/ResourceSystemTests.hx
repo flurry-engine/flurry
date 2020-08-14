@@ -40,16 +40,19 @@ class ResourceSystemTests extends SingleSuite
             parcels: [ 'assets/assets.json' ]
         };
 
-        new Restore(project).run();
-        switch new Packer(project).create('assets/assets.json')
+        switch new Restore(project).run()
+        {
+            case Success(_): //
+            case Failure(message): throw new Exception('failed to download tools : $message');
+        }
+        switch new Packer(project, Ogl3).create('assets/assets.json')
         {
             case Success(data):
                 for (parcel in data)
                 {
                     parcels[parcel.name] = sys.io.File.getBytes(parcel.file);
                 }
-            case Failure(message):
-                trace('failed to build parcels : $message');
+            case Failure(message): throw new Exception('failed to build parcels : $message');
         }
 
         describe('ResourceSystem', {
@@ -116,10 +119,10 @@ class ResourceSystemTests extends SingleSuite
                 final image  = new ImageResource('dots', 2, 2, RGBAUNorm, haxe.io.Bytes.alloc(2 * 2 * 4).getData());
                 final shader = new ShaderResource(
                     'shdr',
-                    new ShaderLayout([ 'defaultTexture' ], []),
-                    new ShaderSource(false, haxe.io.Bytes.ofString('ogl3_vertex'), haxe.io.Bytes.ofString('ogl3_fragment')),
-                    new ShaderSource(false, haxe.io.Bytes.ofString('ogl4_vertex'), haxe.io.Bytes.ofString('ogl4_fragment')),
-                    new ShaderSource(false, haxe.io.Bytes.ofString('hlsl_vertex'), haxe.io.Bytes.ofString('hlsl_fragment')));
+                    haxe.io.Bytes.ofString('vertex'),
+                    haxe.io.Bytes.ofString('fragment'),
+                    new ShaderVertInfo([], []),
+                    new ShaderFragInfo([], [], []));
 
                 it('will fire a create event when adding an image resource', {
                     final sub = events.created.subscribeFunction(ev -> {
@@ -146,14 +149,8 @@ class ResourceSystemTests extends SingleSuite
                             case Shader:
                                 final res : ShaderResource = cast ev;
                                 res.name.should.be('shdr');
-                                res.layout.textures.should.containExactly([ 'defaultTexture' ]);
-                                res.layout.blocks.should.containExactly([ ]);
-                                res.ogl3.vertex.toString().should.be('ogl3_vertex');
-                                res.ogl3.fragment.toString().should.be('ogl3_fragment');
-                                res.ogl4.vertex.toString().should.be('ogl4_vertex');
-                                res.ogl4.fragment.toString().should.be('ogl4_fragment');
-                                res.hlsl.vertex.toString().should.be('hlsl_vertex');
-                                res.hlsl.fragment.toString().should.be('hlsl_fragment');
+                                res.vertSource.toString().should.be('vertex');
+                                res.fragSource.toString().should.be('fragment');
                             case _: fail('expected shader');
                         }
                     });
@@ -187,14 +184,8 @@ class ResourceSystemTests extends SingleSuite
                             case Shader:
                                 final res : ShaderResource = cast ev;
                                 res.name.should.be('shdr');
-                                res.layout.textures.should.containExactly([ 'defaultTexture' ]);
-                                res.layout.blocks.should.containExactly([ ]);
-                                res.ogl3.vertex.toString().should.be('ogl3_vertex');
-                                res.ogl3.fragment.toString().should.be('ogl3_fragment');
-                                res.ogl4.vertex.toString().should.be('ogl4_vertex');
-                                res.ogl4.fragment.toString().should.be('ogl4_fragment');
-                                res.hlsl.vertex.toString().should.be('hlsl_vertex');
-                                res.hlsl.fragment.toString().should.be('hlsl_fragment');
+                                res.vertSource.toString().should.be('vertex');
+                                res.fragSource.toString().should.be('fragment');
                             case _: fail('expected shader');
                         }
                     });

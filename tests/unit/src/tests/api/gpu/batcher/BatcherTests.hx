@@ -1,14 +1,11 @@
 package tests.api.gpu.batcher;
 
-import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
 import buddy.BuddySuite;
 import mockatoo.Mockatoo.*;
 
@@ -183,10 +180,5 @@ class BatcherTests extends BuddySuite
             new IndexBlobBuilder()
                 .addInt(0)
                 .indexBlob());
-    }
-
-    function shader(_name : String = 'shader') : ShaderResource
-    {
-        return new ShaderResource(_name, new ShaderLayout([], []), null, null, null);
     }
 }
