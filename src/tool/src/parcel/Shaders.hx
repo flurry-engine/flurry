@@ -81,6 +81,13 @@ class Shaders
         spirvCross = Path.join([ toolsDir, Utils.spirvCrossExecutable() ]);
     }
 
+    /**
+     * Create a serialisable shader resource from the provided shader sources.
+     * @param _baseDir Base assets path all other asset paths are relative to.
+     * @param _tempAssets Directory to intermediate data in.
+     * @param _shader Shader asset to create.
+     * @return Result<ShaderResource, String>
+     */
     public function compile(_baseDir : String, _tempAssets : String, _shader : JsonShaderResource) : Result<ShaderResource, String>
     {
         // Stage 1, compile the vulkan glsl intp spirv bytecode
@@ -179,6 +186,11 @@ class Shaders
         }
     }
 
+    /**
+     * Generate a serialisable structure from a reflection vertex input.
+     * @param _input Vertex stage reflection data from spirv-cross.
+     * @return ShaderVertInfo
+     */
     function generateVertexInfo(_input : SpvcReflection) : ShaderVertInfo
     {
         final layout = [ for (i in _input.inputs.or([])) new ShaderInput(i.name, parseType(i.type), i.location) ];
@@ -187,6 +199,11 @@ class Shaders
         return new ShaderVertInfo(layout, blocks);
     }
 
+    /**
+     * Generate a serialisable structure from a reflected fragment input.
+     * @param _input Fragment stage reflection data from spirv-cross.
+     * @return ShaderFragInfo
+     */
     function generateFragmentInfo(_input : SpvcReflection) : ShaderFragInfo
     {
         final textures = [ for (t in _input.separate_images.or([])) new ShaderInput(t.name, parseType(t.type), t.binding) ];
@@ -196,6 +213,11 @@ class Shaders
         return new ShaderFragInfo(textures, samplers, blocks);
     }
 
+    /**
+     * Convert a reflected string type into the equivilent enum.
+     * @param _type String to match.
+     * @return ShaderType
+     */
     function parseType(_type : String) : ShaderType
     {
         return switch _type
@@ -211,6 +233,12 @@ class Shaders
         }
     }
 
+    /**
+     * Return an array of inputs for a block.
+     * Block needs to be searched for due to the reflection json format.
+     * @param _input Complete reflection structure.
+     * @param _name Name of the block to get members for.
+     */
     function getMembers(_input : SpvcReflection, _name : String)
     {
         if (_input.types != null)
@@ -231,6 +259,10 @@ class Shaders
         }
     }
 
+    /**
+     * Try and find fxc.exe using the installed Windows SDK.
+     * @return Result<fxc path, error message>
+     */
     function getFxc() : Result<String, String>
     {
         final psLine  = "powershell -command \"(Get-Item 'hklm:\\SOFTWARE\\WOW6432Node\\Microsoft\\Microsoft SDKs\\Windows\\v10.0').GetValue('ProductVersion')\"";

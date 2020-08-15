@@ -864,8 +864,6 @@ using cpp.NativeArray;
                 final glTextureID = textureObjects[_textures[i]];
                 final textureUnit = info.textureLocations[i];
 
-                trace('texture unit : $textureUnit $i');
-
                 if (glTextureID != textureSlots[i])
                 {
                     glActiveTexture(GL_TEXTURE0 + i);

@@ -1,7 +1,5 @@
 package parcel;
 
-import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
-
 // Parcel Structures
 
 typedef JsonResource = {
