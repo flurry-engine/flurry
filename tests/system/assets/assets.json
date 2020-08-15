@@ -22,23 +22,23 @@
         "shaders" : [
             {
                 "id" : "textured",
-                "vertex" : "shaders/ogl4/textured.vert.glsl",
-                "fragment" : "shaders/ogl4/textured.frag.glsl"
+                "vertex" : "shaders/textured.vert.glsl",
+                "fragment" : "shaders/textured.frag.glsl"
             },
             {
                 "id" : "colourise",
-                "vertex" : "shaders/ogl4/colourise.vert.glsl",
-                "fragment" : "shaders/ogl4/colourise.frag.glsl"
+                "vertex" : "shaders/colourise.vert.glsl",
+                "fragment" : "shaders/colourise.frag.glsl"
             },
             {
                 "id" : "purple",
-                "vertex" : "shaders/ogl4/purple.vert.glsl",
-                "fragment" : "shaders/ogl4/purple.frag.glsl"
+                "vertex" : "shaders/purple.vert.glsl",
+                "fragment" : "shaders/purple.frag.glsl"
             },
             {
                 "id" : "msdf",
-                "vertex" : "shaders/ogl4/textured.vert.glsl",
-                "fragment" : "shaders/ogl4/msdf.frag.glsl"
+                "vertex" : "shaders/textured.vert.glsl",
+                "fragment" : "shaders/msdf.frag.glsl"
             }
         ]
     },
