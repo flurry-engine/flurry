@@ -129,7 +129,9 @@ class Restore
                     {
                         if (entry.compressed)
                         {
+#if neko
                             format.zip.Tools.uncompress(entry);
+#end
                         }
 
                         fs.file.writeBytes(tool, entry.data.sure());
