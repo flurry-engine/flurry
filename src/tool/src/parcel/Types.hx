@@ -1,7 +1,5 @@
 package parcel;
 
-import uk.aidanlee.flurry.api.resources.Resource.ShaderType;
-
 // Parcel Structures
 
 typedef JsonResource = {
@@ -9,32 +7,10 @@ typedef JsonResource = {
     final path : String;
 }
 
-typedef JsonShaderValue = {
-    final type : ShaderType;
-    final name : String;
-}
-
-typedef JsonShaderBlock = {
-    final name : String;
-    final binding : Int;
-    final values : Array<JsonShaderValue>;
-}
-
-typedef JsonShaderDefinition = {
-    final textures : Array<String>;
-    final blocks : Array<JsonShaderBlock>;
-}
-
-typedef JsonShaderSource = {
+typedef JsonShaderResource = {
+    final id : String;
     final vertex : String;
     final fragment : String;
-    final compiled : Bool;
-}
-
-typedef JsonShaderResource = JsonResource & {
-    final ?ogl3 : JsonShaderSource;
-    final ?ogl4 : JsonShaderSource;
-    final ?hlsl : JsonShaderSource;
 }
 
 typedef JsonParcel = {

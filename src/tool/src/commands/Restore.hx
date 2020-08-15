@@ -1,5 +1,6 @@
 package commands;
 
+import haxe.zip.Uncompress;
 import Types.Project;
 import haxe.io.Path;
 import haxe.io.BytesInput;
@@ -11,6 +12,7 @@ import uk.aidanlee.flurry.api.core.Unit;
 
 using Utils;
 using Safety;
+using StringTools;
 
 class Restore
 {
@@ -62,6 +64,11 @@ class Restore
             case Failure(_): return res;
             case _:
         }
+        switch res = getSpirvCross()
+        {
+            case Failure(_): return res;
+            case _:
+        }
 
         return res;
     }
@@ -94,7 +101,109 @@ class Restore
 
     function getGlslang() : Result<Unit, String>
     {
-        return Success(Unit.value);
+        final tool = Path.join([ toolPath, Utils.glslangExecutable() ]);
+        final url  = switch Utils.platform()
+        {
+            case Windows : 'https://github.com/KhronosGroup/glslang/releases/download/SDK-candidate-26-Jul-2020/glslang-master-windows-x64-Release.zip';
+            case Mac     : 'https://github.com/KhronosGroup/glslang/releases/download/SDK-candidate-26-Jul-2020/glslang-master-osx-Release.zip';
+            case Linux   : 'https://github.com/KhronosGroup/glslang/releases/download/SDK-candidate-26-Jul-2020/glslang-master-linux-Release.zip';
+        }
+
+        if (fs.file.exists(tool))
+        {
+            return Success(Unit.value);
+        }
+
+        return switch net.download(url, proc)
+        {
+            case Success(data):
+                final input  = new BytesInput(data);
+                final target = 'bin/glslangValidator${ switch Utils.platform() {
+                    case Windows: '.exe';
+                    case Mac, Linux: '';
+                } }';
+
+                for (entry in new format.zip.Reader(input).read())
+                {
+                    if (entry.fileName == target)
+                    {
+                        if (entry.compressed)
+                        {
+#if neko
+                            format.zip.Tools.uncompress(entry);
+#end
+                        }
+
+                        fs.file.writeBytes(tool, entry.data.sure());
+
+                        if (Utils.platform() != Windows)
+                        {
+                            switch proc.run('chmod', [ 'a+x', tool ])
+                            {
+                                case Failure(message): return Failure(message);
+                                case _:
+                            }
+                        }
+
+                        break;
+                    }
+                }
+
+                input.close();
+
+                Success(Unit.value);
+            case Failure(message): Failure(message);
+        }
+    }
+
+    function getSpirvCross() : Result<Unit, String>
+    {
+        final tool = Path.join([ toolPath, Utils.spirvCrossExecutable() ]);
+        final url  = switch Utils.platform()
+        {
+            case Windows : 'https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2020-06-29/spirv-cross-vs2017-64bit-b1082c10af.tar.gz';
+            case Mac     : 'https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2020-06-29/spirv-cross-clang-macos-64bit-b1082c10af.tar.gz';
+            case Linux   : 'https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2020-06-29/spirv-cross-gcc-trusty-64bit-b1082c10af.tar.gz';
+        }
+
+        if (fs.file.exists(tool))
+        {
+            return Success(Unit.value);
+        }
+
+        return switch net.download(url, proc)
+        {
+            case Success(data):
+                final input  = new BytesInput(data);
+                final target = 'bin/spirv-cross${ switch Utils.platform() {
+                    case Windows: '.exe';
+                    case Mac, Linux: '';
+                } }';
+
+                for (entry in new Reader(input).read())
+                {
+                    if (entry.fileName == target)
+                    {
+                        fs.file.writeBytes(tool, entry.data.sure());
+
+                        if (Utils.platform() != Windows)
+                        {
+                            switch proc.run('chmod', [ 'a+x', tool ])
+                            {
+                                case Failure(message): return Failure(message);
+                                case _:
+                            }
+                        }
+
+                        break;
+                    }
+                }
+
+                input.close();
+
+                Success(Unit.value);
+            case Failure(message): Failure(message);
+        }
     }
 
     function githubDownload(_url : String, _tool : String) : Result<Unit, String>

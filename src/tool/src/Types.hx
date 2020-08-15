@@ -1,9 +1,16 @@
 
 enum abstract Platform(String) from String to String
 {
-    final Windows = 'windows';
-    final Mac = 'mac';
-    final Linux = 'linux';
+    var Windows = 'windows';
+    var Mac = 'mac';
+    var Linux = 'linux';
+}
+
+enum GraphicsBackend
+{
+    Mock;
+    Ogl3;
+    D3d11;
 }
 
 enum Backend

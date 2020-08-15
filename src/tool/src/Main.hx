@@ -1,8 +1,6 @@
 package;
 
-import haxe.io.Path;
 import sys.io.File;
-import sys.io.abstractions.concrete.FileSystem;
 import tink.Cli;
 import tink.Json;
 import Types.Project;
@@ -69,6 +67,18 @@ class Main
     @:alias('r')
     public var release = false;
 
+    /**
+     * Force the use of a specific graphics backend for the target platform.
+     * If the requested backend is not usable on the target platform, compilation will end.
+     * - `auto`  - Atomatically select the best backend based for the target.
+     * - `mock`  - Produces no output, simply applies some basic checks on all requests.
+     * - `d3d11` - Use the Direct3D 11.1 backend (Windows only)
+     * - `ogl3`  - Use the OpenGL 3.3 backend (Windows, Mac, and Linux only)
+     */
+    @:flat('gpu')
+    @:alias('g')
+    public var graphicsBackend = 'auto';
+
     public function new()
     {
         //
@@ -105,7 +115,7 @@ class Main
                 case _:
             }
         }
-        switch new Build(project, release, clean, sys.FileSystem.absolutePath(buildFile)).run()
+        switch new Build(project, release, clean, sys.FileSystem.absolutePath(buildFile), graphicsBackend).run()
         {
             case Failure(_message):
                 Sys.println('failed to build project $buildFile : $_message');
@@ -130,7 +140,7 @@ class Main
         }
         if (!noBuild)
         {
-            switch new Build(project, release, clean, sys.FileSystem.absolutePath(buildFile)).run()
+            switch new Build(project, release, clean, sys.FileSystem.absolutePath(buildFile), graphicsBackend).run()
             {
                 case Failure(_message):
                     Sys.println('failed to build project $buildFile : $_message');

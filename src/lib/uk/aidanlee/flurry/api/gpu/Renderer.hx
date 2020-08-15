@@ -175,13 +175,13 @@ class Renderer
 
     function getOrigin() return switch api
     {
-        case Ogl3, Ogl4 : BottomLeft;
+        case Ogl3 : BottomLeft;
         case Dx11, Mock : TopLeft;
     }
 
     function getNdcRange() return switch api
     {
         case Ogl3 : NegativeOneToNegativeOne;
-        case Ogl4, Dx11, Mock : ZeroToNegativeOne;
+        case Dx11, Mock : ZeroToNegativeOne;
     }
 }

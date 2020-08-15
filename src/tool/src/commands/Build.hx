@@ -1,5 +1,6 @@
 package commands;
 
+import Types.GraphicsBackend;
 import Types.Project;
 import parcel.Packer;
 import haxe.io.Path;
@@ -44,6 +45,11 @@ class Build
     final buildPath : String;
 
     /**
+     * The requested graphics backend to be used.
+     */
+    final gpu : GraphicsBackend;
+
+    /**
      * Location of the release directory for the current platform.
      * The release directory will contain just the built executable and parcels, not any extra intermediate data.
      */
@@ -69,7 +75,15 @@ class Build
      */
     final fs : IFileSystem;
 
-    public function new(_project : Project, _release : Bool, _clean : Bool, _buildFile : String, _fs : IFileSystem = null, _packer : Packer = null, _proc : Proc = null)
+    public function new(
+        _project : Project,
+        _release : Bool,
+        _clean : Bool,
+        _buildFile : String,
+        _gpu : String,
+        _fs : IFileSystem = null,
+        _packer : Packer = null,
+        _proc : Proc = null)
     {
         project     = _project;
         toolPath    = project.toolPath();
@@ -79,8 +93,9 @@ class Build
         clean       = _clean;
         buildFile   = _buildFile;
         user        = new Hxml();
+        gpu         = verifyGraphicsBackend(_gpu);
         fs          = _fs.or(new FileSystem());
-        packer      = _packer.or(new Packer(project, fs));
+        packer      = _packer.or(new Packer(project, gpu, fs));
         proc        = _proc.or(new Proc());
     }
 
@@ -218,6 +233,11 @@ class Build
         user.addDefine('HXCPP_M64');
         user.addDefine('flurry-entry-point', project.app.main);
         user.addDefine('flurry-build-file', buildFile);
+        user.addDefine('flurry-gpu-api', switch gpu {
+            case Mock: 'mock';
+            case Ogl3: 'ogl3';
+            case D3d11: 'd3d11';
+        });
         user.addMacro('Safety.safeNavigation("uk.aidanlee.flurry")');
         user.addMacro('nullSafety("uk.aidanlee.flurry.modules", Strict)');
         user.addMacro('nullSafety("uk.aidanlee.flurry.api", Strict)');
@@ -240,6 +260,22 @@ class Build
         for (d in project!.build!.dependencies.or([]))
         {
             user.addLibrary(d.lib, d.version);
+        }
+    }
+
+    static function verifyGraphicsBackend(_api : String) : GraphicsBackend
+    {
+        return switch _api
+        {
+            case 'mock'  : Mock;
+            case 'ogl3'  : Ogl3;
+            case 'd3d11' : if (Utils.platform() == Windows) D3d11 else Ogl3;
+            case _:
+                switch Utils.platform()
+                {
+                    case Windows: D3d11;
+                    case _: Ogl3;
+                }
         }
     }
 }

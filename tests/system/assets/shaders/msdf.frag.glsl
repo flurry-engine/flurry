@@ -1,6 +1,7 @@
 #version 460 core
 
-layout(binding = 0) uniform sampler2D defaultTexture;
+layout(binding = 0) uniform texture2D defaultTexture;
+layout(binding = 0) uniform sampler defaultSampler;
 
 layout(location = 0) in vec4 Color;
 layout(location = 1) in vec2 TexCoord;
@@ -14,8 +15,8 @@ float median(vec3 v)
 
 void main()
 {
-    vec2  msdfUnit = 2.0 / vec2(textureSize(defaultTexture, 0));
-    vec3  sampled  = texture(defaultTexture, TexCoord).rgb;
+    vec2  msdfUnit = 2.0 / vec2(textureSize(sampler2D(defaultTexture, defaultSampler), 0));
+    vec3  sampled  = texture(sampler2D(defaultTexture, defaultSampler), TexCoord).rgb;
     float sigDist  = median(sampled) - 0.5;
     sigDist *= dot(msdfUnit, 0.5 / fwidth(TexCoord));
 

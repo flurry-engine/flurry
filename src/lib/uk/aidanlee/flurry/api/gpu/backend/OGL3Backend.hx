@@ -23,22 +23,24 @@ import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
+import uk.aidanlee.flurry.api.gpu.textures.Filtering;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
+import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.resources.Resource.Resource;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderLayout;
+import uk.aidanlee.flurry.api.resources.Resource.PixelFormat;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderInput;
+import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
 using rx.Observable;
 using cpp.NativeArray;
-using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
 
 @:nullSafety(Off) class OGL3Backend implements IRendererBackend
 {
@@ -499,14 +501,9 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
             return;
         }
 
-        if (_resource.ogl3 == null)
-        {
-            throw new OGL3NoShaderSourceException(_resource.name);
-        }
-
         // Create vertex shader.
         var vertex = glCreateShader(GL_VERTEX_SHADER);
-        shaderSource(vertex, _resource.ogl3.vertex.toString());
+        shaderSource(vertex, _resource.vertSource.toString());
         glCompileShader(vertex);
 
         if (getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
@@ -516,7 +513,7 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
 
         // Create fragment shader.
         var fragment = glCreateShader(GL_FRAGMENT_SHADER);
-        shaderSource(fragment, _resource.ogl3.fragment.toString());
+        shaderSource(fragment, _resource.fragSource.toString());
         glCompileShader(fragment);
 
         if (getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
@@ -540,17 +537,18 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
         glDeleteShader(fragment);
 
         // Fetch the location of all the shaders texture and interface blocks, also bind blocks to a binding point.
-        var textureLocations = [ for (t in _resource.layout.textures) glGetUniformLocation(program, t) ];
-        var blockLocations   = [ for (b in _resource.layout.blocks) glGetUniformBlockIndex(program, b.name) ];
-        var blockBindings    = [ for (i in 0..._resource.layout.blocks.length) _resource.layout.blocks[i].binding ];
 
-        for (i in 0..._resource.layout.blocks.length)
+        final distinctBlocks   = getDistinctBlocks(_resource.vertInfo.blocks, _resource.fragInfo.blocks);
+        final textureLocations = [ for (i in 0..._resource.fragInfo.samplers.length) findCombinedSampler(_resource.fragInfo.textures[i], _resource.fragInfo.samplers[i], program) ];
+        final blockLocations   = [ for (b in distinctBlocks) glGetUniformBlockIndex(program, b.name) ];
+
+        for (idx => block in distinctBlocks)
         {
-            glUniformBlockBinding(program, blockLocations[i], blockBindings[i]);
+            glUniformBlockBinding(program, blockLocations[idx], block.binding);
         }
 
         shaderPrograms.set(_resource.id, program);
-        shaderUniforms.set(_resource.id, new ShaderInformation(_resource.layout, textureLocations, blockBindings));
+        shaderUniforms.set(_resource.id, new ShaderInformation(distinctBlocks, textureLocations));
     }
 
     function removeShader(_id : ResourceID)
@@ -571,7 +569,7 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _resource.width, _resource.height, 0, _resource.format.getPixelFormat(), GL_UNSIGNED_BYTE, _resource.pixels);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _resource.width, _resource.height, 0, getPixelFormat(_resource.format), GL_UNSIGNED_BYTE, _resource.pixels);
 
         glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -742,13 +740,12 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
             for (block in command.uniforms)
             {
                 final info = shaderUniforms[command.shader];
+                final idx  = findBlockIndexByName(block.name, info.blocks);
 
-                glBindBufferRange(
-                    GL_UNIFORM_BUFFER,
-                    findBlockIndexByName(block.name, info.layout.blocks),
-                    glUniformBuffer,
-                    unfOffset,
-                    block.buffer.byteLength);
+                if (idx != -1)
+                {
+                    glBindBufferRange(GL_UNIFORM_BUFFER, idx, glUniformBuffer, unfOffset, block.buffer.byteLength);
+                }
     
                 unfOffset = Maths.nextMultipleOff(unfOffset + block.buffer.byteLength, glUboAlignment);
             }
@@ -757,13 +754,12 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
             {
                 // Bind the correct range for the matrix buffer
                 final info = shaderUniforms[command.shader];
+                final idx  = findBlockIndexByName("flurry_matrices", info.blocks);
 
-                glBindBufferRange(
-                    GL_UNIFORM_BUFFER,
-                    findBlockIndexByName("flurry_matrices", info.layout.blocks),
-                    glMatrixBuffer,
-                    matOffset,
-                    192);
+                if (idx != -1)
+                {
+                    glBindBufferRange(GL_UNIFORM_BUFFER, idx, glMatrixBuffer, matOffset, 192);
+                }
 
                 switch geometry.data
                 {
@@ -773,7 +769,7 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                         final length = _indices.shortAccess.length;
 
                         untyped __cpp__('glDrawElementsBaseVertex({0}, {1}, {2}, (void*)(intptr_t){3}, {4})',
-                            command.primitive.getPrimitiveType(),
+                            getPrimitiveType(command.primitive),
                             length,
                             GL_UNSIGNED_SHORT,
                             idxOffset,
@@ -783,7 +779,7 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                         vtxOffset += Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
                     case UnIndexed(_vertices):
                         final numOfVerts = Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
-                        final primitive  = command.primitive.getPrimitiveType();
+                        final primitive  = getPrimitiveType(command.primitive);
 
                         glDrawArrays(primitive, vtxOffset, numOfVerts);
 
@@ -857,15 +853,16 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
         // If the shader description specifies more textures than the command provides throw an exception.
         // If less is specified than provided we just ignore the extra, maybe we should throw as well?
         final info  = shaderUniforms[_shader];
-        final count = info.layout.textures.length;
+        final count = info.textureLocations.length;
 
-        if (count >= _textures.length)
+        if (_textures.length >= count)
         {
             // then go through each texture and bind it if it isn't already.
-            for (i in 0..._textures.length)
+            for (i in 0...count)
             {
                 // Bind and activate the texture if its not already bound.
                 final glTextureID = textureObjects[_textures[i]];
+                final textureUnit = info.textureLocations[i];
 
                 if (glTextureID != textureSlots[i])
                 {
@@ -987,7 +984,7 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                 }
                 if (_newDepth.func != depth.func)
                 {
-                    glDepthFunc(_newDepth.func.getComparisonFunc());
+                    glDepthFunc(getComparisonFunc(_newDepth.func));
                 }
             }
 
@@ -1011,13 +1008,9 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                 }
 
                 // Front tests
-                // if (_newStencil.stencilFrontMask != stencil.stencilFrontMask)
-                // {
-                //     glStencilMaskSeparate(GL_FRONT, _newStencil.stencilFrontMask);
-                // }
                 if (_newStencil.frontFunc != stencil.frontFunc)
                 {
-                    glStencilFuncSeparate(GL_FRONT, _newStencil.frontFunc.getComparisonFunc(), 1, 0xff);
+                    glStencilFuncSeparate(GL_FRONT, getComparisonFunc(_newStencil.frontFunc), 1, 0xff);
                 }
                 if (_newStencil.frontTestFail != stencil.frontTestFail ||
                     _newStencil.frontDepthTestFail != stencil.frontDepthTestFail ||
@@ -1025,19 +1018,15 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                 {
                     glStencilOpSeparate(
                         GL_FRONT,
-                        _newStencil.frontTestFail.getStencilFunc(),
-                        _newStencil.frontDepthTestFail.getStencilFunc(),
-                        _newStencil.frontDepthTestPass.getStencilFunc());
+                        getStencilFunc(_newStencil.frontTestFail),
+                        getStencilFunc(_newStencil.frontDepthTestFail),
+                        getStencilFunc(_newStencil.frontDepthTestPass));
                 }
 
                 // Back tests
-                // if (_newStencil.stencilBackMask != stencil.stencilBackMask)
-                // {
-                //     glStencilMaskSeparate(GL_BACK, _newStencil.stencilBackMask);
-                // }
                 if (_newStencil.backFunc != stencil.backFunc)
                 {
-                    glStencilFuncSeparate(GL_BACK, _newStencil.backFunc.getComparisonFunc(), 1, 0xff);
+                    glStencilFuncSeparate(GL_BACK, getComparisonFunc(_newStencil.backFunc), 1, 0xff);
                 }
                 if (_newStencil.backTestFail != stencil.backTestFail ||
                     _newStencil.backDepthTestFail != stencil.backDepthTestFail ||
@@ -1045,9 +1034,9 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                 {
                     glStencilOpSeparate(
                         GL_BACK,
-                        _newStencil.backTestFail.getStencilFunc(),
-                        _newStencil.backDepthTestFail.getStencilFunc(),
-                        _newStencil.backDepthTestPass.getStencilFunc());
+                        getStencilFunc(_newStencil.backTestFail),
+                        getStencilFunc(_newStencil.backDepthTestFail),
+                        getStencilFunc(_newStencil.backDepthTestPass));
                 }
             }
 
@@ -1067,10 +1056,10 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
                 }
 
                 glBlendFuncSeparate(
-                    _newBlend.srcRgb.getBlendMode(),
-                    _newBlend.dstRgb.getBlendMode(),
-                    _newBlend.srcAlpha.getBlendMode(),
-                    _newBlend.dstAlpha.getBlendMode());
+                    getBlendMode(_newBlend.srcRgb),
+                    getBlendMode(_newBlend.dstRgb),
+                    getBlendMode(_newBlend.srcAlpha),
+                    getBlendMode(_newBlend.dstAlpha));
             }
             else
             {
@@ -1118,10 +1107,10 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
     {
         var samplers = [ 0 ];
         glGenSamplers(1, samplers);
-        glSamplerParameteri(samplers[0], GL_TEXTURE_MAG_FILTER, _sampler.minification.getFilterType());
-        glSamplerParameteri(samplers[0], GL_TEXTURE_MIN_FILTER, _sampler.magnification.getFilterType());
-        glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_S, _sampler.uClamping.getEdgeClamping());
-        glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_T, _sampler.vClamping.getEdgeClamping());
+        glSamplerParameteri(samplers[0], GL_TEXTURE_MAG_FILTER, getFilterType(_sampler.minification));
+        glSamplerParameteri(samplers[0], GL_TEXTURE_MIN_FILTER, getFilterType(_sampler.magnification));
+        glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_S, getEdgeClamping(_sampler.uClamping));
+        glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_T, getEdgeClamping(_sampler.vClamping));
 
         return samplers[0];
     }
@@ -1209,7 +1198,132 @@ using uk.aidanlee.flurry.api.gpu.backend.OGLUtils;
             }
         }
 
-        throw new OGL3UniformBlockNotFoundException(_name);
+        return -1;
+    }
+
+    /**
+     * Generate the combined sampler name from the provided texture and sampler.
+     * This assumes that the default spirv combined sampler generation is used.
+     * @param _texture Texture object.
+     * @param _sampler Sampler object.
+     * @param _program Shader program to get the location from.
+     */
+    function findCombinedSampler(_texture : ShaderInput, _sampler : ShaderInput, _program : Int)
+    {
+        final combinedName = 'SPIRV_Cross_Combined${ _texture.name }${ _sampler.name }';
+
+        return glGetUniformLocation(_program, combinedName);
+    }
+
+    /**
+     * Returns all unique blocks from the vertex and fragment stage.
+     * @param _vertBlocks UBOs found in the vertex stage.
+     * @param _fragBlocks UBOs found in the fragment stage.
+     * @return ReadOnlyArray<ShaderBlock>
+     */
+    function getDistinctBlocks(_vertBlocks : ReadOnlyArray<ShaderBlock>, _fragBlocks : ReadOnlyArray<ShaderBlock>) : ReadOnlyArray<ShaderBlock>
+    {
+        final distinct = _vertBlocks.copy();
+
+        for (block in _fragBlocks)
+        {
+            if (!Lambda.exists(distinct, b -> b.name == block.name))
+            {
+                distinct.push(block);
+            }
+        }
+
+        return distinct;
+    }
+
+    function getPrimitiveType(_primitive : PrimitiveType)
+    {
+        return switch _primitive
+        {
+            case Points        : GL_POINTS;
+            case Lines         : GL_LINES;
+            case LineStrip     : GL_LINE_STRIP;
+            case Triangles     : GL_TRIANGLES;
+            case TriangleStrip : GL_TRIANGLE_STRIP;
+        }
+    }
+
+    function getBlendMode(_mode : BlendMode)
+    {
+        return switch _mode
+        {
+            case Zero             : GL_ZERO;
+            case One              : GL_ONE;
+            case SrcAlphaSaturate : GL_SRC_ALPHA_SATURATE;
+            case SrcColor         : GL_SRC_COLOR;
+            case OneMinusSrcColor : GL_ONE_MINUS_SRC_COLOR;
+            case SrcAlpha         : GL_SRC_ALPHA;
+            case OneMinusSrcAlpha : GL_ONE_MINUS_SRC_ALPHA;
+            case DstAlpha         : GL_DST_ALPHA;
+            case OneMinusDstAlpha : GL_ONE_MINUS_DST_ALPHA;
+            case DstColor         : GL_DST_COLOR;
+            case OneMinusDstColor : GL_ONE_MINUS_DST_COLOR;
+            case _: 0;
+        }
+    }
+
+    function getComparisonFunc(_func : ComparisonFunction)
+    {
+        return switch _func
+        {
+            case Always             : GL_ALWAYS;
+            case Never              : GL_NEVER;
+            case LessThan           : GL_LESS;
+            case Equal              : GL_EQUAL;
+            case LessThanOrEqual    : GL_LEQUAL;
+            case GreaterThan        : GL_GREATER;
+            case GreaterThanOrEqual : GL_GEQUAL;
+            case NotEqual           : GL_NOTEQUAL;
+        }
+    }
+
+    function getStencilFunc(_func : StencilFunction)
+    {
+        return switch _func
+        {
+            case Keep          : GL_KEEP;
+            case Zero          : GL_ZERO;
+            case Replace       : GL_REPLACE;
+            case Invert        : GL_INVERT;
+            case Increment     : GL_INCR;
+            case IncrementWrap : GL_INCR_WRAP;
+            case Decrement     : GL_DECR;
+            case DecrementWrap : GL_DECR_WRAP;
+        }
+    }
+
+    function getFilterType(_filter : Filtering)
+    {
+        return switch _filter
+        {
+            case Nearest : GL_NEAREST;
+            case Linear  : GL_LINEAR;
+        }
+    }
+
+    function getEdgeClamping(_clamping : EdgeClamping)
+    {
+        return switch _clamping
+        {
+            case Wrap   : GL_REPEAT;
+            case Mirror : GL_MIRRORED_REPEAT;
+            case Clamp  : GL_CLAMP_TO_EDGE;
+            case Border : GL_CLAMP_TO_BORDER;
+        }
+    }
+
+    function getPixelFormat(_format : PixelFormat)
+    {
+        return switch _format
+        {
+            case BGRAUNorm: GL_BGRA;
+            case RGBAUNorm: GL_RGBA;
+        }
     }
 }
 
@@ -1247,25 +1361,19 @@ private class BackBuffer
 private class ShaderInformation
 {
     /**
-     * Layout of the shader.
+     * All unique UBOs in this shader.
      */
-    public final layout : ShaderLayout;
+    public final blocks : ReadOnlyArray<ShaderBlock>;
 
     /**
      * Location of all texture uniforms.
      */
-    public final textureLocations : Array<Int>;
+    public final textureLocations : ReadOnlyArray<Int>;
 
-    /**
-     * Binding points of all shader blocks.
-     */
-    public final blockBindings : Array<Int>;
-
-    public function new(_layout, _textureLocations, _blockBindings)
+    public function new(_blocks, _textureLocations)
     {
-        layout           = _layout;
+        blocks           = _blocks;
         textureLocations = _textureLocations;
-        blockBindings    = _blockBindings;
     }
 }
 

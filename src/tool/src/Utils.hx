@@ -34,6 +34,9 @@ class Utils
     public static function tempParcels(_project : Project)
         return Path.join([ baseTempDir(_project), 'parcels' ]);
 
+    public static function tempShaders(_project : Project)
+        return Path.join([ baseTempDir(_project), 'shaders' ]);
+
     public static function executable(_project : Project)
         return switch platform()
         {
@@ -60,6 +63,13 @@ class Utils
         {
             case Windows : 'glslangValidator.exe';
             case _ : 'glslangValidator';
+        }
+
+    public static function spirvCrossExecutable()
+        return switch platform()
+        {
+            case Windows : 'spirv-cross.exe';
+            case _ : 'spirv-cross';
         }
 
     public static function asepriteExecutable()
