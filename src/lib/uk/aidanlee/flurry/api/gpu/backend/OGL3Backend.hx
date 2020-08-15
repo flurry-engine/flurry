@@ -868,7 +868,7 @@ using cpp.NativeArray;
 
                 if (glTextureID != textureSlots[i])
                 {
-                    glActiveTexture(GL_TEXTURE0 + textureUnit);
+                    glActiveTexture(GL_TEXTURE0 + i);
                     glBindTexture(GL_TEXTURE_2D, glTextureID);
 
                     textureSlots[i] = glTextureID;
@@ -891,7 +891,7 @@ using cpp.NativeArray;
                 // If its not already bound bind it and update the bound sampler array.
                 if (currentSampler != samplerSlots[i])
                 {
-                    glBindSampler(textureUnit, currentSampler);
+                    glBindSampler(i, currentSampler);
 
                     samplerSlots[i] = currentSampler;
                 }
