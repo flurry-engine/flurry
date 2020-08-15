@@ -72,7 +72,7 @@ class Packer
         tempShaders = _project.tempShaders();
         toolsDir    = _project.toolPath();
         prepared    = [];
-        shaders     = new Shaders(toolsDir, proc, _gpu);
+        shaders     = new Shaders(toolsDir, proc, fs, _gpu);
 
         fs.directory.create(tempFonts);
         fs.directory.create(tempAssets);

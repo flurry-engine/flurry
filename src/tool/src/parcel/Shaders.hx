@@ -1,5 +1,6 @@
 package parcel;
 
+import sys.io.abstractions.IFileSystem;
 import Types.GraphicsBackend;
 import haxe.Exception;
 import haxe.DynamicAccess;
@@ -16,16 +17,10 @@ typedef SpvcInputOutput = {
     final location : Int;
 }
 
-typedef SpvcEntry = {
-    final name : String;
-    final mode : String;
-}
-
 typedef SpvcUbo = {
     final type : String;
     final name : String;
     final block_size : Int;
-    final set : Int;
     final binding : Int;
 }
 
@@ -38,25 +33,21 @@ typedef SpvcTypeMember = {
     final name : String;
     final type : String;
     final ?offset : Int;
-    final ?matrix_stride : Int;
 }
 
 typedef SpvcSeparateImages = {
     final type : String;
     final name : String;
-    final set : Int;
     final binding : Int;
 }
 
 typedef SpvcSeparateSamples = {
     final type : String;
     final name : String;
-    final set : Int;
     final binding : Int;
 }
 
 typedef SpvcReflection = {
-    final entryPoints : Array<SpvcEntry>;
     final ?inputs : Array<SpvcInputOutput>;
     final ?ubos : Array<SpvcUbo>;
     final ?types : DynamicAccess<SpvcType>;
@@ -70,16 +61,19 @@ class Shaders
 
     final proc : Proc;
 
+    final fs : IFileSystem;
+
     final gpu : GraphicsBackend;
 
     final glslang : String;
 
     final spirvCross : String;
 
-    public function new(_toolsDir, _proc, _gpu)
+    public function new(_toolsDir, _proc, _fs, _gpu)
     {
         toolsDir   = _toolsDir;
         proc       = _proc;
+        fs         = _fs;
         gpu        = _gpu;
         glslang    = Path.join([ toolsDir, Utils.glslangExecutable() ]);
         spirvCross = Path.join([ toolsDir, Utils.spirvCrossExecutable() ]);
@@ -122,8 +116,8 @@ class Shaders
             case Failure(_): return Failure('failed to generated frag json');
         }
 
-        final vertInfo = generateVertexInfo(tink.Json.parse(sys.io.File.getContent(vertJsonPath)));
-        final fragInfo = generateFragmentInfo(tink.Json.parse(sys.io.File.getContent(fragJsonPath)));
+        final vertInfo = generateVertexInfo(tink.Json.parse(fs.file.getText(vertJsonPath)));
+        final fragInfo = generateFragmentInfo(tink.Json.parse(fs.file.getText(fragJsonPath)));
 
         // Stage 3, generate opengl 3.3 glsl or shader model 5 hlsl from the spirv
 
@@ -144,7 +138,7 @@ class Shaders
                     case Failure(_): return Failure('failed to generated frag glsl');
                 }
 
-                Success(new ShaderResource(_shader.id, sys.io.File.getBytes(vertGlslPath), sys.io.File.getBytes(fragGlslPath), vertInfo, fragInfo));
+                Success(new ShaderResource(_shader.id, fs.file.getBytes(vertGlslPath), fs.file.getBytes(fragGlslPath), vertInfo, fragInfo));
             case D3d11:
                 final vertHlslPath = Path.join([ _tempAssets, '${ _shader.id }.vert.hlsl' ]);
                 final fragHlslPath = Path.join([ _tempAssets, '${ _shader.id }.frag.hlsl' ]);
@@ -174,7 +168,7 @@ class Shaders
                     case Failure(_): return Failure('failed to generated frag dxbc');
                 }
 
-                Success(new ShaderResource(_shader.id, sys.io.File.getBytes(vertDxbcPath), sys.io.File.getBytes(fragDxbcPath), vertInfo, fragInfo));
+                Success(new ShaderResource(_shader.id, fs.file.getBytes(vertDxbcPath), fs.file.getBytes(fragDxbcPath), vertInfo, fragInfo));
         }
     }
 

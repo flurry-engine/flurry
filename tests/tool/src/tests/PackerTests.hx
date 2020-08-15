@@ -1,7 +1,5 @@
 package tests;
 
-import uk.aidanlee.flurry.api.resources.Resource.ResourceType;
-import uk.aidanlee.flurry.api.maths.Hash;
 import parcel.Types.JsonAtlas;
 import parcel.Types.JsonAtlasPage;
 import parcel.Types.JsonSprite;
@@ -13,16 +11,16 @@ import haxe.io.BytesInput;
 import Types.Project;
 import parcel.Packer;
 import parcel.Types.JsonDefinition;
-import parcel.Types.JsonShaderDefinition;
 import sys.io.abstractions.mock.MockFileData;
 import sys.io.abstractions.mock.MockFileSystem;
 import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.FontResource;
+import uk.aidanlee.flurry.api.resources.Resource.ResourceType;
 import uk.aidanlee.flurry.api.resources.Resource.Resource;
 import uk.aidanlee.flurry.api.stream.ParcelInput;
+import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.core.Result;
 import uk.aidanlee.flurry.api.core.Unit;
 import buddy.BuddySuite;
@@ -38,466 +36,11 @@ class PackerTests extends BuddySuite
     {
         describe('Parcel Generation', {
             describe('shaders', {
-                it('will invoke fxc to compile hlsl shaders', {
-                    final shader : JsonShaderDefinition = { textures : [ ], blocks : [] }
-                    final assets : JsonDefinition = {
-                        assets : {
-                            bytes : [],
-                            texts : [],
-                            fonts : [],
-                            images : [],
-                            sheets : [],
-                            sprites : [],
-                            shaders : [
-                                {
-                                    id   : 'shader',
-                                    path : 'definition.json',
-                                    hlsl : {
-                                        vertex   : 'vert.hlsl',
-                                        fragment : 'frag.hlsl',
-                                        compiled : true
-                                    }
-                                }
-                            ]
-                        },
-                        parcels : [ 
-                            { name : 'parcel', shaders : [ 'shader' ] }
-                        ]
-                    }
-                    final project = project();
-                    final fs      = new MockFileSystem([
-                        'assets.json'     => MockFileData.fromText(tink.Json.stringify(assets)),
-                        'definition.json' => MockFileData.fromText(tink.Json.stringify(shader)),
-                        'vert.hlsl'       => MockFileData.fromText('vert'),
-                        'frag.hlsl'       => MockFileData.fromText('frag')
-                    ], []);
-                    final proc    = mock(Proc);
-                    final packer  = new Packer(project, fs, proc);
-
-                    Mockatoo.when(proc.run('fxc', anyIterator)).thenCall(f -> {
-                        // Instead of actually calling fxc we'll dump some dummy files according to the args so they can be read back
-                        final args  = (cast f[1] : Array<String>);
-                        final stage = args[1];
-                        final path  = args[5];
-
-                        fs.file.writeText(path, stage);
-
-                        return Success(Unit.value);
-                    });
-
-                    switch packer.create('assets.json')
-                    {
-                        case Success(data):
-                            data.length.should.be(1);
-                            data[0].name.should.be('parcel');
-
-                            // Unpack the serialised bytes.
-                            switch unpack(fs.file.getBytes(data[0].file))
-                            {
-                                case Success(resources):
-                                    resources.length.should.be(1);
-                                    resources.count(r -> r.name == 'shader').should.be(1);
-        
-                                    // Check our compiled hlsl shader
-                                    final resource = (cast resources.find(r -> r.name == 'shader') : ShaderResource);
-                                    resource.id.should.be(Hash.hash(resource.name));
-                                    resource.type.should.equal(ResourceType.Shader);
-                                    resource.ogl3.should.be(null);
-                                    resource.ogl4.should.be(null);
-                                    resource.hlsl.compiled.should.be(true);
-                                    resource.hlsl.vertex.compare(HaxeBytes.ofString('vs_5_0')).should.be(0);
-                                    resource.hlsl.fragment.compare(HaxeBytes.ofString('ps_5_0')).should.be(0);
-                                case Failure(message):
-                                    fail(message);
-                            }
-                        case Failure(message):
-                            fail(message);
-                    }
+                describe('generating opengl 3.3 shaders', {
+                    //
                 });
-                it('will invoke glslangValidator to compile glsl shaders', {
-                    final shader : JsonShaderDefinition = { textures : [ ], blocks : [] }
-                    final assets : JsonDefinition = {
-                        assets : {
-                            bytes : [],
-                            texts : [],
-                            fonts : [],
-                            images : [],
-                            sheets : [],
-                            sprites : [],
-                            shaders : [
-                                {
-                                    id   : 'shader',
-                                    path : 'definition.json',
-                                    ogl4 : {
-                                        vertex   : 'vert.glsl',
-                                        fragment : 'frag.glsl',
-                                        compiled : true
-                                    }
-                                }
-                            ]
-                        },
-                        parcels : [ 
-                            { name : 'parcel', shaders : [ 'shader' ] }
-                        ]
-                    }
-                    final project = project();
-                    final fs      = new MockFileSystem([
-                        'assets.json'     => MockFileData.fromText(tink.Json.stringify(assets)),
-                        'definition.json' => MockFileData.fromText(tink.Json.stringify(shader)),
-                        'vert.glsl'       => MockFileData.fromText('vert'),
-                        'frag.glsl'       => MockFileData.fromText('frag')
-                    ], []);
-                    final proc    = mock(Proc);
-                    final packer  = new Packer(project, fs, proc);
-
-                    Mockatoo.when(proc.run('glslangValidator', anyIterator)).thenCall(f -> {
-                        // Instead of actually calling glslangValidator we'll dump some dummy files according to the args so they can be read back
-                        final args  = (cast f[1] : Array<String>);
-                        final stage = args[2];
-                        final path  = args[5];
-
-                        fs.file.writeText(path, stage);
-
-                        return Success(Unit.value);
-                    });
-
-                    switch packer.create('assets.json')
-                    {
-                        case Success(data):
-                            data.length.should.be(1);
-                            data[0].name.should.be('parcel');
-
-                            // Unpack the serialised bytes.
-                            switch unpack(fs.file.getBytes(data[0].file))
-                            {
-                                case Success(resources):
-                                    resources.length.should.be(1);
-                                    resources.count(r -> r.name == 'shader').should.be(1);
-
-                                    // Check our compiled glsl shader
-                                    final resource = (cast resources.find(r -> r.name == 'shader') : ShaderResource);
-                                    resource.id.should.be(Hash.hash(resource.name));
-                                    resource.type.should.equal(ResourceType.Shader);
-                                    resource.hlsl.should.be(null);
-                                    resource.ogl3.should.be(null);
-                                    resource.ogl4.compiled.should.be(true);
-                                    resource.ogl4.vertex.compare(HaxeBytes.ofString('vert')).should.be(0);
-                                    resource.ogl4.fragment.compare(HaxeBytes.ofString('frag')).should.be(0);
-                                case Failure(message):
-                                    fail(message);
-                            }
-                        case Failure(message):
-                            fail(message);
-                    }
-                });
-                it('will pass hlsl shaders as text if they dont need compiling', {
-                    final shader : JsonShaderDefinition = { textures : [ ], blocks : [] }
-                    final assets : JsonDefinition = {
-                        assets : {
-                            bytes : [],
-                            texts : [],
-                            fonts : [],
-                            images : [],
-                            sheets : [],
-                            sprites : [],
-                            shaders : [
-                                {
-                                    id   : 'shader',
-                                    path : 'definition.json',
-                                    hlsl : {
-                                        vertex   : 'vert.hlsl',
-                                        fragment : 'frag.hlsl',
-                                        compiled : false
-                                    }
-                                }
-                            ]
-                        },
-                        parcels : [ 
-                            { name : 'parcel', shaders : [ 'shader' ] }
-                        ]
-                    }
-                    final project = project();
-                    final fs      = new MockFileSystem([
-                        'assets.json'     => MockFileData.fromText(tink.Json.stringify(assets)),
-                        'definition.json' => MockFileData.fromText(tink.Json.stringify(shader)),
-                        'vert.hlsl'       => MockFileData.fromText('plain text vert'),
-                        'frag.hlsl'       => MockFileData.fromText('plain text frag')
-                    ], []);
-                    final proc    = mock(Proc);
-                    final packer  = new Packer(project, fs, proc);
-
-                    switch packer.create('assets.json')
-                    {
-                        case Success(data):
-                            Mockatoo.verify(proc.run('fxc', anyIterator), 0);
-
-                            data.length.should.be(1);
-                            data[0].name.should.be('parcel');
-
-                            // Unpack the serialised bytes.
-                            switch unpack(fs.file.getBytes(data[0].file))
-                            {
-                                case Success(resources):
-                                    resources.length.should.be(1);
-                                    resources.count(r -> r.name == 'shader').should.be(1);
-        
-                                    // Check our compiled hlsl shader
-                                    final resource = (cast resources.find(r -> r.name == 'shader') : ShaderResource);
-                                    resource.id.should.be(Hash.hash(resource.name));
-                                    resource.type.should.equal(ResourceType.Shader);
-                                    resource.ogl3.should.be(null);
-                                    resource.ogl4.should.be(null);
-                                    resource.hlsl.compiled.should.be(false);
-                                    resource.hlsl.vertex.compare(HaxeBytes.ofString('plain text vert')).should.be(0);
-                                    resource.hlsl.fragment.compare(HaxeBytes.ofString('plain text frag')).should.be(0);
-                                case Failure(message):
-                                    fail(message);
-                            }
-                        case Failure(message):
-                            fail(message);
-                    }
-                });
-                it('will pass glsl shaders as text if they dont need compiling', {
-                    final shader : JsonShaderDefinition = { textures : [ ], blocks : [] }
-                    final assets : JsonDefinition = {
-                        assets : {
-                            bytes : [],
-                            texts : [],
-                            fonts : [],
-                            images : [],
-                            sheets : [],
-                            sprites : [],
-                            shaders : [
-                                {
-                                    id   : 'shader',
-                                    path : 'definition.json',
-                                    ogl4 : {
-                                        vertex   : 'vert.glsl',
-                                        fragment : 'frag.glsl',
-                                        compiled : false
-                                    }
-                                }
-                            ]
-                        },
-                        parcels : [ 
-                            { name : 'parcel', shaders : [ 'shader' ] }
-                        ]
-                    }
-                    final project = project();
-                    final fs      = new MockFileSystem([
-                        'assets.json'     => MockFileData.fromText(tink.Json.stringify(assets)),
-                        'definition.json' => MockFileData.fromText(tink.Json.stringify(shader)),
-                        'vert.glsl'       => MockFileData.fromText('plain text vert'),
-                        'frag.glsl'       => MockFileData.fromText('plain text frag')
-                    ], []);
-                    final proc    = mock(Proc);
-                    final packer  = new Packer(project, fs, proc);
-
-                    switch packer.create('assets.json')
-                    {
-                        case Success(data):
-                            Mockatoo.verify(proc.run('glslangValidator', anyIterator), 0);
-
-                            data.length.should.be(1);
-                            data[0].name.should.be('parcel');
-
-                            // Unpack the serialised bytes.
-                            switch unpack(fs.file.getBytes(data[0].file))
-                            {
-                                case Success(resources):
-                                    resources.length.should.be(1);
-                                    resources.count(r -> r.name == 'shader').should.be(1);
-
-                                    // Check our compiled glsl shader
-                                    final resource = (cast resources.find(r -> r.name == 'shader') : ShaderResource);
-                                    resource.id.should.be(Hash.hash(resource.name));
-                                    resource.type.should.equal(ResourceType.Shader);
-                                    resource.hlsl.should.be(null);
-                                    resource.ogl3.should.be(null);
-                                    resource.ogl4.compiled.should.be(false);
-                                    resource.ogl4.vertex.compare(HaxeBytes.ofString('plain text vert')).should.be(0);
-                                    resource.ogl4.fragment.compare(HaxeBytes.ofString('plain text frag')).should.be(0);
-                                case Failure(message):
-                                    fail(message);
-                            }
-                        case Failure(message):
-                            fail(message);
-                    }
-                });
-                it('will not attempt to compile glsl 3.3 shaders', {
-                    final shader : JsonShaderDefinition = { textures : [ ], blocks : [] }
-                    final assets : JsonDefinition = {
-                        assets : {
-                            bytes : [],
-                            texts : [],
-                            fonts : [],
-                            images : [],
-                            sheets : [],
-                            sprites : [],
-                            shaders : [
-                                {
-                                    id   : 'shader1',
-                                    path : 'definition.json',
-                                    ogl3 : {
-                                        vertex   : 'vert1.glsl',
-                                        fragment : 'frag1.glsl',
-                                        compiled : false
-                                    }
-                                },
-                                {
-                                    id   : 'shader2',
-                                    path : 'definition.json',
-                                    ogl3 : {
-                                        vertex   : 'vert2.glsl',
-                                        fragment : 'frag2.glsl',
-                                        compiled : true
-                                    }
-                                }
-                            ]
-                        },
-                        parcels : [ 
-                            { name : 'parcel', shaders : [ 'shader1', 'shader2' ] }
-                        ]
-                    }
-                    final project = project();
-                    final fs      = new MockFileSystem([
-                        'assets.json'     => MockFileData.fromText(tink.Json.stringify(assets)),
-                        'definition.json' => MockFileData.fromText(tink.Json.stringify(shader)),
-                        'vert1.glsl'      => MockFileData.fromText('plain text vert1'),
-                        'frag1.glsl'      => MockFileData.fromText('plain text frag1'),
-                        'vert2.glsl'      => MockFileData.fromText('plain text vert2'),
-                        'frag2.glsl'      => MockFileData.fromText('plain text frag2')
-                    ], []);
-                    final proc    = mock(Proc);
-                    final packer  = new Packer(project, fs, proc);
-
-                    switch packer.create('assets.json')
-                    {
-                        case Success(data):
-                            Mockatoo.verify(proc.run('glslangValidator', anyIterator), 0);
-
-                            data.length.should.be(1);
-                            data[0].name.should.be('parcel');
-
-                            // Unpack the serialised bytes.
-                            switch unpack(fs.file.getBytes(data[0].file))
-                            {
-                                case Success(resources):
-                                    resources.length.should.be(2);
-                                    resources.count(r -> r.name == 'shader1').should.be(1);
-                                    resources.count(r -> r.name == 'shader2').should.be(1);
-
-                                    // Check our compiled glsl shader
-                                    final resource = (cast resources.find(r -> r.name == 'shader1') : ShaderResource);
-                                    resource.id.should.be(Hash.hash(resource.name));
-                                    resource.type.should.equal(ResourceType.Shader);
-                                    resource.hlsl.should.be(null);
-                                    resource.ogl4.should.be(null);
-                                    resource.ogl3.compiled.should.be(false);
-                                    resource.ogl3.vertex.compare(HaxeBytes.ofString('plain text vert1')).should.be(0);
-                                    resource.ogl3.fragment.compare(HaxeBytes.ofString('plain text frag1')).should.be(0);
-
-                                    final resource = (cast resources.find(r -> r.name == 'shader2') : ShaderResource);
-                                    resource.id.should.be(Hash.hash(resource.name));
-                                    resource.type.should.equal(ResourceType.Shader);
-                                    resource.hlsl.should.be(null);
-                                    resource.ogl4.should.be(null);
-                                    resource.ogl3.compiled.should.be(false);
-                                    resource.ogl3.vertex.compare(HaxeBytes.ofString('plain text vert2')).should.be(0);
-                                    resource.ogl3.fragment.compare(HaxeBytes.ofString('plain text frag2')).should.be(0);
-                                case Failure(message):
-                                    fail(message);
-                            }
-                        case Failure(message):
-                            fail(message);
-                    }
-                });
-                it('will produce a structure matching the shaders definition', {
-                    final shader : JsonShaderDefinition = {
-                        textures : [ 'texture1', 'texture2' ],
-                        blocks   : [
-                            {
-                                name : 'matrices',
-                                binding : 0,
-                                values : [
-                                    { type : Matrix4, name : 'projection' },
-                                    { type : Matrix4, name : 'view' },
-                                    { type : Matrix4, name : 'model' }
-                                ]
-                            },
-                            {
-                                name : 'colours',
-                                binding : 1,
-                                values : [
-                                    { type : Vector4, name : 'colour' }
-                                ]
-                            }
-                        ]
-                    }
-                    final assets : JsonDefinition = {
-                        assets : {
-                            bytes : [],
-                            texts : [],
-                            fonts : [],
-                            images : [],
-                            sheets : [],
-                            sprites : [],
-                            shaders : [
-                                {
-                                    id   : 'shader',
-                                    path : 'definition.json',
-                                    ogl3 : {
-                                        vertex   : 'vert.glsl',
-                                        fragment : 'frag.glsl',
-                                        compiled : false
-                                    }
-                                },
-                            ]
-                        },
-                        parcels : [ 
-                            { name : 'parcel', shaders : [ 'shader' ] }
-                        ]
-                    }
-                    final fs = new MockFileSystem([
-                        'assets.json'     => MockFileData.fromText(tink.Json.stringify(assets)),
-                        'definition.json' => MockFileData.fromText(tink.Json.stringify(shader)),
-                        'vert.glsl'       => MockFileData.fromText('plain text vert'),
-                        'frag.glsl'       => MockFileData.fromText('plain text frag')
-                    ], []);
-                    final project = project();
-                    final proc    = mock(Proc);
-                    final packer  = new Packer(project, fs, proc);
-
-                    switch packer.create('assets.json')
-                    {
-                        case Success(data):
-                            // Unpack the serialised bytes.
-                            switch unpack(fs.file.getBytes(data[0].file))
-                            {
-                                case Success(resources):
-                                    // Check our compiled glsl shader
-                                    final resource = (cast resources.find(r -> r.name == 'shader') : ShaderResource);
-                                    resource.id.should.be(Hash.hash(resource.name));
-                                    resource.type.should.equal(ResourceType.Shader);
-
-                                    resource.layout.textures.length.should.be(2);
-                                    resource.layout.textures[0].should.be('texture1');
-                                    resource.layout.textures[1].should.be('texture2');
-
-                                    resource.layout.blocks.length.should.be(2);
-                                    resource.layout.blocks[0].name.should.be('matrices');
-                                    resource.layout.blocks[0].binding.should.be(0);
-                                    resource.layout.blocks[0].values.length.should.be(3);
-                                    resource.layout.blocks[0].values.count(v -> v.name == 'projection' && v.type == Matrix4).should.be(1);
-                                    resource.layout.blocks[0].values.count(v -> v.name == 'view' && v.type == Matrix4).should.be(1);
-                                    resource.layout.blocks[0].values.count(v -> v.name == 'model' && v.type == Matrix4).should.be(1);
-                                    resource.layout.blocks[1].values.count(v -> v.name == 'colour' && v.type == Vector4).should.be(1);
-                                case Failure(message):
-                                    fail(message);
-                            }
-                        case Failure(message):
-                            fail(message);
-                    }
+                describe('generating dxbc shaders', {
+                    //
                 });
             });
             it('will call msdf-atlas-gen to generate font sheets', {
@@ -522,7 +65,7 @@ class PackerTests extends BuddySuite
                 ], []);
                 final project = project();
                 final proc    = mock(Proc);
-                final packer  = new Packer(project, fs, proc);
+                final packer  = new Packer(project, Mock, fs, proc);
 
                 // Intercept calls to msdf-atlas-gen and place a pre-defined json and dummy image in the fs.
                 Mockatoo.when(proc.run(Path.join([ Utils.toolPath(project), Utils.msdfAtlasExecutable() ]), anyIterator)).thenCall(f -> {
@@ -612,7 +155,7 @@ class PackerTests extends BuddySuite
                 ], []);
                 final project = project();
                 final proc    = mock(Proc);
-                final packer  = new Packer(project, fs, proc);
+                final packer  = new Packer(project, Mock, fs, proc);
 
                 Mockatoo.when(proc.run(Path.join([ Utils.toolPath(project), Utils.atlasCreatorExecutable() ]), anyIterator)).thenCall(f -> {
                     final args   = (cast f[1] : Array<String>);
@@ -712,7 +255,7 @@ class PackerTests extends BuddySuite
                 ], []);
                 final project = project();
                 final proc    = mock(Proc);
-                final packer  = new Packer(project, fs, proc);
+                final packer  = new Packer(project, Mock, fs, proc);
 
                 Mockatoo.when(proc.run('C:/Program Files/Aseprite/aseprite.exe', anyIterator)).thenCall(f -> {
                     final args = (cast f[1] : Array<String>);
@@ -916,7 +459,7 @@ class PackerTests extends BuddySuite
                 ], []);
                 final project = project();
                 final proc    = mock(Proc);
-                final packer  = new Packer(project, fs, proc);
+                final packer  = new Packer(project, Mock, fs, proc);
 
                 Mockatoo.when(proc.run(Path.join([ Utils.toolPath(project), Utils.atlasCreatorExecutable() ]), anyIterator)).thenCall(f -> {
                     final args   = (cast f[1] : Array<String>);

@@ -42,7 +42,7 @@ class BuildCommandTests extends BuddySuite
                     { name : 'parcel2', file : 'bin/temp/parcel/parcel2' }
                 ]));
     
-                final result = new Build(project, false, false, path, fs, packer, proc).run();
+                final result = new Build(project, false, false, path, 'mock', fs, packer, proc).run();
     
                 it('will can build the project', {
                     result.should.equal(Success(Unit.value));
