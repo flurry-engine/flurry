@@ -1,5 +1,6 @@
 package parcel;
 
+import sys.io.Process;
 import sys.io.abstractions.IFileSystem;
 import Types.GraphicsBackend;
 import haxe.Exception;
@@ -10,6 +11,7 @@ import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.core.Result;
 
 using Safety;
+using StringTools;
 
 typedef SpvcInputOutput = {
     final name : String;
@@ -157,15 +159,20 @@ class Shaders
                 final vertDxbcPath = Path.join([ _tempAssets, '${ _shader.id }.vert.dxbc' ]);
                 final fragDxbcPath = Path.join([ _tempAssets, '${ _shader.id }.frag.dxbc' ]);
 
-                switch proc.run('fxc', [ '/T', 'vs_5_0', '/E', 'main', '/Fo', vertDxbcPath, vertHlslPath ])
+                switch getFxc()
                 {
-                    case Success(_): trace('generated vert dxbc');
-                    case Failure(_): return Failure('failed to generated vert dxbc');
-                }
-                switch proc.run('fxc', [ '/T', 'ps_5_0', '/E', 'main', '/Fo', fragDxbcPath, fragHlslPath ])
-                {
-                    case Success(_): trace('generated frag dxbc');
-                    case Failure(_): return Failure('failed to generated frag dxbc');
+                    case Success(fxc):
+                        switch proc.run(fxc, [ '/T', 'vs_5_0', '/E', 'main', '/Fo', vertDxbcPath, vertHlslPath ])
+                        {
+                            case Success(_): trace('generated vert dxbc');
+                            case Failure(_): return Failure('failed to generated vert dxbc');
+                        }
+                        switch proc.run(fxc, [ '/T', 'ps_5_0', '/E', 'main', '/Fo', fragDxbcPath, fragHlslPath ])
+                        {
+                            case Success(_): trace('generated frag dxbc');
+                            case Failure(_): return Failure('failed to generated frag dxbc');
+                        }
+                    case Failure(message): return Failure(message);
                 }
 
                 Success(new ShaderResource(_shader.id, fs.file.getBytes(vertDxbcPath), fs.file.getBytes(fragDxbcPath), vertInfo, fragInfo));
@@ -222,5 +229,32 @@ class Shaders
         {
             throw new Exception('no types were defined in this shader');
         }
+    }
+
+    function getFxc() : Result<String, String>
+    {
+        final psLine  = "powershell -command \"(Get-Item 'hklm:\\SOFTWARE\\WOW6432Node\\Microsoft\\Microsoft SDKs\\Windows\\v10.0').GetValue('ProductVersion')\"";
+        final sdkDir  = 'C:/Program Files (x86)/Windows Kits/10/bin';
+
+        final proc    = new Process(psLine);
+        final version = proc.stdout.readLine();
+        final exit    = proc.exitCode();
+
+        proc.close();
+
+        if (exit != 0)
+        {
+            return Failure('Failed to read Windows SDK registry key');
+        }
+
+        for (dir in fs.directory.read(sdkDir))
+        {
+            if (fs.directory.isDirectory(Path.join([ sdkDir, dir ])) && dir.startsWith(version))
+            {
+                return Success(Path.join([ sdkDir, dir, 'x64', 'fxc.exe' ]));
+            }
+        }
+
+        return Failure('Failed to find fxc.exe');
     }
 }
