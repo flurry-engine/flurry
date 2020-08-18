@@ -315,8 +315,8 @@ using cpp.NativeArray;
 
         shaderResources  = [];
         textureResources = [];
-        shaderTextureResources = [ for (i in 0...16) null ];
-        shaderTextureSamplers  = [ for (i in 0...16) null ];
+        shaderTextureResources = [ for (_ in 0...16) null ];
+        shaderTextureSamplers  = [ for (_ in 0...16) null ];
 
         // Persistent D3D11 objects and descriptions
         swapchain               = new DxgiSwapChain1();
@@ -586,12 +586,12 @@ using cpp.NativeArray;
         final stride = (9 * 4);
         final offset = 0;
         context.iaSetIndexBuffer(indexBuffer, R16UInt, offset);
-        context.iaSetVertexBuffers(0, [ vertexBuffer ], [ stride ], [ offset ]);
+        context.iaSetVertexBuffer(0, vertexBuffer, stride, offset);
         context.iaSetPrimitiveTopology(TriangleList);
-        context.rsSetViewports([ nativeView ]);
-        context.rsSetScissorRects([ nativeClip ]);
+        context.rsSetViewport(nativeView);
+        context.rsSetScissorRect(nativeClip);
         context.rsSetState(rasterState);
-        context.omSetRenderTargets([ backbuffer.renderTargetView ], depthStencilView);
+        context.omSetRenderTarget(backbuffer.renderTargetView, depthStencilView);
         context.omSetBlendState(blendState, [ 1, 1, 1, 1 ], 0xffffffff);
         context.omSetDepthStencilState(depthStencilState, 1);
 
@@ -650,7 +650,7 @@ using cpp.NativeArray;
         commandQueue.resize(0);
 
         // Set the backbuffer to the the target, this is required to get the next buffer in the flip present mode.
-        context.omSetRenderTargets([ backbuffer.renderTargetView ], depthStencilView);
+        context.omSetRenderTarget(backbuffer.renderTargetView, depthStencilView);
         target = Backbuffer;
     }
 
@@ -716,7 +716,7 @@ using cpp.NativeArray;
 
         // If we don't force a render target change here then the previous backbuffer pointer might still be bound and used.
         // This would cause nothing to render since that old backbuffer has now been released.
-        context.omSetRenderTargets([ backbuffer.renderTargetView ], depthStencilView);
+        context.omSetRenderTarget(backbuffer.renderTargetView, depthStencilView);
         target = Backbuffer;
 
         // Set the scissor to the new width and height.
@@ -725,13 +725,13 @@ using cpp.NativeArray;
         nativeClip.top    = 0;
         nativeClip.right  = _width;
         nativeClip.bottom = _height;
-        context.rsSetScissorRects([ nativeClip ]);
+        context.rsSetScissorRect(nativeClip);
 
         nativeView.topLeftX = 0;
         nativeView.topLeftY = 0;
         nativeView.width    = _width;
         nativeView.height   = _height;
-        context.rsSetViewports([ nativeView ]);
+        context.rsSetViewport(nativeView);
     }
 
     /**
@@ -848,7 +848,7 @@ using cpp.NativeArray;
         elementTex.inputSlotClass       = PerVertexData;
         elementTex.instanceDataStepRate = 0;
 
-        var inputLayout = new D3d11InputLayout();
+        final inputLayout = new D3d11InputLayout();
         if (device.createInputLayout([ elementPos, elementCol, elementTex ], vertexBytecode, inputLayout) != Ok)
         {
             throw new Dx11ResourceCreationException('ID3D11InputLayout');
@@ -1031,21 +1031,21 @@ using cpp.NativeArray;
             {
                 // Bind uniform buffers to both vertex and fragment stage
                 // Might at some point be worth having the user specify which stages the blocks apply to.
-                final buffer = [ uniformBuffer ];
-                final offset = [ cast unfOffset / 16 ];
-                final length = [ Maths.nextMultipleOff(block.buffer.byteLength, 256) ];
+                final buffer = uniformBuffer;
+                final offset = cpp.NativeMath.idiv(unfOffset, 16);
+                final length = Maths.nextMultipleOff(block.buffer.byteLength, 256);
                 final info   = shaderResources[command.shader];
 
                 final location = findBlockIndexByName(block.name, info.vertInfo.blocks);
                 if (location != -1)
                 {
-                    context.vsSetConstantBuffers1(location, buffer, offset, length);
+                    context.vsSetConstantBuffer1(location, buffer, offset, length);
                 }
 
                 final location = findBlockIndexByName(block.name, info.fragInfo.blocks);
                 if (location != -1)
                 {
-                    context.psSetConstantBuffers1(location, buffer, offset, length);
+                    context.psSetConstantBuffer1(location, buffer, offset, length);
                 }
 
                 unfOffset = Maths.nextMultipleOff(unfOffset + block.buffer.byteLength, 256);
@@ -1059,11 +1059,11 @@ using cpp.NativeArray;
                 if (location != -1)
                 {
                     // Bind Matrix CBuffer
-                    final buffer = [ matrixBuffer ];
-                    final offset = [ cast matOffset / 16 ];
-                    final length = [ 256 ];
+                    final buffer = matrixBuffer;
+                    final offset = cpp.NativeMath.idiv(matOffset, 16);
+                    final length = 256;
 
-                    context.vsSetConstantBuffers1(location, buffer, offset, length);
+                    context.vsSetConstantBuffer1(location, buffer, offset, length);
                 }
 
                 matOffset += 256;
@@ -1153,17 +1153,17 @@ using cpp.NativeArray;
                 {
                     case Backbuffer: // no op
                     case Texture(_):
-                        context.omSetRenderTargets([ backbuffer.renderTargetView ], depthStencilView);
+                        context.omSetRenderTarget(backbuffer.renderTargetView, depthStencilView);
                 }
             case Texture(_requested):
                 switch target
                 {
                     case Backbuffer:
-                        context.omSetRenderTargets([ textureResources[_requested].renderTargetView ], null);
+                        context.omSetRenderTarget(textureResources[_requested].renderTargetView, null);
                     case Texture(_current):
                         if (_current != _requested)
                         {
-                            context.omSetRenderTargets([ textureResources[_requested].renderTargetView ], null);
+                            context.omSetRenderTarget(textureResources[_requested].renderTargetView, null);
                         }
                 }
         }
@@ -1271,7 +1271,7 @@ using cpp.NativeArray;
             nativeClip.right  = _x + _width;
             nativeClip.bottom = _y + _height;
 
-            context.rsSetScissorRects([ nativeClip ]);
+            context.rsSetScissorRect(nativeClip);
         }
     }
 
@@ -1284,7 +1284,7 @@ using cpp.NativeArray;
             nativeView.width    = _width;
             nativeView.height   = _height;
 
-            context.rsSetViewports([ nativeView ]);
+            context.rsSetViewport(nativeView);
         }
     }
 

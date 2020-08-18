@@ -1,0 +1,3 @@
+-D hxcpp_extern_helpers=undefined
+# @install: lix --silent download "gh://github.com/aidan63/hxcpp_extern_helpers#fa174f663e30f4b2bc2b6f5173e649ba0575d6a4" into //github/fa174f663e30f4b2bc2b6f5173e649ba0575d6a4
+-cp ${HAXE_LIBCACHE}///github/fa174f663e30f4b2bc2b6f5173e649ba0575d6a4/src

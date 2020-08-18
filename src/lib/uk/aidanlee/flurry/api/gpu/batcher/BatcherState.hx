@@ -13,6 +13,12 @@ import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
  */
 class BatcherState
 {
+    static final emptyUniforms = [];
+
+    static final emptyTextures = [];
+
+    static final emptySamplers = [];
+
     /**
      * Geometric primitive currently active in this batcher.
      */
@@ -36,7 +42,7 @@ class BatcherState
     /**
      * The samplers currently active in this batcher.
      */
-    public var samplers (default, null) : Array<SamplerState>;
+    public var samplers (default, null) : ReadOnlyArray<SamplerState>;
 
     /**
      * The clipping box currently active in this batcher.
@@ -97,7 +103,7 @@ class BatcherState
         // Check uniforms
         final usedUniforms = switch _geom.uniforms
         {
-            case None : [];
+            case None : emptyUniforms;
             case Some(_uniforms) : _uniforms;
         }
         if (usedUniforms.length != uniforms.length)
@@ -195,17 +201,17 @@ class BatcherState
         }
         uniforms = switch _geom.uniforms
         {
-            case None : [];
+            case None : emptyUniforms;
             case Some(_uniforms) : _uniforms.copy();
         }
         textures = switch _geom.textures
         {
-            case None: [];
+            case None: emptyTextures;
             case Some(_textures): _textures.copy();
         }
         samplers = switch _geom.samplers
         {
-            case None: [];
+            case None: emptySamplers;
             case Some(_samplers): _samplers.copy();
         }
 
