@@ -42,7 +42,7 @@ class Restore
         var res = Success(Unit.value);
 
         // Download all dependent haxe libraries
-        switch proc.run('npx', [ 'lix', 'download' ])
+        switch proc.run('npx', [ 'lix', 'download' ], true)
         {
             case Failure(message): return Failure(message);
             case _:
@@ -138,7 +138,7 @@ class Restore
 
                         if (Utils.platform() != Windows)
                         {
-                            switch proc.run('chmod', [ 'a+x', tool ])
+                            switch proc.run('chmod', [ 'a+x', tool ], true)
                             {
                                 case Failure(message): return Failure(message);
                                 case _:
@@ -188,7 +188,7 @@ class Restore
 
                         if (Utils.platform() != Windows)
                         {
-                            switch proc.run('chmod', [ 'a+x', tool ])
+                            switch proc.run('chmod', [ 'a+x', tool ], true)
                             {
                                 case Failure(message): return Failure(message);
                                 case _:
@@ -223,7 +223,7 @@ class Restore
 
                 if (Utils.platform() != Windows)
                 {
-                    switch proc.run('chmod', [ 'a+x', _tool ])
+                    switch proc.run('chmod', [ 'a+x', _tool ], true)
                     {
                         case Failure(message): return Failure(message);
                         case _:

@@ -53,6 +53,8 @@ class Packer
      */
     final toolsDir : String;
 
+    final verbose : Bool;
+
     /**
      * Map of all pre-processed resources (texts, bytes, and shaders)
      * Keyed by the resources unique ID.
@@ -61,7 +63,7 @@ class Packer
 
     final shaders : Shaders;
 
-    public function new(_project : Project, _gpu : GraphicsBackend, _fs : IFileSystem = null, _proc : Proc = null)
+    public function new(_project : Project, _verbose : Bool, _gpu : GraphicsBackend, _fs : IFileSystem = null, _proc : Proc = null)
     {
         fs          = _fs.or(new FileSystem());
         proc        = _proc.or(new Proc());
@@ -71,8 +73,9 @@ class Packer
         tempParcels = _project.tempParcels();
         tempShaders = _project.tempShaders();
         toolsDir    = _project.toolPath();
+        verbose     = _verbose;
         prepared    = [];
-        shaders     = new Shaders(toolsDir, proc, fs, _gpu);
+        shaders     = new Shaders(toolsDir, verbose, proc, fs, _gpu);
 
         fs.directory.create(tempFonts);
         fs.directory.create(tempAssets);
@@ -125,7 +128,7 @@ class Packer
                 '-format', 'png',
                 '-imageout', out + '.png',
                 '-json', out + '.json',
-                '-size', '48' ])
+                '-size', '48' ], verbose)
             {
                 case Failure(message): return Failure(message);
                 case _:
@@ -145,7 +148,7 @@ class Packer
                 '--data', outJson,
                 '--format', 'json-array',
                 '--filename-format', '{frame}',
-                '--list-tags' ])
+                '--list-tags' ], verbose)
             {
                 case Failure(message): Failure(message);
                 case _:
@@ -334,7 +337,7 @@ class Packer
             '--y-pad', Std.string(_options.pagePadY),
             '--threads', '4',
             '--format', _options.format
-        ])
+        ], verbose)
         {
             case Failure(message): return Failure('Parcel exited with a non zero code of $message');
             case _:
