@@ -17,6 +17,7 @@
             { "lib" : "linc_imgui" },
             { "lib" : "linc_opengl" },
             { "lib" : "linc_stb" },
+            { "lib" : "linc_sdl" },
             { "lib" : "safety" },
             { "lib" : "sys.io.abstractions" }
         ]
