@@ -1,3 +1,3 @@
--D linc_stb=1.0.0
-# @install: lix --silent download "git:https://github.com/snowkit/linc_stb#46ec9fb922df8c1ed332ce0c5863ff52fefa16c8" into untitled/0.0.0/git/46ec9fb922df8c1ed332ce0c5863ff52fefa16c8
--cp ${HAXE_LIBCACHE}/untitled/0.0.0/git/46ec9fb922df8c1ed332ce0c5863ff52fefa16c8/
+-D linc_stb=0.0.0
+# @install: lix --silent download "gh://github.com/aidan63/linc_stb#68c8d3e3ecfca9f773a2a87e77fb965709ce664b" into linc_stb/0.0.0/github/68c8d3e3ecfca9f773a2a87e77fb965709ce664b
+-cp ${HAXE_LIBCACHE}/linc_stb/0.0.0/github/68c8d3e3ecfca9f773a2a87e77fb965709ce664b/
