@@ -28,28 +28,30 @@ class Main
         Cli.process(Sys.args(), new Main()).handle(Cli.exit);
     }
 
-    @:command public final build : Build;
-
     function new()
     {
-        build = new Build();
+        build  = new Build();
+        create = new Create();
     }
 
+    /**
+     * Build a project defined in a flurry json file.
+     */
+    @:command public final build : Build;
+
+    /**
+     * Create a base flurry project.
+     */
+    @:command public final create : Create;
+
+    /**
+     * This tool is responsible for creating, building, running, and distributing flurry projects defined in a json file.
+     * Calling each command with help after it will display detailed information on each option.
+     * e.g. `flurry build help`.
+     */
     @:defaultCommand public function help()
     {
-        Console.log('Flurry');
+        Console.success('Flurry');
         Console.println(Cli.getDoc(this));
-    }
-
-    @:command public function create()
-    {
-        switch new Create().run()
-        {
-            case Failure(_message):
-                Sys.println('failed to create project : $_message');
-                Sys.exit(1);
-            case _:
-                //
-        }
     }
 }

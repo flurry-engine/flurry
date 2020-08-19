@@ -8,7 +8,7 @@ Build File Format
         "output"    : "bin",
         "main"      : "Main",
         "codepaths" : [ "src" ],
-        "backend"   : "Snow"
+        "backend"   : "Sdl"
     },
     "meta" : {
         "name"    : "My Project",
@@ -53,11 +53,9 @@ Assets File Format
         ],
         "shaders" : [
             {
-                "id" : "unique_id",
-                "path" : "definition.json",
-                "ogl3" : { "vertex" : "ogl3/vert.glsl", "fragment" : "ogl3/frag.glsl", "compiled" : false },
-                "ogl4" : { "vertex" : "ogl4/vert.glsl", "fragment" : "ogl4/frag.glsl", "compiled" : false },
-                "hlsl" : { "vertex" : "hlsl/vert.hlsl", "fragment" : "hlsl/frag.hlsl", "compiled" : false }
+                "id"       : "unique_id",
+                "vertex"   : "shaders/vert.glsl",
+                "fragment" : "shaders/frag.glsl"
             }
         ]
     },
@@ -71,32 +69,6 @@ Assets File Format
             "images" : [ "unique_id" ],
             "sheets" : [ "unique_id" ],
             "shaders" : [ "unique_id" ],
-        }
-    ]
-}
-```
-
-Shader Definition File Format
-
-```json
-{
-    "textures" : [ "defaultTexture" ],
-    "blocks"   : [
-        {
-            "name"    : "flurry_matrices",
-            "binding" : 0,
-            "values"  : [
-                { "type" : "Matrix4", "name" : "projection" },
-                { "type" : "Matrix4", "name" : "view" },
-                { "type" : "Matrix4", "name" : "model" }
-            ]
-        },
-        {
-            "name"    : "custom_block",
-            "binding" : 1,
-            "values"  : [
-                { "type" : "Vector4", "name" : "some_vector" }
-            ]
         }
     ]
 }
