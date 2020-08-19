@@ -1,6 +1,5 @@
 package commands;
 
-import haxe.zip.Uncompress;
 import Types.Project;
 import haxe.io.Path;
 import haxe.io.BytesInput;
@@ -41,33 +40,35 @@ class Restore
     {
         var res = Success(Unit.value);
 
+        Console.success('Restoring Project');
+
         // Download all dependent haxe libraries
         switch proc.run('npx', [ 'lix', 'download' ], true)
         {
             case Failure(message): return Failure(message);
-            case _:
+            case _: Console.printlnFormatted('<b,light_blue> •<//> haxe');
         }
 
         // Download all pre-compiled tools.
         switch res = getMsdfAtlasGen()
         {
             case Failure(_): return res;
-            case _:
+            case _: Console.printlnFormatted('<b,light_blue> •<//> msdf-atlas-gen');
         }
         switch res = getAtlasCreator()
         {
             case Failure(_): return res;
-            case _:
+            case _: Console.printlnFormatted('<b,light_blue> •<//> atlas-creator');
         }
         switch res = getGlslang()
         {
             case Failure(_): return res;
-            case _:
+            case _: Console.printlnFormatted('<b,light_blue> •<//> glslangValidator');
         }
         switch res = getSpirvCross()
         {
             case Failure(_): return res;
-            case _:
+            case _: Console.printlnFormatted('<b,light_blue> •<//> spirv-cross');
         }
 
         return res;

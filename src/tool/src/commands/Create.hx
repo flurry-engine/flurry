@@ -3,10 +3,10 @@ package commands;
 import Types.Project;
 import tink.Cli;
 import tink.Json;
+import parcel.Types.JsonDefinition;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
 import haxe.io.Path;
-import parcel.Types.JsonDefinition;
 
 using Safety;
 
@@ -66,7 +66,7 @@ class Create
     }
 
     /**
-     * Create a new flurry project in the directory this command is invoked from.
+     * The create command allows you to quickly create a basic flurry project ready for building in the current directory.
      */
     @:defaultCommand public function create()
     {
@@ -83,6 +83,7 @@ class Create
      */
     @:command public function help()
     {
+        Console.success('Create');
         Console.println(Cli.getDoc(this));
     }
 

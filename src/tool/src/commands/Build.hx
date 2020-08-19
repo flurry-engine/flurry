@@ -1,13 +1,13 @@
 package commands;
 
-import tink.Cli;
 import Types.Project;
+import Types.GraphicsBackend;
+import tink.Cli;
 import tink.Json;
 import parcel.Packer;
-import haxe.io.Path;
-import Types.GraphicsBackend;
 import sys.io.abstractions.concrete.FileSystem;
 import sys.io.abstractions.IFileSystem;
+import haxe.io.Path;
 
 using Utils;
 using Safety;
@@ -15,36 +15,29 @@ using Safety;
 class Build
 {
     /**
-     * If 
-     */
-    @:flag('restore')
-    @:alias(false)
-    public var restore = false;
-
-    /**
-     * If the output executable should be launched after building.
-     * default : false
+     * If set the output executable will be launched after building.
      */
     @:flag('run')
-    @:alias(false)
+    @:alias('r')
     public var run = false;
 
     /**
      * If set the build directory will be delected before building.
-     * default : false
      */
     @:flag('clean')
     @:alias('c')
     public var clean = false;
 
     /**
-     * If set this will build in release mode and package the produced executable and assets for distribution.
-     * default : false
+     * If set this will build with all optimisations enabled and debug output disabled.
      */
-    @:flag('distribute')
+    @:flag('release')
     @:alias('d')
-    public var distribute = false;
+    public var release = false;
 
+    /**
+     * If enabled the output of all tools (shader compilers, texture packer, etc) will be displayed. Haxe compiler and project output will always be displayed.
+     */
     @:flag('verbose')
     @:alias('v')
     public var verbose = false;
@@ -69,6 +62,11 @@ class Build
     @:alias('g')
     public var graphicsBackend = 'auto';
 
+    /**
+     * Target to build the project to.
+     * Can be any of the following.
+     * - `desktop` - Build the project as a native executable for the host operating system.
+     */
     @:flag('target')
     @:alias('t')
     public var target = 'desktop';
@@ -95,11 +93,19 @@ class Build
         proc = _proc.or(new Proc());
     }
 
+    /**
+     * Prints out help about the build command.
+     */
     @:command public function help()
     {
+        Console.success('Build');
         Console.println(Cli.getDoc(this));
     }
 
+    /**
+     * The build command will take your code and assets and compile them into a runnable executable for the specified target.
+     * It can optionally launch the executable on successfully building.
+     */
     @:defaultCommand public function build()
     {
         final projectPath = sys.FileSystem.absolutePath(buildFile);
@@ -108,15 +114,11 @@ class Build
         final buildPath   = project.buildPath();
         final releasePath = project.releasePath();
 
-        if (restore)
+        // Restore the project.
+        switch new Restore(project, fs, net, proc).run()
         {
-            switch new Restore(project, fs, net, proc).run()
-            {
-                case Failure(_message):
-                    Sys.println('failed to restore project $buildFile : $_message');
-                    Sys.exit(1);
-                case _:
-            }
+            case Failure(_message): panic(_message);
+            case _:
         }
 
         // Ensure our base directories are created.
@@ -125,6 +127,7 @@ class Build
             fs.directory.remove(buildPath);
             fs.directory.remove(releasePath);
         }
+
         fs.directory.create(buildPath);
         fs.directory.create(releasePath);
 
@@ -133,7 +136,7 @@ class Build
 
         final gpu      = verifyGraphicsBackend(graphicsBackend);
         final hxmlPath = Path.join([ buildPath, 'build.hxml' ]);
-        final hxmlData = generateHxml(project, projectPath, distribute, gpu);
+        final hxmlData = generateHxml(project, projectPath, release, gpu);
         fs.file.writeText(hxmlPath, hxmlData);
 
         switch proc.run('npx', [ 'haxe', hxmlPath ], true)
@@ -218,21 +221,35 @@ class Build
         // Run
         if (run)
         {
+            Console.success('Running Project');
+
             proc.run(project.executable(), [], true);
         }
+
+        Console.success('Building Completed');
     }
 
+    /**
+     * Log the provided string as an error and exit with a non zero return code.
+     * @param _error Error message to log.
+     */
     static function panic(_error : String)
     {
         Console.error(_error);
         Sys.exit(1);
     }
 
+    /**
+     * Parse the json string at the provided file location.
+     */
     static function parseProject(_fs : IFileSystem, _file : String) : Project
     {
         return Json.parse(_fs.file.getText(_file));
     }
 
+    /**
+     * Parse the graphics backend string into its enum equivilent.
+     */
     static function verifyGraphicsBackend(_api : String) : GraphicsBackend
     {
         return switch _api
@@ -249,7 +266,15 @@ class Build
         }
     }
 
-    static function generateHxml(_project : Project, _projectPath : String, _distribute : Bool, _gpu : GraphicsBackend) : String
+    /**
+     * Generates a hxml file for the given project.
+     * @param _project Project.
+     * @param _projectPath Absolute path to project file.
+     * @param _release If the project is to be built in release mode.
+     * @param _gpu Graphics api to build with.
+     * @return String
+     */
+    static function generateHxml(_project : Project, _projectPath : String, _release : Bool, _gpu : GraphicsBackend) : String
     {
         final hxml = new Hxml();
 
@@ -257,7 +282,7 @@ class Build
         hxml.cpp  = Path.join([ _project.buildPath(), 'cpp' ]);
         hxml.dce  = std;
 
-        if (_project!.build!.profile.or(Debug) == Release || _distribute)
+        if (_project!.build!.profile.or(Debug) == Release || _release)
         {
             hxml.noTraces();
             hxml.addDefine('no-debug');
