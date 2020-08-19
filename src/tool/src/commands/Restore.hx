@@ -3,7 +3,6 @@ package commands;
 import Types.Project;
 import haxe.io.Path;
 import haxe.io.BytesInput;
-import format.tgz.Reader;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
 import uk.aidanlee.flurry.api.core.Result;
@@ -11,7 +10,14 @@ import uk.aidanlee.flurry.api.core.Unit;
 
 using Utils;
 using Safety;
+using Lambda;
 using StringTools;
+
+private enum ArchiveType
+{
+    Zip;
+    Tgz;
+}
 
 class Restore
 {
@@ -76,7 +82,8 @@ class Restore
 
     function getMsdfAtlasGen() : Result<Unit, String>
     {
-        final tool = Path.join([ toolPath, Utils.msdfAtlasExecutable() ]);
+        final exe  = Utils.msdfAtlasExecutable();
+        final tool = Path.join([ toolPath, exe ]);
         final url  = switch Utils.platform()
         {
             case Windows : 'https://github.com/flurry-engine/msdf-atlas-gen/releases/download/CI/windows-latest.tar.gz';
@@ -84,12 +91,13 @@ class Restore
             case Linux   : 'https://github.com/flurry-engine/msdf-atlas-gen/releases/download/CI/ubuntu-latest.tar.gz';
         }
         
-        return githubDownload(url, tool);
+        return githubDownload(url, tool, Tgz, exe);
     }
 
     function getAtlasCreator() : Result<Unit, String>
     {
-        final tool = Path.join([ toolPath, Utils.atlasCreatorExecutable() ]);
+        final exe  = Utils.atlasCreatorExecutable();
+        final tool = Path.join([ toolPath, exe ]);
         final url  = switch Utils.platform()
         {
             case Windows : 'https://github.com/flurry-engine/atlas-creator/releases/download/CI/windows-latest.tar.gz';
@@ -97,12 +105,13 @@ class Restore
             case Linux   : 'https://github.com/flurry-engine/atlas-creator/releases/download/CI/ubuntu-latest.tar.gz';
         }
         
-        return githubDownload(url, tool);
+        return githubDownload(url, tool, Tgz, exe);
     }
 
     function getGlslang() : Result<Unit, String>
     {
-        final tool = Path.join([ toolPath, Utils.glslangExecutable() ]);
+        final exe  = Utils.glslangExecutable();
+        final tool = Path.join([ toolPath, exe ]);
         final url  = switch Utils.platform()
         {
             case Windows : 'https://github.com/KhronosGroup/glslang/releases/download/SDK-candidate-26-Jul-2020/glslang-master-windows-x64-Release.zip';
@@ -110,56 +119,13 @@ class Restore
             case Linux   : 'https://github.com/KhronosGroup/glslang/releases/download/SDK-candidate-26-Jul-2020/glslang-master-linux-Release.zip';
         }
 
-        if (fs.file.exists(tool))
-        {
-            return Success(Unit.value);
-        }
-
-        return switch net.download(url, proc)
-        {
-            case Success(data):
-                final input  = new BytesInput(data);
-                final target = 'bin/glslangValidator${ switch Utils.platform() {
-                    case Windows: '.exe';
-                    case Mac, Linux: '';
-                } }';
-
-                for (entry in new format.zip.Reader(input).read())
-                {
-                    if (entry.fileName == target)
-                    {
-                        if (entry.compressed)
-                        {
-#if neko
-                            format.zip.Tools.uncompress(entry);
-#end
-                        }
-
-                        fs.file.writeBytes(tool, entry.data.sure());
-
-                        if (Utils.platform() != Windows)
-                        {
-                            switch proc.run('chmod', [ 'a+x', tool ], true)
-                            {
-                                case Failure(message): return Failure(message);
-                                case _:
-                            }
-                        }
-
-                        break;
-                    }
-                }
-
-                input.close();
-
-                Success(Unit.value);
-            case Failure(message): Failure(message);
-        }
+        return githubDownload(url, tool, Zip, 'bin/$exe');
     }
 
     function getSpirvCross() : Result<Unit, String>
     {
-        final tool = Path.join([ toolPath, Utils.spirvCrossExecutable() ]);
+        final exe  = Utils.spirvCrossExecutable();
+        final tool = Path.join([ toolPath, exe ]);
         final url  = switch Utils.platform()
         {
             case Windows : 'https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2020-06-29/spirv-cross-vs2017-64bit-b1082c10af.tar.gz';
@@ -167,47 +133,10 @@ class Restore
             case Linux   : 'https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2020-06-29/spirv-cross-gcc-trusty-64bit-b1082c10af.tar.gz';
         }
 
-        if (fs.file.exists(tool))
-        {
-            return Success(Unit.value);
-        }
-
-        return switch net.download(url, proc)
-        {
-            case Success(data):
-                final input  = new BytesInput(data);
-                final target = 'bin/spirv-cross${ switch Utils.platform() {
-                    case Windows: '.exe';
-                    case Mac, Linux: '';
-                } }';
-
-                for (entry in new Reader(input).read())
-                {
-                    if (entry.fileName == target)
-                    {
-                        fs.file.writeBytes(tool, entry.data.sure());
-
-                        if (Utils.platform() != Windows)
-                        {
-                            switch proc.run('chmod', [ 'a+x', tool ], true)
-                            {
-                                case Failure(message): return Failure(message);
-                                case _:
-                            }
-                        }
-
-                        break;
-                    }
-                }
-
-                input.close();
-
-                Success(Unit.value);
-            case Failure(message): Failure(message);
-        }
+        return githubDownload(url, tool, Tgz, 'bin/$exe');
     }
 
-    function githubDownload(_url : String, _tool : String) : Result<Unit, String>
+    function githubDownload(_url : String, _tool : String, _archive : ArchiveType, _target : String) : Result<Unit, String>
     {
         if (fs.file.exists(_tool))
         {
@@ -217,21 +146,31 @@ class Restore
         return switch net.download(_url, proc)
         {
             case Success(data):
-                final input = new BytesInput(data);
-                final entry = new Reader(input).read().first().sure();
-
-                fs.file.writeBytes(_tool, entry.data.sure());
-
-                if (Utils.platform() != Windows)
-                {
-                    switch proc.run('chmod', [ 'a+x', _tool ], true)
-                    {
-                        case Failure(message): return Failure(message);
-                        case _:
-                    }
+                final input   = new BytesInput(data);
+                final entries = switch _archive {
+                    case Zip : new format.zip.Reader(input).read();
+                    case Tgz : cast new format.tgz.Reader(input).read();
                 }
 
-                input.close();
+                entries
+                    .find(e -> e.fileName == _target)
+                    .run(e -> {
+                        if (e.compressed)
+                        {
+                            #if neko format.zip.Tools.uncompress(e); #end
+                        }
+
+                        fs.file.writeBytes(_tool, e.data.sure());
+
+                        if (Utils.platform() != Windows)
+                        {
+                            switch proc.run('chmod', [ 'a+x', _tool ], true)
+                            {
+                                case Failure(message): Failure(message);
+                                case _:
+                            }
+                        }
+                    });
 
                 Success(Unit.value);
             case Failure(message): Failure(message);
