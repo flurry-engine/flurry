@@ -8,6 +8,7 @@ import parcel.Packer;
 import sys.io.abstractions.concrete.FileSystem;
 import sys.io.abstractions.IFileSystem;
 import haxe.io.Path;
+import uk.aidanlee.flurry.api.core.Log;
 
 using Utils;
 using Safety;
@@ -98,8 +99,8 @@ class Build
      */
     @:command public function help()
     {
-        Console.success('Build');
-        Console.println(Cli.getDoc(this));
+        Log.log('Build', Success);
+        Log.log(Cli.getDoc(this), Info);
     }
 
     /**
@@ -132,7 +133,7 @@ class Build
         fs.directory.create(releasePath);
 
         // Generate a hxml file from the project and invoke haxe
-        Console.success('Compiling Haxe');
+        Log.log('Compiling Haxe', Success);
 
         final gpu      = verifyGraphicsBackend(graphicsBackend);
         final hxmlPath = Path.join([ buildPath, 'build.hxml' ]);
@@ -146,7 +147,7 @@ class Build
         }
 
         // Generate all parcels
-        Console.success('Generating Parcels');
+        Log.log('Generating Parcels', Success);
 
         final debugParcels   = Path.join([ buildPath, 'cpp', 'assets', 'parcels' ]);
         final releaseParcels = Path.join([ releasePath, 'assets', 'parcels' ]);
@@ -196,7 +197,7 @@ class Build
         // Copy globbed files
         if (project!.build!.files != null)
         {
-            Console.success('Copying Globbed Files');
+            Log.log('Copying Globbed Files', Success);
 
             for (glob => dst in project!.build!.files.unsafe())
             {
@@ -221,12 +222,12 @@ class Build
         // Run
         if (run)
         {
-            Console.success('Running Project');
+            Log.log('Running Project', Success);
 
             proc.run(project.executable(), [], true);
         }
 
-        Console.success('Building Completed');
+        Log.log('Building Completed', Success);
     }
 
     /**
@@ -235,7 +236,7 @@ class Build
      */
     static function panic(_error : String)
     {
-        Console.error(_error);
+        Log.log(_error, Error);
         Sys.exit(1);
     }
 

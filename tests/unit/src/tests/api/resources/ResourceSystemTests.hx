@@ -45,7 +45,7 @@ class ResourceSystemTests extends SingleSuite
             case Success(_): //
             case Failure(message): throw new Exception('failed to download tools : $message');
         }
-        switch new Packer(project, Ogl3).create('assets/assets.json')
+        switch new Packer(project, false, Ogl3).create('assets/assets.json')
         {
             case Success(data):
                 for (parcel in data)

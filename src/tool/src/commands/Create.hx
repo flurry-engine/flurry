@@ -7,6 +7,7 @@ import parcel.Types.JsonDefinition;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
 import haxe.io.Path;
+import uk.aidanlee.flurry.api.core.Log;
 
 using Safety;
 
@@ -83,8 +84,8 @@ class Create
      */
     @:command public function help()
     {
-        Console.success('Create');
-        Console.println(Cli.getDoc(this));
+        Log.log('Create', Info);
+        Log.log(Cli.getDoc(this), Info);
     }
 
     /**

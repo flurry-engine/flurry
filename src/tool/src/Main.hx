@@ -3,6 +3,7 @@ package;
 import tink.Cli;
 import commands.Build;
 import commands.Create;
+import uk.aidanlee.flurry.api.core.Log;
 
 using Safety;
 using Utils;
@@ -51,7 +52,7 @@ class Main
      */
     @:defaultCommand public function help()
     {
-        Console.success('Flurry');
-        Console.println(Cli.getDoc(this));
+        Log.log('Flurry', Success);
+        Log.log(Cli.getDoc(this), Info);
     }
 }

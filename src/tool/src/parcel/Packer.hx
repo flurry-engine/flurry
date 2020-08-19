@@ -6,6 +6,7 @@ import haxe.io.Bytes;
 import haxe.ds.ReadOnlyArray;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
+import uk.aidanlee.flurry.api.core.Log;
 import uk.aidanlee.flurry.api.core.Unit;
 import uk.aidanlee.flurry.api.core.Result;
 import uk.aidanlee.flurry.api.stream.ParcelOutput;
@@ -218,7 +219,7 @@ class Packer
                 file : file
             });
 
-            Console.printlnFormatted('<b,light_blue> •<//> ${ parcel.name }');
+            Log.log(parcel.name, Item);
 
             clean(tempAssets);
         }

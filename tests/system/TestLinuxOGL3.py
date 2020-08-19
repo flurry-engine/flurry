@@ -41,7 +41,7 @@ class SystemTests(unittest.TestCase):
                 buildFileHandle.write(template)
                 buildFileHandle.close()
 
-                subprocess.run([ "npx", "neko", "../../run.n", "build", "--release" ], env=myEnv)
+                subprocess.run([ "npx", "neko", "../../run.n", "build", "--release", "--verbose", "--gpu", "ogl3" ], env=myEnv)
 
                 test_proc=subprocess.Popen([ "bin/linux/SystemTests" ], env=myEnv)
 

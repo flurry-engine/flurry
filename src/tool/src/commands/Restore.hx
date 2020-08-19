@@ -7,6 +7,7 @@ import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
 import uk.aidanlee.flurry.api.core.Result;
 import uk.aidanlee.flurry.api.core.Unit;
+import uk.aidanlee.flurry.api.core.Log;
 
 using Utils;
 using Safety;
@@ -44,37 +45,37 @@ class Restore
 
     public function run() : Result<Unit, String>
     {
-        var res = Success(Unit.value);
+        var res = Result.Success(Unit.value);
 
-        Console.success('Restoring Project');
+        Log.log('Restoring Project', Success);
 
         // Download all dependent haxe libraries
         switch proc.run('npx', [ 'lix', 'download' ], true)
         {
             case Failure(message): return Failure(message);
-            case _: Console.printlnFormatted('<b,light_blue> •<//> haxe');
+            case _: Log.log('haxe', Item);
         }
 
         // Download all pre-compiled tools.
         switch res = getMsdfAtlasGen()
         {
             case Failure(_): return res;
-            case _: Console.printlnFormatted('<b,light_blue> •<//> msdf-atlas-gen');
+            case _: Log.log('msdf-atlas-gen', Item);
         }
         switch res = getAtlasCreator()
         {
             case Failure(_): return res;
-            case _: Console.printlnFormatted('<b,light_blue> •<//> atlas-creator');
+            case _: Log.log('atlas-creator', Item);
         }
         switch res = getGlslang()
         {
             case Failure(_): return res;
-            case _: Console.printlnFormatted('<b,light_blue> •<//> glslangValidator');
+            case _: Log.log('glslangValidator', Item);
         }
         switch res = getSpirvCross()
         {
             case Failure(_): return res;
-            case _: Console.printlnFormatted('<b,light_blue> •<//> spirv-cross');
+            case _: Log.log('spirv-cross', Item);
         }
 
         return res;

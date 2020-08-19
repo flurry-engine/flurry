@@ -52,7 +52,7 @@ class SystemTests(unittest.TestCase):
                 buildFileHandle.write(template)
                 buildFileHandle.close()
 
-                subprocess.run([ "npx", "neko", "../../run.n", "build", "--release" ], shell=True)
+                subprocess.run([ "npx", "neko", "../../run.n", "build", "--release", "--verbose", "--gpu", "ogl3" ], shell=True)
 
                 test_proc=subprocess.Popen([ "bin/windows/SystemTests.exe" ])
 
