@@ -218,6 +218,8 @@ class Packer
                 file : file
             });
 
+            Console.printlnFormatted('<b,light_blue> •<//> ${ parcel.name }');
+
             clean(tempAssets);
         }
 

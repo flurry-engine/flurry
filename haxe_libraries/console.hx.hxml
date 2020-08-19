@@ -1,0 +1,3 @@
+-D console.hx=0.2.12
+# @install: lix --silent download "haxelib:/console.hx#0.2.12" into console.hx/0.2.12/haxelib
+-cp ${HAXE_LIBCACHE}/console.hx/0.2.12/haxelib/
