@@ -1,3 +1,0 @@
--D akifox-asynchttp=0.4.7
-# @install: lix --silent download "gh://github.com/aidan63/akifox-asynchttp#60338155c2fe10bed5b9af75ed5a51b3b8f3f2ec" into akifox-asynchttp/0.4.7/github/60338155c2fe10bed5b9af75ed5a51b3b8f3f2ec
--cp ${HAXE_LIBCACHE}/akifox-asynchttp/0.4.7/github/60338155c2fe10bed5b9af75ed5a51b3b8f3f2ec/

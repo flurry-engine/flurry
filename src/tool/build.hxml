@@ -5,7 +5,6 @@
 
 -lib tink_cli
 -lib tink_json
--lib akifox-asynchttp
 -lib safety
 -lib format
 -lib sys.io.abstractions

@@ -34,7 +34,6 @@
 -lib hxbit
 -lib tink_json
 -lib tink_cli
--lib akifox-asynchttp
 -lib console.hx
 
 --macro nullSafety('uk.aidanlee.flurry.modules.differ', Strict)
