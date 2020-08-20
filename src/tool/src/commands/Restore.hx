@@ -50,11 +50,11 @@ class Restore
         Log.log('Restoring Project', Success);
 
         // Download all dependent haxe libraries
-        switch proc.run('npx', [ 'lix', 'download' ], true)
-        {
-            case Failure(message): return Failure(message);
-            case _: Log.log('haxe', Item);
-        }
+        // switch proc.run('npx', [ 'lix', 'download' ], true)
+        // {
+        //     case Failure(message): return Failure(message);
+        //     case _: Log.log('haxe', Item);
+        // }
 
         // Download all pre-compiled tools.
         switch res = getMsdfAtlasGen()
