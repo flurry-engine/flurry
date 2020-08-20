@@ -10,7 +10,6 @@
 -lib format
 -lib sys.io.abstractions
 -lib hxbit
--lib console.hx
 
 --dce full
 --no-inline
