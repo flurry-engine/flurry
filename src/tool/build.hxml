@@ -5,11 +5,11 @@
 
 -lib tink_cli
 -lib tink_json
--lib akifox-asynchttp
 -lib safety
 -lib format
 -lib sys.io.abstractions
 -lib hxbit
+-lib console.hx
 
 --dce full
 --no-inline

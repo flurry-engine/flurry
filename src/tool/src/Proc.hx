@@ -1,3 +1,4 @@
+import sys.io.Process;
 import uk.aidanlee.flurry.api.core.Unit;
 import uk.aidanlee.flurry.api.core.Result;
 
@@ -9,14 +10,19 @@ using Safety;
  */
 class Proc
 {
-    public function new()
-    {
-        //
-    }
+    public function new() { }
 
-    public function run(_executable : String, _arguments : Array<String> = null) : Result<Unit, String>
+    public function run(_executable : String, _arguments : Array<String>, _verbose : Bool) : Result<Unit, String>
     {
-        final code = Sys.command(_executable, _arguments);
+        final code = if (_verbose)
+                Sys.command(_executable, _arguments)
+            else {
+                final proc = new Process(_executable, _arguments);
+                final code = proc.exitCode(true);
+
+                proc.close();
+                code;
+            }
 
         return
             if (code == 0)

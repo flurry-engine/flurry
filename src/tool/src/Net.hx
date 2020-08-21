@@ -1,5 +1,4 @@
 import haxe.io.Bytes;
-import com.akifox.asynchttp.HttpRequest;
 import uk.aidanlee.flurry.api.core.Result;
 
 /**
@@ -15,14 +14,27 @@ class Net
 
     public function download(_url : String, _proc : Proc) : Result<Bytes, String>
     {
-        var res = Failure('');
+        var res  = Failure('');
+        var code = 0;
 
-        new HttpRequest({
-            async : false,
-            url   : _url,
-            callback      : success -> res = Success(success.contentRaw),
-            callbackError : error -> res = Failure(error.error)
-        }).send();
+        final request = new haxe.Http(_url);
+        request.onStatus = data -> code = data;
+        request.onError  = data -> res  = Failure(data);
+        request.onBytes  = function(data) {
+            switch code
+            {
+                case 200: res = Success(data);
+                case 302:
+                    // Github returns redirects as <html><body><a href="redirect url"></body></html>
+
+                    final access = new haxe.xml.Access(Xml.parse(data.toString()).firstElement());
+                    final redir  = access.node.body.node.a.att.href;
+
+                    res = download(redir, _proc);
+                case other: res = Failure('Unexpected http status : $other');
+            }
+        }
+        request.request();
 
         return res;
     }

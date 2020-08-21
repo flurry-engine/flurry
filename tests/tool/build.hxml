@@ -12,7 +12,6 @@
 -L sys.io.abstractions
 -L mockatoo
 -L format
--L akifox-asynchttp
 -L hxbit
 -L tink_json
 --macro Safety.safeNavigation('')

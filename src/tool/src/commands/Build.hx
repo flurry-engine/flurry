@@ -1,69 +1,76 @@
 package commands;
 
-import Types.GraphicsBackend;
 import Types.Project;
+import Types.GraphicsBackend;
+import tink.Cli;
+import tink.Json;
 import parcel.Packer;
-import haxe.io.Path;
-import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
-import uk.aidanlee.flurry.api.core.Result;
-import uk.aidanlee.flurry.api.core.Unit;
+import sys.io.abstractions.IFileSystem;
+import haxe.io.Path;
+import uk.aidanlee.flurry.api.core.Log;
 
-using Safety;
 using Utils;
+using Safety;
 
 class Build
 {
     /**
-     * The project to build.
+     * If set the output executable will be launched after building.
      */
-    final project : Project;
+    @:flag('run')
+    @:alias('r')
+    public var run = false;
 
     /**
-     * If the project will be built in release mode.
+     * If set the build directory will be delected before building.
      */
-    final release : Bool;
+    @:flag('clean')
+    @:alias('c')
+    public var clean = false;
 
     /**
-     * If the output directories will be removed before building.
+     * If set this will build with all optimisations enabled and debug output disabled.
      */
-    final clean : Bool;
+    @:flag('release')
+    @:alias('d')
+    public var release = false;
 
     /**
-     * Absolute path to the build file.
+     * If enabled the output of all tools (shader compilers, texture packer, etc) will be displayed. Haxe compiler and project output will always be displayed.
      */
-    final buildFile : String;
+    @:flag('verbose')
+    @:alias('v')
+    public var verbose = false;
 
     /**
-     * Location of the tools directory for the current platform.
+     * Path to the json build file.
+     * default : build.json
      */
-    final toolPath : String;
+    @:flag('file')
+    @:alias('f')
+    public var buildFile = 'build.json';
 
     /**
-     * Location of the build directory for the current platform.
+     * Force the use of a specific graphics backend for the target platform.
+     * If the requested backend is not usable on the target platform, compilation will end.
+     * - `auto`  - Atomatically select the best backend based for the target.
+     * - `mock`  - Produces no output, simply applies some basic checks on all requests.
+     * - `d3d11` - Use the Direct3D 11.1 backend (Windows only)
+     * - `ogl3`  - Use the OpenGL 3.3 backend (Windows, Mac, and Linux only)
      */
-    final buildPath : String;
+    @:flag('gpu')
+    @:alias('g')
+    public var graphicsBackend = 'auto';
 
     /**
-     * The requested graphics backend to be used.
+     * Target to build the project to.
+     * Can be any of the following.
+     * - `desktop` - Build the project as a native executable for the host operating system.
      */
-    final gpu : GraphicsBackend;
-
-    /**
-     * Location of the release directory for the current platform.
-     * The release directory will contain just the built executable and parcels, not any extra intermediate data.
-     */
-    final releasePath : String;
-
-    /**
-     * Hxml file generated to build the haxe code.
-     */
-    final user : Hxml;
-
-    /**
-     * Packer object which will be used for generating parcel data.
-     */
-    final packer : Packer;
+    @:flag('target')
+    @:alias('t')
+    public var target = 'desktop';
 
     /**
      * Process object used for invoking other processes.
@@ -71,40 +78,51 @@ class Build
     final proc : Proc;
 
     /**
+     * Network object used for downloading files.
+     */
+    final net : Net;
+
+    /**
      * Interface for accessing files and directories.
      */
     final fs : IFileSystem;
 
-    public function new(
-        _project : Project,
-        _release : Bool,
-        _clean : Bool,
-        _buildFile : String,
-        _gpu : String,
-        _fs : IFileSystem = null,
-        _packer : Packer = null,
-        _proc : Proc = null)
+    public function new(_fs : IFileSystem = null, _net : Net = null, _proc : Proc = null)
     {
-        project     = _project;
-        toolPath    = project.toolPath();
-        buildPath   = project.buildPath();
-        releasePath = project.releasePath();
-        release     = _release;
-        clean       = _clean;
-        buildFile   = _buildFile;
-        user        = new Hxml();
-        gpu         = verifyGraphicsBackend(_gpu);
-        fs          = _fs.or(new FileSystem());
-        packer      = _packer.or(new Packer(project, gpu, fs));
-        proc        = _proc.or(new Proc());
+        fs   = _fs.or(new FileSystem());
+        net  = _net.or(new Net());
+        proc = _proc.or(new Proc());
     }
 
     /**
-     * Compile the haxe code and create the parcels.
-     * @return Result<Unit>
+     * Prints out help about the build command.
      */
-    public function run() : Result<Unit, String>
+    @:command public function help()
     {
+        Log.log('Build', Success);
+        Log.log(Cli.getDoc(this), Info);
+    }
+
+    /**
+     * The build command will take your code and assets and compile them into a runnable executable for the specified target.
+     * It can optionally launch the executable on successfully building.
+     */
+    @:defaultCommand public function build()
+    {
+        final projectPath = sys.FileSystem.absolutePath(buildFile);
+        final project     = parseProject(fs, buildFile);
+        final toolPath    = project.toolPath();
+        final buildPath   = project.buildPath();
+        final releasePath = project.releasePath();
+
+        // Restore the project.
+        switch new Restore(project, fs, net, proc).run()
+        {
+            case Failure(_message): panic(_message);
+            case _:
+        }
+
+        // Ensure our base directories are created.
         if (clean)
         {
             fs.directory.remove(buildPath);
@@ -114,25 +132,26 @@ class Build
         fs.directory.create(buildPath);
         fs.directory.create(releasePath);
 
-        // Output and compile the actual haxe program
+        // Generate a hxml file from the project and invoke haxe
+        Log.log('Compiling Haxe', Success);
 
-        writeUserHxml();
+        final gpu      = verifyGraphicsBackend(graphicsBackend);
+        final hxmlPath = Path.join([ buildPath, 'build.hxml' ]);
+        final hxmlData = generateHxml(project, projectPath, release, gpu);
+        fs.file.writeText(hxmlPath, hxmlData);
 
-        final buildHxml = Path.join([ buildPath, 'build.hxml' ]);
-        fs.file.writeText(buildHxml, user.toString());
-
-        switch proc.run('npx', [ 'haxe', buildHxml ])
+        switch proc.run('npx', [ 'haxe', hxmlPath ], true)
         {
-            case Failure(message):
-                return Failure(message);
-            case _:
-                //
+            case Success(_):
+            case Failure(message): panic(message);
         }
 
-        // Generate all parcels for this project
+        // Generate all parcels
+        Log.log('Generating Parcels', Success);
 
         final debugParcels   = Path.join([ buildPath, 'cpp', 'assets', 'parcels' ]);
         final releaseParcels = Path.join([ releasePath, 'assets', 'parcels' ]);
+        final packer         = new Packer(project, verbose, gpu, fs, proc);
 
         fs.directory.create(debugParcels);
         fs.directory.create(releaseParcels);
@@ -141,49 +160,45 @@ class Build
         {
             switch packer.create(assets)
             {
-                case Success(data):
-                    for (parcel in data)
+                case Success(parcels):
+                    for (parcel in parcels)
                     {
                         fs.file.copy(parcel.file, Path.join([ debugParcels, parcel.name ]));
                         fs.file.copy(parcel.file, Path.join([ releaseParcels, parcel.name ]));
                     }
-                case Failure(message): return Failure(message);
+                case Failure(message): panic(message);
             }
         }
 
-        // Rename the output executables according to the project name
-
+        // Copy over the executable
         switch Utils.platform()
         {
             case Windows:
-                final exe = if (project!.build!.profile.or(Debug) == Release || release) 'SDLHost.exe' else 'SDLHost-debug.exe';
-                final src = Path.join([ buildPath, 'cpp', exe ]);
+                final src = Path.join([ buildPath, 'cpp', '${ project.app.name }.exe' ]);
                 final dst = project.executable();
 
                 fs.file.copy(src, dst);
             case Mac, Linux:
-                final exe = if (project!.build!.profile.or(Debug) == Release || release) 'SDLHost' else 'SDLHost-debug';
-                final src = Path.join([ buildPath, 'cpp', exe ]);
+                final src = Path.join([ buildPath, 'cpp', project.app.name ]);
                 final dst = project.executable();
 
                 fs.file.copy(src, dst);
 
-                switch proc.run('chmod', [ 'a+x', dst ])
+                switch proc.run('chmod', [ 'a+x', dst ], true)
                 {
-                    case Failure(message):
-                        return Failure(message);
-                    case _:
-                        //
+                    case Failure(message): panic(message);
+                    case _: //
                 }
         }
 
+        // Remove all temp directories
         fs.directory.remove(project.baseTempDir());
-
-        // Post build tasks.
 
         // Copy globbed files
         if (project!.build!.files != null)
         {
+            Log.log('Copying Globbed Files', Success);
+
             for (glob => dst in project!.build!.files.unsafe())
             {
                 final ereg       = GlobPatterns.toEReg(glob);
@@ -204,65 +219,38 @@ class Build
             }
         }
 
-        return Success(Unit.value);
+        // Run
+        if (run)
+        {
+            Log.log('Running Project', Success);
+
+            proc.run(project.executable(), [], true);
+        }
+
+        Log.log('Building Completed', Success);
     }
 
     /**
-     * Write the user hxml. This contains all required and extra lib, defines, macros, etc.
+     * Log the provided string as an error and exit with a non zero return code.
+     * @param _error Error message to log.
      */
-    function writeUserHxml()
+    static function panic(_error : String)
     {
-        user.main = 'uk.aidanlee.flurry.hosts.SDLHost';
-        user.cpp  = Path.join([ buildPath, 'cpp' ]);
-        user.dce  = std;
-
-        if (project!.build!.profile.or(Debug) == Release || release)
-        {
-            user.noTraces();
-            user.addDefine('no-debug');
-        }
-        else
-        {
-            user.debug();
-        }
-
-        user.addDefine(Utils.platform());
-        user.addDefine('target-cpp');
-        user.addDefine('desktop');
-        user.addDefine('snow_native');
-        user.addDefine('HXCPP_M64');
-        user.addDefine('flurry-entry-point', project.app.main);
-        user.addDefine('flurry-build-file', buildFile);
-        user.addDefine('flurry-gpu-api', switch gpu {
-            case Mock: 'mock';
-            case Ogl3: 'ogl3';
-            case D3d11: 'd3d11';
-        });
-        user.addMacro('Safety.safeNavigation("uk.aidanlee.flurry")');
-        user.addMacro('nullSafety("uk.aidanlee.flurry.modules", Strict)');
-        user.addMacro('nullSafety("uk.aidanlee.flurry.api", Strict)');
-
-        for (p in project.app.codepaths)
-        {           
-            user.addClassPath(p);
-        }
-
-        for (d in project!.build!.defines.or([]))
-        {
-            user.addDefine(d.def, d.value);
-        }
-
-        for (m in project!.build!.macros.or([]))
-        {
-            user.addMacro(m);
-        }
-
-        for (d in project!.build!.dependencies.or([]))
-        {
-            user.addLibrary(d.lib, d.version);
-        }
+        Log.log(_error, Error);
+        Sys.exit(1);
     }
 
+    /**
+     * Parse the json string at the provided file location.
+     */
+    static function parseProject(_fs : IFileSystem, _file : String) : Project
+    {
+        return Json.parse(_fs.file.getText(_file));
+    }
+
+    /**
+     * Parse the graphics backend string into its enum equivilent.
+     */
     static function verifyGraphicsBackend(_api : String) : GraphicsBackend
     {
         return switch _api
@@ -277,5 +265,71 @@ class Build
                     case _: Ogl3;
                 }
         }
+    }
+
+    /**
+     * Generates a hxml file for the given project.
+     * @param _project Project.
+     * @param _projectPath Absolute path to project file.
+     * @param _release If the project is to be built in release mode.
+     * @param _gpu Graphics api to build with.
+     * @return String
+     */
+    static function generateHxml(_project : Project, _projectPath : String, _release : Bool, _gpu : GraphicsBackend) : String
+    {
+        final hxml = new Hxml();
+
+        hxml.main = 'uk.aidanlee.flurry.hosts.SDLHost';
+        hxml.cpp  = Path.join([ _project.buildPath(), 'cpp' ]);
+        hxml.dce  = std;
+
+        if (_project!.build!.profile.or(Debug) == Release || _release)
+        {
+            hxml.noTraces();
+            hxml.addDefine('no-debug');
+        }
+        else
+        {
+            hxml.debug();
+        }
+
+        hxml.addDefine(Utils.platform());
+        hxml.addDefine('target-cpp');
+        hxml.addDefine('desktop');
+        hxml.addDefine('snow_native');
+        hxml.addDefine('HXCPP_M64');
+        hxml.addDefine('HAXE_OUTPUT_FILE', _project.app.name);
+        hxml.addDefine('flurry-entry-point', _project.app.main);
+        hxml.addDefine('flurry-build-file', _projectPath);
+        hxml.addDefine('flurry-gpu-api', switch _gpu {
+            case Mock: 'mock';
+            case Ogl3: 'ogl3';
+            case D3d11: 'd3d11';
+        });
+        hxml.addMacro('Safety.safeNavigation("uk.aidanlee.flurry")');
+        hxml.addMacro('nullSafety("uk.aidanlee.flurry.modules", Strict)');
+        hxml.addMacro('nullSafety("uk.aidanlee.flurry.api", Strict)');
+
+        for (p in _project.app.codepaths)
+        {
+            hxml.addClassPath(p);
+        }
+
+        for (d in _project!.build!.defines.or([]))
+        {
+            hxml.addDefine(d.def, d.value);
+        }
+
+        for (m in _project!.build!.macros.or([]))
+        {
+            hxml.addMacro(m);
+        }
+
+        for (d in _project!.build!.dependencies.or([]))
+        {
+            hxml.addLibrary(d.lib, d.version);
+        }
+
+        return hxml.toString();
     }
 }

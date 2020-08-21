@@ -4,3 +4,4 @@
 *.gif binary
 *.exe binary
 *.n binary
+*.ndll binary

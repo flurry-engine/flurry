@@ -1,45 +1,55 @@
 package commands;
 
 import Types.Project;
+import tink.Cli;
 import tink.Json;
-import haxe.io.Path;
+import parcel.Types.JsonDefinition;
 import sys.io.abstractions.IFileSystem;
 import sys.io.abstractions.concrete.FileSystem;
-import uk.aidanlee.flurry.api.core.Result;
-import uk.aidanlee.flurry.api.core.Unit;
-import parcel.Types.JsonDefinition;
+import haxe.io.Path;
+import uk.aidanlee.flurry.api.core.Log;
 
 using Safety;
 
 class Create
 {
-    final fs : IFileSystem;
+    /**
+     * Name of the project and output executable.
+     */
+    public var name = 'Project';
 
-    final project : Project;
+    /**
+     * Main class name.
+     */
+    public var main = 'Main';
+
+    /**
+     * Main folder code will be stored in.
+     */
+    public var codepath = 'src';
+
+    /**
+     * Project output directory.
+     */
+    public var output = 'bin';
+
+    /**
+     * Creator of the project.
+     */
+    public var author = 'Flurry';
+
+    /**
+     * Main folder assets will be stored in.
+     */
+    public var resources = 'assets';
+
+    final fs : IFileSystem;
 
     final assets : JsonDefinition;
 
-    final main : String;
-
     public function new(_fs : IFileSystem = null)
     {
-        fs      = _fs.or(new FileSystem());
-        project = {
-            app : {
-                name      : 'Project',
-                backend   : Snow,
-                codepaths : [ 'src' ],
-                main      : 'Main',
-                output    : 'bin',
-                author    : 'Flurry'
-            },
-            build : {
-                dependencies : [
-                    { lib : 'flurry' }
-                ]
-            },
-            parcels: [ 'assets/assets.json' ]
-        }
+        fs     = _fs.or(new FileSystem());
         assets = {
             assets : {
                 bytes   : [],
@@ -54,7 +64,59 @@ class Create
                 { name : 'preload' }
             ]
         }
-        main = 'package;
+    }
+
+    /**
+     * The create command allows you to quickly create a basic flurry project ready for building in the current directory.
+     */
+    @:defaultCommand public function create()
+    {
+        fs.directory.create(resources);
+        fs.directory.create(codepath);
+
+        fs.file.writeText(Path.join([ codepath, '$main.hx' ]), getCode(name));
+        fs.file.writeText(Path.join([ resources, 'assets.json' ]), Json.stringify(assets));
+        fs.file.writeText('build.json', Json.stringify(getProject(name, main, codepath, output, resources, author)));
+    }
+
+    /**
+     * Prints out help about the create command.
+     */
+    @:command public function help()
+    {
+        Log.log('Create', Info);
+        Log.log(Cli.getDoc(this), Info);
+    }
+
+    /**
+     * Create a project typedef for json serialisation.
+     */
+    static function getProject(_name, _main, _codepath, _output, _assets, _author) : Project
+    {
+        return {
+            app : {
+                name      : _name,
+                backend   : Sdl,
+                codepaths : [ _codepath ],
+                main      : _main,
+                output    : _output,
+                author    : _author
+            },
+            build : {
+                dependencies : [
+                    { lib : 'flurry' }
+                ]
+            },
+            parcels: [ '$_assets/assets.json' ]
+        }
+    }
+
+    /**
+     * Get the initial code for the main class.
+     */
+    static function getCode(_name)
+    {
+        return 'package;
 
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
@@ -63,7 +125,7 @@ class Main extends Flurry
 {
     override function onConfig(_config : FlurryConfig) : FlurryConfig
     {
-        _config.window.title  = \'Project\';
+        _config.window.title  = \'$_name\';
         _config.window.width  = 768;
         _config.window.height = 512;
 
@@ -72,17 +134,5 @@ class Main extends Flurry
         return _config;
     }
 }';
-    }
-
-    public function run() : Result<Unit, String>
-    {
-        fs.directory.create('assets');
-        fs.directory.create('src');
-
-        fs.file.writeText(Path.join([ 'src', 'Main.hx' ]), main);
-        fs.file.writeText(Path.join([ 'assets', 'assets.json' ]), Json.stringify(assets));
-        fs.file.writeText('build.json', Json.stringify(project));
-
-        return Success(Unit.value);
     }
 }

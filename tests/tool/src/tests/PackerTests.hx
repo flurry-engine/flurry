@@ -65,7 +65,7 @@ class PackerTests extends BuddySuite
                 ], []);
                 final project = project();
                 final proc    = mock(Proc);
-                final packer  = new Packer(project, Mock, fs, proc);
+                final packer  = new Packer(project, true, Mock, fs, proc);
 
                 // Intercept calls to msdf-atlas-gen and place a pre-defined json and dummy image in the fs.
                 Mockatoo.when(proc.run(Path.join([ Utils.toolPath(project), Utils.msdfAtlasExecutable() ]), anyIterator)).thenCall(f -> {
@@ -155,7 +155,7 @@ class PackerTests extends BuddySuite
                 ], []);
                 final project = project();
                 final proc    = mock(Proc);
-                final packer  = new Packer(project, Mock, fs, proc);
+                final packer  = new Packer(project, true, Mock, fs, proc);
 
                 Mockatoo.when(proc.run(Path.join([ Utils.toolPath(project), Utils.atlasCreatorExecutable() ]), anyIterator)).thenCall(f -> {
                     final args   = (cast f[1] : Array<String>);
@@ -255,7 +255,7 @@ class PackerTests extends BuddySuite
                 ], []);
                 final project = project();
                 final proc    = mock(Proc);
-                final packer  = new Packer(project, Mock, fs, proc);
+                final packer  = new Packer(project, true, Mock, fs, proc);
 
                 Mockatoo.when(proc.run('C:/Program Files/Aseprite/aseprite.exe', anyIterator)).thenCall(f -> {
                     final args = (cast f[1] : Array<String>);
@@ -459,7 +459,7 @@ class PackerTests extends BuddySuite
                 ], []);
                 final project = project();
                 final proc    = mock(Proc);
-                final packer  = new Packer(project, Mock, fs, proc);
+                final packer  = new Packer(project, true, Mock, fs, proc);
 
                 Mockatoo.when(proc.run(Path.join([ Utils.toolPath(project), Utils.atlasCreatorExecutable() ]), anyIterator)).thenCall(f -> {
                     final args   = (cast f[1] : Array<String>);

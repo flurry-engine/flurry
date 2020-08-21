@@ -61,6 +61,8 @@ class Shaders
 {
     final toolsDir : String;
 
+    final verbose : Bool;
+
     final proc : Proc;
 
     final fs : IFileSystem;
@@ -71,9 +73,10 @@ class Shaders
 
     final spirvCross : String;
 
-    public function new(_toolsDir, _proc, _fs, _gpu)
+    public function new(_toolsDir, _verbose, _proc, _fs, _gpu)
     {
         toolsDir   = _toolsDir;
+        verbose    = _verbose;
         proc       = _proc;
         fs         = _fs;
         gpu        = _gpu;
@@ -98,15 +101,15 @@ class Shaders
         final vertSpvPath = Path.join([ _tempAssets, '${ _shader.id }.vert.spv' ]);
         final fragSpvPath = Path.join([ _tempAssets, '${ _shader.id }.frag.spv' ]);
 
-        switch proc.run(glslang, [ vertPath, '-V100', '-S', 'vert', '-e', 'main', '-o', vertSpvPath ])
+        switch proc.run(glslang, [ vertPath, '-V100', '-S', 'vert', '-e', 'main', '-o', vertSpvPath ], verbose)
         {
-            case Success(_): trace('generated vert spv');
-            case Failure(_):
+            case Success(_):
+            case Failure(_): return Failure('Failed to compile vertex shader');
         }
-        switch proc.run(glslang, [ fragPath, '-V100', '-S', 'frag', '-e', 'main', '-o', fragSpvPath ])
+        switch proc.run(glslang, [ fragPath, '-V100', '-S', 'frag', '-e', 'main', '-o', fragSpvPath ], verbose)
         {
-            case Success(_): trace('generated frag spv');
-            case Failure(_):
+            case Success(_):
+            case Failure(_): return Failure('Failed to compile fragment shader');
         }
 
         // Stage 2, generate reflection data from the spirv
@@ -114,14 +117,14 @@ class Shaders
         final vertJsonPath = Path.join([ _tempAssets, '${ _shader.id }.vert.json' ]);
         final fragJsonPath = Path.join([ _tempAssets, '${ _shader.id }.frag.json' ]);
 
-        switch proc.run(spirvCross, [ vertSpvPath, '--stage', 'vert', '--entry', 'main', '--reflect', '--output', vertJsonPath ])
+        switch proc.run(spirvCross, [ vertSpvPath, '--stage', 'vert', '--entry', 'main', '--reflect', '--output', vertJsonPath ], verbose)
         {
-            case Success(_): trace('generated vert json');
+            case Success(_):
             case Failure(_): return Failure('failed to generated vert json');
         }
-        switch proc.run(spirvCross, [ fragSpvPath, '--stage', 'frag', '--entry', 'main', '--reflect', '--output', fragJsonPath ])
+        switch proc.run(spirvCross, [ fragSpvPath, '--stage', 'frag', '--entry', 'main', '--reflect', '--output', fragJsonPath ], verbose)
         {
-            case Success(_): trace('generated frag json');
+            case Success(_):
             case Failure(_): return Failure('failed to generated frag json');
         }
 
@@ -136,14 +139,14 @@ class Shaders
                 final vertGlslPath = Path.join([ _tempAssets, '${ _shader.id }.vert.glsl' ]);
                 final fragGlslPath = Path.join([ _tempAssets, '${ _shader.id }.frag.glsl' ]);
 
-                switch proc.run(spirvCross, [ vertSpvPath, '--stage', 'vert', '--entry', 'main', '--version', '330', '--no-420pack-extension', '--output', vertGlslPath ])
+                switch proc.run(spirvCross, [ vertSpvPath, '--stage', 'vert', '--entry', 'main', '--version', '330', '--no-420pack-extension', '--output', vertGlslPath ], verbose)
                 {
-                    case Success(_): trace('generated vert glsl');
+                    case Success(_):
                     case Failure(_): return Failure('failed to generated vert glsl');
                 }
-                switch proc.run(spirvCross, [ fragSpvPath, '--stage', 'frag', '--entry', 'main', '--version', '330', '--no-420pack-extension', '--output', fragGlslPath ])
+                switch proc.run(spirvCross, [ fragSpvPath, '--stage', 'frag', '--entry', 'main', '--version', '330', '--no-420pack-extension', '--output', fragGlslPath ], verbose)
                 {
-                    case Success(_): trace('generated frag glsl');
+                    case Success(_):
                     case Failure(_): return Failure('failed to generated frag glsl');
                 }
 
@@ -152,14 +155,14 @@ class Shaders
                 final vertHlslPath = Path.join([ _tempAssets, '${ _shader.id }.vert.hlsl' ]);
                 final fragHlslPath = Path.join([ _tempAssets, '${ _shader.id }.frag.hlsl' ]);
 
-                switch proc.run(spirvCross, [ vertSpvPath, '--stage', 'vert', '--entry', 'main', '--hlsl', '--shader-model', '50', '--output', vertHlslPath ])
+                switch proc.run(spirvCross, [ vertSpvPath, '--stage', 'vert', '--entry', 'main', '--hlsl', '--shader-model', '50', '--output', vertHlslPath ], verbose)
                 {
-                    case Success(_): trace('generated vert hlsl');
+                    case Success(_):
                     case Failure(_): return Failure('failed to generated vert hlsl');
                 }
-                switch proc.run(spirvCross, [ fragSpvPath, '--stage', 'frag', '--entry', 'main', '--hlsl', '--shader-model', '50', '--output', fragHlslPath ])
+                switch proc.run(spirvCross, [ fragSpvPath, '--stage', 'frag', '--entry', 'main', '--hlsl', '--shader-model', '50', '--output', fragHlslPath ], verbose)
                 {
-                    case Success(_): trace('generated frag hlsl');
+                    case Success(_):
                     case Failure(_): return Failure('failed to generated frag hlsl');
                 }
 
@@ -169,14 +172,14 @@ class Shaders
                 switch getFxc()
                 {
                     case Success(fxc):
-                        switch proc.run(fxc, [ '/T', 'vs_5_0', '/E', 'main', '/Fo', vertDxbcPath, vertHlslPath ])
+                        switch proc.run(fxc, [ '/T', 'vs_5_0', '/E', 'main', '/Fo', vertDxbcPath, vertHlslPath ], verbose)
                         {
-                            case Success(_): trace('generated vert dxbc');
+                            case Success(_):
                             case Failure(_): return Failure('failed to generated vert dxbc');
                         }
-                        switch proc.run(fxc, [ '/T', 'ps_5_0', '/E', 'main', '/Fo', fragDxbcPath, fragHlslPath ])
+                        switch proc.run(fxc, [ '/T', 'ps_5_0', '/E', 'main', '/Fo', fragDxbcPath, fragHlslPath ], verbose)
                         {
-                            case Success(_): trace('generated frag dxbc');
+                            case Success(_):
                             case Failure(_): return Failure('failed to generated frag dxbc');
                         }
                     case Failure(message): return Failure(message);
