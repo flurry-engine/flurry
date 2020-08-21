@@ -43,6 +43,8 @@ class SystemTests(unittest.TestCase):
         myEnv = os.environ.copy()
         myEnv["PATH"]+="../../;"
 
+        print(myEnv["PATH"])
+
         for x in test_cases:
             with self.subTest(x, x=x):
                 print(x)
@@ -55,7 +57,7 @@ class SystemTests(unittest.TestCase):
                 buildFileHandle.write(template)
                 buildFileHandle.close()
 
-                subprocess.run([ "npx", "neko", "../../run.n", "build", "--release", "--verbose", "--gpu", "ogl3" ], shell=True, env=myEnv)
+                subprocess.run([ "npx", "neko", "../../run.n", "build", "--release", "--verbose", "--gpu", "d3d11" ], shell=True, env=myEnv)
 
                 test_proc=subprocess.Popen([ "bin/windows/SystemTests.exe" ])
 
