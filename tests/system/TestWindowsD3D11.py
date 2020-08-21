@@ -41,9 +41,7 @@ class SystemTests(unittest.TestCase):
         ]
 
         myEnv = os.environ.copy()
-        myEnv["PATH"]+="../../;"
-
-        print(myEnv["PATH"])
+        myEnv["PATH"]+=";../../;"
 
         for x in test_cases:
             with self.subTest(x, x=x):
