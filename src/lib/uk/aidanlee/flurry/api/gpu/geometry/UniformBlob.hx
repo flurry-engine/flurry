@@ -64,7 +64,7 @@ using Safety;
         if (locations.exists(_name))
         {
             final byteOffset = buffer.byteOffset + locations[_name].unsafe();
-            final byteMatrix = (_matrix : BufferData);
+            final byteMatrix = (cast _matrix : BufferData);
 
             buffer.bytes.blit(byteOffset, byteMatrix.bytes, byteMatrix.byteOffset, 64);
         }
@@ -80,7 +80,7 @@ using Safety;
         if (locations.exists(_name))
         {
             final byteOffset = buffer.byteOffset + locations[_name].unsafe();
-            final byteVector = (_vector : BufferData);
+            final byteVector = (cast _vector : BufferData);
 
             buffer.bytes.blit(byteOffset, byteVector.bytes, byteVector.byteOffset, 16);
         }
