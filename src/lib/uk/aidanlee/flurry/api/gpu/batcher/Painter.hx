@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.maths.Vector3;
+import uk.aidanlee.flurry.api.maths.Transformation;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
 import uk.aidanlee.flurry.api.buffers.BufferData;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
@@ -27,6 +29,12 @@ using Safety;
 
 class Painter implements IBatchable
 {
+    static final transform = new Transformation();
+
+    static final rotationVec = new Vector3(0, 0, 1);
+
+    static final tPos = new Vector3();
+
     final queue : List<DrawCommand>;
 
     final target : TargetState;
@@ -240,6 +248,51 @@ class Painter implements IBatchable
             .addFloat3(_x + _frame.width, _y                , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(_frame.u2, _frame.v1);
         idxBuffer
             .addUInt16(vtxCount + 0).addUInt16(vtxCount + 1).addUInt16(vtxCount + 2).addUInt16(vtxCount + 2).addUInt16(vtxCount + 1).addUInt16(vtxCount + 3);
+
+        vtxCount += 4;
+    }
+
+    public function drawFrameRotated(_frame : ImageFrameResource, _x : Float, _y : Float, _originX : Float, _originY : Float, _xFlip : Bool, _yFlip : Bool, _angle : Float)
+    {
+        transform.position.set_xy(_x, _y);
+        transform.origin.set_xy(_originX, _originY);
+        transform.rotation.setFromAxisAngle(rotationVec, _angle);
+
+        final matrix = transform.world.matrix;
+
+        if (requireFlush(_frame.image, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
+        {
+            flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
+
+            texture   = _frame.image;
+            primitive = Triangles;
+        }
+
+        final colour = colours.first().unsafe();
+        final u1     = if (_xFlip) _frame.u2 else _frame.u1;
+        final u2     = if (_xFlip) _frame.u1 else _frame.u2;
+        final v1     = if (_yFlip) _frame.v2 else _frame.v1;
+        final v2     = if (_yFlip) _frame.v1 else _frame.v2;
+
+        tPos.set_xy(0, 0 + _frame.height).transform(matrix);
+        vtxBuffer.addFloat3(tPos.x, tPos.y, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v2);
+
+        tPos.set_xy(0 + _frame.width, 0 + _frame.height).transform(matrix);
+        vtxBuffer.addFloat3(tPos.x, tPos.y, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v2);
+
+        tPos.set_xy(0, 0).transform(matrix);
+        vtxBuffer.addFloat3(tPos.x, tPos.y, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v1);
+
+        tPos.set_xy(0 + _frame.width, 0).transform(matrix);
+        vtxBuffer.addFloat3(tPos.x, tPos.y, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v1);
+
+        idxBuffer
+            .addUInt16(vtxCount + 0)
+            .addUInt16(vtxCount + 1)
+            .addUInt16(vtxCount + 2)
+            .addUInt16(vtxCount + 2)
+            .addUInt16(vtxCount + 1)
+            .addUInt16(vtxCount + 3);
 
         vtxCount += 4;
     }
