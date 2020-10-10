@@ -176,17 +176,17 @@ class Camera2D extends Camera
                         switch ndcRandge
                         {
                             case ZeroToNegativeOne:
-                                projection.makeHomogeneousOrthographic(_x, _width, _y, _height, -100, 100);
+                                projection.makeHomogeneousOrthographic(0, _width, 0, _height, -100, 100);
                             case NegativeOneToNegativeOne:
-                                projection.makeHeterogeneousOrthographic(_x, _width, _y, _height, -100, 100);
+                                projection.makeHeterogeneousOrthographic(0, _width, 0, _height, -100, 100);
                         }
                     case BottomLeft:
                         switch ndcRandge
                         {
                             case ZeroToNegativeOne:
-                                projection.makeHomogeneousOrthographic(_x, _width, _height, _y, -100, 100);
+                                projection.makeHomogeneousOrthographic(0, _width, _height, 0, -100, 100);
                             case NegativeOneToNegativeOne:
-                                projection.makeHeterogeneousOrthographic(_x, _width, _height, _y, -100, 100);
+                                projection.makeHeterogeneousOrthographic(0, _width, _height, 0, -100, 100);
                         }
                 }
         }
