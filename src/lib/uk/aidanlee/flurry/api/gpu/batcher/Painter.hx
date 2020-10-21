@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Transformation;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
@@ -227,6 +228,68 @@ class Painter implements IBatchable
             .addUInt16(vtxCount + 0).addUInt16(vtxCount + 1);
 
         vtxCount += 2;
+    }
+
+    public function drawRing(_x : Float, _y : Float, _radius : Float, _segments : Int)
+    {
+        if (requireFlush(texture, shaders.first().unsafe(), Lines, samplers.first().unsafe()))
+        {
+            flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
+
+            primitive = Lines;
+        }
+
+        final colour = colours.first().unsafe();
+        final theta  = 360 / _segments;
+
+        for (i in 0..._segments)
+        {
+            final x1 = _x + Maths.lengthdir_x(_radius, theta * i);
+            final y1 = _y + Maths.lengthdir_y(_radius, theta * i);
+
+            final x2 = _x + Maths.lengthdir_x(_radius, theta * (i + 1));
+            final y2 = _y + Maths.lengthdir_y(_radius, theta * (i + 1));
+
+            vtxBuffer
+                .addFloat3(x1, y1, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
+                .addFloat3(x2, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0);
+            idxBuffer
+                .addUInt16(vtxCount + 0)
+                .addUInt16(vtxCount + 1);
+
+            vtxCount += 2;
+        }
+    }
+
+    public function drawCircle(_x : Float, _y : Float, _radius : Float, _segments : Int)
+    {
+        if (requireFlush(texture, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
+        {
+            flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
+
+            primitive = Triangles;
+        }
+
+        final colour = colours.first().unsafe();
+        final theta  = 360 / _segments;
+
+        for (i in 0..._segments)
+        {
+            final x1 = _x + Maths.lengthdir_x(_radius, theta * i);
+            final y1 = _y + Maths.lengthdir_y(_radius, theta * i);
+
+            final x2 = _x + Maths.lengthdir_x(_radius, theta * (i + 1));
+            final y2 = _y + Maths.lengthdir_y(_radius, theta * (i + 1));
+
+            vtxBuffer
+                .addFloat3(_x, _y, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
+                .addFloat3(x1, y1, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0)
+                .addFloat3(x2, y2, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(0, 0);
+            idxBuffer
+                .addUInt16(vtxCount + 0).addUInt16(vtxCount + 1).addUInt16(vtxCount + 2);
+
+            vtxCount += 3;
+        }
     }
 
     public function drawFrame(_frame : ImageFrameResource, _x : Float, _y : Float)
