@@ -1,21 +1,26 @@
 package uk.aidanlee.flurry.api.resources;
 
-import rx.disposables.ISubscription;
+import hxrx.observables.Observables;
+import hxrx.ISubscription;
+import hxrx.subscriptions.Empty;
+import hxrx.IObserver;
+import hxrx.subscriptions.Single;
+import rx.schedulers.IScheduler;
 import haxe.Exception;
 import haxe.io.Path;
 import haxe.ds.Vector;
 import haxe.ds.ReadOnlyArray;
-import rx.Subscription;
-import rx.subjects.Behavior;
-import rx.observers.IObserver;
-import rx.schedulers.IScheduler;
-import rx.observables.IObservable;
+// import rx.Subscription;
+// import rx.subjects.Behavior;
+// import rx.observers.IObserver;
+// import rx.schedulers.IScheduler;
+// import rx.observables.IObservable;
 import sys.io.abstractions.IFileSystem;
 import uk.aidanlee.flurry.api.stream.ParcelInput;
 import uk.aidanlee.flurry.api.resources.Resource;
 
 using Safety;
-using rx.Observable;
+using hxrx.observables.Observables;
 
 class ResourceSystem
 {
@@ -84,16 +89,13 @@ class ResourceSystem
      * @param _parcels List parcel files to load.
      * @return Observable of loading progress (normalised 0 - 1)
      */
-    public function load(_parcels : ReadOnlyArray<String>) : IObservable<Float>
+    public function load(_parcels : ReadOnlyArray<String>) : hxrx.IObservable<Float>
     {
-        final progress = new Behavior(0.0);
+        // final progress = new Behavior(0.0);
 
-        Observable
-            .of_enum(cast _parcels)
-            .flatMap(file -> Observable
-                .create(observer -> loadParcel(file, observer))
-                .subscribeOn(workScheduler)
-                .observeOn(syncScheduler))
+        return _parcels
+            .fromIterable()
+            .flatMap(file -> create(obs -> loadParcel(file, obs)))
             .map(v -> {
                 if (!parcelResources.exists(v.parcel))
                 {
@@ -106,10 +108,30 @@ class ResourceSystem
 
                 v.progress;
             })
-            .scan(0.0, (_acc, _next) -> _acc + (_next / _parcels.length))
-            .subscribe(progress);
+            .scan(0.0, (acc, next) -> acc + (next / _parcels.length));
 
-        return progress;
+        // Observable
+        //     .of_enum(cast _parcels)
+        //     .flatMap(file -> Observable
+        //         .create(observer -> loadParcel(file, observer))
+        //         .subscribeOn(workScheduler)
+        //         .observeOn(syncScheduler))
+        //     .map(v -> {
+        //         if (!parcelResources.exists(v.parcel))
+        //         {
+        //             parcelResources[v.parcel] = [];
+        //         }
+
+        //         addResource(v.resource);
+
+        //         parcelResources[v.parcel].unsafe().push(v.resource.id);
+
+        //         v.progress;
+        //     })
+        //     .scan(0.0, (_acc, _next) -> _acc + (_next / _parcels.length))
+        //     .subscribe(progress);
+
+        // return progress;
     }
 
     /**
@@ -250,9 +272,9 @@ class ResourceSystem
 
         if (!fileSystem.file.exists(path))
         {
-            _observer.onError('failed to load "${_file}", "${path}" does not exist');
+            _observer.onError(new Exception('failed to load "${_file}", "${path}" does not exist'));
 
-            return Subscription.empty();
+            return new Empty();
         }
 
         // TODO : Should probably progress by 1 as overall load tracking will be off.
@@ -260,10 +282,11 @@ class ResourceSystem
         {
             _observer.onCompleted();
 
-            return Subscription.empty();
+            return new Empty();
         }
 
-        final reader = new ParcelInput(fileSystem.file.read(path));
+        final reader       = new ParcelInput(fileSystem.file.read(path));
+        final subscription = new Single(() -> reader.close());
         
         switch reader.readHeader()
         {
@@ -279,26 +302,20 @@ class ResourceSystem
                                 progress : 1 / header.assets
                             });
                         case Failure(reason):
-                            _observer.onError(reason);
+                            _observer.onError(new Exception(reason));
         
-                            reader.close();
-        
-                            return Subscription.empty();
+                            return subscription;
                     }
                 }
             case Failure(reason):
-                _observer.onError(reason);
+                _observer.onError(new Exception(reason));
 
-                reader.close();
-
-                return Subscription.empty();
+                return subscription;
         }
 
         _observer.onCompleted();
 
-        reader.close();
-
-        return Subscription.empty();
+        return subscription;
     }
 }
 

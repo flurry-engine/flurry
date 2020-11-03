@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry;
 
+import haxe.Exception;
+import hxrx.observer.Observer;
 import rx.schedulers.MakeScheduler;
 import uk.aidanlee.flurry.api.io.IIO;
 import uk.aidanlee.flurry.api.gpu.Renderer;
@@ -98,7 +100,7 @@ class Flurry
         {
             resources
                 .load(flurryConfig.resources.preload)
-                .subscribeFunction(onPreloadParcelError, onPreloadParcelComplete);
+                .subscribe(new Observer(null, onPreloadParcelError, onPreloadParcelComplete));
         }
         else
         {
@@ -191,8 +193,8 @@ class Flurry
         onReady();
     }
 
-    final function onPreloadParcelError(_error : String)
+    final function onPreloadParcelError(_error : Exception)
     {
-        trace('Error loading preload parcel : $_error');
+        trace('Error loading preload parcel : ${ _error.message }');
     }
 }

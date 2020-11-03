@@ -92,9 +92,9 @@ using rx.Observable;
         final height = 0;
         final bpp    = 0;
 
-        final pWidth  : IntPointer = width;
-        final pHeight : IntPointer = height;
-        final pBpp    : IntPointer = bpp;
+        final pWidth  = cpp.Pointer.addressOf(width);
+        final pHeight = cpp.Pointer.addressOf(height);
+        final pBpp    = cpp.Pointer.addressOf(bpp);
 
         final pixels : cpp.Star<cpp.UInt8> = null;
         final pixelPtr : cpp.Star<cpp.Star<cpp.UInt8>> = pixels.addressOf();
@@ -103,10 +103,10 @@ using rx.Observable;
 
         final img = new ImageResource(
             'imgui_texture',
-            pWidth,
-            pHeight,
+            width,
+            height,
             BGRAUNorm,
-            Pointer.fromStar(pixels).toUnmanagedArray(pWidth.toInt() * pHeight.toInt() * pBpp.toInt()));
+            Pointer.fromStar(pixels).toUnmanagedArray(width * height * bpp));
 
         resources.addResource(img);
 
