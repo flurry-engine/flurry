@@ -132,12 +132,12 @@ class Build
         fs.directory.create(buildPath);
         fs.directory.create(releasePath);
 
-        // Generate a hxml file from the project and invoke haxe
-        Log.log('Compiling Haxe', Success);
+        // Generate a host and cppia script
+        final gpu = verifyGraphicsBackend(graphicsBackend);
 
-        final gpu      = verifyGraphicsBackend(graphicsBackend);
-        final hxmlPath = Path.join([ buildPath, 'build.hxml' ]);
-        final hxmlData = generateHxml(project, projectPath, release, gpu);
+        Log.log('Generating Flurry Host', Success);
+        final hxmlPath = Path.join([ buildPath, 'build-host.hxml' ]);
+        final hxmlData = generateHostHxml(project, projectPath, release, gpu);
         fs.file.writeText(hxmlPath, hxmlData);
 
         switch proc.run('npx', [ 'haxe', hxmlPath ], true)
@@ -145,6 +145,28 @@ class Build
             case Success(_):
             case Failure(message): panic(message);
         }
+
+        Log.log('Generating Flurry Client', Success);
+        final hxmlPath = Path.join([ buildPath, 'build-client.hxml' ]);
+        final hxmlData = generateClientHxml(project, projectPath, release);
+        fs.file.writeText(hxmlPath, hxmlData);
+
+        switch proc.run('npx', [ 'haxe', hxmlPath ], true)
+        {
+            case Success(_):
+            case Failure(message): panic(message);
+        }
+
+        // Copy the cppia script over
+        final debugScripts   = Path.join([ buildPath, 'cpp', 'assets', 'scripts' ]);
+        final releaseScripts = Path.join([ releasePath, 'assets', 'scripts' ]);
+        final cppiaScript    = Path.join([ project.buildPath(), 'cpp', 'client.cppia' ]);
+
+        fs.directory.create(debugScripts);
+        fs.directory.create(releaseScripts);
+
+        fs.file.copy(cppiaScript, Path.join([ debugScripts, 'client.cppia' ]));
+        fs.file.copy(cppiaScript, Path.join([ releaseScripts, 'client.cppia' ]));
 
         // Generate all parcels
         Log.log('Generating Parcels', Success);
@@ -275,7 +297,7 @@ class Build
      * @param _gpu Graphics api to build with.
      * @return String
      */
-    static function generateHxml(_project : Project, _projectPath : String, _release : Bool, _gpu : GraphicsBackend) : String
+    static function generateHostHxml(_project : Project, _projectPath : String, _release : Bool, _gpu : GraphicsBackend) : String
     {
         final hxml = new Hxml();
 
@@ -294,11 +316,11 @@ class Build
         }
 
         hxml.addDefine(Utils.platform());
-        hxml.addDefine('target-cpp');
-        hxml.addDefine('desktop');
-        hxml.addDefine('snow_native');
+        hxml.addDefine('scriptable');
         hxml.addDefine('HXCPP_M64');
         hxml.addDefine('HAXE_OUTPUT_FILE', _project.app.name);
+        hxml.addDefine('flurry-cppia');
+        hxml.addDefine('flurry-cppia-script', Path.join([ 'assets', 'scripts', 'client.cppia' ]));
         hxml.addDefine('flurry-entry-point', _project.app.main);
         hxml.addDefine('flurry-build-file', _projectPath);
         hxml.addDefine('flurry-gpu-api', switch _gpu {
@@ -306,6 +328,58 @@ class Build
             case Ogl3: 'ogl3';
             case D3d11: 'd3d11';
         });
+        hxml.addDefine('dll_export', Path.join([ _project.buildPath(), 'cpp', 'host_classes.info' ]));
+        hxml.addMacro('Safety.safeNavigation("uk.aidanlee.flurry")');
+        hxml.addMacro('nullSafety("uk.aidanlee.flurry.modules", Strict)');
+        hxml.addMacro('nullSafety("uk.aidanlee.flurry.api", Strict)');
+
+        for (p in _project.app.codepaths)
+        {
+            hxml.addClassPath(p);
+        }
+
+        for (d in _project!.build!.defines.or([]))
+        {
+            hxml.addDefine(d.def, d.value);
+        }
+
+        for (m in _project!.build!.macros.or([]))
+        {
+            hxml.addMacro(m);
+        }
+
+        for (d in _project!.build!.dependencies.or([]))
+        {
+            hxml.addLibrary(d.lib, d.version);
+        }
+
+        return hxml.toString();
+    }
+
+    function generateClientHxml(_project : Project, _projectPath : String, _release : Bool)
+    {
+        final hxml = new Hxml();
+
+        hxml.main   = 'uk.aidanlee.flurry.hosts.CppiaClient';
+        hxml.cppia  = Path.join([ _project.buildPath(), 'cpp', 'client.cppia' ]);
+        hxml.dce    = std;
+
+        if (_project!.build!.profile.or(Debug) == Release || _release)
+        {
+            hxml.noTraces();
+            hxml.addDefine('no-debug');
+        }
+        else
+        {
+            hxml.debug();
+        }
+
+        hxml.addDefine(Utils.platform());
+        hxml.addDefine('scriptable');
+        hxml.addDefine('HXCPP_M64');
+        hxml.addDefine('flurry-entry-point', _project.app.main);
+        hxml.addDefine('flurry-gpu-api', 'mock');
+        hxml.addDefine('dll_import', Path.join([ _project.buildPath(), 'cpp', 'host_classes.info' ]));
         hxml.addMacro('Safety.safeNavigation("uk.aidanlee.flurry")');
         hxml.addMacro('nullSafety("uk.aidanlee.flurry.modules", Strict)');
         hxml.addMacro('nullSafety("uk.aidanlee.flurry.api", Strict)');
