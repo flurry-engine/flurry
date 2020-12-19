@@ -2,7 +2,6 @@ package uk.aidanlee.flurry;
 
 import rx.schedulers.MakeScheduler;
 import uk.aidanlee.flurry.api.io.IIO;
-import uk.aidanlee.flurry.api.io.FileSystemIO;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.input.Input;
 import uk.aidanlee.flurry.api.display.Display;
@@ -10,7 +9,6 @@ import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import uk.aidanlee.flurry.api.schedulers.ThreadPoolScheduler;
 import uk.aidanlee.flurry.api.schedulers.MainThreadScheduler;
 import sys.io.abstractions.IFileSystem;
-import sys.io.abstractions.concrete.FileSystem;
 
 using Safety;
 using rx.Observable;
@@ -20,7 +18,7 @@ class Flurry
     /**
      * Main events bus, engine components can fire events into this to communicate with each other.
      */
-    public final events : FlurryEvents;
+    public var events (default, null) : FlurryEvents;
 
     /**
      * Abstracted access to the devices file system.
@@ -75,26 +73,26 @@ class Flurry
 
     public function new()
     {
-        events              = new FlurryEvents();
         mainThreadScheduler = MainThreadScheduler.current;
         taskThreadScheduler = ThreadPoolScheduler.current;
     }
 
-    public final function config()
+    public final function config(_config)
     {
-        flurryConfig = onConfig(new FlurryConfig());
+        flurryConfig = onConfig(_config);
     }
 
-    public final function ready()
+    public final function ready(_events, _fs, _renderer, _resources, _input, _display, _io)
     {
         loaded = false;
-        
-        fileSystem = new FileSystem();
-        renderer   = new Renderer(events.resource, events.display, flurryConfig.window, flurryConfig.renderer);
-        resources  = new ResourceSystem(events.resource, fileSystem, taskThreadScheduler, mainThreadScheduler);
-        input      = new Input(events.input);
-        display    = new Display(events.display, events.input, flurryConfig);
-        io         = new FileSystemIO(flurryConfig.project, fileSystem);
+
+        events     = _events;
+        fileSystem = _fs;
+        renderer   = _renderer;
+        resources  = _resources;
+        input      = _input;
+        display    = _display;
+        io         = _io;
 
         if (flurryConfig.resources.preload != null)
         {

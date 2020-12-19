@@ -1,5 +1,13 @@
 package uk.aidanlee.flurry.hosts;
 
+import uk.aidanlee.flurry.api.schedulers.ThreadPoolScheduler;
+import uk.aidanlee.flurry.api.schedulers.MainThreadScheduler;
+import uk.aidanlee.flurry.api.io.FileSystemIO;
+import uk.aidanlee.flurry.api.input.Input;
+import uk.aidanlee.flurry.api.display.Display;
+import uk.aidanlee.flurry.api.gpu.Renderer;
+import uk.aidanlee.flurry.api.resources.ResourceSystem;
+import sys.io.abstractions.concrete.FileSystem;
 import haxe.Timer;
 import haxe.EnumFlags;
 import haxe.io.Path;
@@ -33,7 +41,7 @@ class SDLHost
      * The users flurry application.
      * This is set by a macro by creating an instance of the class stored in the `flurry-entry-point` compiler define.
      */
-    final flurry : Flurry;
+    final flurry : Dynamic;
 
     /**
      * The target frame rate of the program.
@@ -77,8 +85,22 @@ class SDLHost
         gamepadInstanceSlotMapping = [];
 
         flurry = Host.entry();
-        flurry.config();
-        flurry.ready();
+
+        final config = new FlurryConfig();
+
+        flurry.config(config);
+
+        final mainScheduler = MainThreadScheduler.current;
+        final taskScheduler = ThreadPoolScheduler.current;
+        final events        = new FlurryEvents();
+        final fileSystem    = new FileSystem();
+        final renderer      = new Renderer(events.resource, events.display, flurry.flurryConfig.window, flurry.flurryConfig.renderer);
+        final resources     = new ResourceSystem(events.resource, fileSystem, taskScheduler, mainScheduler);
+        final input         = new Input(events.input);
+        final display       = new Display(events.display, events.input, flurry.flurryConfig);
+        final io            = new FileSystemIO(flurry.flurryConfig.project, fileSystem);
+
+        flurry.ready(events, fileSystem, renderer, resources, input, display, io);
 
         while (true)
         {
