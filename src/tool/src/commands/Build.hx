@@ -1,5 +1,6 @@
 package commands;
 
+import Types.BuiltHost;
 import Types.Project;
 import Types.GraphicsBackend;
 import tink.Cli;
@@ -73,6 +74,21 @@ class Build
     public var target = 'desktop';
 
     /**
+     * Build and run the project with cppia.
+     * Offers much faster build times at the cost of performance than standard desktop compilation.
+     */
+    @:flag('cppia')
+    @:alias('s')
+    public var cppia = false;
+
+    /**
+     * Forces the cppia host to be rebuilt. This will only do something if `--cppia` is also use.
+     */
+    @:flag('rebuild-host')
+    @:alias('y')
+    public var rebuildHost = false;
+
+    /**
      * Process object used for invoking other processes.
      */
     final proc : Proc;
@@ -135,38 +151,55 @@ class Build
         // Generate a host and cppia script
         final gpu = verifyGraphicsBackend(graphicsBackend);
 
-        Log.log('Generating Flurry Host', Success);
-        final hxmlPath = Path.join([ buildPath, 'build-host.hxml' ]);
-        final hxmlData = generateHostHxml(project, projectPath, release, gpu);
-        fs.file.writeText(hxmlPath, hxmlData);
-
-        switch proc.run('npx', [ 'haxe', hxmlPath ], true)
+        if (shouldGenerateHost(project, fs, gpu, cppia, rebuildHost))
         {
-            case Success(_):
-            case Failure(message): panic(message);
+            Log.log('Generating Flurry Host', Success);
+            final hxmlPath = Path.join([ buildPath, 'build-host.hxml' ]);
+            final hxmlData = generateHostHxml(project, projectPath, release, gpu);
+            fs.file.writeText(hxmlPath, hxmlData);
+
+            switch proc.run('npx', [ 'haxe', hxmlPath ], true)
+            {
+                case Success(_):
+                    // Write info about the built host so future builds don't have to re-compile it.
+                    final host = { gpu : gpu, entry : project.app.main, modules : new Array<String>() };
+                    final path = Path.join([ project.buildPath(), 'cpp', 'host.json' ]);
+
+                    fs.file.writeText(path, Json.stringify(host));
+                case Failure(message): panic(message);
+            }
+        }
+        else
+        {
+            Log.log('Host Already Exists', Success);
         }
 
-        Log.log('Generating Flurry Client', Success);
-        final hxmlPath = Path.join([ buildPath, 'build-client.hxml' ]);
-        final hxmlData = generateClientHxml(project, projectPath, release);
-        fs.file.writeText(hxmlPath, hxmlData);
-
-        switch proc.run('npx', [ 'haxe', hxmlPath ], true)
+        // Only in cppia mode do we want to generate a cppia script and copy it over
+        // Otherwise the "host" will contain everything compiled to native.
+        if (cppia)
         {
-            case Success(_):
-            case Failure(message): panic(message);
+            Log.log('Generating Flurry Client', Success);
+            final hxmlPath = Path.join([ buildPath, 'build-client.hxml' ]);
+            final hxmlData = generateClientHxml(project, projectPath, release);
+            fs.file.writeText(hxmlPath, hxmlData);
+
+            switch proc.run('npx', [ 'haxe', hxmlPath ], true)
+            {
+                case Success(_):
+                case Failure(message): panic(message);
+            }
+
+            // Copy the cppia script over
+            final debugScripts   = Path.join([ buildPath, 'cpp', 'assets', 'scripts' ]);
+            final releaseScripts = Path.join([ releasePath, 'assets', 'scripts' ]);
+            final cppiaScript    = Path.join([ project.buildPath(), 'cpp', 'client.cppia' ]);
+
+            fs.directory.create(debugScripts);
+            fs.directory.create(releaseScripts);
+
+            fs.file.copy(cppiaScript, Path.join([ debugScripts, 'client.cppia' ]));
+            fs.file.copy(cppiaScript, Path.join([ releaseScripts, 'client.cppia' ]));
         }
-
-        // Copy the cppia script over
-        final debugScripts   = Path.join([ buildPath, 'cpp', 'assets', 'scripts' ]);
-        final releaseScripts = Path.join([ releasePath, 'assets', 'scripts' ]);
-        final cppiaScript    = Path.join([ project.buildPath(), 'cpp', 'client.cppia' ]);
-
-        fs.directory.create(debugScripts);
-        fs.directory.create(releaseScripts);
-
-        fs.file.copy(cppiaScript, Path.join([ debugScripts, 'client.cppia' ]));
-        fs.file.copy(cppiaScript, Path.join([ releaseScripts, 'client.cppia' ]));
 
         // Generate all parcels
         Log.log('Generating Parcels', Success);
@@ -286,6 +319,28 @@ class Build
                     case Windows: D3d11;
                     case _: Ogl3;
                 }
+        }
+    }
+
+    static function shouldGenerateHost(_project : Project, _fs : IFileSystem, _gpu : GraphicsBackend, _cppia : Bool, _rebuild : Bool)
+    {
+        return if (!_cppia || _rebuild)
+        {
+            true;
+        }
+        else
+        {
+            final hostFile = Path.join([ _project.buildPath(), 'cpp', 'host.json' ]);
+            if (_fs.file.exists(hostFile))
+            {
+                final builtHost : BuiltHost = Json.parse(_fs.file.getText(hostFile));
+                
+                builtHost.gpu != _gpu || builtHost.entry != _project.app.main;
+            }
+            else
+            {
+                true;
+            }
         }
     }
 

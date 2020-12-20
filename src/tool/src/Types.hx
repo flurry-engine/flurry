@@ -181,3 +181,23 @@ typedef BuildingSnow = {
 typedef BuildingKha = {
     //
 }
+
+/**
+ * Object which holds information about the currently built flurry cppia host.
+ */
+typedef BuiltHost = {
+    /**
+     * The GPU backend the host currently uses.
+     */
+    final gpu : GraphicsBackend;
+
+    /**
+     * The entry point the host currently searches for.
+     */
+    final entry : String;
+
+    /**
+     * All modules the host was built with.
+     */
+    final modules : Array<String>;
+}

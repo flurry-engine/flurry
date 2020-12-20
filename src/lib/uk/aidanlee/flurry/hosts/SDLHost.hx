@@ -41,7 +41,7 @@ class SDLHost
      * The users flurry application.
      * This is set by a macro by creating an instance of the class stored in the `flurry-entry-point` compiler define.
      */
-    final flurry : Dynamic;
+    final flurry : Flurry;
 
     /**
      * The target frame rate of the program.
@@ -94,11 +94,11 @@ class SDLHost
         final taskScheduler = ThreadPoolScheduler.current;
         final events        = new FlurryEvents();
         final fileSystem    = new FileSystem();
-        final renderer      = new Renderer(events.resource, events.display, flurry.flurryConfig.window, flurry.flurryConfig.renderer);
+        final renderer      = new Renderer(events.resource, events.display, config.window, config.renderer);
         final resources     = new ResourceSystem(events.resource, fileSystem, taskScheduler, mainScheduler);
         final input         = new Input(events.input);
-        final display       = new Display(events.display, events.input, flurry.flurryConfig);
-        final io            = new FileSystemIO(flurry.flurryConfig.project, fileSystem);
+        final display       = new Display(events.display, events.input, config);
+        final io            = new FileSystemIO(config.project, fileSystem);
 
         flurry.ready(events, fileSystem, renderer, resources, input, display, io);
 
