@@ -18,7 +18,7 @@ class Flurry
     /**
      * Main events bus, engine components can fire events into this to communicate with each other.
      */
-    public var events (default, null) : FlurryEvents;
+    public final events : FlurryEvents;
 
     /**
      * Abstracted access to the devices file system.
@@ -71,10 +71,11 @@ class Flurry
      */
     final taskThreadScheduler : MakeScheduler;
 
-    public function new()
+    public function new(_events, _mainScheduler, _taskScheduler)
     {
-        mainThreadScheduler = MainThreadScheduler.current;
-        taskThreadScheduler = ThreadPoolScheduler.current;
+        events              = _events;
+        mainThreadScheduler = _mainScheduler;
+        taskThreadScheduler = _taskScheduler;
     }
 
     public final function config(_config)
@@ -82,11 +83,10 @@ class Flurry
         flurryConfig = onConfig(_config);
     }
 
-    public final function ready(_events, _fs, _renderer, _resources, _input, _display, _io)
+    public final function ready(_fs, _renderer, _resources, _input, _display, _io)
     {
         loaded = false;
 
-        events     = _events;
         fileSystem = _fs;
         renderer   = _renderer;
         resources  = _resources;

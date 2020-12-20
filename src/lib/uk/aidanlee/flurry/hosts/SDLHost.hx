@@ -84,15 +84,16 @@ class SDLHost
         gamepadSlots               = [];
         gamepadInstanceSlotMapping = [];
 
-        flurry = Host.entry();
+        final events        = new FlurryEvents();
+        final mainScheduler = MainThreadScheduler.current;
+        final taskScheduler = ThreadPoolScheduler.current;
+
+        flurry = Host.entry(events, mainScheduler, taskScheduler);
 
         final config = new FlurryConfig();
 
         flurry.config(config);
 
-        final mainScheduler = MainThreadScheduler.current;
-        final taskScheduler = ThreadPoolScheduler.current;
-        final events        = new FlurryEvents();
         final fileSystem    = new FileSystem();
         final renderer      = new Renderer(events.resource, events.display, config.window, config.renderer);
         final resources     = new ResourceSystem(events.resource, fileSystem, taskScheduler, mainScheduler);
@@ -100,7 +101,7 @@ class SDLHost
         final display       = new Display(events.display, events.input, config);
         final io            = new FileSystemIO(config.project, fileSystem);
 
-        flurry.ready(events, fileSystem, renderer, resources, input, display, io);
+        flurry.ready(fileSystem, renderer, resources, input, display, io);
 
         while (true)
         {
