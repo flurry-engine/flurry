@@ -25,6 +25,10 @@ abstract Hxml(StringBuf)
 
     inline function set_hl(_v : String) return append('--hl $_v');
 
+    public var include (never, set) : String;
+
+    inline function set_include(_v : String) return append(_v);
+
     // Compilation
 
     public var main (never, set) : String;

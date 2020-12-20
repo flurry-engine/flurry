@@ -415,9 +415,9 @@ class Build
     {
         final hxml = new Hxml();
 
-        hxml.main   = 'uk.aidanlee.flurry.hosts.CppiaClient';
-        hxml.cppia  = Path.join([ _project.buildPath(), 'cpp', 'client.cppia' ]);
-        hxml.dce    = std;
+        hxml.include = _project.app.main;
+        hxml.cppia   = Path.join([ _project.buildPath(), 'cpp', 'client.cppia' ]);
+        hxml.dce     = std;
 
         if (_project!.build!.profile.or(Debug) == Release || _release)
         {
@@ -458,6 +458,8 @@ class Build
         {
             hxml.addLibrary(d.lib, d.version);
         }
+
+        hxml.addMacro('keep("${ _project.app.main }")');
 
         return hxml.toString();
     }
