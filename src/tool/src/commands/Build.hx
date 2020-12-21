@@ -139,7 +139,7 @@ class Build
         }
 
         // Ensure our base directories are created.
-        if (clean)
+        if (shouldClean(project, fs, clean, cppia))
         {
             fs.directory.remove(buildPath);
             fs.directory.remove(releasePath);
@@ -336,6 +336,50 @@ class Build
         }
     }
 
+    /**
+     * The build output not only needs to be cleaned if the clean flag is used but also when switching between
+     * cppia and entirely native builds to avoid weird linking / cached object issues.
+     * @param _project The project definition.
+     * @param _fs File system object.
+     * @param _clean If the clean flag was set
+     * @param _cppia If a cppia build was requested.
+     */
+    static function shouldClean(_project : Project, _fs : IFileSystem, _clean : Bool, _cppia : Bool)
+    {
+        if (_clean)
+        {
+            return true;
+        }
+
+        final hostFile = Path.join([ _project.buildPath(), 'cpp', 'host.json' ]);
+
+        // If the host file exists and we're not building for cppia force a clean.
+        // This will ensure we don't run into any linking / caching issues.
+        if (!_cppia && _fs.file.exists(hostFile))
+        {
+            return true;
+        }
+
+        // Similar to above except inverted.
+        if (_cppia && !_fs.file.exists(hostFile))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * When building for cppia most of the time the host does not need to be recompiled.
+     * This function checks if we're building with cppia and if a host definition file exists.
+     * The definition file is a json file with some info about the currently existing host.
+     * If the current host doesn't match the project we'll need to re-compile it.
+     * @param _project The project to build.
+     * @param _fs File system object.
+     * @param _gpu The graphics API specified.
+     * @param _cppia If we are building for cppia.
+     * @param _rebuild If the host has been forced to be rebuild.
+     */
     static function shouldGenerateHost(_project : Project, _fs : IFileSystem, _gpu : GraphicsBackend, _cppia : Bool, _rebuild : Bool)
     {
         return if (!_cppia || _rebuild)
@@ -431,7 +475,14 @@ class Build
         return hxml.toString();
     }
 
-    function generateClientHxml(_project : Project, _projectPath : String, _release : Bool)
+    /**
+     * The cppia client hxml is very similar to the host but doesn't specify a main.
+     * Instead we specify the Main class and make sure its included.
+     * @param _project Project.
+     * @param _projectPath Absolute path to project file.
+     * @param _release If the project is to be built in release mode.
+     */
+    static function generateClientHxml(_project : Project, _projectPath : String, _release : Bool)
     {
         final hxml = new Hxml();
 
