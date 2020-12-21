@@ -17,6 +17,14 @@ using Safety;
 class Build
 {
     /**
+     * If set will attempt to download all haxe and tool dependencies.
+     * The build will fail if it can't download the files.
+     */
+    @:flag('restore')
+    @:alias('p')
+    public var restore = false;
+
+    /**
      * If set the output executable will be launched after building.
      */
     @:flag('run')
@@ -126,20 +134,23 @@ class Build
     @:defaultCommand public function build()
     {
         final projectPath = sys.FileSystem.absolutePath(buildFile);
-        final project     = parseProject(fs, buildFile);
+        final project     = parseProject(buildFile);
         final toolPath    = project.toolPath();
         final buildPath   = project.buildPath();
         final releasePath = project.releasePath();
 
         // Restore the project.
-        switch new Restore(project, fs, net, proc).run()
+        if (needsRestore(project))
         {
-            case Failure(_message): panic(_message);
-            case _:
+            switch new Restore(project, fs, net, proc).run()
+            {
+                case Failure(_message): panic(_message);
+                case _:
+            }   
         }
 
         // Ensure our base directories are created.
-        if (shouldClean(project, fs, clean, cppia))
+        if (shouldClean(project))
         {
             fs.directory.remove(buildPath);
             fs.directory.remove(releasePath);
@@ -151,11 +162,11 @@ class Build
         // Generate a host and cppia script
         final gpu = verifyGraphicsBackend(graphicsBackend);
 
-        if (shouldGenerateHost(project, fs, gpu, cppia, rebuildHost))
+        if (shouldGenerateHost(project, gpu))
         {
             Log.log('Generating Flurry Host', Success);
             final hxmlPath = Path.join([ buildPath, 'build-host.hxml' ]);
-            final hxmlData = generateHostHxml(project, projectPath, release, gpu, cppia);
+            final hxmlData = generateHostHxml(project, projectPath, gpu);
             fs.file.writeText(hxmlPath, hxmlData);
 
             switch proc.run('npx', [ 'haxe', hxmlPath ], true)
@@ -194,7 +205,7 @@ class Build
         {
             Log.log('Generating Flurry Client', Success);
             final hxmlPath = Path.join([ buildPath, 'build-client.hxml' ]);
-            final hxmlData = generateClientHxml(project, projectPath, release);
+            final hxmlData = generateClientHxml(project, projectPath);
             fs.file.writeText(hxmlPath, hxmlData);
 
             switch proc.run('npx', [ 'haxe', hxmlPath ], true)
@@ -312,15 +323,15 @@ class Build
     /**
      * Parse the json string at the provided file location.
      */
-    static function parseProject(_fs : IFileSystem, _file : String) : Project
+    function parseProject(_file : String) : Project
     {
-        return Json.parse(_fs.file.getText(_file));
+        return Json.parse(fs.file.getText(_file));
     }
 
     /**
      * Parse the graphics backend string into its enum equivilent.
      */
-    static function verifyGraphicsBackend(_api : String) : GraphicsBackend
+    function verifyGraphicsBackend(_api : String) : GraphicsBackend
     {
         return switch _api
         {
@@ -344,9 +355,9 @@ class Build
      * @param _clean If the clean flag was set
      * @param _cppia If a cppia build was requested.
      */
-    static function shouldClean(_project : Project, _fs : IFileSystem, _clean : Bool, _cppia : Bool)
+    function shouldClean(_project : Project)
     {
-        if (_clean)
+        if (clean)
         {
             return true;
         }
@@ -355,13 +366,13 @@ class Build
 
         // If the host file exists and we're not building for cppia force a clean.
         // This will ensure we don't run into any linking / caching issues.
-        if (!_cppia && _fs.file.exists(hostFile))
+        if (!cppia && fs.file.exists(hostFile))
         {
             return true;
         }
 
         // Similar to above except inverted.
-        if (_cppia && !_fs.file.exists(hostFile))
+        if (cppia && !fs.file.exists(hostFile))
         {
             return true;
         }
@@ -380,18 +391,18 @@ class Build
      * @param _cppia If we are building for cppia.
      * @param _rebuild If the host has been forced to be rebuild.
      */
-    static function shouldGenerateHost(_project : Project, _fs : IFileSystem, _gpu : GraphicsBackend, _cppia : Bool, _rebuild : Bool)
+    function shouldGenerateHost(_project : Project, _gpu : GraphicsBackend)
     {
-        return if (!_cppia || _rebuild)
+        return if (!cppia || rebuildHost)
         {
             true;
         }
         else
         {
             final hostFile = Path.join([ _project.buildPath(), 'cpp', 'host.json' ]);
-            if (_fs.file.exists(hostFile))
+            if (fs.file.exists(hostFile))
             {
-                final builtHost : BuiltHost = Json.parse(_fs.file.getText(hostFile));
+                final builtHost : BuiltHost = Json.parse(fs.file.getText(hostFile));
                 
                 builtHost.gpu != _gpu || builtHost.entry != _project.app.main;
             }
@@ -402,6 +413,26 @@ class Build
         }
     }
 
+    function needsRestore(_project : Project)
+    {
+        if (restore)
+        {
+            return true;
+        }
+
+        final toolPath  = _project.toolPath();
+        final msdfTool  = Path.join([ toolPath, Utils.msdfAtlasExecutable() ]);
+        final atlasTool = Path.join([ toolPath, Utils.atlasCreatorExecutable() ]);
+        final glslTool  = Path.join([ toolPath, Utils.glslangExecutable() ]);
+        final sprivTool = Path.join([ toolPath, Utils.spirvCrossExecutable() ]);
+
+        return
+            !fs.file.exists(msdfTool) ||
+            !fs.file.exists(atlasTool) ||
+            !fs.file.exists(glslTool) ||
+            !fs.file.exists(sprivTool);
+    }
+
     /**
      * Generates a hxml file for the given project.
      * @param _project Project.
@@ -410,7 +441,7 @@ class Build
      * @param _gpu Graphics api to build with.
      * @return String
      */
-    static function generateHostHxml(_project : Project, _projectPath : String, _release : Bool, _gpu : GraphicsBackend, _cppia : Bool) : String
+    function generateHostHxml(_project : Project, _projectPath : String, _gpu : GraphicsBackend) : String
     {
         final hxml = new Hxml();
 
@@ -418,7 +449,7 @@ class Build
         hxml.cpp  = Path.join([ _project.buildPath(), 'cpp' ]);
         hxml.dce  = no;
 
-        if (_project!.build!.profile.or(Debug) == Release || _release)
+        if (_project!.build!.profile.or(Debug) == Release || release)
         {
             hxml.noTraces();
             hxml.addDefine('no-debug');
@@ -462,7 +493,7 @@ class Build
             hxml.addLibrary(d.lib, d.version);
         }
 
-        if (_cppia)
+        if (cppia)
         {
             hxml.addDefine('scriptable');
             hxml.addDefine('flurry-cppia');
@@ -482,7 +513,7 @@ class Build
      * @param _projectPath Absolute path to project file.
      * @param _release If the project is to be built in release mode.
      */
-    static function generateClientHxml(_project : Project, _projectPath : String, _release : Bool)
+    function generateClientHxml(_project : Project, _projectPath : String)
     {
         final hxml = new Hxml();
 
@@ -490,7 +521,7 @@ class Build
         hxml.cppia   = Path.join([ _project.buildPath(), 'cpp', 'client.cppia' ]);
         hxml.dce     = std;
 
-        if (_project!.build!.profile.or(Debug) == Release || _release)
+        if (_project!.build!.profile.or(Debug) == Release || release)
         {
             hxml.noTraces();
             hxml.addDefine('no-debug');
