@@ -15,7 +15,7 @@
 --no-inline
 
 --macro Safety.safeNavigation('')
---macro nullSafety('commands', Loose)
+#--macro nullSafety('commands', Loose)
 --macro nullSafety('parcel', Loose)
 
 --neko ../../run.n

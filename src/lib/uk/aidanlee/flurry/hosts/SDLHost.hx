@@ -1,5 +1,13 @@
 package uk.aidanlee.flurry.hosts;
 
+import uk.aidanlee.flurry.api.schedulers.ThreadPoolScheduler;
+import uk.aidanlee.flurry.api.schedulers.MainThreadScheduler;
+import uk.aidanlee.flurry.api.io.FileSystemIO;
+import uk.aidanlee.flurry.api.input.Input;
+import uk.aidanlee.flurry.api.display.Display;
+import uk.aidanlee.flurry.api.gpu.Renderer;
+import uk.aidanlee.flurry.api.resources.ResourceSystem;
+import sys.io.abstractions.concrete.FileSystem;
 import haxe.Timer;
 import haxe.EnumFlags;
 import haxe.io.Path;
@@ -76,9 +84,24 @@ class SDLHost
         gamepadSlots               = [];
         gamepadInstanceSlotMapping = [];
 
-        flurry = Host.entry();
-        flurry.config();
-        flurry.ready();
+        final events        = new FlurryEvents();
+        final mainScheduler = MainThreadScheduler.current;
+        final taskScheduler = ThreadPoolScheduler.current;
+
+        flurry = Host.entry(events, mainScheduler, taskScheduler);
+
+        final config = new FlurryConfig();
+
+        flurry.config(config);
+
+        final fileSystem    = new FileSystem();
+        final renderer      = new Renderer(events.resource, events.display, config.window, config.renderer);
+        final resources     = new ResourceSystem(events.resource, fileSystem, taskScheduler, mainScheduler);
+        final input         = new Input(events.input);
+        final display       = new Display(events.display, events.input, config);
+        final io            = new FileSystemIO(config.project, fileSystem);
+
+        flurry.ready(fileSystem, renderer, resources, input, display, io);
 
         while (true)
         {

@@ -14,7 +14,7 @@ jobs:
     steps:
     - task: NodeTool@0
       inputs:
-        versionSpec: '10.15.x'
+        versionSpec: '14.15.x'
     - bash: ci/install.sh
       displayName: Install Dependencies
       workingDirectory: $(Build.SourcesDirectory)
@@ -46,12 +46,9 @@ jobs:
     steps:
     - task: NodeTool@0
       inputs:
-        versionSpec: '10.15.x'
-    - bash: ci/install.sh
+        versionSpec: '14.15.x'
+    - bash: npm ci
       displayName: Install Dependencies
-      workingDirectory: $(Build.SourcesDirectory)
-      env:
-        AGENT_OS: $(Agent.OS)
     - bash: |
         npx haxe build-js.hxml -D reporter=buddy.reporting.XUnit2Reporter -D report-name=Engine-Tests-Js --debug --no-traces
         node bin/js/main.js
@@ -72,11 +69,8 @@ jobs:
     pool:
       vmImage: 'windows-latest'
     steps:
-    - bash: ci/install.sh
+    - bash: npm ci
       displayName: Install Dependencies
-      workingDirectory: $(Build.SourcesDirectory)
-      env:
-        AGENT_OS: $(Agent.OS)
     - bash: |
         curl https://github.com/HaxeFoundation/hashlink/releases/download/1.11/hl-1.11.0-win.zip -O -J -L -o hl-1.11.0-win.zip
         unzip hl-1.11.0-win.zip
@@ -102,12 +96,9 @@ jobs:
     steps:
     - task: NodeTool@0
       inputs:
-        versionSpec: '10.15.x'
-    - bash: ci/install.sh
+        versionSpec: '14.15.x'
+    - bash: npm ci
       displayName: Install Dependencies
-      workingDirectory: $(Build.SourcesDirectory)
-      env:
-        AGENT_OS: $(Agent.OS)
     - bash: npx haxe build.hxml -D reporter=buddy.reporting.XUnit2Reporter -D report-name=Tool-Tests --debug --no-traces
       displayName: Tool Unit Tests
       workingDirectory: $(Build.SourcesDirectory)/tests/tool

@@ -9,7 +9,7 @@ import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 
 using rx.Observable;
 
-class MockBackend implements IRendererBackend
+@:nullSafety(Off) class MockBackend implements IRendererBackend
 {
     final resourceEvents : ResourceEvents;
 

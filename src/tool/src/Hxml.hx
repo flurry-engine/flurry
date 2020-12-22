@@ -17,9 +17,17 @@ abstract Hxml(StringBuf)
 
     inline function set_cpp(_v : String) return append('--cpp $_v');
 
+    public var cppia (never, set) : String;
+
+    inline function set_cppia(_v : String) return append('--cppia $_v');
+
     public var hl (never, set) : String;
 
     inline function set_hl(_v : String) return append('--hl $_v');
+
+    public var include (never, set) : String;
+
+    inline function set_include(_v : String) return append(_v);
 
     // Compilation
 
