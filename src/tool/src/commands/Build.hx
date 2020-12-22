@@ -1,5 +1,6 @@
 package commands;
 
+import uk.aidanlee.flurry.api.core.Result;
 import Types.BuiltHost;
 import Types.Project;
 import Types.GraphicsBackend;
@@ -159,95 +160,164 @@ class Build
         fs.directory.create(buildPath);
         fs.directory.create(releasePath);
 
-        // Generate a host and cppia script
-        final gpu = verifyGraphicsBackend(graphicsBackend);
+        var buildResult  = Failure('not done');
+        var parcelResult = Failure('not done');
+        var buildDone  = false;
+        var parcelDone = false;
 
-        if (shouldGenerateHost(project, gpu))
-        {
-            Log.log('Generating Flurry Host', Success);
-            final hxmlPath = Path.join([ buildPath, 'build-host.hxml' ]);
-            final hxmlData = generateHostHxml(project, projectPath, gpu);
-            fs.file.writeText(hxmlPath, hxmlData);
+        final lock = new sys.thread.Mutex();
+        final gpu  = verifyGraphicsBackend(graphicsBackend);
 
-            switch proc.run('npx', [ 'haxe', hxmlPath ], true)
+        //
+        sys.thread.Thread.create(() -> {
+            // Generate a host and cppia script
+
+            if (shouldGenerateHost(project, gpu))
             {
-                case Success(_):
-                    if (cppia)
-                    {
-                        // Write info about the built host so future builds don't have to re-compile it.
-                        final host = { gpu : gpu, entry : project.app.main, modules : new Array<String>() };
-                        final path = Path.join([ project.buildPath(), 'cpp', 'host.json' ]);
+                Log.log('Generating Flurry Host', Success);
+                final hxmlPath = Path.join([ buildPath, 'build-host.hxml' ]);
+                final hxmlData = generateHostHxml(project, projectPath, gpu);
+                fs.file.writeText(hxmlPath, hxmlData);
 
-                        fs.file.writeText(path, Json.stringify(host));
-                    }
-                    else
-                    {
-                        // If a file describing a cppia host exists remove it.
-                        // This will force the host to be recompiled next time a cppia build is requested.
-                        final path = Path.join([ project.buildPath(), 'cpp', 'host.json' ]);
-
-                        if (fs.file.exists(path))
+                switch buildResult = proc.run('npx', [ 'haxe', hxmlPath ], true)
+                {
+                    case Success(_):
+                        if (cppia)
                         {
-                            fs.file.remove(path);
+                            // Write info about the built host so future builds don't have to re-compile it.
+                            final host = { gpu : gpu, entry : project.app.main, modules : new Array<String>() };
+                            final path = Path.join([ project.buildPath(), 'cpp', 'host.json' ]);
+
+                            fs.file.writeText(path, Json.stringify(host));
                         }
-                    }
-                case Failure(message): panic(message);
+                        else
+                        {
+                            // If a file describing a cppia host exists remove it.
+                            // This will force the host to be recompiled next time a cppia build is requested.
+                            final path = Path.join([ project.buildPath(), 'cpp', 'host.json' ]);
+
+                            if (fs.file.exists(path))
+                            {
+                                fs.file.remove(path);
+                            }
+                        }
+                    case Failure(_):
+                        lock.acquire();
+                        buildDone = true;
+                        lock.release();
+
+                        // Exit early so client building won't potentially overwrite a host building failure
+                        return;
+                }
             }
-        }
-        else
-        {
-            Log.log('Host Already Exists', Success);
-        }
-
-        // Only in cppia mode do we want to generate a cppia script and copy it over
-        // Otherwise the "host" will contain everything compiled to native.
-        if (cppia)
-        {
-            Log.log('Generating Flurry Client', Success);
-            final hxmlPath = Path.join([ buildPath, 'build-client.hxml' ]);
-            final hxmlData = generateClientHxml(project, projectPath);
-            fs.file.writeText(hxmlPath, hxmlData);
-
-            switch proc.run('npx', [ 'haxe', hxmlPath ], true)
+            else
             {
-                case Success(_):
-                case Failure(message): panic(message);
+                Log.log('Host Already Exists', Success);
             }
 
-            // Copy the cppia script over
-            final debugScripts   = Path.join([ buildPath, 'cpp', 'assets', 'scripts' ]);
-            final releaseScripts = Path.join([ releasePath, 'assets', 'scripts' ]);
-            final cppiaScript    = Path.join([ project.buildPath(), 'cpp', 'client.cppia' ]);
+            // Only in cppia mode do we want to generate a cppia script and copy it over
+            // Otherwise the "host" will contain everything compiled to native.
+            if (cppia)
+            {
+                Log.log('Generating Flurry Client', Success);
+                final hxmlPath = Path.join([ buildPath, 'build-client.hxml' ]);
+                final hxmlData = generateClientHxml(project, projectPath);
+                fs.file.writeText(hxmlPath, hxmlData);
 
-            fs.directory.create(debugScripts);
-            fs.directory.create(releaseScripts);
+                switch buildResult = proc.run('npx', [ 'haxe', hxmlPath ], true)
+                {
+                    case Failure(_):
+                        lock.acquire();
+                        buildDone = true;
+                        lock.release();
 
-            fs.file.copy(cppiaScript, Path.join([ debugScripts, 'client.cppia' ]));
-            fs.file.copy(cppiaScript, Path.join([ releaseScripts, 'client.cppia' ]));
+                        return;
+                    case _:
+                        //
+                }
+
+                // Copy the cppia script over
+                final debugScripts   = Path.join([ buildPath, 'cpp', 'assets', 'scripts' ]);
+                final releaseScripts = Path.join([ releasePath, 'assets', 'scripts' ]);
+                final cppiaScript    = Path.join([ project.buildPath(), 'cpp', 'client.cppia' ]);
+
+                fs.directory.create(debugScripts);
+                fs.directory.create(releaseScripts);
+
+                fs.file.copy(cppiaScript, Path.join([ debugScripts, 'client.cppia' ]));
+                fs.file.copy(cppiaScript, Path.join([ releaseScripts, 'client.cppia' ]));
+            }
+
+            lock.acquire();
+            buildDone = true;
+            lock.release();
+        });
+
+        //
+        sys.thread.Thread.create(() -> {
+            // Generate all parcels
+            Log.log('Generating Parcels', Success);
+
+            final debugParcels   = Path.join([ buildPath, 'cpp', 'assets', 'parcels' ]);
+            final releaseParcels = Path.join([ releasePath, 'assets', 'parcels' ]);
+            final packer         = new Packer(project, verbose, gpu, fs, proc);
+
+            fs.directory.create(debugParcels);
+            fs.directory.create(releaseParcels);
+
+            for (assets in project!.parcels.or([]))
+            {
+                switch parcelResult = packer.create(assets)
+                {
+                    case Success(parcels):
+                        for (parcel in parcels)
+                        {
+                            fs.file.copy(parcel.file, Path.join([ debugParcels, parcel.name ]));
+                            fs.file.copy(parcel.file, Path.join([ releaseParcels, parcel.name ]));
+                        }
+                    case Failure(_):
+                        lock.acquire();
+                        parcelDone = true;
+                        lock.release();
+
+                        return;
+                }
+            }
+
+            lock.acquire();
+            parcelDone = true;
+            lock.release();
+        });
+
+        var waiting = true;
+        while (waiting)
+        {
+            Sys.sleep(0.1);
+
+            if (lock.tryAcquire())
+            {
+                if (buildDone && parcelDone)
+                {
+                    waiting = false;
+                }
+
+                lock.release();
+            }
         }
 
-        // Generate all parcels
-        Log.log('Generating Parcels', Success);
-
-        final debugParcels   = Path.join([ buildPath, 'cpp', 'assets', 'parcels' ]);
-        final releaseParcels = Path.join([ releasePath, 'assets', 'parcels' ]);
-        final packer         = new Packer(project, verbose, gpu, fs, proc);
-
-        fs.directory.create(debugParcels);
-        fs.directory.create(releaseParcels);
-
-        for (assets in project!.parcels.or([]))
+        switch buildResult
         {
-            switch packer.create(assets)
-            {
-                case Success(parcels):
-                    for (parcel in parcels)
-                    {
-                        fs.file.copy(parcel.file, Path.join([ debugParcels, parcel.name ]));
-                        fs.file.copy(parcel.file, Path.join([ releaseParcels, parcel.name ]));
-                    }
-                case Failure(message): panic(message);
-            }
+            case Success(_data):
+                //
+            case Failure(_data):
+                panic(_data);
+        }
+        switch parcelResult
+        {
+            case Success(_data):
+                //
+            case Failure(_data):
+                panic(_data);
         }
 
         // Copy over the executable
@@ -501,6 +571,8 @@ class Build
             hxml.addDefine('dll_export', Path.join([ _project.buildPath(), 'cpp', 'host_classes.info' ]));
             hxml.addMacro('include("uk.aidanlee.flurry.api")');
             hxml.addMacro('include("uk.aidanlee.flurry.module")');
+            hxml.addMacro('include("haxe.ds")');
+            hxml.addMacro('keep("haxe.ds.Vector")');
         }
 
         return hxml.toString();
