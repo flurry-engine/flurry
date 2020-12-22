@@ -14,7 +14,7 @@ jobs:
     steps:
     - task: NodeTool@0
       inputs:
-        versionSpec: '10.15.x'
+        versionSpec: '14.15.x'
     - bash: ci/install.sh
       displayName: Install Dependencies
       workingDirectory: $(Build.SourcesDirectory)
@@ -46,7 +46,7 @@ jobs:
     steps:
     - task: NodeTool@0
       inputs:
-        versionSpec: '10.15.x'
+        versionSpec: '14.15.x'
     - bash: ci/install.sh
       displayName: Install Dependencies
       workingDirectory: $(Build.SourcesDirectory)
@@ -102,7 +102,7 @@ jobs:
     steps:
     - task: NodeTool@0
       inputs:
-        versionSpec: '10.15.x'
+        versionSpec: '14.15.x'
     - bash: ci/install.sh
       displayName: Install Dependencies
       workingDirectory: $(Build.SourcesDirectory)
