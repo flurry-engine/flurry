@@ -5,7 +5,6 @@ import uk.aidanlee.flurry.api.input.Keycodes;
 import buddy.BuddySuite;
 
 using buddy.Should;
-using rx.Observable;
 
 class KeycodesTests extends BuddySuite
 {

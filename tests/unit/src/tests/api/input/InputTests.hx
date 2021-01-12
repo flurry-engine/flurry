@@ -1,5 +1,6 @@
 package tests.api.input;
 
+import hxrx.observer.Observer;
 import haxe.EnumFlags;
 import uk.aidanlee.flurry.api.input.InputEvents;
 import uk.aidanlee.flurry.api.input.Keycodes;
@@ -7,7 +8,6 @@ import uk.aidanlee.flurry.api.input.Input;
 import buddy.BuddySuite;
 
 using buddy.Should;
-using rx.Observable;
 
 class InputTests extends BuddySuite
 {
@@ -156,11 +156,11 @@ class InputTests extends BuddySuite
                 var event = new InputEvents();
                 var input = new Input(event);
 
-                event.gamepadRumble.subscribeFunction(_data -> {
+                event.gamepadRumble.subscribe(new Observer((_data : InputEventGamepadRumble) -> {
                     _data.gamepad.should.be(0);
                     _data.intensity.should.be(0.5);
                     _data.duration.should.be(2);
-                });
+                }, null, null));
                 input.rumbleGamepad(0, 0.5, 2);
             });
         });

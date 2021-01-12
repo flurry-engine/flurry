@@ -7,6 +7,8 @@ import cpp.Pointer;
 import cpp.Stdlib.memcpy;
 import sdl.Window;
 import sdl.SDL;
+import hxrx.ISubscription;
+import hxrx.observer.Observer;
 import dxgi.Dxgi;
 import dxgi.structures.DxgiPresentParameters;
 import dxgi.structures.DxgiSwapChainDescription;
@@ -55,7 +57,6 @@ import d3d11.interfaces.D3d11BlendState;
 import d3d11.interfaces.D3d11Buffer;
 import d3d11.interfaces.D3d11DeviceContext;
 import d3d11.interfaces.D3d11Device;
-import rx.disposables.ISubscription;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererDx11Config;
 import uk.aidanlee.flurry.api.gpu.StencilFunction;
@@ -79,7 +80,6 @@ import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 
-using rx.Observable;
 using cpp.NativeArray;
 
 @:headerCode('#include <D3Dcompiler.h>
@@ -613,11 +613,11 @@ using cpp.NativeArray;
         shader   = 0;
         texture  = 0;
 
-        resourceCreatedSubscription = resourceEvents.created.subscribeFunction(onResourceCreated);
-        resourceRemovedSubscription = resourceEvents.removed.subscribeFunction(onResourceRemoved);
+        resourceCreatedSubscription = resourceEvents.created.subscribe(new Observer(onResourceCreated, null, null));
+        resourceRemovedSubscription = resourceEvents.removed.subscribe(new Observer(onResourceRemoved, null, null));
         
-        displaySizeChangedSubscription   = displayEvents.sizeChanged.subscribeFunction(onSizeChanged);
-        displayChangeRequestSubscription = displayEvents.changeRequested.subscribeFunction(onSizeChangeRequest);
+        displaySizeChangedSubscription   = displayEvents.sizeChanged.subscribe(new Observer(onSizeChanged, null, null));
+        displayChangeRequestSubscription = displayEvents.changeRequested.subscribe(new Observer(onSizeChangeRequest, null, null));
     }
 
     /**

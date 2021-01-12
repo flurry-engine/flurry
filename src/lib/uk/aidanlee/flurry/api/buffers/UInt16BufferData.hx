@@ -1,6 +1,7 @@
 package uk.aidanlee.flurry.api.buffers;
 
 import haxe.io.Bytes;
+import uk.aidanlee.flurry.api.core.Unit;
 
 @:forward(bytes, byteOffset, byteLength, subscribe)
 abstract UInt16BufferData(BufferData) from BufferData to BufferData
@@ -46,7 +47,7 @@ abstract UInt16BufferData(BufferData) from BufferData to BufferData
     {
         _func(this);
 
-        this.changed.onNext(unit);
+        this.changed.onNext(Unit.value);
     }
 
     public function sub(_begin : Int, _length : Int) : UInt16BufferData
@@ -76,7 +77,7 @@ abstract UInt16BufferData(BufferData) from BufferData to BufferData
         this.bytes.setUInt16((_idx << 1) + this.byteOffset, _val);
 #end
 
-        this.changed.onNext(unit);
+        this.changed.onNext(Unit.value);
 
         return _val;
     }

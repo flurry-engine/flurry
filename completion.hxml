@@ -30,11 +30,11 @@
 -lib safety
 -lib sys.io.abstractions
 -lib format
--lib RxHaxe
 -lib hxbit
 -lib tink_json
 -lib tink_cli
 -lib console.hx
+-lib hxrx
 
 --macro nullSafety('uk.aidanlee.flurry.modules.differ', Strict)
 --macro nullSafety('uk.aidanlee.flurry.api.resources', Strict)

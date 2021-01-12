@@ -1,7 +1,6 @@
 package tests.api.gpu.geometry;
 
 import haxe.io.BytesBuffer;
-import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.maths.Matrix;

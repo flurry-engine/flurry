@@ -1,6 +1,8 @@
 package uk.aidanlee.flurry;
 
-import rx.schedulers.MakeScheduler;
+import haxe.Exception;
+import hxrx.observer.Observer;
+import hxrx.schedulers.IScheduler;
 import uk.aidanlee.flurry.api.io.IIO;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.input.Input;
@@ -11,7 +13,6 @@ import uk.aidanlee.flurry.api.schedulers.MainThreadScheduler;
 import sys.io.abstractions.IFileSystem;
 
 using Safety;
-using rx.Observable;
 
 class Flurry
 {
@@ -64,12 +65,12 @@ class Flurry
      * Scheduler to run functions on the main thread.
      * Every tick the tasks queued in this scheduler are checked to see if its time to be ran.
      */
-    final mainThreadScheduler : MakeScheduler;
+    final mainThreadScheduler : IScheduler;
 
     /**
      * Thread pool backed scheduler.
      */
-    final taskThreadScheduler : MakeScheduler;
+    final taskThreadScheduler : IScheduler;
 
     public function new(_events, _mainScheduler, _taskScheduler)
     {
@@ -98,7 +99,7 @@ class Flurry
         {
             resources
                 .load(flurryConfig.resources.preload)
-                .subscribeFunction(onPreloadParcelError, onPreloadParcelComplete);
+                .subscribe(new Observer(null, onPreloadParcelError, onPreloadParcelComplete));
         }
         else
         {
@@ -109,6 +110,7 @@ class Flurry
     public final function tick(_dt : Float)
     {
         (cast mainThreadScheduler : MainThreadScheduler).dispatch();
+        (cast taskThreadScheduler : ThreadPoolScheduler).dispatch();
 
         onTick(_dt);
     }
@@ -191,8 +193,8 @@ class Flurry
         onReady();
     }
 
-    final function onPreloadParcelError(_error : String)
+    final function onPreloadParcelError(_error : Exception)
     {
-        trace('Error loading preload parcel : $_error');
+        trace('Error loading preload parcel : ${ _error.message }');
     }
 }

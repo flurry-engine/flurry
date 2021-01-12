@@ -9,7 +9,7 @@
     },
     "build" : {
         "dependencies" : [
-            { "lib" : "RxHaxe" },
+            { "lib" : "hxrx" },
             { "lib" : "format" },
             { "lib" : "haxe-concurrent" },
             { "lib" : "hxbit" },

@@ -1,5 +1,6 @@
 package tests.api.display;
 
+import hxrx.observer.Observer;
 import uk.aidanlee.flurry.api.input.InputEvents;
 import uk.aidanlee.flurry.api.input.InputEvents.InputEventMouseMove;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
@@ -8,7 +9,6 @@ import uk.aidanlee.flurry.FlurryConfig;
 import buddy.BuddySuite;
 
 using buddy.Should;
-using rx.Observable;
 
 class DisplayTests extends BuddySuite
 {
@@ -33,12 +33,12 @@ class DisplayTests extends BuddySuite
 
             it('Has a function which will fire an event to indicate that the window should be changed', {
                 var events = new DisplayEvents();
-                events.changeRequested.subscribeFunction(_data -> {
+                events.changeRequested.subscribe(new Observer((_data : DisplayEventChangeRequest) -> {
                     _data.width.should.be(1920);
                     _data.height.should.be(1080);
                     _data.fullscreen.should.be(false);
                     _data.vsync.should.be(false);
-                });
+                }, null, null));
                 var config = new FlurryConfig();
                 config.window.width      = 1600;
                 config.window.height     = 900;

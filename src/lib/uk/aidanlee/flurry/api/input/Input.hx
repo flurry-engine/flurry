@@ -1,8 +1,7 @@
 package uk.aidanlee.flurry.api.input;
 
+import hxrx.observer.Observer;
 import uk.aidanlee.flurry.api.input.InputEvents;
-
-using rx.Observable;
 
 private enum InputState
 {
@@ -39,13 +38,13 @@ class Input
         gamepadButtons = [ for (_ in 0...MAX_CONTROLLERS) [ for (_ in 0...MAX_CONTROLLER_BUTTONS) None ] ];
         gamepadAxises  = [ for (_ in 0...MAX_CONTROLLERS) [ for (_ in 0...MAX_CONTROLLER_AXISES) 0 ] ];
 
-        events.keyUp.subscribeFunction(onKeyUp);
-        events.keyDown.subscribeFunction(onKeyDown);
-        events.mouseUp.subscribeFunction(onMouseUp);
-        events.mouseDown.subscribeFunction(onMouseDown);
-        events.gamepadUp.subscribeFunction(onGamepadUp);
-        events.gamepadDown.subscribeFunction(onGamepadDown);
-        events.gamepadAxis.subscribeFunction(onGamepadAxis);
+        events.keyUp.subscribe(new Observer(onKeyUp, null, null));
+        events.keyDown.subscribe(new Observer(onKeyDown, null, null));
+        events.mouseUp.subscribe(new Observer(onMouseUp, null, null));
+        events.mouseDown.subscribe(new Observer(onMouseDown, null, null));
+        events.gamepadUp.subscribe(new Observer(onGamepadUp, null, null));
+        events.gamepadDown.subscribe(new Observer(onGamepadDown, null, null));
+        events.gamepadAxis.subscribe(new Observer(onGamepadAxis, null, null));
     }
 
     // #region polling commands

@@ -2,9 +2,8 @@ package uk.aidanlee.flurry.api.gpu.geometry;
 
 import haxe.ds.Option;
 import haxe.ds.ReadOnlyArray;
-import rx.Unit;
-import rx.Subject;
-import rx.observables.IObservable;
+import hxrx.IObservable;
+import hxrx.subjects.PublishSubject;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
@@ -12,6 +11,7 @@ import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
+import uk.aidanlee.flurry.api.core.Unit;
 import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Quaternion;
@@ -72,7 +72,7 @@ class Geometry
         {
             depth = _depth;
 
-            (cast changed : Subject<Unit>).onNext(unit);
+            (cast changed : PublishSubject<Unit>).onNext(Unit.value);
         }
 
         return _depth;
@@ -87,7 +87,7 @@ class Geometry
     inline function set_shader(_shader : GeometryShader) : GeometryShader {
         shader = _shader;
 
-        (cast changed : Subject<Unit>).onNext(unit);
+        (cast changed : PublishSubject<Unit>).onNext(Unit.value);
 
         return _shader;
     }
@@ -100,7 +100,7 @@ class Geometry
     inline function set_uniforms(_uniforms : GeometryUniforms) : GeometryUniforms {
         uniforms = _uniforms;
 
-        (cast changed : Subject<Unit>).onNext(unit);
+        (cast changed : PublishSubject<Unit>).onNext(Unit.value);
 
         return _uniforms;
     }
@@ -113,7 +113,7 @@ class Geometry
     inline function set_textures(_textures : GeometryTextures) : GeometryTextures {
         textures = _textures;
 
-        (cast changed : Subject<Unit>).onNext(unit);
+        (cast changed : PublishSubject<Unit>).onNext(Unit.value);
 
         return _textures;
     }
@@ -127,7 +127,7 @@ class Geometry
     inline function set_samplers(_samplers : GeometrySamplers) : GeometrySamplers {
         samplers = _samplers;
 
-        (cast changed : Subject<Unit>).onNext(unit);
+        (cast changed : PublishSubject<Unit>).onNext(Unit.value);
 
         return _samplers;
     }
@@ -140,7 +140,7 @@ class Geometry
     inline function set_clip(_clip : ClipState) : ClipState {
         clip = _clip;
 
-        (cast changed : Subject<Unit>).onNext(unit);
+        (cast changed : PublishSubject<Unit>).onNext(Unit.value);
 
         return _clip;
     }
@@ -154,7 +154,7 @@ class Geometry
     {
         blend = _blend;
 
-        (cast changed : Subject<Unit>).onNext(unit);
+        (cast changed : PublishSubject<Unit>).onNext(Unit.value);
 
         return _blend;
     }
@@ -169,7 +169,7 @@ class Geometry
         {
             primitive = _primitive;
 
-            (cast changed : Subject<Unit>).onNext(unit);
+            (cast changed : PublishSubject<Unit>).onNext(Unit.value);
         }
 
         return _primitive;
@@ -209,7 +209,7 @@ class Geometry
     public function new(_options : GeometryOptions)
     {
         id      = Hash.uniqueHash();
-        changed = new Subject<Unit>();
+        changed = new PublishSubject();
 
         data           = _options.data;
         transformation = _options.transform;

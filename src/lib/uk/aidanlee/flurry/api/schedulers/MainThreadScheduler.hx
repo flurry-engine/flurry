@@ -1,36 +1,20 @@
 package uk.aidanlee.flurry.api.schedulers;
 
-import rx.Subscription;
-import rx.schedulers.ISchedulerBase;
-import rx.schedulers.MakeScheduler;
-import rx.schedulers.TimedAction;
-import rx.disposables.ISubscription;
+import sys.thread.Mutex;
 import haxe.Timer;
 import haxe.ds.ArraySort;
-import sys.thread.Mutex;
+import hxrx.ISubscription;
+import hxrx.schedulers.IScheduler;
+import hxrx.schedulers.ScheduledItem;
+import hxrx.subscriptions.Single;
 
-class MainThreadScheduler extends MakeScheduler
-{
-    public static final current = new MainThreadScheduler();
-    
-    function new()
-    {
-        super(new MainThreadBase());
-    }
-
-    public function dispatch()
-    {
-        (cast baseScheduler : MainThreadBase).dispatch();
-    }
-}
-
-private class MainThreadBase implements ISchedulerBase
+class MainThreadScheduler implements IScheduler
 {
     /**
      * All of the timed actions queued for execution on the main thread.
      * After a call to `dispatch` they will be sorted by `execTime` in descending order.
      */
-    final tasks : Array<TimedAction>;
+    final tasks : Array<ScheduledItem>;
 
     final queueLock : Mutex;
 
@@ -43,14 +27,26 @@ private class MainThreadBase implements ISchedulerBase
         resort    = false;
     }
 
-    public function now()
+    public function time()
     {
         return Timer.stamp();
     }
 
-    public function scheduleAbsolute(_dueTime : Float, _action : () -> Void) : ISubscription
+    public function scheduleNow(_action : (_scheduler : IScheduler) -> ISubscription) : ISubscription
     {
-        final task = new TimedAction(_action, _dueTime);
+        return scheduleIn(0, _action);
+    }
+
+    public function scheduleAt(_dueTime : Date, _action : (_scheduler : IScheduler) -> ISubscription) : ISubscription
+    {
+        final diff = _dueTime.getTime() - Date.now().getTime();
+
+        return scheduleIn(diff / 1000, _action);
+    }
+
+    public function scheduleIn(_dueTime : Float, _action : (_scheduler : IScheduler) -> ISubscription) : ISubscription
+    {
+        final task = new ScheduledItem(this, _action, _dueTime);
 
         queueLock.acquire();       
         tasks.push(task);
@@ -63,7 +59,7 @@ private class MainThreadBase implements ISchedulerBase
         }
         queueLock.release();
 
-        return Subscription.create(() -> {
+        return new Single(() -> {
             queueLock.acquire();
             tasks.remove(task);
             queueLock.release();
@@ -84,12 +80,12 @@ private class MainThreadBase implements ISchedulerBase
             if (resort)
             {
                 // Sort in descending order, actions closest to execution time will be at the bottom of the array.
-                ArraySort.sort(tasks, (a1, a2) -> Std.int(a2.execTime - a1.execTime));
+                ArraySort.sort(tasks, (a1, a2) -> Std.int(a2.dueTime - a1.dueTime));
 
                 resort = false;
             }
             
-            final currentTime = now();
+            final currentTime = time();
             
             var dispatchable = 0;
             var length       = tasks.length;
@@ -99,7 +95,7 @@ private class MainThreadBase implements ISchedulerBase
             {
                 final action = tasks[length - 1];
 
-                if (action.execTime <= currentTime)
+                if (action.dueTime <= currentTime)
                 {
                     dispatchable++;
                     length--;
@@ -116,7 +112,7 @@ private class MainThreadBase implements ISchedulerBase
             {
                 for (i in length...tasks.length)
                 {
-                    tasks[i].discardableAction();
+                    tasks[i].invoke();
                 }
 
                 tasks.resize(tasks.length - dispatchable);

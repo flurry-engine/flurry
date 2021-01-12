@@ -1,59 +1,59 @@
 package uk.aidanlee.flurry.api.display;
 
-import rx.Subject;
+import hxrx.subjects.PublishSubject;
 
 class DisplayEvents
 {
-    public final unknown : Subject<DisplayEventData>;
+    public final unknown : PublishSubject<DisplayEventData>;
     
-    public final shown : Subject<DisplayEventData>;
+    public final shown : PublishSubject<DisplayEventData>;
 
-    public final hidden : Subject<DisplayEventData>;
+    public final hidden : PublishSubject<DisplayEventData>;
 
-    public final exposed : Subject<DisplayEventData>;
+    public final exposed : PublishSubject<DisplayEventData>;
 
-    public final moved : Subject<DisplayEventData>;
+    public final moved : PublishSubject<DisplayEventData>;
 
-    public final minimised : Subject<DisplayEventData>;
+    public final minimised : PublishSubject<DisplayEventData>;
 
-    public final maximised : Subject<DisplayEventData>;
+    public final maximised : PublishSubject<DisplayEventData>;
 
-    public final restored : Subject<DisplayEventData>;
+    public final restored : PublishSubject<DisplayEventData>;
 
-    public final enter : Subject<DisplayEventData>;
+    public final enter : PublishSubject<DisplayEventData>;
 
-    public final leave : Subject<DisplayEventData>;
+    public final leave : PublishSubject<DisplayEventData>;
 
-    public final focusGained : Subject<DisplayEventData>;
+    public final focusGained : PublishSubject<DisplayEventData>;
 
-    public final focusLost : Subject<DisplayEventData>;
+    public final focusLost : PublishSubject<DisplayEventData>;
 
-    public final close : Subject<DisplayEventData>;
+    public final close : PublishSubject<DisplayEventData>;
 
-    public final resized : Subject<DisplayEventData>;
+    public final resized : PublishSubject<DisplayEventData>;
 
-    public final sizeChanged : Subject<DisplayEventData>;
+    public final sizeChanged : PublishSubject<DisplayEventData>;
 
-    public final changeRequested : Subject<DisplayEventChangeRequest>;
+    public final changeRequested : PublishSubject<DisplayEventChangeRequest>;
 
     public function new()
     {
-        unknown         = new Subject();
-        shown           = new Subject();
-        hidden          = new Subject();
-        exposed         = new Subject();
-        moved           = new Subject();
-        minimised       = new Subject();
-        maximised       = new Subject();
-        restored        = new Subject();
-        enter           = new Subject();
-        leave           = new Subject();
-        focusGained     = new Subject();
-        focusLost       = new Subject();
-        close           = new Subject();
-        resized         = new Subject();
-        sizeChanged     = new Subject();
-        changeRequested = new Subject();
+        unknown         = new PublishSubject();
+        shown           = new PublishSubject();
+        hidden          = new PublishSubject();
+        exposed         = new PublishSubject();
+        moved           = new PublishSubject();
+        minimised       = new PublishSubject();
+        maximised       = new PublishSubject();
+        restored        = new PublishSubject();
+        enter           = new PublishSubject();
+        leave           = new PublishSubject();
+        focusGained     = new PublishSubject();
+        focusLost       = new PublishSubject();
+        close           = new PublishSubject();
+        resized         = new PublishSubject();
+        sizeChanged     = new PublishSubject();
+        changeRequested = new PublishSubject();
     }
 }
 

@@ -1,51 +1,51 @@
 package uk.aidanlee.flurry.api.input;
 
 import haxe.EnumFlags;
+import hxrx.subjects.PublishSubject;
 import uk.aidanlee.flurry.api.input.Types.KeyModifier;
 import uk.aidanlee.flurry.api.input.Types.TextEventType;
 import uk.aidanlee.flurry.api.input.Types.GamepadDeviceEventType;
-import rx.Subject;
 
 class InputEvents
 {
-    public final keyUp : Subject<InputEventKeyState>;
+    public final keyUp : PublishSubject<InputEventKeyState>;
 
-    public final keyDown : Subject<InputEventKeyState>;
+    public final keyDown : PublishSubject<InputEventKeyState>;
 
-    public final textInput : Subject<InputEventTextInput>;
+    public final textInput : PublishSubject<InputEventTextInput>;
 
-    public final mouseUp : Subject<InputEventMouseState>;
+    public final mouseUp : PublishSubject<InputEventMouseState>;
 
-    public final mouseDown : Subject<InputEventMouseState>;
+    public final mouseDown : PublishSubject<InputEventMouseState>;
 
-    public final mouseWheel : Subject<InputEventMouseWheel>;
+    public final mouseWheel : PublishSubject<InputEventMouseWheel>;
 
-    public final mouseMove : Subject<InputEventMouseMove>;
+    public final mouseMove : PublishSubject<InputEventMouseMove>;
 
-    public final gamepadUp : Subject<InputEventGamepadState>;
+    public final gamepadUp : PublishSubject<InputEventGamepadState>;
 
-    public final gamepadDown : Subject<InputEventGamepadState>;
+    public final gamepadDown : PublishSubject<InputEventGamepadState>;
 
-    public final gamepadAxis : Subject<InputEventGamepadAxis>;
+    public final gamepadAxis : PublishSubject<InputEventGamepadAxis>;
 
-    public final gamepadDevice : Subject<InputEventGamepadDevice>;
+    public final gamepadDevice : PublishSubject<InputEventGamepadDevice>;
     
-    public final gamepadRumble : Subject<InputEventGamepadRumble>;
+    public final gamepadRumble : PublishSubject<InputEventGamepadRumble>;
 
     public function new()
     {
-        keyUp         = new Subject();
-        keyDown       = new Subject();
-        textInput     = new Subject();
-        mouseUp       = new Subject();
-        mouseDown     = new Subject();
-        mouseWheel    = new Subject();
-        mouseMove     = new Subject();
-        gamepadUp     = new Subject();
-        gamepadDown   = new Subject();
-        gamepadAxis   = new Subject();
-        gamepadDevice = new Subject();
-        gamepadRumble = new Subject();
+        keyUp         = new PublishSubject();
+        keyDown       = new PublishSubject();
+        textInput     = new PublishSubject();
+        mouseUp       = new PublishSubject();
+        mouseDown     = new PublishSubject();
+        mouseWheel    = new PublishSubject();
+        mouseMove     = new PublishSubject();
+        gamepadUp     = new PublishSubject();
+        gamepadDown   = new PublishSubject();
+        gamepadAxis   = new PublishSubject();
+        gamepadDevice = new PublishSubject();
+        gamepadRumble = new PublishSubject();
     }
 }
 

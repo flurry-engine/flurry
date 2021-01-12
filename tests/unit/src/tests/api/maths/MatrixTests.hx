@@ -1,5 +1,6 @@
 package tests.api.maths;
 
+import hxrx.observer.Observer;
 import buddy.BuddySuite;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Quaternion;
@@ -7,7 +8,6 @@ import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.maths.Maths;
 
 using buddy.Should;
-using rx.Observable;
 
 class MatrixTests extends BuddySuite
 {
@@ -883,7 +883,7 @@ class MatrixTests extends BuddySuite
                 var matrix = new Matrix();
 
                 it('allows subscribing to the matrix', {
-                    matrix.subscribeFunction(_ -> count++);
+                    matrix.subscribe(new Observer(_ -> count++, null, null));
                 });
 
                 it('will tick a unit value when the matrix changes', {

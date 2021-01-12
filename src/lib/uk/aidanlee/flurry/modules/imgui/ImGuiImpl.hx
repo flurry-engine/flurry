@@ -23,12 +23,12 @@ import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.display.Display;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
-import rx.disposables.ISubscription;
+import hxrx.ISubscription;
+import hxrx.observer.Observer;
 import imgui.ImGui;
 
 using cpp.Native;
 using cpp.NativeArray;
-using rx.Observable;
 
 @:nullSafety(Off) class ImGuiImpl
 {
@@ -92,9 +92,9 @@ using rx.Observable;
         final height = 0;
         final bpp    = 0;
 
-        final pWidth  : IntPointer = width;
-        final pHeight : IntPointer = height;
-        final pBpp    : IntPointer = bpp;
+        final pWidth  = cpp.Pointer.addressOf(width);
+        final pHeight = cpp.Pointer.addressOf(height);
+        final pBpp    = cpp.Pointer.addressOf(bpp);
 
         final pixels : cpp.Star<cpp.UInt8> = null;
         final pixelPtr : cpp.Star<cpp.Star<cpp.UInt8>> = pixels.addressOf();
@@ -103,16 +103,16 @@ using rx.Observable;
 
         final img = new ImageResource(
             'imgui_texture',
-            pWidth,
-            pHeight,
+            width,
+            height,
             BGRAUNorm,
-            Pointer.fromStar(pixels).toUnmanagedArray(pWidth.toInt() * pHeight.toInt() * pBpp.toInt()));
+            Pointer.fromStar(pixels).toUnmanagedArray(width * height * bpp));
 
         resources.addResource(img);
 
         texture            = img.id;
         io.fonts.texID     = cast Pointer.addressOf(texture).ptr;
-        onTextSubscription = events.input.textInput.subscribeFunction(onTextInput);
+        onTextSubscription = events.input.textInput.subscribe(new Observer(onTextInput, null, null));
     }
 
     /**

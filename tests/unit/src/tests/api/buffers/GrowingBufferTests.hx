@@ -3,7 +3,6 @@ package tests.api.buffers;
 import uk.aidanlee.flurry.api.buffers.GrowingBuffer;
 import buddy.BuddySuite;
 
-using rx.Observable;
 using buddy.Should;
 
 class GrowingBufferTests extends BuddySuite

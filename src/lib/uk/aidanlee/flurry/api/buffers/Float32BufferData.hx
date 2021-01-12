@@ -1,6 +1,7 @@
 package uk.aidanlee.flurry.api.buffers;
 
 import haxe.io.Bytes;
+import uk.aidanlee.flurry.api.core.Unit;
 
 @:forward(bytes, byteOffset, byteLength, subscribe, changed)
 abstract Float32BufferData(BufferData) from BufferData to BufferData
@@ -46,7 +47,7 @@ abstract Float32BufferData(BufferData) from BufferData to BufferData
     {
         _func(this);
 
-        this.changed.onNext(unit);
+        this.changed.onNext(Unit.value);
 
         return this;
     }
@@ -77,7 +78,7 @@ abstract Float32BufferData(BufferData) from BufferData to BufferData
 #else
         this.bytes.setFloat((_idx << 2) + this.byteOffset, _val);
 #end
-        this.changed.onNext(unit);
+        this.changed.onNext(Unit.value);
 
         return _val;
     }

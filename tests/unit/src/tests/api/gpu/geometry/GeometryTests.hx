@@ -1,5 +1,6 @@
 package tests.api.gpu.geometry;
 
+import hxrx.observer.Observer;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.gpu.PrimitiveType;
@@ -14,7 +15,6 @@ import buddy.BuddySuite;
 import mockatoo.Mockatoo.*;
 
 using buddy.Should;
-using rx.Observable;
 
 class GeometryTests extends BuddySuite
 {
@@ -145,7 +145,7 @@ class GeometryTests extends BuddySuite
                     var count = 0;
 
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
-                    geometry.changed.subscribeFunction(_ -> count++);
+                    geometry.changed.subscribe(new Observer(_ -> count++, null, null));
 
                     geometry.depth = 10;
                     count.should.be(1);
@@ -157,7 +157,7 @@ class GeometryTests extends BuddySuite
                     var count = 0;
 
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
-                    geometry.changed.subscribeFunction(_ -> count++);
+                    geometry.changed.subscribe(new Observer(_ -> count++, null, null));
 
                     geometry.shader = Some(0);
                     count.should.be(1);
@@ -169,7 +169,7 @@ class GeometryTests extends BuddySuite
                     var count = 0;
 
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
-                    geometry.changed.subscribeFunction(_ -> count++);
+                    geometry.changed.subscribe(new Observer(_ -> count++, null, null));
 
                     geometry.uniforms = Some([ mock(UniformBlob) ]);
                     count.should.be(1);
@@ -181,7 +181,7 @@ class GeometryTests extends BuddySuite
                     var count = 0;
 
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
-                    geometry.changed.subscribeFunction(_ -> count++);
+                    geometry.changed.subscribe(new Observer(_ -> count++, null, null));
 
                     geometry.textures = Some([ 0 ]);
                     count.should.be(1);
@@ -193,7 +193,7 @@ class GeometryTests extends BuddySuite
                     var count = 0;
 
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
-                    geometry.changed.subscribeFunction(_ -> count++);
+                    geometry.changed.subscribe(new Observer(_ -> count++, null, null));
 
                     geometry.samplers = Some([ new SamplerState(Clamp, Clamp, Linear, Linear) ]);
                     count.should.be(1);
@@ -205,7 +205,7 @@ class GeometryTests extends BuddySuite
                     var count = 0;
 
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
-                    geometry.changed.subscribeFunction(_ -> count++);
+                    geometry.changed.subscribe(new Observer(_ -> count++, null, null));
 
                     geometry.uniforms = Some([ mock(UniformBlob) ]);
                     count.should.be(1);
@@ -217,7 +217,7 @@ class GeometryTests extends BuddySuite
                     var count = 0;
 
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
-                    geometry.changed.subscribeFunction(_ -> count++);
+                    geometry.changed.subscribe(new Observer(_ -> count++, null, null));
 
                     geometry.blend = BlendState.none;
                     count.should.be(1);
@@ -226,7 +226,7 @@ class GeometryTests extends BuddySuite
                     var count = 0;
 
                     final geometry = new Geometry({ data : UnIndexed(mock(VertexBlob)) });
-                    geometry.changed.subscribeFunction(_ -> count++);
+                    geometry.changed.subscribe(new Observer(_ -> count++, null, null));
 
                     geometry.primitive = Lines;
                     count.should.be(1);

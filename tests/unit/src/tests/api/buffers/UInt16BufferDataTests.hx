@@ -1,11 +1,11 @@
 package tests.api.buffers;
 
+import hxrx.observer.Observer;
 import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.buffers.BufferData;
 import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
 import buddy.BuddySuite;
 
-using rx.Observable;
 using buddy.Should;
 
 class UInt16BufferDataTests extends BuddySuite
@@ -38,7 +38,7 @@ class UInt16BufferDataTests extends BuddySuite
                 var count  = 0;
                 final size   = 4;
                 final buffer = new UInt16BufferData(size);
-                buffer.subscribeFunction(_ -> count++);
+                buffer.subscribe(new Observer(_ -> count++, null, null));
 
                 for (i in 0...buffer.length)
                 {
