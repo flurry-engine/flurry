@@ -4,7 +4,6 @@ import uk.aidanlee.flurry.api.input.Scancodes;
 import buddy.BuddySuite;
 
 using buddy.Should;
-using rx.Observable;
 
 class ScancodesTests extends BuddySuite
 {

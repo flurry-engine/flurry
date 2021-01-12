@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
-import rx.Subject;
-import rx.observables.IObservable;
+import hxrx.IObservable;
+import hxrx.subjects.PublishSubject;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
@@ -119,8 +119,8 @@ class SpriteGeometry extends QuadGeometry
         time             = 0;
         playing          = false;
         currentAnimation = [];
-        onAnimation      = new Subject<String>();
-        onFrame          = new Subject<Int>();
+        onAnimation      = new PublishSubject<String>();
+        onFrame          = new PublishSubject<Int>();
 
         play(_options.animation);
     }
@@ -139,7 +139,7 @@ class SpriteGeometry extends QuadGeometry
             index            = 0;
             time             = 0;
 
-            (cast onAnimation : Subject<String>).onNext(_name);
+            (cast onAnimation : PublishSubject<String>).onNext(_name);
 
             applyFrame(currentAnimation, index);
         }
@@ -212,7 +212,7 @@ class SpriteGeometry extends QuadGeometry
     {
         final frame = _frames[_index];
 
-        (cast onFrame : Subject<Int>).onNext(_index);
+        (cast onFrame : PublishSubject<Int>).onNext(_index);
 
         uv(frame.u1, frame.v1, frame.u2, frame.v2);
 

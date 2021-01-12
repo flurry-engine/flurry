@@ -1,16 +1,18 @@
 package uk.aidanlee.flurry.api.maths;
 
-import rx.Unit;
-import rx.Subject;
-import rx.observers.IObserver;
-import rx.disposables.ISubscription;
-import rx.observables.IObservable;
+import hxrx.IObserver;
+import hxrx.IObservable;
+import hxrx.ISubscription;
+import hxrx.observer.Observer;
+import hxrx.subjects.PublishSubject;
+import uk.aidanlee.flurry.api.core.Unit;
 
-using rx.Observable;
 using Safety;
 
-class Transformation implements IObservable<Unit>
+@:nullSafety(Off) class Transformation implements IObservable<Unit>
 {
+    final dirtyObserver : IObserver<Unit>;
+
     /**
      * Origin for all transformations.
      */
@@ -38,7 +40,7 @@ class Transformation implements IObservable<Unit>
 
         if (parent != null)
         {
-            parentSubscription = parent.subscribeFunction(setDirty);
+            parentSubscription = parent.subscribe(dirtyObserver);
         }
 
         return _p;
@@ -83,7 +85,7 @@ class Transformation implements IObservable<Unit>
     /**
      * Subject which will emit values if the transformation will need to be re-calculated.
      */
-    final dirtied : Subject<Unit>;
+    final dirtied : PublishSubject<Unit>;
 
     /**
      * Holds the local rotation matrix for multiplying against the local transformation matrix.
@@ -115,7 +117,8 @@ class Transformation implements IObservable<Unit>
 
     public function new()
     {
-        dirtied = new Subject<Unit>();
+        dirtyObserver = new Observer(setDirty, null, null);
+        dirtied = new PublishSubject();
         local   = new Spatial();
         world   = new Spatial();
         origin  = new Vector3();
@@ -126,10 +129,10 @@ class Transformation implements IObservable<Unit>
         ignore = false;
         dirty  = true;
 
-        (cast local.position : IObservable<Unit>).subscribeFunction(setDirty);
-        (cast local.rotation : IObservable<Unit>).subscribeFunction(setDirty);
-        (cast local.scale : IObservable<Unit>).subscribeFunction(setDirty);
-        (cast origin : IObservable<Unit>).subscribeFunction(setDirty);
+        local.position.subscribe(dirtyObserver);
+        local.rotation.subscribe(dirtyObserver);
+        local.scale.subscribe(dirtyObserver);
+        origin.subscribe(dirtyObserver);
     }
 
     /**

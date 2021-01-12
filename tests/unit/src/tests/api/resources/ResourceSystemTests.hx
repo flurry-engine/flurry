@@ -1,5 +1,6 @@
 package tests.api.resources;
 
+import hxrx.observer.Observer;
 import Types.Project;
 import Types.Backend;
 import commands.Restore;
@@ -10,14 +11,13 @@ import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.resources.Resource;
-import uk.aidanlee.flurry.api.schedulers.CurrentThreadScheduler;
 import sys.io.abstractions.mock.MockFileSystem;
 import sys.io.abstractions.mock.MockFileData;
 import mockatoo.Mockatoo.*;
+import hxrx.schedulers.CurrentScheduler;
 
 using buddy.Should;
 using mockatoo.Mockatoo;
-using rx.Observable;
 
 class ResourceSystemTests extends SingleSuite
 {
@@ -58,7 +58,8 @@ class ResourceSystemTests extends SingleSuite
         describe('ResourceSystem', {
 
             describe('Manually Managing Resources', {
-                final sys = new ResourceSystem(new ResourceEvents(), new MockFileSystem([], []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
+                final scheduler = new CurrentScheduler();
+                final sys = new ResourceSystem(new ResourceEvents(), new MockFileSystem([], []), scheduler, scheduler);
                 final res = new TextResource('hello', 'world');
     
                 it('allows manually adding resources to the system', {
@@ -85,11 +86,12 @@ class ResourceSystemTests extends SingleSuite
             });
 
             describe('Managing Parcels', {
+                final scheduler = new CurrentScheduler();
                 final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']) ];
-                final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
+                final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), scheduler, scheduler);
 
                 it('can load a pre-packaged parcels resources', {
-                    system.load([ 'images.parcel' ]);
+                    system.load([ 'images.parcel' ]).subscribe(new Observer(null, null, null));
                 });
 
                 it('allows fetching the resource by its name', {
@@ -114,8 +116,9 @@ class ResourceSystemTests extends SingleSuite
             });
 
             describe('Resource Events', {
+                final scheduler = new CurrentScheduler();
                 final events = new ResourceEvents();
-                final system = new ResourceSystem(events, new MockFileSystem([], []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
+                final system = new ResourceSystem(events, new MockFileSystem([], []), scheduler, scheduler);
                 final image  = new ImageResource('dots', 2, 2, RGBAUNorm, haxe.io.Bytes.alloc(2 * 2 * 4).getData());
                 final shader = new ShaderResource(
                     'shdr',
@@ -125,7 +128,7 @@ class ResourceSystemTests extends SingleSuite
                     new ShaderFragInfo([], [], []));
 
                 it('will fire a create event when adding an image resource', {
-                    final sub = events.created.subscribeFunction(ev -> {
+                    final sub = events.created.subscribe(new Observer((ev : Resource) -> {
                         switch ev.type
                         {
                             case Image:
@@ -136,14 +139,14 @@ class ResourceSystemTests extends SingleSuite
                                 res.height.should.be(2);
                             case _: fail('expected image');
                         }
-                    });
+                    }, null, null));
 
                     system.addResource(image);
                     sub.unsubscribe();
                 });
 
                 it('will fire a create event when adding a shader resource', {
-                    final sub = events.created.subscribeFunction(ev -> {
+                    final sub = events.created.subscribe(new Observer((ev : Resource) -> {
                         switch ev.type
                         {
                             case Shader:
@@ -153,14 +156,14 @@ class ResourceSystemTests extends SingleSuite
                                 res.fragSource.toString().should.be('fragment');
                             case _: fail('expected shader');
                         }
-                    });
+                    }, null, null));
 
                     system.addResource(image);
                     sub.unsubscribe();
                 });
 
                 it('will fire a remove event when removing an image resource', {
-                    final sub = events.removed.subscribeFunction(ev -> {
+                    final sub = events.removed.subscribe(new Observer((ev : Resource) -> {
                         switch ev.type
                         {
                             case Image:
@@ -171,14 +174,14 @@ class ResourceSystemTests extends SingleSuite
                                 res.height.should.be(2);
                             case _: fail('expected image');
                         }
-                    });
+                    }, null, null));
 
                     system.removeResource(shader);
                     sub.unsubscribe();
                 });
 
                 it('will fire a remove event when removing a shader resource', {
-                    final sub = events.removed.subscribeFunction(ev -> {
+                    final sub = events.removed.subscribe(new Observer((ev : Resource) -> {
                         switch ev.type
                         {
                             case Shader:
@@ -188,7 +191,7 @@ class ResourceSystemTests extends SingleSuite
                                 res.fragSource.toString().should.be('fragment');
                             case _: fail('expected shader');
                         }
-                    });
+                    }, null, null));
 
                     system.removeResource(shader);
                     sub.unsubscribe();
@@ -196,14 +199,15 @@ class ResourceSystemTests extends SingleSuite
             });
 
             describe('Resource Reference Counting', {
+                final scheduler = new CurrentScheduler();
                 final files = [
                     'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']),
                     'assets/parcels/moreImages.parcel' => MockFileData.fromBytes(parcels['moreImages.parcel'])
                 ];
-                final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
+                final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), scheduler, scheduler);
 
                 it('can load parcels which contain the same resources', {
-                    system.load([ 'images.parcel', 'moreImages.parcel' ]);
+                    system.load([ 'images.parcel', 'moreImages.parcel' ]).subscribe(new Observer(null, null, null));
                 });
 
                 it('will not remove a resource if there are multiple references', {
@@ -231,24 +235,26 @@ class ResourceSystemTests extends SingleSuite
             it('will return an empty observable when trying to load an already loaded parcel', {
                 var calls = 0;
 
+                final scheduler = new CurrentScheduler();
                 final files = [
                     'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']),
                     'assets/parcels/preload.parcel' => MockFileData.fromBytes(parcels['preload.parcel'])
                 ];
-                final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
+                final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), scheduler, scheduler);
                 final parcel = 'preload.parcel';
 
-                system.load([ parcel ]);
-                system.load([ parcel ]).subscribeFunction(() -> calls++);
+                system.load([ parcel ]).subscribe(new Observer(null, null, null));
+                system.load([ parcel ]).subscribe(new Observer(null, null, () -> calls++));
 
                 calls.should.be(1);
             });
 
             it('will thrown an exception when trying to get a resource as the wrong type', {
+                final scheduler = new CurrentScheduler();
                 final files  = [ 'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel']) ];
-                final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current);
+                final system = new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), scheduler, scheduler);
                 
-                system.load([ 'images.parcel' ]);
+                system.load([ 'images.parcel' ]).subscribe(new Observer(null, null, null));
 
                 // This try catch is needed for hashlink.
                 // if we try and bind and use buddys exception catching we get a compile error about not knowing how to cast.
@@ -265,21 +271,23 @@ class ResourceSystemTests extends SingleSuite
             it('contains a callback for when the parcel has finished loading', {
                 var result = '';
 
+                final scheduler = new CurrentScheduler();
                 final files = [
                     'assets/parcels/images.parcel' => MockFileData.fromBytes(parcels['images.parcel'])
                 ];
-                new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), CurrentThreadScheduler.current, CurrentThreadScheduler.current)
+                new ResourceSystem(new ResourceEvents(), new MockFileSystem(files, []), scheduler, scheduler)
                     .load([ 'images.parcel' ])
-                    .subscribeFunction(() -> result = 'finished');
+                    .subscribe(new Observer(null, null, () -> result = 'finished'));
 
                 result.should.be('finished');
             });
 
             it('contains a callback for when the parcel has failed to load', {
+                final scheduler = new CurrentScheduler();
                 var result = '';
-                new ResourceSystem(new ResourceEvents(), new MockFileSystem([], []), CurrentThreadScheduler.current, CurrentThreadScheduler.current)
+                new ResourceSystem(new ResourceEvents(), new MockFileSystem([], []), scheduler, scheduler)
                     .load([ 'myParcel' ])
-                    .subscribeFunction((_error : String) -> result = 'error');
+                    .subscribe(new Observer(null, ex -> result = 'error', null));
 
                 result.should.be('error');
             });

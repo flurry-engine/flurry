@@ -1,16 +1,16 @@
 package uk.aidanlee.flurry.api.resources;
 
-import rx.Subject;
+import hxrx.subjects.PublishSubject;
 
 class ResourceEvents
 {
-    public final created : Subject<Resource>;
+    public final created : PublishSubject<Resource>;
 
-    public final removed : Subject<Resource>;
+    public final removed : PublishSubject<Resource>;
 
     public function new()
     {
-        created = new Subject();
-        removed = new Subject();
+        created = new PublishSubject();
+        removed = new PublishSubject();
     }
 }

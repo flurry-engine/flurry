@@ -1,16 +1,12 @@
 package uk.aidanlee.flurry.hosts;
 
-import uk.aidanlee.flurry.api.schedulers.ThreadPoolScheduler;
-import uk.aidanlee.flurry.api.schedulers.MainThreadScheduler;
-import uk.aidanlee.flurry.api.io.FileSystemIO;
-import uk.aidanlee.flurry.api.input.Input;
-import uk.aidanlee.flurry.api.display.Display;
-import uk.aidanlee.flurry.api.gpu.Renderer;
-import uk.aidanlee.flurry.api.resources.ResourceSystem;
-import sys.io.abstractions.concrete.FileSystem;
 import haxe.Timer;
 import haxe.EnumFlags;
 import haxe.io.Path;
+import sys.io.abstractions.concrete.FileSystem;
+import uk.aidanlee.flurry.api.io.FileSystemIO;
+import uk.aidanlee.flurry.api.gpu.Renderer;
+import uk.aidanlee.flurry.api.input.Input;
 import uk.aidanlee.flurry.api.input.InputEvents.InputEventGamepadRumble;
 import uk.aidanlee.flurry.api.input.InputEvents.InputEventGamepadDevice;
 import uk.aidanlee.flurry.api.input.InputEvents.InputEventGamepadState;
@@ -21,7 +17,11 @@ import uk.aidanlee.flurry.api.input.InputEvents.InputEventMouseMove;
 import uk.aidanlee.flurry.api.input.InputEvents.InputEventTextInput;
 import uk.aidanlee.flurry.api.input.InputEvents.InputEventKeyState;
 import uk.aidanlee.flurry.api.input.Types.KeyModifier;
+import uk.aidanlee.flurry.api.display.Display;
 import uk.aidanlee.flurry.api.display.DisplayEvents.DisplayEventData;
+import uk.aidanlee.flurry.api.resources.ResourceSystem;
+import uk.aidanlee.flurry.api.schedulers.ThreadPoolScheduler;
+import uk.aidanlee.flurry.api.schedulers.MainThreadScheduler;
 import uk.aidanlee.flurry.macros.Host;
 import sdl.SDL;
 import sdl.Haptic;
@@ -85,8 +85,8 @@ class SDLHost
         gamepadInstanceSlotMapping = [];
 
         final events        = new FlurryEvents();
-        final mainScheduler = MainThreadScheduler.current;
-        final taskScheduler = ThreadPoolScheduler.current;
+        final mainScheduler = new MainThreadScheduler();
+        final taskScheduler = new ThreadPoolScheduler();
 
         flurry = Host.entry(events, mainScheduler, taskScheduler);
 

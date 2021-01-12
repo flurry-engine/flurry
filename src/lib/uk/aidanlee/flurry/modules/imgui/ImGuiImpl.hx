@@ -23,12 +23,12 @@ import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.display.Display;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
-import rx.disposables.ISubscription;
+import hxrx.ISubscription;
+import hxrx.observer.Observer;
 import imgui.ImGui;
 
 using cpp.Native;
 using cpp.NativeArray;
-using rx.Observable;
 
 @:nullSafety(Off) class ImGuiImpl
 {
@@ -112,7 +112,7 @@ using rx.Observable;
 
         texture            = img.id;
         io.fonts.texID     = cast Pointer.addressOf(texture).ptr;
-        onTextSubscription = events.input.textInput.subscribeFunction(onTextInput);
+        onTextSubscription = events.input.textInput.subscribe(new Observer(onTextInput, null, null));
     }
 
     /**

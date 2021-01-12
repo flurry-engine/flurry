@@ -1,13 +1,11 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import uk.aidanlee.flurry.api.resources.Resource;
 import haxe.Exception;
-import rx.disposables.ISubscription;
-import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
+import hxrx.ISubscription;
+import hxrx.observer.Observer;
+import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
-
-using rx.Observable;
 
 @:nullSafety(Off) class MockBackend implements IRendererBackend
 {
@@ -30,8 +28,8 @@ using rx.Observable;
         textures       = [];
         shaders        = [];
 
-        resourceCreatedSubscription = resourceEvents.created.subscribeFunction(onResourceCreated);
-        resourceRemovedSubscription = resourceEvents.removed.subscribeFunction(onResourceRemoved);
+        resourceCreatedSubscription = resourceEvents.created.subscribe(new Observer(onResourceCreated, null, null));
+        resourceRemovedSubscription = resourceEvents.removed.subscribe(new Observer(onResourceRemoved, null, null));
     }
 
     public function queue(_command : DrawCommand)

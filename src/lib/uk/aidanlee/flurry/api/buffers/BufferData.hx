@@ -1,15 +1,15 @@
 package uk.aidanlee.flurry.api.buffers;
 
-import rx.Unit;
-import rx.Subject;
-import rx.observers.IObserver;
-import rx.disposables.ISubscription;
-import rx.observables.IObservable;
 import haxe.io.Bytes;
+import hxrx.IObserver;
+import hxrx.IObservable;
+import hxrx.ISubscription;
+import hxrx.subjects.PublishSubject;
+import uk.aidanlee.flurry.api.core.Unit;
 
 class BufferData implements IObservable<Unit>
 {
-    public final changed : Subject<Unit>;
+    public final changed : PublishSubject<Unit>;
 
     public final bytes : Bytes;
 
@@ -19,7 +19,7 @@ class BufferData implements IObservable<Unit>
 
     public function new(_bytes : Bytes, _offset : Int, _length : Int)
     {
-        changed    = new Subject<Unit>();
+        changed    = new PublishSubject();
         bytes      = _bytes;
         byteOffset = _offset;
         byteLength = _length;

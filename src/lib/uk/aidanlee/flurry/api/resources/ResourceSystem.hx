@@ -1,26 +1,21 @@
 package uk.aidanlee.flurry.api.resources;
 
-import hxrx.observables.Observables;
-import hxrx.ISubscription;
-import hxrx.subscriptions.Empty;
-import hxrx.IObserver;
-import hxrx.subscriptions.Single;
-import rx.schedulers.IScheduler;
 import haxe.Exception;
 import haxe.io.Path;
-import haxe.ds.Vector;
 import haxe.ds.ReadOnlyArray;
-// import rx.Subscription;
-// import rx.subjects.Behavior;
-// import rx.observers.IObserver;
-// import rx.schedulers.IScheduler;
-// import rx.observables.IObservable;
 import sys.io.abstractions.IFileSystem;
+import hxrx.IObserver;
+import hxrx.IObservable;
+import hxrx.ISubscription;
+import hxrx.schedulers.IScheduler;
+import hxrx.observables.Observables;
+import hxrx.subscriptions.Empty;
+import hxrx.subscriptions.Single;
 import uk.aidanlee.flurry.api.stream.ParcelInput;
 import uk.aidanlee.flurry.api.resources.Resource;
 
-using Safety;
 using hxrx.observables.Observables;
+using Safety;
 
 class ResourceSystem
 {
@@ -89,13 +84,13 @@ class ResourceSystem
      * @param _parcels List parcel files to load.
      * @return Observable of loading progress (normalised 0 - 1)
      */
-    public function load(_parcels : ReadOnlyArray<String>) : hxrx.IObservable<Float>
+    public function load(_parcels : ReadOnlyArray<String>) : IObservable<Float>
     {
-        // final progress = new Behavior(0.0);
-
         return _parcels
             .fromIterable()
             .flatMap(file -> create(obs -> loadParcel(file, obs)))
+            .subscribeOn(workScheduler)
+            .observeOn(syncScheduler)
             .map(v -> {
                 if (!parcelResources.exists(v.parcel))
                 {
@@ -108,30 +103,9 @@ class ResourceSystem
 
                 v.progress;
             })
-            .scan(0.0, (acc, next) -> acc + (next / _parcels.length));
-
-        // Observable
-        //     .of_enum(cast _parcels)
-        //     .flatMap(file -> Observable
-        //         .create(observer -> loadParcel(file, observer))
-        //         .subscribeOn(workScheduler)
-        //         .observeOn(syncScheduler))
-        //     .map(v -> {
-        //         if (!parcelResources.exists(v.parcel))
-        //         {
-        //             parcelResources[v.parcel] = [];
-        //         }
-
-        //         addResource(v.resource);
-
-        //         parcelResources[v.parcel].unsafe().push(v.resource.id);
-
-        //         v.progress;
-        //     })
-        //     .scan(0.0, (_acc, _next) -> _acc + (_next / _parcels.length))
-        //     .subscribe(progress);
-
-        // return progress;
+            .scan(0.0, (acc, next) -> acc + (next / _parcels.length))
+            .publish()
+            .refCount();
     }
 
     /**

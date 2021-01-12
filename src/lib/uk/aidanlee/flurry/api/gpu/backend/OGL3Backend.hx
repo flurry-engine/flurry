@@ -15,7 +15,8 @@ import opengl.WebGL.shaderSource;
 import opengl.WebGL.getProgramParameter;
 import opengl.WebGL.getProgramInfoLog;
 import opengl.WebGL.getShaderInfoLog;
-import rx.disposables.ISubscription;
+import hxrx.ISubscription;
+import hxrx.observer.Observer;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererOgl3Config;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
@@ -39,7 +40,6 @@ import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
-using rx.Observable;
 using cpp.NativeArray;
 
 @:nullSafety(Off) class OGL3Backend implements IRendererBackend
@@ -320,11 +320,11 @@ using cpp.NativeArray;
         updateDepth(depth);
         updateStencil(stencil);
 
-        resourceCreatedSubscription = resourceEvents.created.subscribeFunction(onResourceCreated);
-        resourceRemovedSubscription = resourceEvents.removed.subscribeFunction(onResourceRemoved);
+        resourceCreatedSubscription = resourceEvents.created.subscribe(new Observer(onResourceCreated, null, null));
+        resourceRemovedSubscription = resourceEvents.removed.subscribe(new Observer(onResourceRemoved, null, null));
 
-        displaySizeChangedSubscription   = displayEvents.sizeChanged.subscribeFunction(onSizeChanged);
-        displayChangeRequestSubscription = displayEvents.changeRequested.subscribeFunction(onChangeRequest);
+        displaySizeChangedSubscription   = displayEvents.sizeChanged.subscribe(new Observer(onSizeChanged, null, null));
+        displayChangeRequestSubscription = displayEvents.changeRequested.subscribe(new Observer(onChangeRequest, null, null));
 
         var uboAlignment = [ 0 ];
         glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, uboAlignment);

@@ -12,7 +12,7 @@
 -L format
 -L sys.io.abstractions
 -L hxbit
--L RxHaxe
+-L hxrx
 -L tink_json
 -L instrument
 

@@ -1,10 +1,9 @@
 package uk.aidanlee.flurry.api.display;
 
+import hxrx.observer.Observer;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.input.InputEvents;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
-
-using rx.Observable;
 
 class Display
 {
@@ -35,8 +34,8 @@ class Display
         mouseX        = 0;
         mouseY        = 0;
 
-        displayEvents.sizeChanged.subscribeFunction(onResizeEvent);
-        inputEvents.mouseMove.subscribeFunction(onMouseMoveEvent);
+        displayEvents.sizeChanged.subscribe(new Observer(onResizeEvent, null, null));
+        inputEvents.mouseMove.subscribe(new Observer(onMouseMoveEvent, null, null));
     }
 
     public function change(_width : Int, _height : Int, _fullscreen : Bool, _vsync : Bool)

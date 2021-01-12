@@ -1,17 +1,17 @@
 package uk.aidanlee.flurry.api.gpu.batcher;
 
+import hxrx.ISubscription;
+import hxrx.observer.Observer;
 import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
+import uk.aidanlee.flurry.api.core.Unit;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
-import rx.Unit;
-import rx.disposables.ISubscription;
 
 using Safety;
-using rx.Observable;
 
 /**
  * Batchers sort geometry to preserve the visual order and reduce the amount of work the renderer backends need to do.
@@ -177,7 +177,7 @@ class Batcher implements IBatchable
     public function addGeometry(_geom : Geometry)
     {
         geometry.push(_geom);
-        subscriptions[_geom.id] = _geom.changed.subscribeFunction(setDirty);
+        subscriptions[_geom.id] = _geom.changed.subscribe(new Observer(setDirty, null, null));
 
         dirty = true;
     }

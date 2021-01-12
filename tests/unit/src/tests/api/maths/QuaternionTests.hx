@@ -1,12 +1,12 @@
 package tests.api.maths;
 
+import hxrx.observer.Observer;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import buddy.BuddySuite;
 
 using buddy.Should;
-using rx.Observable;
 
 class QuaternionTests extends BuddySuite
 {
@@ -257,7 +257,7 @@ class QuaternionTests extends BuddySuite
                 var quat  = new Quaternion();
 
                 it('allows subscribing to the quaternion', {
-                    quat.subscribeFunction(_ -> count++);
+                    quat.subscribe(new Observer(_ -> count++, null, null));
                 });
 
                 it('will tick a unit value when the quaternion changes', {
