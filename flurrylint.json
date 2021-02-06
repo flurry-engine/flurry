@@ -1,0 +1,131 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "title": "JSON Scheme for Flurry build file",
+    "description": "Project definition for flurry engine",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [ "app" ],
+    "properties": {
+        "app": {
+            "type": "object",
+            "description": "Core project inputs and outputs",
+            "additionalProperties": false,
+            "required": [ "name", "author", "output", "main", "codepaths", "backend" ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The output executable name"
+                },
+                "author": {
+                    "type": "string",
+                    "description": "Individual or organisation name of the projects creator / owner"
+                },
+                "output": {
+                    "type": "string",
+                    "description": "The output directory relative to this build file"
+                },
+                "main": {
+                    "type": "string",
+                    "description": "The main class for the haxe project"
+                },
+                "codepaths": {
+                    "type": "array",
+                    "description": "List of local code directories for haxe to use",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "backend": {
+                    "type": "string",
+                    "oneOf": [
+                        {
+                            "const": "Sdl",
+                            "description": "Use SDL2 for this projects runtime"
+                        },
+                        {
+                            "const": "Snow",
+                            "description": "Use snow for this projects runtime",
+                            "deprecated": true
+                        }
+                    ]
+                }
+            }
+        },
+        "meta": {
+            "type": "object",
+            "optional": true
+        },
+        "build": {
+            "type": "object",
+            "description": "Settings effects the haxe compilers input",
+            "additionalProperties": false,
+            "properties": {
+                "profile": {
+                    "type": "string",
+                    "oneOf": [
+                        {
+                            "const": "Debug",
+                            "description": "Build the project with optimisations disabled and debug info inserted."
+                        },
+                        {
+                            "const": "Release",
+                            "description": "Build the project with all optimisations enabled and debugging info removed."
+                        }
+                    ]
+                },
+                "dependencies": {
+                    "type": "array",
+                    "description": "List of installed haxe libraries to use.",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [ "lib" ],
+                        "properties": {
+                            "lib" : {
+                                "type": "string",
+                                "description": "The name of the haxe library."
+                            },
+                            "version": {
+                                "type": "string",
+                                "description": "Use a specific version of a library."
+                            }
+                        }
+                    }
+                },
+                "macros": {
+                    "type": "array",
+                    "description": "List of initialisation macros to be ran.",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "defines": {
+                    "type": "array",
+                    "description": "List of defines to pass to the compiler.",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [ "def" ],
+                        "properties": {
+                            "def" : {
+                                "type": "string",
+                                "description": "The define name."
+                            },
+                            "value": {
+                                "type": "string",
+                                "description": "Value of the define."
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "parcels": {
+            "type": "array",
+            "description": "Relative paths to all parcel definitions to be built.",
+            "items": {
+                "type": "string"
+            }
+        }
+    }
+}

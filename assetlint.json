@@ -1,0 +1,211 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "title": "JSON Scheme for Flurry parcel file",
+    "description": "Parcel definition for flurry engine",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "assets": {
+            "type": "object",
+            "description": "Location and unique IDs of all assets to be packed into parcels",
+            "additionalProperties": false,
+            "required": [ "bytes", "texts", "fonts", "images", "sheets", "sprites", "shaders" ],
+            "properties": {
+                "bytes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [ "id", "path" ],
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Globally unique ID of this resource"
+                            },
+                            "path": {
+                                "type": "string",
+                                "description": "Path relative to this asset definition file of the resource"
+                            }
+                        }
+                    }
+                },
+                "texts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [ "id", "path" ],
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Globally unique ID of this resource"
+                            },
+                            "path": {
+                                "type": "string",
+                                "description": "Path relative to this asset definition file of the resource"
+                            }
+                        }
+                    }
+                },
+                "fonts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [ "id", "path" ],
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Globally unique ID of this resource"
+                            },
+                            "path": {
+                                "type": "string",
+                                "description": "Path relative to this asset definition file of the resource"
+                            }
+                        }
+                    }
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [ "id", "path" ],
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Globally unique ID of this resource"
+                            },
+                            "path": {
+                                "type": "string",
+                                "description": "Path relative to this asset definition file of the resource"
+                            }
+                        }
+                    }
+                },
+                "sheets": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [ "id", "path" ],
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Globally unique ID of this resource"
+                            },
+                            "path": {
+                                "type": "string",
+                                "description": "Path relative to this asset definition file of the resource"
+                            }
+                        }
+                    }
+                },
+                "sprites": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [ "id", "path" ],
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Globally unique ID of this resource"
+                            },
+                            "path": {
+                                "type": "string",
+                                "description": "Path relative to this asset definition file of the resource"
+                            }
+                        }
+                    }
+                },
+                "shaders": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [ "id", "vertex", "fragment" ],
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Globally unique ID of this resource"
+                            },
+                            "vertex": {
+                                "type": "string",
+                                "description": "Path relative to this asset definition file vertex shader"
+                            },
+                            "fragment": {
+                                "type": "string",
+                                "description": "Path relative to this asset definition file fragment shader"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "parcels": {
+            "type": "array",
+            "description": "List of all parcels to be generated from this asset file",
+            "items": {
+                "type": "object",
+                "required": [ "name" ],
+                "additionalProperties": false,
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Output name of this parcel file"
+                    },
+                    "depends": {
+                        "type": "array",
+                        "description": "Name of other parcels this one depends on",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "bytes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "texts": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "fonts": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "images": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "sheets": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "sprites": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "shaders": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
