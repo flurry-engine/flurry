@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import haxe.io.BytesData;
 import haxe.Exception;
 import haxe.ds.ReadOnlyArray;
 import cpp.UInt8;
@@ -78,6 +79,7 @@ import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Rectangle;
+import uk.aidanlee.flurry.api.buffers.BufferData;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 
 using cpp.NativeArray;
@@ -746,6 +748,13 @@ using cpp.NativeArray;
         displayChangeRequestSubscription.unsubscribe();
 
         SDL.destroyWindow(window);
+    }
+
+    public function uploadTexture(_texture : ResourceID, _data : BytesData)
+    {
+        final textureInfo = textureResources.get(_texture);
+
+        context.updateSubresource(textureInfo.texture, 0, null, _data, textureInfo.description.width * 4, 0);
     }
 
     // #region SDL Window Management

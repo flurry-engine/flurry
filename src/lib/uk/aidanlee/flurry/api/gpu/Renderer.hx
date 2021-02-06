@@ -1,5 +1,10 @@
 package uk.aidanlee.flurry.api.gpu;
 
+import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import haxe.Exception;
+import uk.aidanlee.flurry.api.buffers.BufferData;
+import haxe.io.Bytes;
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.macros.ApiSelector;
@@ -133,6 +138,44 @@ class Renderer
             batcher.drop();
             batchers.remove(batcher);
         }
+    }
+
+    /**
+     * [Description]
+     * @param _frame 
+     * @param _bytes 
+     */
+    public function updateImageFrame(_frame : ImageFrameResource, _image : ImageResource, _buffer : BufferData)
+    {
+        // Calculate the required buffer size and ensure it matches.
+        // Since BufferData can contain an offset and length we require an exact match.
+        final bpp = switch _image.format
+        {
+            case RGBAUNorm: 4;
+            case BGRAUNorm: 4;
+        }
+        final requiredSize = _frame.width * _frame.height * bpp;
+        final bytes        = Bytes.ofData(_image.pixels);
+
+        if (_buffer.byteLength != requiredSize)
+        {
+            throw new Exception("Provided buffer does not match the image frame size");
+        }
+
+        // Line wise copy the new buffer into the original images bytes.
+        final dstX = _frame.x;
+        final dstY = _frame.y;
+        for (i in 0..._frame.height)
+        {
+            final dstAddr = ((dstY + i) * _image.width * bpp) + (dstX * bpp);
+            final srcAddr = _buffer.byteOffset + (i * _frame.width * bpp);
+            final length  = _frame.width * bpp;
+
+            bytes.blit(dstAddr, _buffer.bytes, srcAddr, length);
+        }
+
+        // Then pass the image ID along with the bytes object to the backend.
+        backend.uploadTexture(_image.id, _image.pixels);
     }
 
     /**

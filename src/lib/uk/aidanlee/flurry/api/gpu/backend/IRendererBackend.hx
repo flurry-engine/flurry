@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import haxe.io.BytesData;
+import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 
 /**
@@ -25,4 +27,6 @@ interface IRendererBackend
      * Call when destroying the renderer. Will cleanup any resources used by the backend.
      */
     function cleanup() : Void;
+
+    function uploadTexture(_texture : ResourceID, _data : BytesData) : Void;
 }
