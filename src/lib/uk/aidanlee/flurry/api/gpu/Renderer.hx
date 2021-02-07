@@ -141,9 +141,9 @@ class Renderer
     }
 
     /**
-     * [Description]
-     * @param _frame 
-     * @param _bytes 
+     * Update the contents of an image frame.
+     * @param _frame Frame to update.
+     * @param _bytes bytes to replace it with.
      */
     public function updateImageFrame(_frame : ImageFrameResource, _buffer : BufferData)
     {
