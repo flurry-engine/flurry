@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import d3d11.structures.D3d11Box;
 import haxe.io.BytesData;
 import haxe.Exception;
 import haxe.ds.ReadOnlyArray;
@@ -750,11 +751,20 @@ using cpp.NativeArray;
         SDL.destroyWindow(window);
     }
 
-    public function uploadTexture(_texture : ResourceID, _data : BytesData)
+    public function uploadTexture(_frame : ImageFrameResource, _data : BytesData)
     {
-        final textureInfo = textureResources.get(_texture);
+        final id          = _frame.image;
+        final textureInfo = textureResources.get(id);
 
-        context.updateSubresource(textureInfo.texture, 0, null, _data, textureInfo.description.width * 4, 0);
+        final box = new D3d11Box();
+        box.left   = _frame.x;
+        box.top    = _frame.y;
+        box.front  = 0;
+        box.right  = _frame.x + _frame.width + 1;
+        box.bottom = _frame.y + _frame.height + 1;
+        box.back   = 1;
+
+        context.updateSubresource(textureInfo.texture, 0, box, _data, _frame.width * 4, 0);
     }
 
     // #region SDL Window Management
