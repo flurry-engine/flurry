@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import haxe.io.BytesData;
 import haxe.Exception;
 import hxrx.ISubscription;
 import hxrx.observer.Observer;
@@ -51,6 +52,14 @@ import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
     {
         resourceCreatedSubscription.unsubscribe();
         resourceRemovedSubscription.unsubscribe();
+    }
+
+    public function uploadTexture(_frame : ImageFrameResource, _data : BytesData)
+    {
+        if (!textures.exists(_frame.image))
+        {
+            throw new TextureNotFoundException();
+        }
     }
 
     function checkCommand(_command : DrawCommand)
