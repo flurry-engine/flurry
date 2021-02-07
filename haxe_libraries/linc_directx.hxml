@@ -1,4 +1,4 @@
-# @install: lix --silent download "gh://github.com/aidan63/linc_directx#652d10760d63c6e232d4211ba04e4fc5347faccd" into linc_directx/1.0.0/github/652d10760d63c6e232d4211ba04e4fc5347faccd
+# @install: lix --silent download "gh://github.com/aidan63/linc_directx#865310500738712dde7a4d99fffa97ac3e1ce724" into linc_directx/1.0.0/github/865310500738712dde7a4d99fffa97ac3e1ce724
 -lib hxcpp_extern_helpers
--cp ${HAXE_LIBCACHE}/linc_directx/1.0.0/github/652d10760d63c6e232d4211ba04e4fc5347faccd/
+-cp ${HAXE_LIBCACHE}/linc_directx/1.0.0/github/865310500738712dde7a4d99fffa97ac3e1ce724/
 -D linc_directx=1.0.0

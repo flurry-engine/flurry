@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import haxe.Exception;
 import haxe.io.BytesData;
 import haxe.io.Bytes;
@@ -420,6 +421,20 @@ using cpp.NativeArray;
 
         SDL.GL_DeleteContext(glContext);
         SDL.destroyWindow(window);
+    }
+
+    public function uploadTexture(_frame : ImageFrameResource, _data : BytesData)
+    {
+        final currentImage = textureSlots[0];
+        final toUpdateId = textureObjects.get(_frame.image);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, toUpdateId);
+
+        glTexSubImage2D(GL_TEXTURE_2D, 0, _frame.x, _frame.y, _frame.width, _frame.height, GL_RGBA, GL_UNSIGNED_BYTE, _data);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, currentImage);
     }
 
     // #region SDL Window Management
