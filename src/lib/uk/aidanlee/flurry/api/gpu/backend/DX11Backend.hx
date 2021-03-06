@@ -760,8 +760,8 @@ using cpp.NativeArray;
         box.left   = _frame.x;
         box.top    = _frame.y;
         box.front  = 0;
-        box.right  = _frame.x + _frame.width + 1;
-        box.bottom = _frame.y + _frame.height + 1;
+        box.right  = _frame.x + _frame.width;
+        box.bottom = _frame.y + _frame.height;
         box.back   = 1;
 
         context.updateSubresource(textureInfo.texture, 0, box, _data, _frame.width * 4, 0);
