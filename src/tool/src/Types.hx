@@ -17,6 +17,7 @@ enum Backend
 {
     Snow;
     Sdl;
+    Cli;
     Kha;
 }
 

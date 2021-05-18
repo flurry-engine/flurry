@@ -1,5 +1,6 @@
 package commands;
 
+import haxe.Exception;
 import uk.aidanlee.flurry.api.core.Result;
 import Types.BuiltHost;
 import Types.Project;
@@ -515,7 +516,12 @@ class Build
     {
         final hxml = new Hxml();
 
-        hxml.main = 'uk.aidanlee.flurry.hosts.SDLHost';
+        hxml.main = switch _project.app.backend
+        {
+            case Sdl: 'uk.aidanlee.flurry.hosts.SDLHost';
+            case Cli: 'uk.aidanlee.flurry.hosts.CLIHost';
+            case other: throw new Exception('Backend $other not implemented');
+        }
         hxml.cpp  = Path.join([ _project.buildPath(), 'cpp' ]);
         hxml.dce  = no;
 
