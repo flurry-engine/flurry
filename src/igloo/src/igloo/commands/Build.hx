@@ -1,18 +1,16 @@
 package igloo.commands;
 
+import haxe.Exception;
+import hx.files.Path;
+import igloo.macros.BuildPaths;
+import igloo.parcels.Package;
 import igloo.parcels.Builder;
 import igloo.parcels.ParcelContext;
-import igloo.processors.IAssetProcessor;
-import igloo.macros.BuildPaths.getIglooBuiltInScriptsDir;
-import hx.files.Dir;
-import igloo.processors.Cache;
-import igloo.project.Processor;
-import json2object.ErrorUtils;
-import haxe.Exception;
 import igloo.project.Project;
-import igloo.parcels.Package;
+import igloo.processors.Cache;
+import igloo.processors.IAssetProcessor;
+import json2object.ErrorUtils;
 import json2object.JsonParser;
-import hx.files.Path;
 
 class Build
 {
@@ -118,11 +116,19 @@ class Build
             final baseAssetDir = parcelPath.parent;
             final bundle       = packageParser.fromJson(parcelPath.toFile().readAsString());
 
+            if (packageParser.errors.length > 0)
+            {
+                throw new Exception(ErrorUtils.convertErrorArray(packageParser.errors));
+            }
+
             for (parcel in bundle.parcels)
             {
                 final tempOutput  = outputDir.joinAll([ 'tmp', parcel.name ]);
-                final parcelCache = outputDir.joinAll([ 'cache', parcel.name ]);
+                final parcelCache = outputDir.joinAll([ 'cache', 'parcels', parcel.name ]);
                 final context     = new ParcelContext(baseAssetDir, tempOutput, parcelCache);
+
+                tempOutput.toDir().create();
+                parcelCache.toDir().create();
 
                 build(context, parcel, bundle.assets, processors);
             }
