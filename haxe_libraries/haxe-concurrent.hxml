@@ -1,4 +1,4 @@
+# @install: lix --silent download "haxelib:/haxe-concurrent#3.0.0" into haxe-concurrent/3.0.0/haxelib
+-cp ${HAXE_LIBCACHE}/haxe-concurrent/3.0.0/haxelib/src/
 -D haxe-concurrent=3.0.0
-# @install: lix --silent download "gh://github.com/vegardit/haxe-concurrent#806bc8ae2547c166d84efa8f920e584db469db32" into haxe-concurrent/3.0.0/github/806bc8ae2547c166d84efa8f920e584db469db32
--cp ${HAXE_LIBCACHE}/haxe-concurrent/3.0.0/github/806bc8ae2547c166d84efa8f920e584db469db32/src/
 --macro hx.concurrent.internal.Macros.addDefines()
