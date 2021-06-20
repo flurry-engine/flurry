@@ -1,5 +1,7 @@
 package igloo.commands;
 
+import igloo.parcels.Builder;
+import igloo.parcels.ParcelContext;
 import igloo.processors.IAssetProcessor;
 import igloo.macros.BuildPaths.getIglooBuiltInScriptsDir;
 import hx.files.Dir;
@@ -97,7 +99,7 @@ class Build
     }
 
     @:defaultCommand
-    public function build()
+    public function execute()
     {
         final buildPath = getBuildFilePath();
         final project   = projectParser.fromJson(buildPath.toFile().readAsString());
@@ -118,7 +120,11 @@ class Build
 
             for (parcel in bundle.parcels)
             {
-                trace(parcel.name);
+                final tempOutput  = outputDir.joinAll([ 'tmp', parcel.name ]);
+                final parcelCache = outputDir.joinAll([ 'cache', parcel.name ]);
+                final context     = new ParcelContext(baseAssetDir, tempOutput, parcelCache);
+
+                build(context, parcel, bundle.assets, processors);
             }
         }
     }

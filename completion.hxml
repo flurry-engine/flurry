@@ -41,6 +41,7 @@
 -lib json2object
 -lib console.hx
 -lib hxrx
+-lib bin-packing
 
 --macro nullSafety('uk.aidanlee.flurry.modules.differ', Strict)
 --macro nullSafety('uk.aidanlee.flurry.api.resources', Strict)

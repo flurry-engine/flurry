@@ -1,0 +1,4 @@
+-m Boot
+-D analyzer-optimize
+--dce full
+--neko run.n
