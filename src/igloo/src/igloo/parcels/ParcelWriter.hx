@@ -4,6 +4,8 @@ import igloo.atlas.Page;
 import haxe.io.Bytes;
 import haxe.io.Output;
 
+using igloo.utils.OutputUtils;
+
 function writeParcelHeader(_output : Output)
 {
     _output.writeString('PRCL');
@@ -20,8 +22,7 @@ function writeParcelPage(_output : Output, _page : Page, _compressed : Bytes)
     _output.writeString('PAGE');
 
     // Write the unique name of the page.
-    _output.writeInt32(_page.name.length);
-    _output.writeString(_page.name);
+    _output.writePrefixedString(_page.name);
 
     // Write the page's compressed image data.
     _output.writeInt32(_compressed.length);
@@ -31,8 +32,7 @@ function writeParcelPage(_output : Output, _page : Page, _compressed : Bytes)
 function writeParcelResources(_output : Output, _id : String, _count : Int)
 {
     _output.writeString('RESR');
-    _output.writeInt32(_id.length);
-    _output.writeString(_id);
+    _output.writePrefixedString(_id);
     _output.writeInt32(_count);
 }
 

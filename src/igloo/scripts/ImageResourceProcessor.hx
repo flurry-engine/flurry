@@ -7,6 +7,8 @@ import igloo.processors.IAssetProcessor;
 import igloo.parcels.Asset;
 import igloo.parcels.ParcelContext;
 
+using igloo.utils.OutputUtils;
+
 class ImageResourceProcessor implements IAssetProcessor<Int>
 {
 	public function new()
@@ -33,8 +35,7 @@ class ImageResourceProcessor implements IAssetProcessor<Int>
 		{
 			case Packed(packed):
 				// Writes the resources ID.
-				_writer.writeInt32(_asset.id.length);
-				_writer.writeString(_asset.id);
+				_writer.writePrefixedString(_asset.id);
 
 				// Write the number of frames.
 				// Should always be 1, maybe we should assert?
@@ -43,8 +44,7 @@ class ImageResourceProcessor implements IAssetProcessor<Int>
 				for (asset in packed)
 				{
 					// Write the ID of the page resource this frame is within.
-					_writer.writeInt32(asset.pageName.length);
-					_writer.writeString(asset.pageName);
+					_writer.writePrefixedString(asset.pageName);
 
 					// Write UV information for the packed frame.
 					_writer.writeInt32(asset.x);
