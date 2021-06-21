@@ -27,14 +27,14 @@ class ImageResourceProcessor implements IAssetProcessor<Int>
 		return new AssetRequest(_asset.id, 0, WantsPacking(toPack));
 	}
 
-	public function write(_ctx : ParcelContext, _writer : Output, _packed : ProcessedAsset<Int>)
+	public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<Int>)
 	{
-		switch _packed.response
+		switch _asset.response
 		{
 			case Packed(packed):
 				// Writes the resources ID.
-				_writer.writeInt32(_packed.id.length);
-				_writer.writeString(_packed.id);
+				_writer.writeInt32(_asset.id.length);
+				_writer.writeString(_asset.id);
 
 				// Write the number of frames.
 				// Should always be 1, maybe we should assert?
@@ -43,8 +43,8 @@ class ImageResourceProcessor implements IAssetProcessor<Int>
 				for (asset in packed)
 				{
 					// Write the ID of the page resource this frame is within.
-					_writer.writeInt32(asset.page.length);
-					_writer.writeString(asset.page);
+					_writer.writeInt32(asset.pageName.length);
+					_writer.writeString(asset.pageName);
 
 					// Write UV information for the packed frame.
 					_writer.writeInt32(asset.x);

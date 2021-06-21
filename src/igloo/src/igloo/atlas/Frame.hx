@@ -9,15 +9,9 @@ class Frame
 
     public final request : PackRequest;
 
-    public final xPad : Int;
-
-    public final yPad : Int;
-
-	public function new(_rect, _request, _xPad, _yPad)
+	public function new(_rect, _request)
     {
 		rect    = _rect;
 		request = _request;
-		xPad    = _xPad;
-		yPad    = _yPad;
 	}
 }

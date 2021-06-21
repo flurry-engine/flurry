@@ -11,10 +11,10 @@ function blit(_page : Page)
     for (frame in _page.frames)
     {
         final input  = getDataForRequest(frame.request);
-        final xSrc   = Std.int(frame.rect.x + frame.xPad);
-        final ySrc   = Std.int(frame.rect.y + frame.yPad);
-        final width  = Std.int(frame.rect.width - (frame.xPad * 2));
-        final height = Std.int(frame.rect.height - (frame.yPad * 2));
+        final xSrc   = Std.int(frame.rect.x + _page.xPad);
+        final ySrc   = Std.int(frame.rect.y + _page.yPad);
+        final width  = Std.int(frame.rect.width - (_page.xPad * 2));
+        final height = Std.int(frame.rect.height - (_page.yPad * 2));
         final line   = width * bpp;
 
         for (i in 0...height)

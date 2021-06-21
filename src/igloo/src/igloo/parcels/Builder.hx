@@ -19,7 +19,6 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
 {
     final assets = resolveAssets(_parcel.assets, _all);
     final packed = new Map<String, Array<ProcessedAsset<Any>>>();
-    final output = _ctx.tempDirectory.join('${ _parcel.name }.parcel').toFile().openOutput(REPLACE);
     final atlas  = new Atlas(_parcel.name);
 
     // processed assets are stored in a map keyed by the ID of the processor which operated on them.
@@ -47,6 +46,11 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
             existing.push(processed);
         }
     }
+
+    final output = _ctx.tempDirectory
+        .join('${ _parcel.name }.parcel')
+        .toFile()
+        .openOutput(REPLACE);
 
     output.writeParcelHeader();
     output.writeParcelMeta(atlas.pages.length, assets.length);

@@ -63,6 +63,8 @@ private function restore(_destination : Path, _url : String, _archive : ArchiveT
     entries
         .find(e -> e.fileName == _target)
         .run(e -> {
+            Sys.println('Extracting $_target');
+
             if (e.compressed)
             {
                 uncompress(e);
@@ -89,6 +91,8 @@ private function restore(_destination : Path, _url : String, _archive : ArchiveT
  */
 private function download(_url : String)
 {
+    Sys.println('Downloading ${ _url }');
+
     var code  = 0;
     var bytes = null;
 
