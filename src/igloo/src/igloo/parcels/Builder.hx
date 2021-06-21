@@ -1,7 +1,6 @@
 package igloo.parcels;
 
 import haxe.io.Output;
-import sys.io.File;
 import haxe.Exception;
 import haxe.ds.Vector;
 import haxe.io.Path;
@@ -19,7 +18,7 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
 {
     final assets = resolveAssets(_parcel.assets, _all);
     final packed = new Map<String, Array<ProcessedAsset<Any>>>();
-    final atlas  = new Atlas(_parcel.name);
+    final atlas  = new Atlas(_parcel.name, _parcel.settings.xPad, _parcel.settings.yPad, _parcel.settings.maxWidth, _parcel.settings.maxHeight);
 
     // processed assets are stored in a map keyed by the ID of the processor which operated on them.
     // This allows us to pass them into the write function of that same processor later on.
@@ -62,9 +61,18 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
         final rgbaBytes = blit(page);
         final staging   = new BytesOutput();
 
-        if (stb.ImageWrite.write_jpg_func(cpp.Callable.fromStaticFunction(writeCallback), staging, 4096, 4096, 4, rgbaBytes, 90) == 0)
+        switch _parcel.settings.format
         {
-            throw new Exception('Failed to write image');
+            case 'jpg', 'jpeg':
+                if (stb.ImageWrite.write_jpg_func(cpp.Callable.fromStaticFunction(writeCallback), staging, page.width, page.height, 4, rgbaBytes, 90) == 0)
+                {
+                    throw new Exception('Failed to write image');
+                }
+            case 'png':
+                if (stb.ImageWrite.write_png_func(cpp.Callable.fromStaticFunction(writeCallback), staging, page.width, page.height, 4, rgbaBytes, page.width * 4) == 0)
+                {
+                    throw new Exception('Failed to write image');
+                }
         }
 
         output.writeParcelPage(page, staging.getBytes());

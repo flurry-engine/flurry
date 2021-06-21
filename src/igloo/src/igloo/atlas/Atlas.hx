@@ -10,10 +10,22 @@ class Atlas
 
     public final pages : Array<Page>;
 
-    public function new(_name)
+    final xPad : Int;
+
+    final yPad : Int;
+
+    final maxPageWidth : Int;
+
+    final maxPageHeight : Int;
+
+    public function new(_name, _xPad, _yPad, _maxWidth, _maxHeight)
     {
-        name  = _name;
-        pages = [];
+        name          = _name;
+        pages         = [];
+        xPad          = _xPad;
+        yPad          = _yPad;
+        maxPageWidth  = _maxWidth;
+        maxPageHeight = _maxHeight;
     }
 
     public function pack(_request : PackRequest)
@@ -45,7 +57,7 @@ class Atlas
         }
 
         // If it could not be fit into any of the existing pages, create a new one.
-        final page   = new Page(name + pages.length, 0, 0, 4096, 4096);
+        final page   = new Page(name + pages.length, xPad, yPad, maxPageWidth, maxPageHeight);
         final packed = page.pack(_request, width, height);
 
         pages.push(page);
