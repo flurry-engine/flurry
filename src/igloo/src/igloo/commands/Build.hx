@@ -1,5 +1,6 @@
 package igloo.commands;
 
+import igloo.tools.ToolsFetcher;
 import haxe.Exception;
 import hx.files.Path;
 import igloo.macros.BuildPaths;
@@ -107,8 +108,9 @@ class Build
             throw new Exception(ErrorUtils.convertErrorArray(projectParser.errors));
         }
 
-        final processors = loadProjectProcessors(buildPath.parent, project);
         final outputDir  = buildPath.parent.join(project.app.output);
+        final tools      = fetchTools(outputDir);
+        final processors = loadProjectProcessors(buildPath.parent, project);
 
         for (bundlePath in project.parcels)
         {
@@ -125,7 +127,11 @@ class Build
             {
                 final tempOutput  = outputDir.joinAll([ 'tmp', parcel.name ]);
                 final parcelCache = outputDir.joinAll([ 'cache', 'parcels', parcel.name ]);
-                final context     = new ParcelContext(baseAssetDir, tempOutput, parcelCache);
+                final context     = new ParcelContext(
+                    baseAssetDir,
+                    tempOutput,
+                    parcelCache,
+                    tools);
 
                 tempOutput.toDir().create();
                 parcelCache.toDir().create();

@@ -30,6 +30,7 @@ function main()
                 '-L', 'bin-packing',
                 '-L', 'linc_stb',
                 '-L', 'safety',
+                '-L', 'format',
                 '-D', 'scriptable',
                 '-D', 'analyzer-optimise',
                 '-D', 'dll_export=$buildDir/export_classes.info',
@@ -37,6 +38,7 @@ function main()
                 '-D', 'IGLOO_SRC_CODEPATH=$flurrydir/src/igloo/src',
                 '-D', 'IGLOO_BUILTIN_SCRIPTS=$flurrydir/src/igloo/scripts',
                 '-m', 'igloo.Igloo',
+                '--debug',
                 '--dce', 'no',
                 '--cpp', buildDir
             ];
@@ -49,11 +51,11 @@ function main()
 
             if (Sys.systemName() == 'Windows')
             {
-                File.saveContent(Path.join([ calldir, 'igloo.ps1' ]), '.\\.flurry\\igloo\\Igloo.exe @args');
+                File.saveContent(Path.join([ calldir, 'igloo.ps1' ]), '.\\.flurry\\igloo\\Igloo-debug.exe @args');
             }
             else
             {
-                File.saveContent(Path.join([ calldir, 'igloo' ]), '#!/bin/bash\n./.flurry/igloo/Igloo "$@"');
+                File.saveContent(Path.join([ calldir, 'igloo' ]), '#!/bin/bash\n./.flurry/igloo/Igloo-debug "$@"');
             }
 
         case 'path':

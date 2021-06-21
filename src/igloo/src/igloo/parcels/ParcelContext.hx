@@ -1,5 +1,6 @@
 package igloo.parcels;
 
+import igloo.tools.Tools;
 import hx.files.Path;
 
 class ParcelContext
@@ -10,10 +11,16 @@ class ParcelContext
 
     public final cacheDirectory : Path;
 
-    public function new(_assetDirectory, _tempDirectory, _cacheDirectory)
+    public final gpuApi : String;
+
+    public final tools : Tools;
+
+    public function new(_assetDirectory, _tempDirectory, _cacheDirectory, _tools)
     {
         assetDirectory = _assetDirectory;
         tempDirectory  = _tempDirectory;
         cacheDirectory = _cacheDirectory;
+        gpuApi         = 'd3d11';
+        tools          = _tools;
     }
 }
