@@ -125,7 +125,7 @@ private function findAsset(_id : String, _all : Array<Asset>)
     throw new Exception('Could not find an asset with ID $_id');
 }
 
-function processRequest(_asset : AssetRequest<Any>, _atlas : Atlas)
+private function processRequest(_asset : AssetRequest<Any>, _atlas : Atlas)
 {
     return switch _asset.request
     {
@@ -136,7 +136,7 @@ function processRequest(_asset : AssetRequest<Any>, _atlas : Atlas)
     }
 }
 
-@:void function writeCallback(_ctx : cpp.Star<cpp.Void>, _data : cpp.Star<cpp.Void>, _size : Int)
+@:void private function writeCallback(_ctx : cpp.Star<cpp.Void>, _data : cpp.Star<cpp.Void>, _size : Int)
 {
     final output = (cpp.Pointer.fromStar(_ctx).reinterpret() : cpp.Pointer<Output>).value;
     final array  = (cpp.Pointer.fromStar(_data).reinterpret() : cpp.Pointer<cpp.UInt8>).toUnmanagedArray(_size);
