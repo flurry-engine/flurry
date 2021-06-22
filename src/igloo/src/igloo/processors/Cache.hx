@@ -91,7 +91,7 @@ class Cache
      */
     function compileScript(_path : Path, _output : Path, _flags : String)
     {
-        final proc = new Process('npx haxe -p $iglooCodePath -p ${ _path.parent } -L safety -L haxe-files -D dll_import=$iglooDllExportFile ${ _path.filenameStem } $_flags --cppia $_output');
+        final proc = new Process('npx haxe -p $iglooCodePath -p ${ _path.parent } -L haxe-files -D dll_import=$iglooDllExportFile ${ _path.filenameStem } $_flags --cppia $_output');
         final exit = proc.exitCode();
         
         if (exit == 0)

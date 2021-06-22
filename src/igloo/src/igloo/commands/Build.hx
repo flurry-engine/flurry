@@ -166,7 +166,10 @@ class Build
             .walk(file -> {
                 if (file.path.filenameExt == 'hx')
                 {
-                    loadProcessorInto(cacheLoader, file.path, '', loadedProcessors);
+                    final flagsPath = file.path.parent.join(file.path.filenameStem + '.flags');
+                    final flagsText = if (flagsPath.exists()) flagsPath.toFile().readAsString() else '';
+
+                    loadProcessorInto(cacheLoader, file.path, flagsText, loadedProcessors);
                 }
             });
 
