@@ -13,7 +13,7 @@ function main()
         Sys.exit(1);
     }
 
-    switch args[0]
+    switch args.shift()
     {
         case 'install':
             // cd into the calling directory, if we were ran from haxelib this will return us to the callers directory.
@@ -37,11 +37,16 @@ function main()
                 '-D', 'IGLOO_DLL_EXPORT=$buildDir/export_classes.info',
                 '-D', 'IGLOO_SRC_CODEPATH=$flurrydir/src/igloo/src',
                 '-D', 'IGLOO_BUILTIN_SCRIPTS=$flurrydir/src/igloo/scripts',
+                '-D', 'HAXE_OUTPUT_FILE=Igloo',
                 '-m', 'igloo.Igloo',
-                '--debug',
                 '--dce', 'no',
                 '--cpp', buildDir
             ];
+
+            for (arg in args)
+            {
+                haxeArgs.push(arg);
+            }
             
             if (Sys.command('npx', haxeArgs) != 0)
             {
@@ -51,11 +56,11 @@ function main()
 
             if (Sys.systemName() == 'Windows')
             {
-                File.saveContent(Path.join([ calldir, 'igloo.ps1' ]), '.\\.flurry\\igloo\\Igloo-debug.exe @args');
+                File.saveContent(Path.join([ calldir, 'igloo.ps1' ]), '.\\.flurry\\igloo\\Igloo.exe @args');
             }
             else
             {
-                File.saveContent(Path.join([ calldir, 'igloo' ]), '#!/bin/bash\n./.flurry/igloo/Igloo-debug "$@"');
+                File.saveContent(Path.join([ calldir, 'igloo' ]), '#!/bin/bash\n./.flurry/igloo/Igloo "$@"');
             }
 
         case 'path':
