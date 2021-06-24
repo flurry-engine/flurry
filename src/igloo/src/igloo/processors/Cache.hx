@@ -133,6 +133,9 @@ class Cache
         final module   = Module.fromData(_path.toFile().readAsBytes().getData());
         final objClass = module.resolveClass(_path.filenameStem);
 
+        // Boot ensure any static variables have default values applied.
+        module.boot();
+
         return Type.createInstance(objClass, []);
     }
 }
