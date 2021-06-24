@@ -101,6 +101,8 @@ class Build
     @:defaultCommand
     public function execute()
     {
+        Console.log('Igloo v0.1');
+
         final buildPath = getBuildFilePath();
         final project   = projectParser.fromJson(buildPath.toFile().readAsString());
 
@@ -127,6 +129,8 @@ class Build
 
             for (parcel in bundle.parcels)
             {
+                Console.log('Building ${ parcel.name }');
+
                 final tempOutput  = outputDir.joinAll([ 'tmp', parcel.name ]);
                 final parcelCache = outputDir.joinAll([ 'cache', 'parcels', parcel.name ]);
                 final context     = new ParcelContext(
@@ -193,7 +197,7 @@ class Build
         {
             if (_store.exists(id))
             {
-                Sys.println('WARNING: replacing existing processor with id : $id');
+                Console.warn('replacing existing processor for $id');
             }
 
             _store.set(id, obj);

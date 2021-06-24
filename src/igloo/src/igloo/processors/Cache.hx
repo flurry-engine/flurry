@@ -43,7 +43,7 @@ class Cache
      */
     public function load(_path : Path, _flags : String)
     {
-        Sys.println('loading $_path');
+        Console.log('Loading script $_path');
 
         final precompiledScript  = directory.join('${ _path.filenameStem }.cppia');
         final scriptHashPath     = directory.join('${ _path.filenameStem }.cppia.hash');
@@ -52,7 +52,7 @@ class Cache
 
         if (precompiledScript.exists() && scriptHashPath.exists())
         {
-            Sys.println('Cached script found');
+            Console.log('Cached script found');
 
             // There is a precompiled script and hash file, if its no longer valid recompile from source.
             final input              = scriptHashPath.toFile().openInput(false);
@@ -62,7 +62,7 @@ class Cache
 
             if (sourceLastModified > cachedLastModified || cachedFlagsHash != sourceFlagsHash)
             {
-                Sys.println('Cached script invalidated');
+                Console.log('Cached script is invalid');
 
                 // Details about the processor script have changed since the cache, need to recompile.
                 compileScript(_path, precompiledScript, _flags);
@@ -96,13 +96,13 @@ class Cache
         
         if (exit == 0)
         {
-            Sys.println('Compiled $_path');
-            Sys.stdout().write(proc.stdout.readAll());
+            Console.success('Compiled $_path');
+            Console.debug(proc.stdout.readAll());
         }
         else
         {
-            Sys.println('Failed to compile $_path');
-            Sys.stderr().write(proc.stderr.readAll());
+            Console.error('Failed to compile $_path');
+            Console.error(proc.stderr.readAll());
             Sys.exit(1);
         }
 

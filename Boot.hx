@@ -31,6 +31,7 @@ function main()
                 '-L', 'linc_stb',
                 '-L', 'safety',
                 '-L', 'format',
+                '-L', 'console.hx',
                 '-D', 'scriptable',
                 '-D', 'analyzer-optimise',
                 '-D', 'dll_export=$buildDir/export_classes.info',
