@@ -1,5 +1,6 @@
 package igloo.blit;
 
+import haxe.Exception;
 import igloo.processors.PackRequest;
 import igloo.atlas.Page;
 
@@ -37,7 +38,13 @@ private function getDataForRequest(_request : PackRequest)
             final data = stb.Image.load(path.toString(), 4);
 
             haxe.io.Bytes.ofData(data.bytes);
-        case Bytes(bytes, _, _, _):
-            bytes;
+        case Bytes(bytes, _, _, format):
+            switch format
+            {
+                case RGBA:
+                    bytes;
+                case other:
+                    throw new Exception('Bytes format $other is not yet supported');
+            }
     }
 }
