@@ -11,10 +11,11 @@ function writeParcelHeader(_output : Output)
     _output.writeString('PRCL');
 }
 
-function writeParcelMeta(_output : Output, _pageCount, _assetCount)
+function writeParcelMeta(_output : Output, _pageCount, _assetCount, _pageFormat)
 {
     _output.writeInt32(_pageCount);
     _output.writeInt32(_assetCount);
+    _output.writeByte(_pageFormat);
 }
 
 function writeParcelPage(_output : Output, _page : Page, _compressed : Bytes)

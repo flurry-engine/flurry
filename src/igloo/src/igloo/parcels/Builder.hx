@@ -55,7 +55,7 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
         .openOutput(REPLACE);
 
     output.writeParcelHeader();
-    output.writeParcelMeta(atlas.pages.length, assets.length);
+    output.writeParcelMeta(atlas.pages.length, assets.length, getPageFormatID(_parcel.settings.format));
 
     // During the above processing assets are packed if they requested it.
     // We can now blit all the packed images and write zlib compressed image data into the output stream.
@@ -158,6 +158,16 @@ private function processRequest(_asset : AssetRequest<Any>, _atlas : Atlas)
             }
         case None:
             new ProcessedAsset(_asset.id, _asset.data, NotPacked);
+    }
+}
+
+private function getPageFormatID(_type : String)
+{
+    return switch _type
+    {
+        case 'jpg', 'jpeg': 0;
+        case 'png': 1;
+        case other: throw new Exception('Unsupported image format $other');
     }
 }
 
