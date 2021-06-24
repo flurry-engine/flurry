@@ -31,7 +31,7 @@ class GdxSpriteSheetProcessor implements IAssetProcessor<Array<GdxPage>>
         final pages   = parse(absPath);
         final images  = [ for (page in pages) Image(page.image) ];
 
-        return new AssetRequest(_asset.id, pages, WantsPacking(images));
+        return new AssetRequest(_asset.id, pages, Pack(images));
 	}
 
 	public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<Array<GdxPage>>)
@@ -39,13 +39,15 @@ class GdxSpriteSheetProcessor implements IAssetProcessor<Array<GdxPage>>
         switch _asset.response
         {
             case Packed(packed):
+                final frames = packed.toAssets();
+
                 // Writes the resources ID.
 				_writer.writePrefixedString(_asset.id);
 
                 // write the number of assets (gdx atlas images) packed.
-                _writer.writeInt32(packed.length);
+                _writer.writeInt32(frames.length);
 
-                for (frame in packed)
+                for (frame in frames)
                 {
                     // Attempt to find the original gdx page by looking at the path of the original request.
                     final gdxPage = switch frame.request

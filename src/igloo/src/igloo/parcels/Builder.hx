@@ -1,10 +1,12 @@
 package igloo.parcels;
 
-import haxe.io.Output;
 import haxe.Exception;
 import haxe.ds.Vector;
+import haxe.ds.Either;
 import haxe.io.Path;
+import haxe.io.Output;
 import haxe.io.BytesOutput;
+import igloo.processors.PackRequest;
 import igloo.processors.AssetRequest;
 import igloo.processors.ProcessedAsset;
 import igloo.processors.IAssetProcessor;
@@ -129,9 +131,15 @@ private function processRequest(_asset : AssetRequest<Any>, _atlas : Atlas)
 {
     return switch _asset.request
     {
-        case WantsPacking(images):
-            new ProcessedAsset(_asset.id, _asset.data, Packed([ for (image in images) _atlas.pack(image) ]));
-        case NoPacking:
+        case Pack(either):
+            switch (either : Either<PackRequest, Array<PackRequest>>)
+            {
+                case Left(request):
+                    new ProcessedAsset(_asset.id, _asset.data, Packed(_atlas.pack(request)));
+                case Right(requests):
+                    new ProcessedAsset(_asset.id, _asset.data, Packed([ for (request in requests) _atlas.pack(request) ]));
+            }
+        case None:
             new ProcessedAsset(_asset.id, _asset.data, NotPacked);
     }
 }

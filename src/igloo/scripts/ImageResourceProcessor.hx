@@ -1,3 +1,4 @@
+import igloo.processors.PackedAsset;
 import haxe.Exception;
 import haxe.io.Output;
 import igloo.processors.PackRequest;
@@ -24,9 +25,8 @@ class ImageResourceProcessor implements IAssetProcessor<Int>
 	public function pack(_ctx : ParcelContext, _asset : Asset)
 	{
 		final absPath = _ctx.assetDirectory.join(_asset.path);
-		final toPack  = [ Image(absPath) ];
 		
-		return new AssetRequest(_asset.id, 0, WantsPacking(toPack));
+		return new AssetRequest(_asset.id, 0, Pack(Image(absPath)));
 	}
 
 	public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<Int>)
@@ -34,29 +34,24 @@ class ImageResourceProcessor implements IAssetProcessor<Int>
 		switch _asset.response
 		{
 			case Packed(packed):
+				final frame = packed.toAsset();
+
 				// Writes the resources ID.
 				_writer.writePrefixedString(_asset.id);
 
-				// Write the number of frames.
-				// Should always be 1, maybe we should assert?
-				_writer.writeInt32(packed.length);
+				// Write the ID of the page resource this frame is within.
+				_writer.writePrefixedString(frame.pageName);
 
-				for (asset in packed)
-				{
-					// Write the ID of the page resource this frame is within.
-					_writer.writePrefixedString(asset.pageName);
+				// Write UV information for the packed frame.
+				_writer.writeInt32(frame.x);
+				_writer.writeInt32(frame.y);
+				_writer.writeInt32(frame.w);
+				_writer.writeInt32(frame.h);
 
-					// Write UV information for the packed frame.
-					_writer.writeInt32(asset.x);
-					_writer.writeInt32(asset.y);
-					_writer.writeInt32(asset.w);
-					_writer.writeInt32(asset.h);
-
-					_writer.writeFloat(asset.u1);
-					_writer.writeFloat(asset.v1);
-					_writer.writeFloat(asset.u2);
-					_writer.writeFloat(asset.v2);
-				}
+				_writer.writeFloat(frame.u1);
+				_writer.writeFloat(frame.v1);
+				_writer.writeFloat(frame.u2);
+				_writer.writeFloat(frame.v2);
 			case NotPacked:
 				throw new Exception('Images can only be packed');
 		}

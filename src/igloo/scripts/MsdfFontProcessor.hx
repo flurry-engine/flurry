@@ -1,3 +1,4 @@
+import igloo.processors.PackRequest;
 import haxe.Json;
 import haxe.Exception;
 import haxe.io.Output;
@@ -42,7 +43,7 @@ class MsdfFontProcessor implements IAssetProcessor<FontDefinition>
             throw new Exception('Unable to parse font json');
         }
 
-        return new AssetRequest(_asset.id, font, WantsPacking([ Image(imageOut) ]));
+        return new AssetRequest(_asset.id, font, Pack(PackRequest.Image(imageOut)));
 	}
 
 	public function write(_ctx:ParcelContext, _writer:Output, _asset:ProcessedAsset<FontDefinition>)
@@ -50,7 +51,7 @@ class MsdfFontProcessor implements IAssetProcessor<FontDefinition>
         switch _asset.response
         {
             case Packed(packed):
-                final frame = packed[0];
+                final frame = packed.toAsset();
 
                 _writer.writePrefixedString(_asset.id);
 

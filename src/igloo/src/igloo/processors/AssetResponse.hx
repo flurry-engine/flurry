@@ -1,7 +1,9 @@
 package igloo.processors;
 
+import igloo.utils.OneOfPackedAsset;
+
 enum AssetResponse
 {
-    Packed(packed : Array<PackedAsset>);
+    Packed(packed : OneOfPackedAsset);
     NotPacked;
 }
