@@ -48,7 +48,8 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
         }
     }
 
-    final output = _ctx.tempDirectory
+    final futures = new Vector(atlas.pages.length);
+    final output  = _ctx.tempDirectory
         .join('${ _parcel.name }.parcel')
         .toFile()
         .openOutput(REPLACE);
@@ -58,26 +59,42 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
 
     // During the above processing assets are packed if they requested it.
     // We can now blit all the packed images and write zlib compressed image data into the output stream.
-    for (page in atlas.pages)
+    for (i in 0...atlas.pages.length)
     {
-        final rgbaBytes = blit(page);
-        final staging   = new BytesOutput();
+        final page = atlas.pages[i];
 
-        switch _parcel.settings.format
+        futures[i] = _ctx.executor.submit(() -> {
+            final rgbaBytes = blit(page);
+            final staging   = new BytesOutput();
+    
+            switch _parcel.settings.format
+            {
+                case 'jpg', 'jpeg':
+                    if (stb.ImageWrite.write_jpg_func(cpp.Callable.fromStaticFunction(writeCallback), staging, page.width, page.height, 4, rgbaBytes, 90) == 0)
+                    {
+                        throw new Exception('Failed to write image');
+                    }
+                case 'png':
+                    if (stb.ImageWrite.write_png_func(cpp.Callable.fromStaticFunction(writeCallback), staging, page.width, page.height, 4, rgbaBytes, page.width * 4) == 0)
+                    {
+                        throw new Exception('Failed to write image');
+                    }
+            }
+            
+            return staging.getBytes();
+        });
+    }
+
+    for (i in 0...futures.length)
+    {
+        switch futures[i].waitAndGet(-1)
         {
-            case 'jpg', 'jpeg':
-                if (stb.ImageWrite.write_jpg_func(cpp.Callable.fromStaticFunction(writeCallback), staging, page.width, page.height, 4, rgbaBytes, 90) == 0)
-                {
-                    throw new Exception('Failed to write image');
-                }
-            case 'png':
-                if (stb.ImageWrite.write_png_func(cpp.Callable.fromStaticFunction(writeCallback), staging, page.width, page.height, 4, rgbaBytes, page.width * 4) == 0)
-                {
-                    throw new Exception('Failed to write image');
-                }
+            case SUCCESS(result, _, _):
+                output.writeParcelPage(atlas.pages[i], result);
+                futures[i].cancel();
+            case _:
+                throw new Exception('Failed to blit page');
         }
-
-        output.writeParcelPage(page, staging.getBytes());
     }
 
     // Finally call the write function of processors passing in the appropriate asset data.

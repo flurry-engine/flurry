@@ -1,5 +1,6 @@
 package igloo.commands;
 
+import hx.concurrent.executor.Executor;
 import igloo.tools.ToolsFetcher;
 import haxe.Exception;
 import hx.files.Path;
@@ -111,6 +112,7 @@ class Build
         final outputDir  = buildPath.parent.join(project.app.output);
         final tools      = fetchTools(outputDir);
         final processors = loadProjectProcessors(buildPath.parent, project);
+        final executor   = Executor.create(8);
 
         for (bundlePath in project.parcels)
         {
@@ -131,7 +133,8 @@ class Build
                     baseAssetDir,
                     tempOutput,
                     parcelCache,
-                    tools);
+                    tools,
+                    executor);
 
                 tempOutput.toDir().create();
                 parcelCache.toDir().create();
