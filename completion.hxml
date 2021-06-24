@@ -8,6 +8,7 @@
 -cp tests/tool/src
 -cp tests/system/src
 -cp src/igloo/src
+-cp src/igloo/scripts
 
 -D hxcpp
 -D linc_imgui
