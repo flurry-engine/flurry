@@ -34,8 +34,8 @@ class Page
 
     public function pack(_request, _width, _height)
     {
-        final paddedWidth  = _width + xPad;
-        final paddedHeight = _height + yPad;
+        final paddedWidth  = _width + (xPad * 2);
+        final paddedHeight = _height + (yPad * 2);
 
         if (paddedWidth > packer.binWidth || paddedHeight > packer.binHeight)
         {
@@ -52,10 +52,10 @@ class Page
             final frame = new Frame(rect, _request);
             final xSrc  = Std.int(rect.x + xPad);
             final ySrc  = Std.int(rect.y + yPad);
-            final u1    = xSrc / packer.binWidth;
-            final v1    = ySrc / packer.binHeight;
-            final u2    = (xSrc + _width) / packer.binWidth;
-            final v2    = (xSrc + _height) / packer.binHeight;
+            final u1    = xSrc / width;
+            final v1    = ySrc / height;
+            final u2    = (xSrc + _width) / width;
+            final v2    = (xSrc + _height) / height;
 
             frames.push(frame);
 
