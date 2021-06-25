@@ -35,7 +35,7 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
         }
         
         final request   = proc.pack(_ctx, asset);
-        final processed = processRequest(request, atlas);
+        final processed = processRequest(asset.id, request, atlas);
         final existing  = packed.get(ext);
 
         if (existing == null)
@@ -144,7 +144,7 @@ private function findAsset(_id : String, _all : Array<Asset>)
     throw new Exception('Could not find an asset with ID $_id');
 }
 
-private function processRequest(_asset : AssetRequest<Any>, _atlas : Atlas)
+private function processRequest(_id : String, _asset : AssetRequest<Any>, _atlas : Atlas)
 {
     return switch _asset.request
     {
@@ -152,12 +152,12 @@ private function processRequest(_asset : AssetRequest<Any>, _atlas : Atlas)
             switch (either : Either<PackRequest, Array<PackRequest>>)
             {
                 case Left(request):
-                    new ProcessedAsset(_asset.id, _asset.data, Packed(_atlas.pack(request)));
+                    new ProcessedAsset(_id, _asset.data, Packed(_atlas.pack(request)));
                 case Right(requests):
-                    new ProcessedAsset(_asset.id, _asset.data, Packed([ for (request in requests) _atlas.pack(request) ]));
+                    new ProcessedAsset(_id, _asset.data, Packed([ for (request in requests) _atlas.pack(request) ]));
             }
         case None:
-            new ProcessedAsset(_asset.id, _asset.data, NotPacked);
+            new ProcessedAsset(_id, _asset.data, NotPacked);
     }
 }
 

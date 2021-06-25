@@ -76,7 +76,7 @@ class GlslShaderProcessor implements IAssetProcessor<ProducedShader>
 					throw new Exception('Failed to generate core 3.3 glsl fragment shader');
 				}
 
-				new AssetRequest(_asset.id, new ProducedShader(vertReflection, fragReflection, vertGlslPath, fragGlslPath), None);
+				new AssetRequest(new ProducedShader(vertReflection, fragReflection, vertGlslPath, fragGlslPath), None);
 			case 'd3d11':
 				final vertHlslPath = _ctx.tempDirectory.join(_asset.id + '.vert.hlsl');
 				final fragHlslPath = _ctx.tempDirectory.join(_asset.id + '.frag.hlsl');
@@ -105,7 +105,7 @@ class GlslShaderProcessor implements IAssetProcessor<ProducedShader>
 							throw new Exception('Failed to generate fragment dxbc');
 						}
 
-						new AssetRequest(_asset.id, new ProducedShader(vertReflection, fragReflection, vertDxbcPath, fragDxbcPath), None);
+						new AssetRequest(new ProducedShader(vertReflection, fragReflection, vertDxbcPath, fragDxbcPath), None);
 					case None:
 						throw new Exception('Unable to find fxc.exe path');
 				}

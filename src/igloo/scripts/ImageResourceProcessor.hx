@@ -26,7 +26,7 @@ class ImageResourceProcessor implements IAssetProcessor<Int>
 	{
 		final absPath = _ctx.assetDirectory.join(_asset.path);
 		
-		return new AssetRequest(_asset.id, 0, Pack(Image(absPath)));
+		return new AssetRequest(0, Pack(Image(absPath)));
 	}
 
 	public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<Int>)

@@ -31,7 +31,7 @@ class GdxSpriteSheetProcessor implements IAssetProcessor<Array<GdxPage>>
         final pages   = parse(absPath);
         final images  = [ for (page in pages) Image(page.image) ];
 
-        return new AssetRequest(_asset.id, pages, Pack(images));
+        return new AssetRequest(pages, Pack(images));
 	}
 
 	public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<Array<GdxPage>>)

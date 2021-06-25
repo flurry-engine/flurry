@@ -43,7 +43,7 @@ class MsdfFontProcessor implements IAssetProcessor<FontDefinition>
             throw new Exception('Unable to parse font json');
         }
 
-        return new AssetRequest(_asset.id, font, Pack(PackRequest.Image(imageOut)));
+        return new AssetRequest(font, Pack(PackRequest.Image(imageOut)));
 	}
 
 	public function write(_ctx:ParcelContext, _writer:Output, _asset:ProcessedAsset<FontDefinition>)

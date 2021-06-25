@@ -8,11 +8,6 @@ package igloo.processors;
 class AssetRequest<T>
 {
     /**
-     * The unique asset ID this request is for.
-     */
-    public final id : String;
-
-    /**
      * The data provided from the processors pack function.
      * This will be passed into the write function of the same processor.
      */
@@ -23,9 +18,8 @@ class AssetRequest<T>
      */
     public final request : RequestType;
 
-    public function new(_id, _data, _request)
+    public function new(_data, _request)
     {
-        id      = _id;
         data    = _data;
         request = _request;
     }
