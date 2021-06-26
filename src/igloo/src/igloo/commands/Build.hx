@@ -131,9 +131,9 @@ class Build
             {
                 Console.log('Building ${ parcel.name }');
 
-                final tempOutput  = outputDir.joinAll([ 'tmp', parcel.name ]);
-                final parcelCache = outputDir.joinAll([ 'cache', 'parcels', parcel.name ]);
-                final context     = new ParcelContext(
+                final tempOutput   = outputDir.joinAll([ 'tmp', parcel.name ]);
+                final parcelCache  = outputDir.joinAll([ 'cache', 'parcels' ]);
+                final context      = new ParcelContext(
                     baseAssetDir,
                     tempOutput,
                     parcelCache,

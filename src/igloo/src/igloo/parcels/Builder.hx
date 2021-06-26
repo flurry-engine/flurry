@@ -3,7 +3,6 @@ package igloo.parcels;
 import haxe.Exception;
 import haxe.ds.Vector;
 import haxe.ds.Either;
-import haxe.io.Path;
 import haxe.io.Output;
 import haxe.io.BytesOutput;
 import igloo.processors.PackRequest;
@@ -13,12 +12,26 @@ import igloo.processors.IAssetProcessor;
 import igloo.blit.Blitter;
 import igloo.atlas.Atlas;
 
+using Lambda;
 using Safety;
 using igloo.parcels.ParcelWriter;
 
 function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _processors : Map<String, IAssetProcessor<Any>>)
 {
-    final assets = resolveAssets(_parcel.assets, _all);
+    final parcelFile = _ctx.cacheDirectory.join('${ _parcel.name }.parcel');
+    final parcelHash = _ctx.cacheDirectory.join('${ _parcel.name }.parcel.hash');
+    final assets     = resolveAssets(_parcel.assets, _all);
+    final cache      = new ParcelCache(_ctx.assetDirectory, parcelFile, parcelHash, assets);
+
+    if (cache.isValid())
+    {
+        Console.log('Cached parcel is valid');
+
+        return;
+    }
+
+    Console.log('Cached parcel is invalid');
+
     final packed = new Map<String, Array<ProcessedAsset<Any>>>();
     final atlas  = new Atlas(_parcel.name, _parcel.settings.xPad, _parcel.settings.yPad, _parcel.settings.maxWidth, _parcel.settings.maxHeight);
 
@@ -26,7 +39,7 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
     // This allows us to pass them into the write function of that same processor later on.
     for (asset in assets)
     {
-        final ext  = Path.extension(asset.path);
+        final ext  = haxe.io.Path.extension(asset.path);
         final proc = _processors.get(ext);
 
         if (proc == null)
@@ -49,11 +62,7 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
     }
 
     final futures = new Vector(atlas.pages.length);
-    final output  = _ctx.tempDirectory
-        .join('${ _parcel.name }.parcel')
-        .toFile()
-        .openOutput(REPLACE);
-
+    final output  = parcelFile.toFile().openOutput(REPLACE);
     output.writeParcelHeader();
     output.writeParcelMeta(atlas.pages.length, assets.length, getPageFormatID(_parcel.settings.format));
 
@@ -117,6 +126,8 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
 
     output.writeParcelFooter();
     output.close();
+
+    cache.writeHashFile();
 }
 
 private function resolveAssets(_wanted : Array<String>, _all : Array<Asset>)
