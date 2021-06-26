@@ -40,6 +40,7 @@ function main()
                 '-D', 'IGLOO_BUILTIN_SCRIPTS=$flurrydir/src/igloo/scripts',
                 '-D', 'HAXE_OUTPUT_FILE=Igloo',
                 '-m', 'igloo.Igloo',
+                '--macro', 'nullSafety(\\"igloo\\")',
                 '--dce', 'no',
                 '--cpp', buildDir
             ];

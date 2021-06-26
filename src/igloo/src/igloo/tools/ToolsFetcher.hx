@@ -1,5 +1,6 @@
 package igloo.tools;
 
+import haxe.io.Bytes;
 import haxe.zip.Uncompress;
 import haxe.zip.Entry;
 import haxe.io.BytesInput;
@@ -72,7 +73,7 @@ private function restore(_destination : Path, _url : String, _archive : ArchiveT
 
             _destination
                 .toFile()
-                .writeBytes(e.data);
+                .writeBytes(e.data.sure());
 
             if (Sys.systemName() != 'Windows')
             {
@@ -89,12 +90,12 @@ private function restore(_destination : Path, _url : String, _archive : ArchiveT
  * It will follow github url redirects as needed.
  * @param _url Url to download.
  */
-private function download(_url : String)
+private function download(_url : String) : Bytes
 {
     Sys.println('Downloading ${ _url }');
 
     var code  = 0;
-    var bytes = null;
+    var bytes : Null<Bytes> = null;
 
     final request = new Http(_url);
     request.onStatus = v -> code = v;
@@ -116,7 +117,7 @@ private function download(_url : String)
     }
     request.request();
 
-    return bytes;
+    return bytes.unsafe();
 }
 
 /**
@@ -133,7 +134,7 @@ private function uncompress(_entry : Entry)
     
     var c = new haxe.zip.Uncompress(-15);
     var s = haxe.io.Bytes.alloc(_entry.fileSize);
-    var r = c.execute(_entry.data, 0, s, 0);
+    var r = c.execute(_entry.data.sure(), 0, s, 0);
     c.close();
 
     if (!r.done || r.read != _entry.data.length || r.write != _entry.fileSize)
