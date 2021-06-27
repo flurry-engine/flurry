@@ -1,5 +1,8 @@
 package igloo.commands;
 
+import igloo.utils.GraphicsApi;
+import igloo.haxe.Hxml;
+import igloo.macros.Platform;
 import hx.concurrent.executor.Executor;
 import igloo.tools.ToolsFetcher;
 import haxe.Exception;
@@ -66,7 +69,7 @@ class Build
      */
     @:flag('gpu')
     @:alias('g')
-    public var graphicsBackend = 'auto';
+    public var graphicsBackend : GraphicsApi = 'auto';
 
     /**
      * Target to build the project to.
@@ -114,7 +117,27 @@ class Build
         final outputDir  = buildPath.parent.join(project.app.output);
         final tools      = fetchTools(outputDir);
         final processors = loadProjectProcessors(buildPath.parent, project);
-        final executor   = Executor.create(8);
+        final executor   = Executor.create(16);
+
+        outputDir.join(getHostPlatformName()).toDir().create();
+        outputDir.join('${ getHostPlatformName() }.build').toDir().create();
+
+        // Building Code
+
+        if (shouldGenerateHost(project))
+        {
+            final hxmlPath = outputDir.joinAll([ '${ getHostPlatformName() }.build', 'build-host.hxml' ]);
+            final hxmlData = generateHostHxml(project, buildPath, outputDir);
+
+            hxmlPath.toFile().writeString(hxmlData);
+
+            if (Sys.command('npx', [ 'haxe', hxmlPath.toString() ]) != 0)
+            {
+                Sys.exit(-1);
+            }
+        }
+
+        // Building Assets
 
         for (bundlePath in project.parcels)
         {
@@ -202,5 +225,88 @@ class Build
 
             _store.set(id, obj);
         }
+    }
+
+    function shouldGenerateHost(_project : Project)
+    {
+        return if (!cppia || rebuildHost)
+        {
+            true;
+        }
+        else
+        {
+            // TODO : Re-implement cppia host caching and checking.
+
+            true;
+        }
+    }
+
+    function generateHostHxml(_project : Project, _projectPath : Path, _output : Path)
+    {
+        final hxml = new Hxml();
+
+        hxml.cpp  = _output.joinAll([ '${ getHostPlatformName() }.build', 'cpp' ]).toString();
+        hxml.main = switch _project.app.backend
+        {
+            case Sdl: 'uk.aidanlee.flurry.hosts.SDLHost';
+            case Cli: 'uk.aidanlee.flurry.hosts.CLIHost';
+        }
+        // For cppia disable all dce to prevent classes getting removed which scripts depend on.
+        hxml.dce = if (cppia)
+        {
+            no;
+        }
+        else if (release)
+        {
+            full;
+        }
+        else
+        {
+            std;
+        }
+
+        // Remove traces and strip hxcpp debug output from generated sources in release mode.
+        if (release)
+        {
+            hxml.noTraces();
+            hxml.addDefine('no-debug');
+        }
+        else
+        {
+            hxml.debug();
+        }
+
+        hxml.addDefine(getHostPlatformName());
+        hxml.addDefine('HXCPP_M64');
+        hxml.addDefine('HAXE_OUTPUT_FILE', _project.app.name);
+        hxml.addDefine('flurry-entry-point', _project.app.main);
+        hxml.addDefine('flurry-build-file', _projectPath.toString());
+        hxml.addDefine('flurry-gpu-api', graphicsBackend);
+
+        hxml.addMacro('Safety.safeNavigation("uk.aidanlee.flurry")');
+        hxml.addMacro('nullSafety("uk.aidanlee.flurry.modules", Strict)');
+        hxml.addMacro('nullSafety("uk.aidanlee.flurry.api", Strict)');
+
+        for (p in _project.app.codepaths)
+        {
+            hxml.addClassPath(p);
+        }
+
+        for (d in _project.build.defines)
+        {
+            hxml.addDefine(d.def, d.value);
+        }
+
+        for (m in _project.build.macros)
+        {
+            hxml.addMacro(m);
+        }
+
+        for (d in _project.build.dependencies)
+        {
+            hxml.addLibrary(d);
+        }
+
+        return hxml.toString();
     }
 }
