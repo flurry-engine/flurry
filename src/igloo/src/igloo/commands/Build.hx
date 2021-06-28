@@ -1,5 +1,8 @@
 package igloo.commands;
 
+import hx.files.File.FileCopyOption;
+import hx.files.Dir;
+import hx.files.GlobPatterns;
 import igloo.utils.GraphicsApi;
 import igloo.haxe.Hxml;
 import igloo.macros.Platform;
@@ -106,28 +109,33 @@ class Build
     {
         Console.log('Igloo v0.1');
 
-        final buildPath = getBuildFilePath();
-        final project   = projectParser.fromJson(buildPath.toFile().readAsString());
+        final projectPath = getBuildFilePath();
+        final project     = projectParser.fromJson(projectPath.toFile().readAsString());
 
         if (projectParser.errors.length > 0)
         {
             throw new Exception(ErrorUtils.convertErrorArray(projectParser.errors));
         }
 
-        final outputDir  = buildPath.parent.join(project.app.output);
-        final tools      = fetchTools(outputDir);
-        final processors = loadProjectProcessors(buildPath.parent, project);
+        final outputDir  = projectPath.parent.join(project.app.output);
         final executor   = Executor.create(16);
+        final tools      = fetchTools(outputDir);
+        final processors = loadProjectProcessors(projectPath.parent, project);
 
-        outputDir.join(getHostPlatformName()).toDir().create();
-        outputDir.join('${ getHostPlatformName() }.build').toDir().create();
+        // The .build directory will contain all the generated sources and intermediate cpp objects.
+        // The final directory is just the final application, parcels, and copied files.
+        final buildDir = outputDir.joinAll([ '${ getHostPlatformName() }.build', 'cpp' ]);
+        final finalDir = outputDir.join(getHostPlatformName());
+
+        buildDir.toDir().create();
+        finalDir.toDir().create();
 
         // Building Code
 
         if (shouldGenerateHost(project))
         {
-            final hxmlPath = outputDir.joinAll([ '${ getHostPlatformName() }.build', 'build-host.hxml' ]);
-            final hxmlData = generateHostHxml(project, buildPath, outputDir);
+            final hxmlPath = buildDir.parent.join('build-host.hxml');
+            final hxmlData = generateHostHxml(project, projectPath, buildDir);
 
             hxmlPath.toFile().writeString(hxmlData);
 
@@ -141,7 +149,7 @@ class Build
 
         for (bundlePath in project.parcels)
         {
-            final parcelPath   = buildPath.parent.join(bundlePath);
+            final parcelPath   = projectPath.parent.join(bundlePath);
             final baseAssetDir = parcelPath.parent;
             final bundle       = packageParser.fromJson(parcelPath.toFile().readAsString());
 
@@ -166,7 +174,85 @@ class Build
                 tempOutput.toDir().create();
                 parcelCache.toDir().create();
 
-                build(context, parcel, bundle.assets, processors);
+                // Build and copy over the parcel
+                // Copy to the cpp build directory as well, this allows us to load the exe into visual studio
+                // for debugging without manually copying files
+
+                final parcelPath      = build(context, parcel, bundle.assets, processors);
+                final parcelBuildPath = buildDir.joinAll([ 'assets', parcelPath.filename ]);
+                final parcelFinalPath = finalDir.joinAll([ 'assets', parcelPath.filename ]);
+
+                parcelBuildPath.parent.toDir().create();
+                parcelFinalPath.parent.toDir().create();
+
+                parcelPath.toFile().copyTo(parcelBuildPath, [ FileCopyOption.OVERWRITE ]);
+                parcelPath.toFile().copyTo(parcelFinalPath, [ FileCopyOption.OVERWRITE ]);
+
+                tempOutput.toDir().delete(true);
+            }
+        }
+
+        // Copy over the executable
+
+        switch getHostPlatformName()
+        {
+            case 'windows':
+                final src = buildDir.join('${ project.app.name }.exe');
+                final dst = finalDir.join('${ project.app.name }.exe');
+
+                src.toFile().copyTo(dst, [ FileCopyOption.OVERWRITE ]);
+            default:
+                final src = buildDir.join(project.app.name);
+                final dst = finalDir.join(project.app.name);
+
+                src.toFile().copyTo(dst, [ FileCopyOption.OVERWRITE ]);
+
+                if (Sys.command('chmod', [ 'a+x', src.toString() ]) != 0)
+                {
+                    throw new Exception('Failed to set the project output as executable');
+                }
+                if (Sys.command('chmod', [ 'a+x', dst.toString() ]) != 0)
+                {
+                    throw new Exception('Failed to set the project output as executable');
+                }
+        }
+
+        // Copy over file globs.
+
+        for (glob => dst in project.build.files)
+        {
+            final path = Path.of(glob);
+
+            if (path.exists())
+            {
+                // Not a glob file, just copy it over.
+                // If the dst if an empty string re-use the source file name.
+                // destination paths are relative to the produced exe.
+                final output = if (dst == '') path.filename else dst;
+
+                path.toFile().copyTo(buildDir.join(output));
+                path.toFile().copyTo(finalDir.join(output));
+            }
+            else
+            {
+                Console.warn('Glob copying is not yet implemented');
+
+                // final dir = if (path.isAbsolute)
+                // {
+                //     final endIdx = glob.indexOf('*');
+                //     final subStr = glob.substring(0, endIdx);
+    
+                //     Dir.of(subStr);
+                // }
+                // else
+                // {
+                //     projectPath.parent.toDir();
+                // }
+    
+                // for (file in dir.findFiles(glob))
+                // {
+                //     trace(file);
+                // }
             }
         }
     }
@@ -245,7 +331,7 @@ class Build
     {
         final hxml = new Hxml();
 
-        hxml.cpp  = _output.joinAll([ '${ getHostPlatformName() }.build', 'cpp' ]).toString();
+        hxml.cpp  = _output.toString();
         hxml.main = switch _project.app.backend
         {
             case Sdl: 'uk.aidanlee.flurry.hosts.SDLHost';

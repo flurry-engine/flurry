@@ -27,7 +27,7 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
     {
         Console.log('Cached parcel is valid');
 
-        return;
+        return parcelFile;
     }
 
     Console.log('Cached parcel is invalid');
@@ -128,6 +128,8 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
     output.close();
 
     cache.writeHashFile();
+
+    return parcelFile;
 }
 
 private function resolveAssets(_wanted : Array<String>, _all : Array<Asset>)
