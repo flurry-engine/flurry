@@ -63,8 +63,9 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
 
     final futures = new Vector(atlas.pages.length);
     final output  = parcelFile.toFile().openOutput(REPLACE);
+
     output.writeParcelHeader();
-    output.writeParcelMeta(atlas.pages.length, assets.length, getPageFormatID(_parcel.settings.format));
+    output.writeParcelTable(packed, assets.length, atlas.pages.length, getPageFormatID(_parcel.settings.format));
 
     // During the above processing assets are packed if they requested it.
     // We can now blit all the packed images and write zlib compressed image data into the output stream.
@@ -120,11 +121,20 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
 
         for (asset in assets)
         {
+            final tellStart = output.tell();
+
             proc.write(_ctx, output, asset);
+
+            final tellEnd = output.tell();
+            final length  = tellEnd - tellStart;
+
+            asset.position = tellStart;
+            asset.length   = length;
         }
     }
 
     output.writeParcelFooter();
+    output.fillParcelTable(packed);
     output.close();
 
     cache.writeHashFile();
