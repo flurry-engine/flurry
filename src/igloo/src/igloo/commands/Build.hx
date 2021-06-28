@@ -131,7 +131,7 @@ class Build
 
         // Building Code
 
-        if (hostNeedsGenerating(project, cppia, rebuildHost))
+        if (hostNeedsGenerating(buildDir, graphicsBackend, project.app.main, cppia, rebuildHost))
         {
             final hxmlPath = buildDir.parent.join('build-host.hxml');
             final hxmlData = generateHostHxml(project, cppia, release, graphicsBackend, projectPath, buildDir);
@@ -142,6 +142,40 @@ class Build
             {
                 Sys.exit(-1);
             }
+
+            if (cppia)
+            {
+                writeHostMeta(buildDir, graphicsBackend, project.app.main);
+            }
+            else
+            {
+                buildDir.join('host.json').toFile().delete();
+            }
+        }
+
+        if (cppia)
+        {
+            final hxmlPath = buildDir.parent.join('build-client.hxml');
+            final hxmlData = generateClientHxml(project, projectPath, release, buildDir);
+
+            hxmlPath.toFile().writeString(hxmlData);
+
+            if (Sys.command('npx', [ 'haxe', hxmlPath.toString() ]) != 0)
+            {
+                Console.error('Failed to compile project');
+
+                Sys.exit(-1);
+            }
+
+            final script      = buildDir.join('client.cppia').toFile();
+            final buildScript = buildDir.joinAll([ 'assets', 'client.cppia' ]);
+            final finalScript = finalDir.joinAll([ 'assets', 'client.cppia' ]);
+
+            buildScript.parent.toDir().create();
+            finalScript.parent.toDir().create();
+
+            script.copyTo(buildScript, [ FileCopyOption.OVERWRITE ]);
+            script.copyTo(finalScript, [ FileCopyOption.OVERWRITE ]);
         }
 
         // Building Assets
