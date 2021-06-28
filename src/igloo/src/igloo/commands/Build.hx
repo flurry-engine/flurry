@@ -2,9 +2,8 @@ package igloo.commands;
 
 import hx.files.File.FileCopyOption;
 import hx.files.Dir;
-import hx.files.GlobPatterns;
 import igloo.utils.GraphicsApi;
-import igloo.haxe.Hxml;
+import igloo.haxe.Haxe;
 import igloo.macros.Platform;
 import hx.concurrent.executor.Executor;
 import igloo.tools.ToolsFetcher;
@@ -132,10 +131,10 @@ class Build
 
         // Building Code
 
-        if (shouldGenerateHost(project))
+        if (hostNeedsGenerating(project, cppia, rebuildHost))
         {
             final hxmlPath = buildDir.parent.join('build-host.hxml');
-            final hxmlData = generateHostHxml(project, projectPath, buildDir);
+            final hxmlData = generateHostHxml(project, cppia, release, graphicsBackend, projectPath, buildDir);
 
             hxmlPath.toFile().writeString(hxmlData);
 
@@ -230,8 +229,8 @@ class Build
                 // destination paths are relative to the produced exe.
                 final output = if (dst == '') path.filename else dst;
 
-                path.toFile().copyTo(buildDir.join(output));
-                path.toFile().copyTo(finalDir.join(output));
+                path.toFile().copyTo(buildDir.join(output), [ FileCopyOption.OVERWRITE ]);
+                path.toFile().copyTo(finalDir.join(output), [ FileCopyOption.OVERWRITE ]);
             }
             else
             {
@@ -311,88 +310,5 @@ class Build
 
             _store.set(id, obj);
         }
-    }
-
-    function shouldGenerateHost(_project : Project)
-    {
-        return if (!cppia || rebuildHost)
-        {
-            true;
-        }
-        else
-        {
-            // TODO : Re-implement cppia host caching and checking.
-
-            true;
-        }
-    }
-
-    function generateHostHxml(_project : Project, _projectPath : Path, _output : Path)
-    {
-        final hxml = new Hxml();
-
-        hxml.cpp  = _output.toString();
-        hxml.main = switch _project.app.backend
-        {
-            case Sdl: 'uk.aidanlee.flurry.hosts.SDLHost';
-            case Cli: 'uk.aidanlee.flurry.hosts.CLIHost';
-        }
-        // For cppia disable all dce to prevent classes getting removed which scripts depend on.
-        hxml.dce = if (cppia)
-        {
-            no;
-        }
-        else if (release)
-        {
-            full;
-        }
-        else
-        {
-            std;
-        }
-
-        // Remove traces and strip hxcpp debug output from generated sources in release mode.
-        if (release)
-        {
-            hxml.noTraces();
-            hxml.addDefine('no-debug');
-        }
-        else
-        {
-            hxml.debug();
-        }
-
-        hxml.addDefine(getHostPlatformName());
-        hxml.addDefine('HXCPP_M64');
-        hxml.addDefine('HAXE_OUTPUT_FILE', _project.app.name);
-        hxml.addDefine('flurry-entry-point', _project.app.main);
-        hxml.addDefine('flurry-build-file', _projectPath.toString());
-        hxml.addDefine('flurry-gpu-api', graphicsBackend);
-
-        hxml.addMacro('Safety.safeNavigation("uk.aidanlee.flurry")');
-        hxml.addMacro('nullSafety("uk.aidanlee.flurry.modules", Strict)');
-        hxml.addMacro('nullSafety("uk.aidanlee.flurry.api", Strict)');
-
-        for (p in _project.app.codepaths)
-        {
-            hxml.addClassPath(p);
-        }
-
-        for (d in _project.build.defines)
-        {
-            hxml.addDefine(d.def, d.value);
-        }
-
-        for (m in _project.build.macros)
-        {
-            hxml.addMacro(m);
-        }
-
-        for (d in _project.build.dependencies)
-        {
-            hxml.addLibrary(d);
-        }
-
-        return hxml.toString();
     }
 }
