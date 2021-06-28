@@ -288,6 +288,13 @@ class Build
                 // }
             }
         }
+
+        // Potentially run the built project.
+
+        if (run)
+        {
+            Sys.command(finalDir.join(project.app.name).toString());
+        }
     }
 
     function getBuildFilePath()
