@@ -1,5 +1,7 @@
 package igloo.parcels;
 
+import haxe.Exception;
+import igloo.processors.AssetProcessor;
 import haxe.io.Eof;
 import haxe.ds.Vector;
 import hx.files.Path;
@@ -35,12 +37,15 @@ class ParcelCache
      */
     final assets : Vector<Asset>;
 
-	public function new(_assetDir, _cachedParcel, _cachedParcelHash, _assets)
+    final processors : Map<String, AssetProcessor<Any>>;
+
+	public function new(_assetDir, _cachedParcel, _cachedParcelHash, _assets, _processors)
     {
 		assetDir         = _assetDir;
 		cachedParcel     = _cachedParcel;
 		cachedParcelHash = _cachedParcelHash;
         assets           = _assets;
+        processors       = _processors;
 	}
 
     /**
@@ -75,9 +80,7 @@ class ParcelCache
         // If it is check its modification date against the cached parcels.
         for (asset in assets)
         {
-            final found = contains.find(i -> i == asset.id);
-
-            if (found == null)
+            if (contains.find(i -> i == asset.id) == null)
             {
                 Console.debug('asset ${ asset.id } not found in the parcel hash ${ cachedParcelHash }');
 
@@ -85,13 +88,21 @@ class ParcelCache
             }
             else
             {
-                final abs = assetDir.join(asset.path);
-                
-                if (abs.getModificationTime() >= cachedParcelTime)
-                {
-                    Console.debug('Modification date of ${ abs } greater than the cached parcels build time');
+                final abs  = assetDir.join(asset.path);
+                final proc = processors.get(abs.filenameExt);
 
-                    return false;
+                if (proc != null)
+                {
+                    if (proc.isInvalid(abs, cachedParcelTime))
+                    {
+                        Console.debug('asset ${ asset.id } is invalid according to processor ${ abs.filenameExt }');
+    
+                        return false;
+                    }
+                }
+                else
+                {
+                    throw new Exception('No processor found for asset ${ asset.id }');
                 }
             }
         }

@@ -9,21 +9,21 @@ import igloo.parcels.ParcelContext;
 import igloo.parcels.Asset;
 import igloo.processors.AssetRequest;
 import igloo.processors.ProcessedAsset;
-import igloo.processors.IAssetProcessor;
+import igloo.processors.AssetProcessor;
 
 using Lambda;
 using Safety;
 using StringTools;
 using igloo.utils.OutputUtils;
 
-class GlslShaderProcessor implements IAssetProcessor<ProducedShader>
+class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 {
-	public function ids()
+	override public function ids()
     {
 		return [ 'glsl' ];
 	}
 
-	public function pack(_ctx : ParcelContext, _asset : Asset)
+	override public function pack(_ctx : ParcelContext, _asset : Asset)
 	{
 		// Transform our input asset path into vert and fragment versions.
 		// Throw if either don't exist.
@@ -114,7 +114,7 @@ class GlslShaderProcessor implements IAssetProcessor<ProducedShader>
 		}
 	}
 
-	public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<ProducedShader>)
+	override public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<ProducedShader>)
 	{
 		_writer.writePrefixedString(_asset.id);
 		_writer.writePrefixedString(_ctx.gpuApi);

@@ -124,11 +124,11 @@ class Cache
     }
 
     /**
-     * Load a `IAssetProcessor<Any>` from the provided cppia file.
+     * Load a `AssetProcessor<Any>` from the provided cppia file.
      * The filename of the path is used for the class name.
      * @param _path Absolute path of the cppia script to load.
      */
-    function loadCompiledScript(_path : Path) : IAssetProcessor<Any>
+    function loadCompiledScript(_path : Path) : AssetProcessor<Any>
     {
         final module   = Module.fromData(_path.toFile().readAsBytes().getData());
         final objClass = module.resolveClass(_path.filenameStem);

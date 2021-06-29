@@ -15,7 +15,7 @@ import igloo.parcels.Builder;
 import igloo.parcels.ParcelContext;
 import igloo.project.Project;
 import igloo.processors.Cache;
-import igloo.processors.IAssetProcessor;
+import igloo.processors.AssetProcessor;
 import json2object.ErrorUtils;
 import json2object.JsonParser;
 
@@ -338,7 +338,7 @@ class Build
         return loadedProcessors;
     }
 
-    function loadProcessorInto(_cache : Cache, _path : Path, _flags : String, _store : Map<String, IAssetProcessor<Any>>)
+    function loadProcessorInto(_cache : Cache, _path : Path, _flags : String, _store : Map<String, AssetProcessor<Any>>)
     {
         final obj = _cache.load(_path, _flags);
 

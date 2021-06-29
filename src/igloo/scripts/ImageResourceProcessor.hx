@@ -4,32 +4,27 @@ import haxe.io.Output;
 import igloo.processors.PackRequest;
 import igloo.processors.AssetRequest;
 import igloo.processors.ProcessedAsset;
-import igloo.processors.IAssetProcessor;
+import igloo.processors.AssetProcessor;
 import igloo.parcels.Asset;
 import igloo.parcels.ParcelContext;
 
 using igloo.utils.OutputUtils;
 
-class ImageResourceProcessor implements IAssetProcessor<Int>
+class ImageResourceProcessor extends AssetProcessor<Int>
 {
-	public function new()
-	{
-		//
-	}
-
-	public function ids()
+	override public function ids()
 	{
 		return [ 'png', 'jpg', 'jpeg', 'tga', 'bmp' ];
 	}
 
-	public function pack(_ctx : ParcelContext, _asset : Asset)
+	override public function pack(_ctx : ParcelContext, _asset : Asset)
 	{
 		final absPath = _ctx.assetDirectory.join(_asset.path);
 		
 		return new AssetRequest(0, Pack(Image(absPath)));
 	}
 
-	public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<Int>)
+	override public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<Int>)
 	{
 		switch _asset.response
 		{

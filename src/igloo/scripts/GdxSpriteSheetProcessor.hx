@@ -6,26 +6,21 @@ import hx.files.Path;
 import igloo.processors.PackRequest;
 import igloo.processors.AssetRequest;
 import igloo.processors.ProcessedAsset;
-import igloo.processors.IAssetProcessor;
+import igloo.processors.AssetProcessor;
 import igloo.parcels.Asset;
 import igloo.parcels.ParcelContext;
 
 using Lambda;
 using igloo.utils.OutputUtils;
 
-class GdxSpriteSheetProcessor implements IAssetProcessor<Array<GdxPage>>
+class GdxSpriteSheetProcessor extends AssetProcessor<Array<GdxPage>>
 {
-    public function new()
-    {
-        //
-    }
-
-	public function ids()
+	override public function ids()
     {
 		return [ 'atlas' ];
 	}
 
-	public function pack(_ctx : ParcelContext, _asset : Asset) : AssetRequest<Array<GdxPage>>
+	override public function pack(_ctx : ParcelContext, _asset : Asset) : AssetRequest<Array<GdxPage>>
     {
 		final absPath = _ctx.assetDirectory.join(_asset.path);
         final pages   = parse(absPath);
@@ -34,7 +29,7 @@ class GdxSpriteSheetProcessor implements IAssetProcessor<Array<GdxPage>>
         return new AssetRequest(pages, Pack(images));
 	}
 
-	public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<Array<GdxPage>>)
+	override public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<Array<GdxPage>>)
     {
         switch _asset.response
         {

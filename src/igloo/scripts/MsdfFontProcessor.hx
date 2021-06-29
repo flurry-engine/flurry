@@ -6,18 +6,18 @@ import igloo.parcels.Asset;
 import igloo.parcels.ParcelContext;
 import igloo.processors.AssetRequest;
 import igloo.processors.ProcessedAsset;
-import igloo.processors.IAssetProcessor;
+import igloo.processors.AssetProcessor;
 
 using igloo.utils.OutputUtils;
 
-class MsdfFontProcessor implements IAssetProcessor<FontDefinition>
+class MsdfFontProcessor extends AssetProcessor<FontDefinition>
 {
-	public function ids()
+	override public function ids()
     {
 		return [ 'ttf', 'otf' ];
 	}
 
-	public function pack(_ctx:ParcelContext, _asset:Asset)
+	override public function pack(_ctx:ParcelContext, _asset:Asset)
     {
         final absPath  = _ctx.assetDirectory.join(_asset.path);
         final imageOut = _ctx.tempDirectory.join(_asset.id + '.png');
@@ -46,7 +46,7 @@ class MsdfFontProcessor implements IAssetProcessor<FontDefinition>
         return new AssetRequest(font, Pack(PackRequest.Image(imageOut)));
 	}
 
-	public function write(_ctx:ParcelContext, _writer:Output, _asset:ProcessedAsset<FontDefinition>)
+	override public function write(_ctx:ParcelContext, _writer:Output, _asset:ProcessedAsset<FontDefinition>)
     {
         switch _asset.response
         {

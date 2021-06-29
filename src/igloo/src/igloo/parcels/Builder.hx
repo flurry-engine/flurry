@@ -8,7 +8,7 @@ import haxe.io.BytesOutput;
 import igloo.processors.PackRequest;
 import igloo.processors.AssetRequest;
 import igloo.processors.ProcessedAsset;
-import igloo.processors.IAssetProcessor;
+import igloo.processors.AssetProcessor;
 import igloo.blit.Blitter;
 import igloo.atlas.Atlas;
 
@@ -16,18 +16,22 @@ using Lambda;
 using Safety;
 using igloo.parcels.ParcelWriter;
 
-function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _processors : Map<String, IAssetProcessor<Any>>)
+function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _processors : Map<String, AssetProcessor<Any>>)
 {
     final parcelFile = _ctx.cacheDirectory.join('${ _parcel.name }.parcel');
     final parcelHash = _ctx.cacheDirectory.join('${ _parcel.name }.parcel.hash');
     final assets     = resolveAssets(_parcel.assets, _all);
-    final cache      = new ParcelCache(_ctx.assetDirectory, parcelFile, parcelHash, assets);
+    final cache      = new ParcelCache(_ctx.assetDirectory, parcelFile, parcelHash, assets, _processors);
 
     if (cache.isValid())
     {
         Console.log('Cached parcel is valid');
 
         return parcelFile;
+    }
+    else
+    {
+        cache.writeHashFile();
     }
 
     Console.log('Cached parcel is invalid');
@@ -136,8 +140,6 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
     output.writeParcelFooter();
     output.fillParcelTable(packed);
     output.close();
-
-    cache.writeHashFile();
 
     return parcelFile;
 }
