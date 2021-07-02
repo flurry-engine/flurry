@@ -54,12 +54,16 @@ class MsdfFontProcessor extends AssetProcessor<FontDefinition>
                 final frame = packed.toAsset();
 
                 _writer.writePrefixedString(_asset.id);
+                _writer.writePrefixedString(frame.pageName);
 
                 _writer.writeFloat(_asset.data.metrics.lineHeight);
                 _writer.writeInt32(_asset.data.glyphs.length);
 
                 for (char in _asset.data.glyphs)
                 {
+                    _writer.writeInt32(char.unicode);
+                    _writer.writeFloat(char.advance);
+
                     if (char.atlasBounds != null && char.planeBounds != null)
                     {
                         // glyph atlas coords are packed bottom left origin so we transform to top left origin
@@ -77,7 +81,7 @@ class MsdfFontProcessor extends AssetProcessor<FontDefinition>
                         _writer.writeFloat(pTop);
                         _writer.writeFloat(pRight);
                         _writer.writeFloat(pBottom);
-                        _writer.writeFloat(char.advance);
+
                         _writer.writeFloat((frame.x + ax) / frame.pageWidth);
                         _writer.writeFloat((frame.y + ay) / frame.pageHeight);
                         _writer.writeFloat((frame.x + ax + aw) / frame.pageWidth);
@@ -90,7 +94,7 @@ class MsdfFontProcessor extends AssetProcessor<FontDefinition>
                         _writer.writeFloat(0);
                         _writer.writeFloat(0);
                         _writer.writeFloat(0);
-                        _writer.writeFloat(0);
+
                         _writer.writeFloat(0);
                         _writer.writeFloat(0);
                         _writer.writeFloat(0);
