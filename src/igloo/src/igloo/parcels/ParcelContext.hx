@@ -18,12 +18,12 @@ class ParcelContext
 
     public final executor : Executor;
 
-    public function new(_assetDirectory, _tempDirectory, _cacheDirectory, _tools, _executor)
+    public function new(_assetDirectory, _tempDirectory, _cacheDirectory, _graphicsApi, _tools, _executor)
     {
         assetDirectory = _assetDirectory;
         tempDirectory  = _tempDirectory;
         cacheDirectory = _cacheDirectory;
-        gpuApi         = 'd3d11';
+        gpuApi         = _graphicsApi;
         tools          = _tools;
         executor       = _executor;
     }

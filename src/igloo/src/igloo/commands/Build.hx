@@ -201,6 +201,7 @@ class Build
                     baseAssetDir,
                     tempOutput,
                     parcelCache,
+                    graphicsBackend,
                     tools,
                     executor);
 
