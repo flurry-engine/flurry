@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import haxe.ds.Vector;
+import uk.aidanlee.flurry.api.resources.loaders.DesktopShaderLoader.D3d11Shader;
 import d3d11.structures.D3d11Box;
 import haxe.io.BytesData;
 import haxe.Exception;
@@ -76,8 +78,8 @@ import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
+import uk.aidanlee.flurry.api.resources.builtin.PageResource;
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.buffers.BufferData;
@@ -751,9 +753,9 @@ using cpp.NativeArray;
         SDL.destroyWindow(window);
     }
 
-    public function uploadTexture(_frame : ImageFrameResource, _data : BytesData)
+    public function uploadTexture(_frame : PageFrameResource, _data : BytesData)
     {
-        final id          = _frame.image;
+        final id          = _frame.page;
         final textureInfo = textureResources.get(id);
 
         final box = new D3d11Box();
@@ -780,21 +782,25 @@ using cpp.NativeArray;
 
     function onResourceCreated(_resource : Resource)
     {
-        switch _resource.type
+        if (_resource is PageResource)
         {
-            case Image  : createTexture(cast _resource);
-            case Shader : createShader(cast _resource);
-            case _:
+            createTexture(cast _resource);
+        }
+        else if (_resource is D3d11Shader)
+        {
+            createShader(cast _resource);
         }
     }
 
     function onResourceRemoved(_resource : Resource)
     {
-        switch _resource.type
+        if (_resource is PageResource)
         {
-            case Image  : removeTexture(cast _resource);
-            case Shader : removeShader(cast _resource);
-            case _:
+            removeTexture(cast _resource);
+        }
+        else if (_resource is D3d11Shader)
+        {
+            removeShader(cast _resource);
         }
     }
 
@@ -805,7 +811,7 @@ using cpp.NativeArray;
      * @param _layout JSON shader layout description.
      * @return Shader
      */
-    function createShader(_resource : ShaderResource)
+    function createShader(_resource : D3d11Shader)
     {
         if (shaderResources.exists(_resource.id))
         {
@@ -815,17 +821,17 @@ using cpp.NativeArray;
         final vertexBytecode = new D3dBlob();
         final pixelBytecode  = new D3dBlob();
 
-        if (D3dCompiler.createBlob(_resource.vertSource.length, vertexBytecode) != 0)
+        if (D3dCompiler.createBlob(_resource.vertCode.length, vertexBytecode) != 0)
         {
             throw new Dx11ResourceCreationException('ID3DBlob');
         }
-        if (D3dCompiler.createBlob(_resource.fragSource.length, pixelBytecode) != 0)
+        if (D3dCompiler.createBlob(_resource.fragCode.length, pixelBytecode) != 0)
         {
             throw new Dx11ResourceCreationException('ID3DBlob');
         }
 
-        memcpy(vertexBytecode.getBufferPointer(), _resource.vertSource.getData().address(0), _resource.vertSource.length);
-        memcpy(pixelBytecode.getBufferPointer(), _resource.fragSource.getData().address(0), _resource.fragSource.length);
+        memcpy(vertexBytecode.getBufferPointer(), _resource.vertCode.getData().address(0), _resource.vertCode.length);
+        memcpy(pixelBytecode.getBufferPointer(), _resource.fragCode.getData().address(0), _resource.fragCode.length);
 
         // Create the vertex shader
         final vertexShader = new D3d11VertexShader();
@@ -874,14 +880,14 @@ using cpp.NativeArray;
         }
 
         // Create our shader and a class to store its resources.
-        shaderResources.set(_resource.id, new ShaderInformation(_resource.vertInfo, _resource.fragInfo, vertexShader, pixelShader, inputLayout));
+        shaderResources.set(_resource.id, new ShaderInformation(_resource.vertBlocks, _resource.fragBlocks, _resource.textureCount, vertexShader, pixelShader, inputLayout));
     }
 
     /**
      * Remove the D3D11 resources used by a shader.
      * @param _name Name of the shader to remove.
      */
-    function removeShader(_resource : ShaderResource)
+    function removeShader(_resource : D3d11Shader)
     {
         shaderResources[_resource.id].destroy();
         shaderResources.remove(_resource.id);
@@ -894,11 +900,11 @@ using cpp.NativeArray;
      * @param _height Height of the texture.
      * @return Texture
      */
-    function createTexture(_resource : ImageResource)
+    function createTexture(_resource : PageResource)
     {
         // Sub resource struct to hold the raw image bytes.
         final imgData = new D3d11SubResourceData();
-        imgData.systemMemory           = _resource.pixels;
+        imgData.systemMemory           = _resource.pixels.getData();
         imgData.systemMemoryPitch      = 4 * _resource.width;
         imgData.systemMemorySlicePatch = 0;
 
@@ -908,7 +914,7 @@ using cpp.NativeArray;
         imgDesc.height             = _resource.height;
         imgDesc.mipLevels          = 1;
         imgDesc.arraySize          = 1;
-        imgDesc.format             = getPixelFormat(_resource.format);
+        imgDesc.format             = R8G8B8A8UNorm;
         imgDesc.sampleDesc.count   = 1;
         imgDesc.sampleDesc.quality = 0;
         imgDesc.usage              = Default;
@@ -940,7 +946,7 @@ using cpp.NativeArray;
      * Free the D3D11 resources used by a texture.
      * @param _name Name of the texture to remove.
      */
-    function removeTexture(_resource : ImageResource)
+    function removeTexture(_resource : PageResource)
     {
         textureResources[_resource.id].destroy();
         textureResources.remove(_resource.id);
@@ -1055,13 +1061,13 @@ using cpp.NativeArray;
                 final length = Maths.nextMultipleOff(block.buffer.byteLength, 256);
                 final info   = shaderResources[command.shader];
 
-                final location = findBlockIndexByName(block.name, info.vertInfo.blocks);
+                final location = findBlockIndexByName(block.name, info.vertBlocks);
                 if (location != -1)
                 {
                     context.vsSetConstantBuffer1(location, buffer, offset, length);
                 }
 
-                final location = findBlockIndexByName(block.name, info.fragInfo.blocks);
+                final location = findBlockIndexByName(block.name, info.fragBlocks);
                 if (location != -1)
                 {
                     context.psSetConstantBuffer1(location, buffer, offset, length);
@@ -1071,7 +1077,7 @@ using cpp.NativeArray;
             }
 
             final shader   = shaderResources[command.shader];
-            final location = findBlockIndexByName('flurry_matrices', shader.vertInfo.blocks);
+            final location = findBlockIndexByName('flurry_matrices', shader.vertBlocks);
 
             for (geometry in command.geometry)
             {
@@ -1105,11 +1111,11 @@ using cpp.NativeArray;
         }
     }
 
-    function findBlockIndexByName(_name : String, _blocks : ReadOnlyArray<ShaderBlock>) : Int
+    function findBlockIndexByName(_name : String, _blocks : Vector<String>)
     {
         for (i in 0..._blocks.length)
         {
-            if (_blocks[i].name == _name)
+            if (_blocks[i] == _name)
             {
                 return i;
             }
@@ -1312,7 +1318,7 @@ using cpp.NativeArray;
         // If the shader description specifies more textures than the command provides throw an exception.
         // If less is specified than provided we just ignore the extra, maybe we should throw as well?
         final info  = shaderResources[_shader];
-        final count = info.fragInfo.textures.length;
+        final count = info.textures;
 
         if (_textures.length >= count)
         {
@@ -1456,15 +1462,6 @@ using cpp.NativeArray;
         }
     }
 
-    function getPixelFormat(_format : PixelFormat) : DxgiFormat
-    {
-        return switch _format
-        {
-            case RGBAUNorm: R8G8B8A8UNorm;
-            case BGRAUNorm: B8G8R8A8UNorm;
-        }
-    }
-
     function onSizeChanged(_data : DisplayEventData)
     {
         resize(_data.width, _data.height);
@@ -1569,9 +1566,11 @@ private class TextureInformation
  */
 private class ShaderInformation
 {
-    public final vertInfo : ShaderVertInfo;
+    public final vertBlocks : Vector<String>;
 
-    public final fragInfo : ShaderFragInfo;
+    public final fragBlocks : Vector<String>;
+
+    public final textures : Int;
 
     /**
      * D3D11 vertex shader pointer.
@@ -1588,10 +1587,11 @@ private class ShaderInformation
      */
     public final inputLayout : D3d11InputLayout;
 
-    public function new(_vertInfo : ShaderVertInfo, _fragInfo : ShaderFragInfo, _vertex : D3d11VertexShader, _pixel : D3d11PixelShader, _input : D3d11InputLayout)
+    public function new(_vertBlocks, _fragBlocks, _textures, _vertex, _pixel, _input)
     {
-        vertInfo     = _vertInfo;
-        fragInfo     = _fragInfo;
+        vertBlocks   = _vertBlocks;
+        fragBlocks   = _fragBlocks;
+        textures     = _textures;
         vertexShader = _vertex;
         pixelShader  = _pixel;
         inputLayout  = _input;

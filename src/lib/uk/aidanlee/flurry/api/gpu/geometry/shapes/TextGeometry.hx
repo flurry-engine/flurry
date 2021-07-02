@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.geometry.shapes;
 
+import uk.aidanlee.flurry.api.resources.loaders.MsdfFontLoader.FontGlyph;
+import uk.aidanlee.flurry.api.resources.loaders.MsdfFontLoader.MsdfFontResource;
 import uk.aidanlee.flurry.api.maths.Vector4;
 import haxe.ds.ReadOnlyArray;
 import haxe.Exception;
@@ -11,8 +13,6 @@ import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.resources.Resource.FontResource;
-import uk.aidanlee.flurry.api.resources.Resource.Character;
 
 using Safety;
 
@@ -24,9 +24,9 @@ class TextGeometry extends Geometry
     /**
      * Parsed bitmap font data.
      */
-    public var font : FontResource;
+    public var font : MsdfFontResource;
 
-    inline function set_font(_font : FontResource) : FontResource {
+    inline function set_font(_font : MsdfFontResource) : MsdfFontResource {
         font = _font;
 
         if (!ignore)
@@ -76,7 +76,7 @@ class TextGeometry extends Geometry
     {
         super({
             data     : generateGeometry(_options.font, _options.text),
-            textures : Some([ _options.font.image ]),
+            textures : Some([ _options.font.page ]),
             samplers : Some([ _options.sampler ]),
             shader   : _options.shader,
             uniforms : _options.uniforms,
@@ -109,7 +109,7 @@ class TextGeometry extends Geometry
             for (i in 0...line.length)
             {
                 final code = line.charCodeAt(i).unsafe();
-                final char = font.characters[code].unsafe();
+                final char = font.glyphs[code].unsafe();
 
                 // bottom left
                 vtxBuilder.addFloat3(x + char.x, y + char.height, 0);
@@ -140,7 +140,7 @@ class TextGeometry extends Geometry
                 idxBuilder.addInt(idx + 3);
 
                 idx += 4;
-                x   += char.xAdvance;
+                x   += char.advance;
             }
 
             y += font.lineHeight;
@@ -157,7 +157,7 @@ class TextGeometry extends Geometry
      * @param _text String to generate geometry from.
      * @return GeometryData
      */
-    static function generateGeometry(_font : FontResource, _text: String) : GeometryData
+    static function generateGeometry(_font : MsdfFontResource, _text: String) : GeometryData
     {
         final input      = new StringInput(_text);
         final vtxBuilder = new VertexBlobBuilder();
@@ -175,17 +175,17 @@ class TextGeometry extends Geometry
             {
                 final code = line.charCodeAt(i).unsafe();
 
-                if (!_font.characters.exists(code))
+                if (!_font.glyphs.exists(code))
                 {
                     throw new CharacterNotFoundException(code, _font.name);
                 }
 
-                final char = _font.characters.get(code).unsafe();
+                final char = _font.glyphs.get(code).unsafe();
 
                 addCharacter(vtxBuilder, idxBuilder, char, index, xCursor, yCursor);
 
                 index   += 4;
-                xCursor += char.xAdvance;
+                xCursor += char.advance;
             }
 
             yCursor += _font.lineHeight;
@@ -200,7 +200,7 @@ class TextGeometry extends Geometry
     static function addCharacter(
         _vtxBuilder : VertexBlobBuilder,
         _idxBuilder : IndexBlobBuilder,
-        _char : Character,
+        _char : FontGlyph,
         _baseIndex : Int,
         _x : Float,
         _y : Float)
@@ -248,7 +248,7 @@ class CharacterNotFoundException extends Exception
     /**
      * The font this text will use.
      */
-    public final font : FontResource;
+    public final font : MsdfFontResource;
 
     /**
      * What this text geometry will initially display.

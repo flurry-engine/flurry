@@ -7,7 +7,7 @@ import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 
 using Safety;
 
@@ -34,7 +34,7 @@ class QuadGeometry extends Geometry
                     .addInt(0).addInt(1).addInt(2).addInt(2).addInt(1).addInt(3)
                     .indexBlob()
             ),
-            textures : Some([ _options.texture.image ]),
+            textures : Some([ _options.texture.page ]),
             samplers : Some([ _options.sampler ]),
             shader   : _options.shader,
             uniforms : _options.uniforms,
@@ -88,17 +88,17 @@ class QuadGeometry extends Geometry
      * Updates this geometry to display the provided frame.
      * @param _frame Frame to display.
      */
-    public function reframe(_frame : ImageFrameResource)
+    public function reframe(_frame : PageFrameResource)
     {
         final replace = switch textures
         {
             case None: true;
-            case Some(_frames): _frames.length < 1 || _frames[0] != _frame.image;
+            case Some(_frames): _frames.length < 1 || _frames[0] != _frame.page;
         }
 
         if (replace)
         {
-            textures = Some([ _frame.image ]);
+            textures = Some([ _frame.page ]);
         }
 
         updateSize(_frame.width, _frame.height);
@@ -179,7 +179,7 @@ class QuadGeometry extends Geometry
     /**
      * The frame this geometry will initially display.
      */
-    public final texture : ImageFrameResource;
+    public final texture : PageFrameResource;
 
     /**
      * Provide a custom sampler for the geometries texture.

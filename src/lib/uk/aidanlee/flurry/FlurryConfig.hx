@@ -2,6 +2,7 @@ package uk.aidanlee.flurry;
 
 import uk.aidanlee.flurry.macros.Project;
 import uk.aidanlee.flurry.api.maths.Vector4;
+import uk.aidanlee.flurry.api.resources.ResourceReader;
 
 class FlurryConfig
 {
@@ -20,6 +21,9 @@ class FlurryConfig
      */
     public final resources : FlurryResourceConfig;
 
+    /**
+     * Metadata about the project from the project build json file.
+     */
     public final project : FlurryProjectConfig;
 
     public function new()
@@ -266,12 +270,15 @@ class FlurryResourceConfig
      */
     public var preload : Null<Array<String>>;
 
+    public var loaders : Null<Array<ResourceReader>>;
+
     /**
      * Create a new resource config with the default settings.
      */
     public function new()
     {
         preload = null;
+        loaders = null;
     }
 }
 

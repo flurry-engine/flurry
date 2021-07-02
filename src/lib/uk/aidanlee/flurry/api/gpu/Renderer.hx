@@ -1,10 +1,7 @@
 package uk.aidanlee.flurry.api.gpu;
 
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
 import haxe.Exception;
-import uk.aidanlee.flurry.api.buffers.BufferData;
 import haxe.io.Bytes;
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import haxe.ds.ArraySort;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.macros.ApiSelector;
@@ -17,7 +14,10 @@ import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.batcher.Painter;
 import uk.aidanlee.flurry.api.gpu.batcher.IBatchable;
 import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
+import uk.aidanlee.flurry.api.buffers.BufferData;
+import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 import uk.aidanlee.flurry.api.display.DisplayEvents;
 
 class Renderer
@@ -145,7 +145,7 @@ class Renderer
      * @param _frame Frame to update.
      * @param _bytes bytes to replace it with.
      */
-    public function updateImageFrame(_frame : ImageFrameResource, _buffer : BufferData)
+    public function updateImageFrame(_frame : PageFrameResource, _buffer : BufferData)
     {
         backend.uploadTexture(_frame, _buffer.bytes.getData());
     }

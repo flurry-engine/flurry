@@ -3,7 +3,6 @@ package uk.aidanlee.flurry.hosts;
 import haxe.Timer;
 import haxe.EnumFlags;
 import haxe.io.Path;
-import sys.io.abstractions.concrete.FileSystem;
 import uk.aidanlee.flurry.api.io.FileSystemIO;
 import uk.aidanlee.flurry.api.gpu.Renderer;
 import uk.aidanlee.flurry.api.input.Input;
@@ -94,14 +93,13 @@ class SDLHost
 
         flurry.config(config);
 
-        final fileSystem    = new FileSystem();
         final renderer      = new Renderer(events.resource, events.display, config.window, config.renderer);
-        final resources     = new ResourceSystem(events.resource, fileSystem, taskScheduler, mainScheduler);
+        final resources     = new ResourceSystem(events.resource, config.resources.loaders, taskScheduler, mainScheduler);
         final input         = new Input(events.input);
         final display       = new Display(events.display, events.input, config);
-        final io            = new FileSystemIO(config.project, fileSystem);
+        final io            = new FileSystemIO(config.project);
 
-        flurry.ready(fileSystem, renderer, resources, input, display, io);
+        flurry.ready(renderer, resources, input, display, io);
 
         while (true)
         {

@@ -1,5 +1,8 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
+import uk.aidanlee.flurry.api.resources.loaders.DesktopShaderLoader.Ogl3Shader;
+import uk.aidanlee.flurry.api.resources.builtin.PageResource;
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 import haxe.io.BytesData;
 import haxe.Exception;
 import hxrx.ISubscription;
@@ -54,9 +57,9 @@ import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
         resourceRemovedSubscription.unsubscribe();
     }
 
-    public function uploadTexture(_frame : ImageFrameResource, _data : BytesData)
+    public function uploadTexture(_frame : PageFrameResource, _data : BytesData)
     {
-        if (!textures.exists(_frame.image))
+        if (!textures.exists(_frame.page))
         {
             throw new TextureNotFoundException();
         }
@@ -90,21 +93,25 @@ import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 
     function onResourceCreated(_resource : Resource)
     {
-        switch _resource.type
+        if (_resource is PageResource)
         {
-            case Image  : textures.set(_resource.id, _resource.id);
-            case Shader : shaders.set(_resource.id, _resource.id);
-            case _:
+            textures.set(_resource.id, _resource.id);
+        }
+        else if (_resource is Ogl3Shader)
+        {
+            shaders.set(_resource.id, _resource.id);
         }
     }
 
     function onResourceRemoved(_resource : Resource)
     {
-        switch _resource.type
+        if (_resource is PageResource)
         {
-            case Image  : textures.remove(_resource.id);
-            case Shader : shaders.remove(_resource.id);
-            case _:
+            textures.remove(_resource.id);
+        }
+        else if (_resource is Ogl3Shader)
+        {
+            shaders.remove(_resource.id);
         }
     }
 }

@@ -1,9 +1,15 @@
 package uk.aidanlee.flurry.api.resources;
 
-import haxe.Exception;
+import haxe.io.Bytes;
+import uk.aidanlee.flurry.api.resources.loaders.PageFrameLoader;
+import uk.aidanlee.flurry.api.resources.loaders.MsdfFontLoader;
+import uk.aidanlee.flurry.api.resources.loaders.GdxSpriteSheetLoader;
+import uk.aidanlee.flurry.api.resources.loaders.DesktopShaderLoader;
+import haxe.ds.Vector;
 import haxe.io.Path;
 import haxe.ds.ReadOnlyArray;
-import sys.io.abstractions.IFileSystem;
+import haxe.Exception;
+import haxe.exceptions.NotImplementedException;
 import hxrx.IObserver;
 import hxrx.IObservable;
 import hxrx.ISubscription;
@@ -11,23 +17,22 @@ import hxrx.schedulers.IScheduler;
 import hxrx.observables.Observables;
 import hxrx.subscriptions.Empty;
 import hxrx.subscriptions.Single;
-import uk.aidanlee.flurry.api.stream.ParcelInput;
 import uk.aidanlee.flurry.api.resources.Resource;
+import uk.aidanlee.flurry.api.resources.builtin.DataBlob;
+import uk.aidanlee.flurry.api.resources.builtin.PageResource;
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 
 using hxrx.observables.Observables;
 using Safety;
 
 class ResourceSystem
 {
+    static final assetsPath = hx.files.Path.of('assets');
+
     /**
      * Event bus the resource system can fire events into as and when resources and created and removed.
      */
     final events : ResourceEvents;
-
-    /**
-     * Access to the engines filesystem.
-     */
-    final fileSystem : IFileSystem;
 
     /**
      * The scheduler that will load the parcels.
@@ -40,42 +45,43 @@ class ResourceSystem
      */
     final syncScheduler : IScheduler;
 
-    /**
-     * Map of a parcels ID to all the resources IDs contained within it.
-     * Stored since the parcel could be modified by the user and theres no way to know whats inside a pre-packed parcel until its unpacked.
-     */
-    final parcelResources : Map<String, Array<ResourceID>>;
+    final resourceReaders : Map<String, ResourceReader>;
 
-    /**
-     * Map of all resources in this system keyed by their unique ID.
-     */
-    final resourceIDCache : Map<Int, Resource>;
+    final loadedParcels : Map<String, LoadedParcel>;
 
-    /**
-     * Map of all resources in this system keyed by their unique name.
-     */
-    final resourceNameCache : Map<String, Resource>;
-
-    /**
-     * How many parcels reference each resource.
-     * Prevents storing multiple of the same resource and ensures they aren't removed when still in use.
-     */
-    final resourceReferences : Map<Int, Int>;
+    final loadedResources : Map<String, LoadedResource>;
 
     /**
      * Creates a new resources system.
      * Allows the creation and loading of parcels and caching their resources.
      */
-    public function new(_events : ResourceEvents, _fileSystem : IFileSystem, _workScheduler : IScheduler, _syncScheduler : IScheduler)
+    public function new(_events : ResourceEvents, _loaders : Null<Array<ResourceReader>>, _workScheduler : IScheduler, _syncScheduler : IScheduler)
     {
         events             = _events;
-        fileSystem         = _fileSystem;
         workScheduler      = _workScheduler;
         syncScheduler      = _syncScheduler;
-        parcelResources    = [];
-        resourceIDCache    = [];
-        resourceNameCache  = [];
-        resourceReferences = [];
+        resourceReaders    = [];
+        loadedParcels      = [];
+        loadedResources    = [];
+
+        for (loader in [ new DesktopShaderLoader(), new GdxSpriteSheetLoader(), new MsdfFontLoader(), new PageFrameLoader() ])
+        {
+            for (id in loader.ids())
+            {
+                resourceReaders[id] = loader;
+            }
+        }
+
+        if (_loaders != null)
+        {
+            for (loader in _loaders)
+            {
+                for (id in loader.ids())
+                {
+                    resourceReaders[id] = loader;
+                }
+            }
+        }
     }
 
     /**
@@ -86,26 +92,99 @@ class ResourceSystem
      */
     public function load(_parcels : ReadOnlyArray<String>) : IObservable<Float>
     {
-        return _parcels
-            .fromIterable()
-            .flatMap(file -> create(obs -> loadParcel(file, obs)))
-            .subscribeOn(workScheduler)
-            .observeOn(syncScheduler)
-            .map(v -> {
-                if (!parcelResources.exists(v.parcel))
+        for (parcel in _parcels)
+        {
+            final parcelPath = assetsPath.join('$parcel.parcel');
+            final input      = parcelPath.toFile().openInput();
+
+            // Parcel should start with PRCL
+            if (input.readString(4) != 'PRCL')
+            {
+                throw new Exception('stream does not contain the PRCL magic bytes');
+            }
+
+            // Read the table meta
+            if (input.readString(4) != 'TABL')
+            {
+                throw new Exception('stream does not contain the TABL header bytes');
+            }
+
+            final assetCount = input.readInt32();
+            final pageCount  = input.readInt32();
+            final pageFormat = input.readByte();
+            final readAssets = new Array<Resource>();
+
+            // For now read past the actual table contents, we don't really care about it.
+            for (_ in 0...assetCount)
+            {
+                // Skip past the name length (size we read) plus two ints for the pos and length in the parcel.
+                final nameLen = input.readInt32();
+                final name    = input.readString(nameLen);
+
+                final procLen = input.readInt32();
+                final proc    = input.readString(procLen);
+
+                final pos     = input.readInt32();
+                final length  = input.readInt32();
+            }
+
+            // Read all page data
+            for (i in 0...pageCount)
+            {
+                if (input.readString(4) != 'PAGE')
                 {
-                    parcelResources[v.parcel] = [];
+                    throw new Exception('stream does not contain the PAGE header bytes');
                 }
 
-                addResource(v.resource);
+                final nameLen  = input.readInt32();
+                final name     = input.readString(nameLen);
 
-                parcelResources[v.parcel].unsafe().push(v.resource.id);
+                final bytesLen = input.readInt32();
+                final bytes    = input.read(bytesLen);
+                final image    = stb.Image.load_from_memory(bytes.getData(), bytesLen, 4);
 
-                v.progress;
-            })
-            .scan(0.0, (acc, next) -> acc + (next / _parcels.length))
-            .publish()
-            .refCount();
+                readAssets.push(new PageResource(name, image.w, image.h, Bytes.ofData(image.bytes)));
+            }
+
+            // Read all user resources.
+            var magic = '';
+            while ('STOP' != (magic = input.readString(4)))
+            {
+                if (magic != 'RESR')
+                {
+                    throw new Exception('stream does not contain the RESR header bytes');
+                }
+
+                final procNameLen   = input.readInt32();
+                final procName      = input.readString(procNameLen);
+                final assetsForProc = input.readInt32();
+                final processor     = resourceReaders[procName];
+
+                if (processor != null)
+                {
+                    for (_ in 0...assetsForProc)
+                    {
+                        for (resource in processor.read(input))
+                        {
+                            readAssets.push(resource);
+                        }
+                    }
+                }
+                else
+                {
+                    throw new Exception('No processor found for $procName');
+                }
+            }
+
+            input.close();
+
+            for (asset in readAssets)
+            {
+                addResource(asset);
+            }
+        }
+        
+        return empty();
     }
 
     /**
@@ -114,17 +193,31 @@ class ResourceSystem
      */
     public function free(_name : String)
     {
-        if (parcelResources.exists(_name))
+        final parcel = '$_name.parcel';
+        final loaded = loadedParcels[parcel];
+
+        if (loaded != null)
         {
-            for (res in parcelResources[_name].unsafe())
+            for (id in loaded.resources)
             {
-                if (resourceIDCache.exists(res))
+                final cached = loadedResources[id];
+
+                if (cached != null)
                 {
-                    removeResource(resourceIDCache[res].unsafe());
+                    if (cached.references <= 1)
+                    {
+                        loadedResources.remove(id);
+        
+                        events.removed.onNext(cached.resource);
+                    }
+                    else
+                    {
+                        cached.references--;
+                    }
                 }
             }
 
-            parcelResources.remove(_name);
+            loadedParcels.remove(parcel);
         }
     }
 
@@ -135,16 +228,15 @@ class ResourceSystem
      */
     public function addResource(_resource : Resource)
     {
-        if (resourceReferences.exists(_resource.id))
+        final loaded = loadedResources[_resource.name];
+
+        if (loaded != null)
         {
-            resourceReferences[_resource.id] = resourceReferences[_resource.id].unsafe() + 1;
+            loaded.references++;
         }
         else
         {
-            resourceReferences[_resource.id] = 1;
-
-            resourceIDCache[_resource.id] = _resource;
-            resourceNameCache[_resource.name] = _resource;
+            loadedResources[_resource.name] = new LoadedResource(_resource);
 
             events.created.onNext(_resource);
         }
@@ -158,28 +250,32 @@ class ResourceSystem
      */
     public function removeResource(_resource : Resource)
     {
-        if (resourceReferences.exists(_resource.id))
+        final loaded = loadedResources[_resource.name];
+
+        if (loaded != null)
         {
-            final referenceCount = resourceReferences[_resource.id].unsafe();
-            if (referenceCount == 1)
+            if (loaded.references <= 1)
             {
-                if (resourceIDCache.exists(_resource.id))
-                {
-                    final toRemove = resourceIDCache[_resource.id].unsafe();
+                loadedResources.remove(_resource.name);
 
-                    resourceIDCache.remove(_resource.id);
-                    resourceNameCache.remove(_resource.name);
-
-                    events.removed.onNext(toRemove);
-                }
-
-                resourceReferences.remove(_resource.id);
+                events.removed.onNext(loaded.resource);
             }
             else
             {
-                resourceReferences[_resource.id] = (referenceCount - 1);
+                loaded.references--;
             }
         }
+    }
+
+    public function getID(_name : String) : ResourceID
+    {
+        final loaded = loadedResources[_name];
+        if (loaded != null)
+        {
+            return loaded.resource.id;
+        }
+
+        throw new ResourceNotFoundException(_name);
     }
 
     /**
@@ -192,20 +288,24 @@ class ResourceSystem
      */
     public function getByName<T : Resource>(_name : String, _type : Class<T>) : T
     {
-        if (resourceNameCache.exists(_name))
+        final loaded = loadedResources[_name];
+        if (loaded != null)
         {
-            final res = resourceNameCache[_name].unsafe();
-            final obj = Std.downcast(res, _type);
-            
-            if (obj != null)
-            {
-                return obj;
-            }
+            final casted = Std.downcast(loaded.resource, _type);
 
-            throw new InvalidResourceTypeException(_name, Type.getClassName(_type));
+            if (casted != null)
+            {
+                return casted;
+            }
+            else
+            {
+                throw new InvalidResourceTypeException(_name, Type.getClassName(_type));
+            }
         }
-        
-        throw new ResourceNotFoundException(_name);
+        else
+        {
+            throw new ResourceNotFoundException(_name);
+        }
     }
 
     /**
@@ -216,80 +316,9 @@ class ResourceSystem
      * @throws InvalidResourceTypeException If the resource cannot be cast to the specified resource class.
      * @throws ResourceNotFoundException If a resource with the provided ID is not in the system.
      */
-    public function getByID<T : Resource>(_id : ResourceID, _type : Class<T>) : T
+    public function getByID<T : Resource>(_id : Int, _type : Class<T>) : T
     {
-        if (resourceIDCache.exists(_id))
-        {
-            final res = resourceIDCache[_id].unsafe();
-            final obj = Std.downcast(res, _type);
-            
-            if (obj != null)
-            {
-                return obj;
-            }
-
-            throw new InvalidResourceTypeException(Std.string(_id), Type.getClassName(_type));
-        }
-        
-        throw new ResourceNotFoundException(Std.string(_id));
-    }
-
-    /**
-     * Loads a parcel and passes events into the observer.
-     * @param _file Parcel file to open. Should be relative to the projects parcel directory (`assets/parcels`).
-     * @param _observer Observer to pump events into.
-     * @return If the parcel was successfully loaded.
-     */
-    function loadParcel(_file : String, _observer : IObserver<ParcelLoadingEvent>) : ISubscription
-    {
-        final path = Path.join([ 'assets', 'parcels', _file ]);
-
-        if (!fileSystem.file.exists(path))
-        {
-            _observer.onError(new Exception('failed to load "${_file}", "${path}" does not exist'));
-
-            return new Empty();
-        }
-
-        // TODO : Should probably progress by 1 as overall load tracking will be off.
-        if (parcelResources.exists(_file))
-        {
-            _observer.onCompleted();
-
-            return new Empty();
-        }
-
-        final reader       = new ParcelInput(fileSystem.file.read(path));
-        final subscription = new Single(() -> reader.close());
-        
-        switch reader.readHeader()
-        {
-            case Success(header):
-                for (_ in 0...header.assets)
-                {
-                    switch reader.readAsset()
-                    {
-                        case Success(asset):
-                            _observer.onNext({
-                                parcel   : _file,
-                                resource : asset,
-                                progress : 1 / header.assets
-                            });
-                        case Failure(reason):
-                            _observer.onError(new Exception(reason));
-        
-                            return subscription;
-                    }
-                }
-            case Failure(reason):
-                _observer.onError(new Exception(reason));
-
-                return subscription;
-        }
-
-        _observer.onCompleted();
-
-        return subscription;
+        throw new NotImplementedException();
     }
 }
 
@@ -309,11 +338,31 @@ class ResourceNotFoundException extends Exception
     }
 }
 
-@:structInit @:publicFields class ParcelLoadingEvent
+private class LoadedParcel
 {
-    final parcel : String;
+    public final name : String;
 
-    final resource : Resource;
+    public final pages : Vector<String>;
 
-    final progress : Float;
+    public final resources : Vector<String>;
+
+	public function new(_name, _pages, _resources)
+    {
+		name      = _name;
+		pages     = _pages;
+		resources = _resources;
+	}
+}
+
+private class LoadedResource
+{
+    public final resource : Resource;
+
+    public var references : Int;
+
+    public function new(_resource)
+    {
+        resource   = _resource;
+        references = 0;
+    }
 }

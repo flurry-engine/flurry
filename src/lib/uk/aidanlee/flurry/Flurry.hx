@@ -10,7 +10,6 @@ import uk.aidanlee.flurry.api.display.Display;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import uk.aidanlee.flurry.api.schedulers.ThreadPoolScheduler;
 import uk.aidanlee.flurry.api.schedulers.MainThreadScheduler;
-import sys.io.abstractions.IFileSystem;
 
 using Safety;
 
@@ -20,11 +19,6 @@ class Flurry
      * Main events bus, engine components can fire events into this to communicate with each other.
      */
     public final events : FlurryEvents;
-
-    /**
-     * Abstracted access to the devices file system.
-     */
-    public var fileSystem (default, null) : IFileSystem;
 
     /**
      * User config file.
@@ -84,11 +78,10 @@ class Flurry
         flurryConfig = onConfig(_config);
     }
 
-    public final function ready(_fs, _renderer, _resources, _input, _display, _io)
+    public final function ready(_renderer, _resources, _input, _display, _io)
     {
         loaded = false;
 
-        fileSystem = _fs;
         renderer   = _renderer;
         resources  = _resources;
         input      = _input;

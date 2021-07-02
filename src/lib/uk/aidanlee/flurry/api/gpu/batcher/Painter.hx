@@ -18,13 +18,11 @@ import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob.IndexBlobBuilder;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
-import uk.aidanlee.flurry.api.gpu.geometry.shapes.SpriteGeometry.AnimationNotFoundException;
 import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.api.buffers.GrowingBuffer;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.resources.Resource.SpriteResource;
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
+import uk.aidanlee.flurry.api.resources.builtin.PageResource;
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 
 using Safety;
 
@@ -292,13 +290,13 @@ class Painter implements IBatchable
         }
     }
 
-    public function drawFrame(_frame : ImageFrameResource, _x : Float, _y : Float)
+    public function drawFrame(_frame : PageFrameResource, _x : Float, _y : Float)
     {
-        if (requireFlush(_frame.image, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
+        if (requireFlush(_frame.page, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
         {
             flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
 
-            texture   = _frame.image;
+            texture   = _frame.page;
             primitive = Triangles;
         }
 
@@ -315,7 +313,7 @@ class Painter implements IBatchable
         vtxCount += 4;
     }
 
-    public function drawFrameRotated(_frame : ImageFrameResource, _x : Float, _y : Float, _originX : Float, _originY : Float, _xFlip : Bool, _yFlip : Bool, _angle : Float)
+    public function drawFrameRotated(_frame : PageFrameResource, _x : Float, _y : Float, _originX : Float, _originY : Float, _xFlip : Bool, _yFlip : Bool, _angle : Float)
     {
         transform.position.set_xy(_x, _y);
         transform.origin.set_xy(_originX, _originY);
@@ -323,11 +321,11 @@ class Painter implements IBatchable
 
         final matrix = transform.world.matrix;
 
-        if (requireFlush(_frame.image, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
+        if (requireFlush(_frame.page, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
         {
             flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
 
-            texture   = _frame.image;
+            texture   = _frame.page;
             primitive = Triangles;
         }
 
@@ -360,46 +358,46 @@ class Painter implements IBatchable
         vtxCount += 4;
     }
 
-    public function drawSprite(_sprite : SpriteResource, _animation : String, _idx : Int, _x : Float, _y : Float, _xFlip : Bool, _yFlip : Bool)
+    // public function drawSprite(_sprite : SpriteResource, _animation : String, _idx : Int, _x : Float, _y : Float, _xFlip : Bool, _yFlip : Bool)
+    // {
+    //     if (requireFlush(_sprite.page, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
+    //     {
+    //         flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
+
+    //         texture   = _sprite.page;
+    //         primitive = Triangles;
+    //     }
+
+    //     if (!_sprite.animations.exists(_animation))
+    //     {
+    //         throw new AnimationNotFoundException(_animation);
+    //     }
+
+    //     final frame  = _sprite.animations[_animation].unsafe()[_idx];
+    //     final colour = colours.first().unsafe();
+    //     final u1     = if (_xFlip) frame.u2 else frame.u1;
+    //     final u2     = if (_xFlip) frame.u1 else frame.u2;
+    //     final v1     = if (_yFlip) frame.v2 else frame.v1;
+    //     final v2     = if (_yFlip) frame.v1 else frame.v2;
+
+    //     vtxBuffer
+    //         .addFloat3(_x              , _y + frame.height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v2)
+    //         .addFloat3(_x + frame.width, _y + frame.height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v2)
+    //         .addFloat3(_x              , _y               , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v1)
+    //         .addFloat3(_x + frame.width, _y               , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v1);
+    //     idxBuffer
+    //         .addUInt16(vtxCount + 0).addUInt16(vtxCount + 1).addUInt16(vtxCount + 2).addUInt16(vtxCount + 2).addUInt16(vtxCount + 1).addUInt16(vtxCount + 3);
+
+    //     vtxCount += 4;
+    // }
+
+    public function drawNineSlice(_frame : PageFrameResource, _image : PageResource, _x : Float, _y : Float, _w : Float, _h : Float, _top : Float, _left : Float, _bottom : Float, _right : Float)
     {
-        if (requireFlush(_sprite.image, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
+        if (requireFlush(_frame.page, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
         {
             flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
 
-            texture   = _sprite.image;
-            primitive = Triangles;
-        }
-
-        if (!_sprite.animations.exists(_animation))
-        {
-            throw new AnimationNotFoundException(_animation);
-        }
-
-        final frame  = _sprite.animations[_animation].unsafe()[_idx];
-        final colour = colours.first().unsafe();
-        final u1     = if (_xFlip) frame.u2 else frame.u1;
-        final u2     = if (_xFlip) frame.u1 else frame.u2;
-        final v1     = if (_yFlip) frame.v2 else frame.v1;
-        final v2     = if (_yFlip) frame.v1 else frame.v2;
-
-        vtxBuffer
-            .addFloat3(_x              , _y + frame.height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v2)
-            .addFloat3(_x + frame.width, _y + frame.height, 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v2)
-            .addFloat3(_x              , _y               , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u1, v1)
-            .addFloat3(_x + frame.width, _y               , 0).addFloat4(colour.x, colour.y, colour.z, colour.w).addFloat2(u2, v1);
-        idxBuffer
-            .addUInt16(vtxCount + 0).addUInt16(vtxCount + 1).addUInt16(vtxCount + 2).addUInt16(vtxCount + 2).addUInt16(vtxCount + 1).addUInt16(vtxCount + 3);
-
-        vtxCount += 4;
-    }
-
-    public function drawNineSlice(_frame : ImageFrameResource, _image : ImageResource, _x : Float, _y : Float, _w : Float, _h : Float, _top : Float, _left : Float, _bottom : Float, _right : Float)
-    {
-        if (requireFlush(_frame.image, shaders.first().unsafe(), Triangles, samplers.first().unsafe()))
-        {
-            flush(texture, shaders.first().unsafe(), primitive, samplers.first().unsafe());
-
-            texture   = _frame.image;
+            texture   = _frame.page;
             primitive = Triangles;
         }
 

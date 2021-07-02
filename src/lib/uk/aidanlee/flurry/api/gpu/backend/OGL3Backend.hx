@@ -1,6 +1,10 @@
 package uk.aidanlee.flurry.api.gpu.backend;
 
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
+import uk.aidanlee.flurry.api.resources.loaders.DesktopShaderLoader.Ogl3ShaderBlock;
+import haxe.ds.Vector;
+import uk.aidanlee.flurry.api.resources.builtin.PageResource;
+import uk.aidanlee.flurry.api.resources.loaders.DesktopShaderLoader.Ogl3Shader;
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 import haxe.Exception;
 import haxe.io.BytesData;
 import haxe.io.Bytes;
@@ -34,11 +38,6 @@ import uk.aidanlee.flurry.api.display.DisplayEvents;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 import uk.aidanlee.flurry.api.resources.Resource.Resource;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
-import uk.aidanlee.flurry.api.resources.Resource.PixelFormat;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderInput;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderBlock;
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 
 using cpp.NativeArray;
@@ -423,10 +422,10 @@ using cpp.NativeArray;
         SDL.destroyWindow(window);
     }
 
-    public function uploadTexture(_frame : ImageFrameResource, _data : BytesData)
+    public function uploadTexture(_frame : PageFrameResource, _data : BytesData)
     {
         final currentImage = textureSlots[0];
-        final toUpdateId = textureObjects.get(_frame.image);
+        final toUpdateId   = textureObjects.get(_frame.page);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, toUpdateId);
@@ -491,25 +490,29 @@ using cpp.NativeArray;
 
     function onResourceCreated(_resource : Resource)
     {
-        switch _resource.type
+        if (_resource is PageResource)
         {
-            case Image  : createTexture(cast _resource);
-            case Shader : createShader(cast _resource);
-            case _:
+            createTexture(cast _resource);
+        }
+        else if (_resource is Ogl3Shader)
+        {
+            createShader(cast _resource);
         }
     }
 
     function onResourceRemoved(_resource : Resource)
     {
-        switch _resource.type
+        if (_resource is PageResource)
         {
-            case Image  : removeTexture(_resource.id);
-            case Shader : removeShader(_resource.id);
-            case _:
+            removeTexture(_resource.id);
+        }
+        else if (_resource is Ogl3Shader)
+        {
+            removeShader(_resource.id);
         }
     }
 
-    function createShader(_resource : ShaderResource)
+    function createShader(_resource : Ogl3Shader)
     {
         if (shaderPrograms.exists(_resource.id))
         {
@@ -518,7 +521,7 @@ using cpp.NativeArray;
 
         // Create vertex shader.
         var vertex = glCreateShader(GL_VERTEX_SHADER);
-        shaderSource(vertex, _resource.vertSource.toString());
+        shaderSource(vertex, _resource.vertCode.toString());
         glCompileShader(vertex);
 
         if (getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
@@ -528,7 +531,7 @@ using cpp.NativeArray;
 
         // Create fragment shader.
         var fragment = glCreateShader(GL_FRAGMENT_SHADER);
-        shaderSource(fragment, _resource.fragSource.toString());
+        shaderSource(fragment, _resource.fragCode.toString());
         glCompileShader(fragment);
 
         if (getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
@@ -553,17 +556,21 @@ using cpp.NativeArray;
 
         // Fetch the location of all the shaders texture and interface blocks, also bind blocks to a binding point.
 
-        final distinctBlocks   = getDistinctBlocks(_resource.vertInfo.blocks, _resource.fragInfo.blocks);
-        final textureLocations = [ for (i in 0..._resource.fragInfo.samplers.length) findCombinedSampler(_resource.fragInfo.textures[i], _resource.fragInfo.samplers[i], program) ];
-        final blockLocations   = [ for (b in distinctBlocks) glGetUniformBlockIndex(program, b.name) ];
-
-        for (idx => block in distinctBlocks)
+        final textureLocations = new Vector(_resource.samplers.length);
+        for (i in 0..._resource.samplers.length)
         {
-            glUniformBlockBinding(program, blockLocations[idx], block.binding);
+            textureLocations[i] = glGetUniformLocation(program, _resource.samplers[i]);
+        }
+
+        for (block in _resource.blocks)
+        {
+            final location = glGetUniformBlockIndex(program, block.name);
+
+            glUniformBlockBinding(program, location, block.binding);
         }
 
         shaderPrograms.set(_resource.id, program);
-        shaderUniforms.set(_resource.id, new ShaderInformation(distinctBlocks, textureLocations));
+        shaderUniforms.set(_resource.id, new ShaderInformation(_resource.blocks, textureLocations));
     }
 
     function removeShader(_id : ResourceID)
@@ -574,7 +581,7 @@ using cpp.NativeArray;
         shaderUniforms.remove(_id);
     }
 
-    function createTexture(_resource : ImageResource)
+    function createTexture(_resource : PageResource)
     {
         var id = [ 0 ];
         glGenTextures(1, id);
@@ -584,7 +591,7 @@ using cpp.NativeArray;
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _resource.width, _resource.height, 0, getPixelFormat(_resource.format), GL_UNSIGNED_BYTE, _resource.pixels);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _resource.width, _resource.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _resource.pixels.getData());
 
         glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -1203,7 +1210,7 @@ using cpp.NativeArray;
      * @param _blocks Array of all shader blocks.
      * @return Index into the array of blocks to the first matching block.
      */
-    function findBlockIndexByName(_name : String, _blocks : ReadOnlyArray<ShaderBlock>) : Int
+    function findBlockIndexByName(_name : String, _blocks : Vector<Ogl3ShaderBlock>) : Int
     {
         for (i in 0..._blocks.length)
         {
@@ -1214,41 +1221,6 @@ using cpp.NativeArray;
         }
 
         return -1;
-    }
-
-    /**
-     * Generate the combined sampler name from the provided texture and sampler.
-     * This assumes that the default spirv combined sampler generation is used.
-     * @param _texture Texture object.
-     * @param _sampler Sampler object.
-     * @param _program Shader program to get the location from.
-     */
-    function findCombinedSampler(_texture : ShaderInput, _sampler : ShaderInput, _program : Int)
-    {
-        final combinedName = 'SPIRV_Cross_Combined${ _texture.name }${ _sampler.name }';
-
-        return glGetUniformLocation(_program, combinedName);
-    }
-
-    /**
-     * Returns all unique blocks from the vertex and fragment stage.
-     * @param _vertBlocks UBOs found in the vertex stage.
-     * @param _fragBlocks UBOs found in the fragment stage.
-     * @return ReadOnlyArray<ShaderBlock>
-     */
-    function getDistinctBlocks(_vertBlocks : ReadOnlyArray<ShaderBlock>, _fragBlocks : ReadOnlyArray<ShaderBlock>) : ReadOnlyArray<ShaderBlock>
-    {
-        final distinct = _vertBlocks.copy();
-
-        for (block in _fragBlocks)
-        {
-            if (!Lambda.exists(distinct, b -> b.name == block.name))
-            {
-                distinct.push(block);
-            }
-        }
-
-        return distinct;
     }
 
     function getPrimitiveType(_primitive : PrimitiveType)
@@ -1331,15 +1303,6 @@ using cpp.NativeArray;
             case Border : GL_CLAMP_TO_BORDER;
         }
     }
-
-    function getPixelFormat(_format : PixelFormat)
-    {
-        return switch _format
-        {
-            case BGRAUNorm: GL_BGRA;
-            case RGBAUNorm: GL_RGBA;
-        }
-    }
 }
 
 /**
@@ -1378,12 +1341,12 @@ private class ShaderInformation
     /**
      * All unique UBOs in this shader.
      */
-    public final blocks : ReadOnlyArray<ShaderBlock>;
+    public final blocks : Vector<Ogl3ShaderBlock>;
 
     /**
      * Location of all texture uniforms.
      */
-    public final textureLocations : ReadOnlyArray<Int>;
+    public final textureLocations : Vector<Int>;
 
     public function new(_blocks, _textureLocations)
     {
