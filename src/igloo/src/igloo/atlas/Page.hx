@@ -55,7 +55,7 @@ class Page
             final u1    = xSrc / width;
             final v1    = ySrc / height;
             final u2    = (xSrc + _width) / width;
-            final v2    = (xSrc + _height) / height;
+            final v2    = (ySrc + _height) / height;
 
             frames.push(frame);
 
