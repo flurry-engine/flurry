@@ -52,6 +52,7 @@ class GdxSpriteSheetProcessor extends AssetProcessor<Array<GdxPage>>
                     }
 
                     // Write all frames in the page.
+                    _writer.writePrefixedString(frame.pageName);
                     _writer.writeInt32(gdxPage.sections.length);
 
                     for (section in gdxPage.sections)
