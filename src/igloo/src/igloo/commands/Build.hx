@@ -1,5 +1,6 @@
 package igloo.commands;
 
+import igloo.utils.Concurrency;
 import igloo.processors.ProcessorLoadResults.ProcessorLoadResult;
 import hx.files.File.FileCopyOption;
 import hx.files.Dir;
@@ -118,7 +119,7 @@ class Build
         }
 
         final outputDir  = projectPath.parent.join(project.app.output);
-        final executor   = Executor.create(16);
+        final executor   = Executor.create(Concurrency.hardwareConcurrency());
         final tools      = fetchTools(outputDir);
         final processors = loadProjectProcessors(executor, projectPath.parent, project);
 
