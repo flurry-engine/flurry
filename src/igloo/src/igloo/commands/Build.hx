@@ -120,7 +120,7 @@ class Build
         final outputDir  = projectPath.parent.join(project.app.output);
         final executor   = Executor.create(16);
         final tools      = fetchTools(outputDir);
-        final processors = loadProjectProcessors(projectPath.parent, project);
+        final processors = loadProjectProcessors(executor, projectPath.parent, project);
 
         // The .build directory will contain all the generated sources and intermediate cpp objects.
         // The final directory is just the final application, parcels, and copied files.
@@ -313,10 +313,11 @@ class Build
         }
     }
 
-    function loadProjectProcessors(_root : Path, _project : Project)
+    function loadProjectProcessors(_executor : Executor, _root : Path, _project : Project)
     {
         final cacheLoader = new Cache(_root.joinAll([ _project.app.output, 'cache', 'processors' ]));
-        final result      = new ProcessorLoadResult();
+        final loadResults = new ProcessorLoadResult();
+        final tasks       = [];
 
         // Load default flurry processors
         getIglooBuiltInScriptsDir()
@@ -326,46 +327,44 @@ class Build
                 {
                     final flagsPath = file.path.parent.join(file.path.filenameStem + '.flags');
                     final flagsText = if (flagsPath.exists()) flagsPath.toFile().readAsString() else '';
+                    final task      = _executor.submit(() -> cacheLoader.load(file.path, flagsText));
 
-                    loadProcessorInto(cacheLoader, file.path, flagsText, result);
+                    tasks.push(task);
                 }
             });
 
         // Load user processors
         for (request in _project.build.processors)
         {
-            loadProcessorInto(cacheLoader, _root.join(request.source), request.flags, result);
+            tasks.push(_executor.submit(() -> cacheLoader.load(_root.join(request.source), request.flags)));
         }
 
-        return result;
-    }
-
-    /**
-     * Load a processor into a map structure based on its IDs.
-     * @param _cache Cache objecto used to load the processor.
-     * @param _path Absolute path to the processor script file.
-     * @param _flags Extra haxe arguments needed for the processor script.
-     * @param _result Result object to store various bits of information about the loading.
-     */
-    function loadProcessorInto(_cache : Cache, _path : Path, _flags : String, _result : ProcessorLoadResult)
-    {
-        final result = _cache.load(_path, _flags);
-
-        for (id in result.processor.ids())
+        // Process each task
+        for (task in tasks)
         {
-            if (_result.loaded.exists(id))
+            switch task.waitAndGet(-1)
             {
-                Console.warn('replacing existing processor for $id');
+                case SUCCESS(result, _, _):
+                    loadResults.names.push(result.source.filenameStem);
+
+                    for (id in result.processor.ids())
+                    {
+                        loadResults.loaded.set(id, result.processor);
+                    }
+
+                    if (result.wasRecompiled)
+                    {
+                        loadResults.recompiled.push(result.source.filenameStem);
+                    }
+
+                    task.cancel();
+                case FAILURE(ex, _, _):
+                    ex.rethrow();
+                case NONE(_):
+                    throw new Exception('Unexpected task result of NONE');
             }
-
-            _result.loaded.set(id, result.processor);
         }
 
-        if (result.wasRecompiled)
-        {
-            _result.recompiled.push(_path.filenameStem);
-        }
-
-        _result.names.push(_path.filenameStem);
+        return loadResults;
     }
 }

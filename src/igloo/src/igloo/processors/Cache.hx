@@ -84,7 +84,7 @@ class Cache
             wasRecompiled = true;
         }
 
-        return new CacheLoadResult(loadCompiledScript(precompiledScript), wasRecompiled);
+        return new CacheLoadResult(_path, loadCompiledScript(precompiledScript), wasRecompiled);
     }
 
     /**
@@ -145,14 +145,17 @@ class Cache
     }
 }
 
-private class CacheLoadResult
+class CacheLoadResult
 {
+    public final source : Path;
+
     public final processor : AssetProcessor<Any>;
 
     public final wasRecompiled : Bool;
 
-    public function new(_processor, _wasRecompiled)
+    public function new(_source, _processor, _wasRecompiled)
     {
+        source        = _source;
         processor     = _processor;
         wasRecompiled = _wasRecompiled;
     }
