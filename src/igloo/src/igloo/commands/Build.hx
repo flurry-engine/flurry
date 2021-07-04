@@ -316,9 +316,13 @@ class Build
 
     function loadProjectProcessors(_executor : Executor, _root : Path, _project : Project)
     {
-        final cacheLoader = new Cache(_root.joinAll([ _project.app.output, 'cache', 'processors' ]));
-        final loadResults = new ProcessorLoadResult();
-        final tasks       = [];
+        final processorDir = _root.joinAll([ _project.app.output, 'cache', 'processors' ]);
+        final cacheLoader  = new Cache(processorDir);
+        final loadResults  = new ProcessorLoadResult();
+        final tasks        = [];
+
+        // cppia compilation will fail if the output directory doesn't exist, ensure it does.
+        processorDir.toDir().create();
 
         // Load default flurry processors
         getIglooBuiltInScriptsDir()
