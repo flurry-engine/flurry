@@ -50,6 +50,7 @@ class Cache
         final sourceLastModified = _path.getModificationTime();
         final sourceFlagsHash    = Md5.encode(_flags);
 
+        var wasRecompiled = false;
         if (precompiledScript.exists() && scriptHashPath.exists())
         {
             Console.log('Cached script found');
@@ -67,6 +68,8 @@ class Cache
                 // Details about the processor script have changed since the cache, need to recompile.
                 compileScript(_path, precompiledScript, _flags);
                 outputCacheHash(scriptHashPath, sourceLastModified, sourceFlagsHash);
+
+                wasRecompiled = true;
             }
         }
         else
@@ -77,9 +80,11 @@ class Cache
             // There is no cached script, so compile the source and cache it.
             compileScript(_path, precompiledScript, _flags);
             outputCacheHash(scriptHashPath, sourceLastModified, sourceFlagsHash);
+
+            wasRecompiled = true;
         }
 
-        return loadCompiledScript(precompiledScript);
+        return new CacheLoadResult(loadCompiledScript(precompiledScript), wasRecompiled);
     }
 
     /**
@@ -137,5 +142,18 @@ class Cache
         module.boot();
 
         return Type.createInstance(objClass, []);
+    }
+}
+
+private class CacheLoadResult
+{
+    public final processor : AssetProcessor<Any>;
+
+    public final wasRecompiled : Bool;
+
+    public function new(_processor, _wasRecompiled)
+    {
+        processor     = _processor;
+        wasRecompiled = _wasRecompiled;
     }
 }

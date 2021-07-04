@@ -1,5 +1,6 @@
 package igloo.commands;
 
+import igloo.processors.ProcessorLoadResults.ProcessorLoadResult;
 import hx.files.File.FileCopyOption;
 import hx.files.Dir;
 import igloo.utils.GraphicsApi;
@@ -212,7 +213,7 @@ class Build
                 // Copy to the cpp build directory as well, this allows us to load the exe into visual studio
                 // for debugging without manually copying files
 
-                final parcelPath      = build(context, parcel, bundle.assets, processors);
+                final parcelPath      = build(context, parcel, bundle.assets, processors, graphicsBackend);
                 final parcelBuildPath = buildDir.joinAll([ 'assets', parcelPath.filename ]);
                 final parcelFinalPath = finalDir.joinAll([ 'assets', parcelPath.filename ]);
 
@@ -314,8 +315,8 @@ class Build
 
     function loadProjectProcessors(_root : Path, _project : Project)
     {
-        final cacheLoader      = new Cache(_root.joinAll([ _project.app.output, 'cache', 'processors' ]));
-        final loadedProcessors = new Map();
+        final cacheLoader = new Cache(_root.joinAll([ _project.app.output, 'cache', 'processors' ]));
+        final result      = new ProcessorLoadResult();
 
         // Load default flurry processors
         getIglooBuiltInScriptsDir()
@@ -326,31 +327,45 @@ class Build
                     final flagsPath = file.path.parent.join(file.path.filenameStem + '.flags');
                     final flagsText = if (flagsPath.exists()) flagsPath.toFile().readAsString() else '';
 
-                    loadProcessorInto(cacheLoader, file.path, flagsText, loadedProcessors);
+                    loadProcessorInto(cacheLoader, file.path, flagsText, result);
                 }
             });
 
         // Load user processors
         for (request in _project.build.processors)
         {
-            loadProcessorInto(cacheLoader, _root.join(request.source), request.flags, loadedProcessors);
+            loadProcessorInto(cacheLoader, _root.join(request.source), request.flags, result);
         }
 
-        return loadedProcessors;
+        return result;
     }
 
-    function loadProcessorInto(_cache : Cache, _path : Path, _flags : String, _store : Map<String, AssetProcessor<Any>>)
+    /**
+     * Load a processor into a map structure based on its IDs.
+     * @param _cache Cache objecto used to load the processor.
+     * @param _path Absolute path to the processor script file.
+     * @param _flags Extra haxe arguments needed for the processor script.
+     * @param _result Result object to store various bits of information about the loading.
+     */
+    function loadProcessorInto(_cache : Cache, _path : Path, _flags : String, _result : ProcessorLoadResult)
     {
-        final obj = _cache.load(_path, _flags);
+        final result = _cache.load(_path, _flags);
 
-        for (id in obj.ids())
+        for (id in result.processor.ids())
         {
-            if (_store.exists(id))
+            if (_result.loaded.exists(id))
             {
                 Console.warn('replacing existing processor for $id');
             }
 
-            _store.set(id, obj);
+            _result.loaded.set(id, result.processor);
         }
+
+        if (result.wasRecompiled)
+        {
+            _result.recompiled.push(_path.filenameStem);
+        }
+
+        _result.names.push(_path.filenameStem);
     }
 }

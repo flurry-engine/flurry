@@ -1,5 +1,7 @@
 package igloo.parcels;
 
+import igloo.utils.GraphicsApi;
+import igloo.processors.ProcessorLoadResults.ProcessorLoadResult;
 import haxe.Exception;
 import haxe.ds.Vector;
 import haxe.ds.Either;
@@ -8,7 +10,6 @@ import haxe.io.BytesOutput;
 import igloo.processors.PackRequest;
 import igloo.processors.AssetRequest;
 import igloo.processors.ProcessedAsset;
-import igloo.processors.AssetProcessor;
 import igloo.blit.Blitter;
 import igloo.atlas.Atlas;
 
@@ -16,12 +17,12 @@ using Lambda;
 using Safety;
 using igloo.parcels.ParcelWriter;
 
-function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _processors : Map<String, AssetProcessor<Any>>)
+function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _processors : ProcessorLoadResult, _gpuApi : GraphicsApi)
 {
     final parcelFile = _ctx.cacheDirectory.join('${ _parcel.name }.parcel');
-    final parcelHash = _ctx.cacheDirectory.join('${ _parcel.name }.parcel.hash');
+    final parcelMeta = _ctx.cacheDirectory.join('${ _parcel.name }.parcel.meta');
     final assets     = resolveAssets(_parcel.assets, _all);
-    final cache      = new ParcelCache(_ctx.assetDirectory, parcelFile, parcelHash, assets, _processors);
+    final cache      = new ParcelCache(_ctx.assetDirectory, parcelFile, parcelMeta, assets, _processors, _gpuApi);
 
     if (cache.isValid())
     {
@@ -31,7 +32,7 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
     }
     else
     {
-        cache.writeHashFile();
+        cache.writeMetaFile();
     }
 
     Console.log('Cached parcel is invalid');
@@ -44,7 +45,7 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
     for (asset in assets)
     {
         final ext  = haxe.io.Path.extension(asset.path);
-        final proc = _processors.get(ext);
+        final proc = _processors.loaded.get(ext);
 
         if (proc == null)
         {
@@ -114,7 +115,7 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
     // Finally call the write function of processors passing in the appropriate asset data.
     for (ext => assets in packed)
     {
-        final proc = _processors.get(ext);
+        final proc = _processors.loaded.get(ext);
 
         if (proc == null)
         {

@@ -1,5 +1,10 @@
 package igloo.parcels;
 
+import igloo.processors.ProcessorLoadResults.ProcessorLoadResult;
+import json2object.ErrorUtils;
+import json2object.JsonParser;
+import json2object.JsonWriter;
+import igloo.utils.GraphicsApi;
 import haxe.Exception;
 import igloo.processors.AssetProcessor;
 import haxe.io.Eof;
@@ -24,11 +29,9 @@ class ParcelCache
 
     /**
      * Absolute path to the cached parcel hash file.
-     * This text files contains multiple lines.
-     * The first line is the timestamp for when the parcel was built.
-     * Lines following that is a list of all the IDs of the assets within the parcel.
+     * This json file contains information about the environment the cached parcel was built in.
      */
-    final cachedParcelHash : Path;
+    final cachedParcelMeta : Path;
 
     /**
      * List of all assets we want to go into the parcel.
@@ -37,15 +40,24 @@ class ParcelCache
      */
     final assets : Vector<Asset>;
 
-    final processors : Map<String, AssetProcessor<Any>>;
+    /**
+     * The result object of all processors being loaded.
+     */
+    final processors : ProcessorLoadResult;
 
-	public function new(_assetDir, _cachedParcel, _cachedParcelHash, _assets, _processors)
+    /**
+     * The gaphics API current used.
+     */
+    final gpuApi : GraphicsApi;
+
+	public function new(_assetDir, _cachedParcel, _cachedParcelMeta, _assets, _processors, _gpuApi)
     {
-		assetDir         = _assetDir;
-		cachedParcel     = _cachedParcel;
-		cachedParcelHash = _cachedParcelHash;
-        assets           = _assets;
-        processors       = _processors;
+		assetDir          = _assetDir;
+		cachedParcel      = _cachedParcel;
+		cachedParcelMeta  = _cachedParcelMeta;
+        assets            = _assets;
+        processors        = _processors;
+        gpuApi            = _gpuApi;
 	}
 
     /**
@@ -53,47 +65,62 @@ class ParcelCache
      */
     public function isValid()
     {
-        if (!cachedParcel.exists() || !cachedParcelHash.exists())
+        if (!cachedParcel.exists() || !cachedParcelMeta.exists())
         {
             Console.debug('Cached parcel or hash file does not exist');
 
             return false;
         }
 
-        // Read the time the cached parcel was created and all assets included within.
-        final hashStream       = cachedParcelHash.toFile().openInput(false);
-        final cachedParcelTime = Std.parseFloat(hashStream.readLine());
-        final contains         = [];
-        try
+        final metaParser = new JsonParser<ParcelMeta>();
+        final metaFile   = metaParser.fromJson(cachedParcelMeta.toFile().readAsString());
+
+        if (metaParser.errors.length > 0)
         {
-            while (!hashStream.eof())
-            {
-                contains.push(hashStream.readLine());
-            }
+            Console.debug('Unable to parse parcel meta file');
+            Console.debug(ErrorUtils.convertErrorArray(metaParser.errors));
+
+            return false;
         }
-        catch (e : Eof)
+
+        // Processors might output different data based on the graphics api.
+        // If the cached parcel was built with a different api to the current it is invalid.
+        if (gpuApi != metaFile.gpuApi)
         {
-            //
+            Console.debug('Parcel was generated with a different graphics api');
+
+            return false;
+        }
+
+        // If any of the recompiled processors were used in creating the cached parcel it is invalid.
+        for (processor in processors.recompiled)
+        {
+            if (metaFile.processorsInvolved.contains(processor))
+            {
+                Console.debug('processor $processor was recompiled and has invalidated the parcel');
+
+                return false;
+            }
         }
 
         // For each asset we want to pack see if its in the cached parcel
         // If it is check its modification date against the cached parcels.
         for (asset in assets)
         {
-            if (contains.find(i -> i == asset.id) == null)
+            if (metaFile.assetsPacked.find(i -> i == asset.id) == null)
             {
-                Console.debug('asset ${ asset.id } not found in the parcel hash ${ cachedParcelHash }');
+                Console.debug('asset ${ asset.id } not found in the parcel hash ${ cachedParcelMeta }');
 
                 return false;
             }
             else
             {
                 final abs  = assetDir.join(asset.path);
-                final proc = processors.get(abs.filenameExt);
+                final proc = processors.loaded.get(abs.filenameExt);
 
                 if (proc != null)
                 {
-                    if (proc.isInvalid(abs, cachedParcelTime))
+                    if (proc.isInvalid(abs, metaFile.timeGenerated))
                     {
                         Console.debug('asset ${ asset.id } is invalid according to processor ${ abs.filenameExt }');
     
@@ -110,20 +137,59 @@ class ParcelCache
         return true;
     }
 
-    /**
-     * Create a hash file for the assets which were passed into the constructor.
-     */
-    public function writeHashFile()
+    public function writeMetaFile()
     {
-        final output = cachedParcelHash.toFile().openOutput(REPLACE, false);
-
-        output.writeString('${ Date.now().getTime() }\n');
+        final writer   = new JsonWriter<ParcelMeta>();
+        final assets   = [ for (asset in assets) asset.id ];
+        final metaFile = new ParcelMeta(Date.now().getTime(), gpuApi, processors.names, assets);
+        final json     = writer.write(metaFile);
         
-        for (asset in assets)
-        {
-            output.writeString('${ asset.id }\n');
-        }
+        cachedParcelMeta.toFile().writeString(json);
+    }
+}
 
-        output.close();
+/**
+ * Each parcel has a .meta file which is a json structure describing the environment when the cached parcel was built.
+ * We compare that against the current environment to see if it is still valid or needs rebuilding.
+ */
+class ParcelMeta
+{
+    /**
+     * The commit hash the igloo tool was built from when building the cached parcel.
+     * If this does not match the current igloo tools commit has the parcel is invalid.
+     */
+    public var flurryVersion : String;
+
+    /**
+     * The date time stamp the cached parcel was created at.
+     * This value is passed to asset processors to decide if the assets are still valid.
+     */
+    public var timeGenerated : Float;
+
+    /**
+     * The graphics api that was set when the cached parcel was created.
+     * If this differs from the current one the parcel will be invalid.
+     */
+    public var gpuApi : GraphicsApi;
+
+    /**
+     * List of all processors which were used when building the cached parcel.
+     * If any processor in this list was re-compiled for this build the parcel will be invalid.
+     */
+    public var processorsInvolved : Array<String>;
+
+    /**
+     * IDs of all the assets in the cached parcel.
+     * If one of the assets we want to pack for this build is not already in the parcel it is immediately invalidated.
+     */
+    public var assetsPacked : Array<String>;
+
+    public function new(_timeGenerated, _gpuApi, _processorsInvolved, _assetsPacked)
+    {
+        flurryVersion      = '';
+        timeGenerated      = _timeGenerated;
+        gpuApi             = _gpuApi;
+        processorsInvolved = _processorsInvolved;
+        assetsPacked       = _assetsPacked;
     }
 }
