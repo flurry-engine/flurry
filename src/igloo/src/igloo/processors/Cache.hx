@@ -1,5 +1,9 @@
 package igloo.processors;
 
+import igloo.logger.Log;
+import igloo.logger.Log.ScriptLogger;
+import haxe.Exception;
+import haxe.MainLoop;
 import igloo.macros.BuildPaths;
 import sys.io.Process;
 import cpp.cppia.Module;
@@ -43,17 +47,18 @@ class Cache
      */
     public function load(_path : Path, _flags : String)
     {
-        Console.log('Loading script $_path');
-
+        final logger             = new ScriptLogger(_path.filenameStem);
         final precompiledScript  = directory.join('${ _path.filenameStem }.cppia');
         final scriptHashPath     = directory.join('${ _path.filenameStem }.cppia.hash');
         final sourceLastModified = _path.getModificationTime();
         final sourceFlagsHash    = Md5.encode(_flags);
 
+        logger.info('Loading script $_path');
+
         var wasRecompiled = false;
         if (precompiledScript.exists() && scriptHashPath.exists())
         {
-            Console.log('Cached script found');
+            logger.info('Cached script found');
 
             // There is a precompiled script and hash file, if its no longer valid recompile from source.
             final input              = scriptHashPath.toFile().openInput(false);
@@ -63,10 +68,10 @@ class Cache
 
             if (sourceLastModified > cachedLastModified || cachedFlagsHash != sourceFlagsHash)
             {
-                Console.log('Cached script is invalid');
+                logger.info('Cached script is invalid');
 
                 // Details about the processor script have changed since the cache, need to recompile.
-                compileScript(_path, precompiledScript, _flags);
+                compileScript(logger, _path, precompiledScript, _flags);
                 outputCacheHash(scriptHashPath, sourceLastModified, sourceFlagsHash);
 
                 wasRecompiled = true;
@@ -74,11 +79,8 @@ class Cache
         }
         else
         {
-            // cppia compilation will fail if the output directory doesn't exist, ensure it does.
-            precompiledScript.parent.toDir().create();
-
             // There is no cached script, so compile the source and cache it.
-            compileScript(_path, precompiledScript, _flags);
+            compileScript(logger, _path, precompiledScript, _flags);
             outputCacheHash(scriptHashPath, sourceLastModified, sourceFlagsHash);
 
             wasRecompiled = true;
@@ -90,25 +92,24 @@ class Cache
     /**
      * Compiles the provided haxe file as a cppia script.
      * If compilation is unsuccessful the stderr of haxe is piped to this programs stdout and exits with a non zero code.
+     * @param _logger
      * @param _path Absolute path to the haxe file to compile.
      * @param _output Absolute path of the generated cppia file.
      * @param _flags Haxe cli command line flags to provide.
      */
-    function compileScript(_path : Path, _output : Path, _flags : String)
+    function compileScript(_logger : Log, _path : Path, _output : Path, _flags : String)
     {
         final proc = new Process('npx haxe -p $iglooCodePath -p ${ _path.parent } -L haxe-files -D dll_import=$iglooDllExportFile ${ _path.filenameStem } $_flags --cppia $_output');
         final exit = proc.exitCode();
         
         if (exit == 0)
         {
-            Console.success('Compiled $_path');
-            Console.debug(proc.stdout.readAll());
+            _logger.success('Compiled $_path');
+            _logger.debug(proc.stdout.readAll().toString());
         }
         else
         {
-            Console.error('Failed to compile $_path');
-            Console.error(proc.stderr.readAll());
-            Sys.exit(1);
+            throw new Exception(proc.stderr.readAll().toString());
         }
 
         proc.close();

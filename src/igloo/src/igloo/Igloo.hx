@@ -1,9 +1,15 @@
 package igloo;
 
+import haxe.MainLoop;
 import tink.Cli;
 import igloo.commands.Build;
 
 function main()
+{
+    MainLoop.addThread(start);
+}
+
+function start()
 {
     Cli.process(Sys.args(), new Igloo()).handle(Cli.exit);
 }

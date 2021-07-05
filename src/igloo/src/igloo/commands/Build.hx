@@ -119,7 +119,7 @@ class Build
         }
 
         final outputDir  = projectPath.parent.join(project.app.output);
-        final executor   = Executor.create(Concurrency.hardwareConcurrency());
+        final executor   = Executor.create(cpp.NativeMath.idiv(Concurrency.hardwareConcurrency(), 2));
         final tools      = fetchTools(outputDir);
         final processors = loadProjectProcessors(executor, projectPath.parent, project);
 
@@ -130,6 +130,81 @@ class Build
 
         buildDir.toDir().create();
         finalDir.toDir().create();
+
+        // Building Assets
+
+        var packagingFailureCount = 0;
+
+        for (bundlePath in project.parcels)
+        {
+            final parcelPath   = projectPath.parent.join(bundlePath);
+            final baseAssetDir = parcelPath.parent;
+            final bundle       = packageParser.fromJson(parcelPath.toFile().readAsString());
+
+            if (packageParser.errors.length > 0)
+            {
+                Console.error('Failed to parse package file ${ parcelPath.toString() }');
+                Console.error(ErrorUtils.convertErrorArray(packageParser.errors));
+
+                continue;
+            }
+
+            for (parcel in bundle.parcels)
+            {
+                Console.log('Building ${ parcel.name }');
+
+                final tempOutput   = outputDir.joinAll([ 'tmp', parcel.name ]);
+                final parcelCache  = outputDir.joinAll([ 'cache', 'parcels' ]);
+                final context      = new ParcelContext(
+                    baseAssetDir,
+                    tempOutput,
+                    parcelCache,
+                    graphicsBackend,
+                    tools,
+                    executor);
+
+                tempOutput.toDir().create();
+                parcelCache.toDir().create();
+
+                try
+                {   
+                    // Build and copy over the parcel
+                    // Copy to the cpp build directory as well, this allows us to load the exe into visual studio
+                    // for debugging without manually copying files
+    
+                    final parcelPath      = build(context, parcel, bundle.assets, processors, graphicsBackend);
+                    final parcelBuildPath = buildDir.joinAll([ 'assets', parcelPath.filename ]);
+                    final parcelFinalPath = finalDir.joinAll([ 'assets', parcelPath.filename ]);
+    
+                    parcelBuildPath.parent.toDir().create();
+                    parcelFinalPath.parent.toDir().create();
+    
+                    parcelPath.toFile().copyTo(parcelBuildPath, [ FileCopyOption.OVERWRITE ]);
+                    parcelPath.toFile().copyTo(parcelFinalPath, [ FileCopyOption.OVERWRITE ]);
+                }
+                catch (e)
+                {
+                    // In the event of an error we will log it and try and package the rest of the parcels
+                    // We will remove the cached parcel directory to avoid any cache issues.
+
+                    Console.error('Packaging ${ parcel.name } failed');
+                    Console.error(e.details());
+
+                    parcelCache.toDir().delete(true);
+
+                    packagingFailureCount++;
+                }
+
+                tempOutput.toDir().delete(true);
+            }
+        }
+
+        if (packagingFailureCount > 0)
+        {
+            Console.error('$packagingFailureCount parcels were not packaged');
+
+            Sys.exit(-1);
+        }
 
         // Building Code
 
@@ -142,6 +217,8 @@ class Build
 
             if (Sys.command('npx', [ 'haxe', hxmlPath.toString() ]) != 0)
             {
+                Console.error('Failed to build flurry host');
+
                 Sys.exit(-1);
             }
 
@@ -178,54 +255,6 @@ class Build
 
             script.copyTo(buildScript, [ FileCopyOption.OVERWRITE ]);
             script.copyTo(finalScript, [ FileCopyOption.OVERWRITE ]);
-        }
-
-        // Building Assets
-
-        for (bundlePath in project.parcels)
-        {
-            final parcelPath   = projectPath.parent.join(bundlePath);
-            final baseAssetDir = parcelPath.parent;
-            final bundle       = packageParser.fromJson(parcelPath.toFile().readAsString());
-
-            if (packageParser.errors.length > 0)
-            {
-                throw new Exception(ErrorUtils.convertErrorArray(packageParser.errors));
-            }
-
-            for (parcel in bundle.parcels)
-            {
-                Console.log('Building ${ parcel.name }');
-
-                final tempOutput   = outputDir.joinAll([ 'tmp', parcel.name ]);
-                final parcelCache  = outputDir.joinAll([ 'cache', 'parcels' ]);
-                final context      = new ParcelContext(
-                    baseAssetDir,
-                    tempOutput,
-                    parcelCache,
-                    graphicsBackend,
-                    tools,
-                    executor);
-
-                tempOutput.toDir().create();
-                parcelCache.toDir().create();
-
-                // Build and copy over the parcel
-                // Copy to the cpp build directory as well, this allows us to load the exe into visual studio
-                // for debugging without manually copying files
-
-                final parcelPath      = build(context, parcel, bundle.assets, processors, graphicsBackend);
-                final parcelBuildPath = buildDir.joinAll([ 'assets', parcelPath.filename ]);
-                final parcelFinalPath = finalDir.joinAll([ 'assets', parcelPath.filename ]);
-
-                parcelBuildPath.parent.toDir().create();
-                parcelFinalPath.parent.toDir().create();
-
-                parcelPath.toFile().copyTo(parcelBuildPath, [ FileCopyOption.OVERWRITE ]);
-                parcelPath.toFile().copyTo(parcelFinalPath, [ FileCopyOption.OVERWRITE ]);
-
-                tempOutput.toDir().delete(true);
-            }
         }
 
         // Copy over the executable
@@ -364,6 +393,9 @@ class Build
 
                     task.cancel();
                 case FAILURE(ex, _, _):
+                    Console.error('Failed to build script');
+                    Console.error(ex.toString());
+
                     ex.rethrow();
                 case NONE(_):
                     throw new Exception('Unexpected task result of NONE');
