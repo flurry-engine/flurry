@@ -5,5 +5,4 @@ enum PixelFormat
     BGRA;
     RGBA;
     ARGB;
-    RGB;
 }

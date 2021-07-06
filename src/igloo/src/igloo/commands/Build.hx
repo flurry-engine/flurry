@@ -3,7 +3,6 @@ package igloo.commands;
 import igloo.utils.Concurrency;
 import igloo.processors.ProcessorLoadResults.ProcessorLoadResult;
 import hx.files.File.FileCopyOption;
-import hx.files.Dir;
 import igloo.utils.GraphicsApi;
 import igloo.haxe.Haxe;
 import igloo.macros.Platform;
@@ -17,7 +16,6 @@ import igloo.parcels.Builder;
 import igloo.parcels.ParcelContext;
 import igloo.project.Project;
 import igloo.processors.Cache;
-import igloo.processors.AssetProcessor;
 import json2object.ErrorUtils;
 import json2object.JsonParser;
 
@@ -26,6 +24,8 @@ class Build
     final packageParser : JsonParser<Package>;
 
     final projectParser : JsonParser<Project>;
+
+    var projectAssetCounter : Int;
 
     /**
      * If set the output executable will be launched after building.
@@ -101,8 +101,9 @@ class Build
 
     public function new()
     {
-        projectParser = new JsonParser<Project>();
-        packageParser = new JsonParser<Package>();
+        projectParser       = new JsonParser<Project>();
+        packageParser       = new JsonParser<Package>();
+        projectAssetCounter = 0;
     }
 
     @:defaultCommand
@@ -132,8 +133,6 @@ class Build
         finalDir.toDir().create();
 
         // Building Assets
-
-        var packagingFailureCount = 0;
 
         for (bundlePath in project.parcels)
         {
@@ -172,7 +171,7 @@ class Build
                     // Copy to the cpp build directory as well, this allows us to load the exe into visual studio
                     // for debugging without manually copying files
     
-                    final parcelPath      = build(context, parcel, bundle.assets, processors, graphicsBackend);
+                    final parcelPath      = build(context, parcel, bundle.assets, processors, graphicsBackend, getAssetID);
                     final parcelBuildPath = buildDir.joinAll([ 'assets', parcelPath.filename ]);
                     final parcelFinalPath = finalDir.joinAll([ 'assets', parcelPath.filename ]);
     
@@ -191,19 +190,13 @@ class Build
                     Console.error(e.details());
 
                     parcelCache.toDir().delete(true);
+                    tempOutput.toDir().delete(true);
 
-                    packagingFailureCount++;
+                    return;
                 }
 
                 tempOutput.toDir().delete(true);
             }
-        }
-
-        if (packagingFailureCount > 0)
-        {
-            Console.error('$packagingFailureCount parcels were not packaged');
-
-            Sys.exit(-1);
         }
 
         // Building Code
@@ -403,5 +396,10 @@ class Build
         }
 
         return loadResults;
+    }
+
+    function getAssetID()
+    {
+        return projectAssetCounter++;
     }
 }

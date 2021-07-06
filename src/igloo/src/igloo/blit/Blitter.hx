@@ -34,15 +34,55 @@ private function getDataForRequest(_request : PackRequest)
 {
     return switch _request
     {
-        case Image(path):
+        case Image(_, path):
             final data = stb.Image.load(path.toString(), 4);
 
             haxe.io.Bytes.ofData(data.bytes);
-        case Bytes(bytes, _, _, format):
+        case Bytes(_, bytes, width, height, format):
             switch format
             {
                 case RGBA:
                     bytes;
+                case BGRA:
+                    // Swizzle to RGBA
+                    for (row in 0...height)
+                    {
+                        for (col in 0...width)
+                        {
+                            final base = row + col * 4;
+                            final b    = bytes.get(base + 0);
+                            final g    = bytes.get(base + 1);
+                            final r    = bytes.get(base + 2);
+                            final a    = bytes.get(base + 3);
+
+                            bytes.set(base + 0, r);
+                            bytes.set(base + 0, g);
+                            bytes.set(base + 0, b);
+                            bytes.set(base + 0, a);
+                        }
+                    }
+
+                    bytes;
+                case ARGB:
+                        // Swizzle to RGBA
+                        for (row in 0...height)
+                        {
+                            for (col in 0...width)
+                            {
+                                final base = row + col * 4;
+                                final a    = bytes.get(base + 0);
+                                final r    = bytes.get(base + 1);
+                                final g    = bytes.get(base + 2);
+                                final b    = bytes.get(base + 3);
+    
+                                bytes.set(base + 0, r);
+                                bytes.set(base + 0, g);
+                                bytes.set(base + 0, b);
+                                bytes.set(base + 0, a);
+                            }
+                        }
+    
+                        bytes;
                 case other:
                     throw new Exception('Bytes format $other is not yet supported');
             }

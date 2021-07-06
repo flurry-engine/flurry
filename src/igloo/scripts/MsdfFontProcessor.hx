@@ -1,3 +1,5 @@
+import igloo.processors.PackedAsset;
+import igloo.utils.OneOf;
 import igloo.processors.PackRequest;
 import haxe.Json;
 import haxe.Exception;
@@ -43,66 +45,60 @@ class MsdfFontProcessor extends AssetProcessor<FontDefinition>
             throw new Exception('Unable to parse font json');
         }
 
-        return new AssetRequest(font, Pack(PackRequest.Image(imageOut)));
+        return new AssetRequest(font, Pack(Image(_asset.id, imageOut)));
 	}
 
-	override public function write(_ctx:ParcelContext, _writer:Output, _asset:ProcessedAsset<FontDefinition>)
+	override public function write(_ctx:ParcelContext, _writer:Output, _data : FontDefinition, _either : OneOf<PackedAsset, String>)
     {
-        switch _asset.response
+        final frame = _either.toA();
+
+        _writer.writePrefixedString(frame.id);
+        _writer.writeInt32(frame.pageID);
+
+        _writer.writeFloat(_data.metrics.lineHeight);
+        _writer.writeInt32(_data.glyphs.length);
+
+        for (char in _data.glyphs)
         {
-            case Packed(packed):
-                final frame = packed.toAsset();
+            _writer.writeInt32(char.unicode);
+            _writer.writeFloat(char.advance);
 
-                _writer.writePrefixedString(_asset.id);
-                _writer.writePrefixedString(frame.pageName);
+            if (char.atlasBounds != null && char.planeBounds != null)
+            {
+                // glyph atlas coords are packed bottom left origin so we transform to top left origin
+                final ax = char.atlasBounds.left;
+                final ay = (_data.atlas.height - char.atlasBounds.top);
+                final aw = char.atlasBounds.right - char.atlasBounds.left;
+                final ah = (_data.atlas.height - char.atlasBounds.bottom) - (_data.atlas.height - char.atlasBounds.top);
 
-                _writer.writeFloat(_asset.data.metrics.lineHeight);
-                _writer.writeInt32(_asset.data.glyphs.length);
+                final pLeft   = char.planeBounds.left;
+                final pTop    = 1 - char.planeBounds.top;
+                final pRight  = char.planeBounds.right;
+                final pBottom = 1 - char.planeBounds.bottom;
 
-                for (char in _asset.data.glyphs)
-                {
-                    _writer.writeInt32(char.unicode);
-                    _writer.writeFloat(char.advance);
+                _writer.writeFloat(pLeft);
+                _writer.writeFloat(pTop);
+                _writer.writeFloat(pRight);
+                _writer.writeFloat(pBottom);
 
-                    if (char.atlasBounds != null && char.planeBounds != null)
-                    {
-                        // glyph atlas coords are packed bottom left origin so we transform to top left origin
-                        final ax = char.atlasBounds.left;
-                        final ay = (_asset.data.atlas.height - char.atlasBounds.top);
-                        final aw = char.atlasBounds.right - char.atlasBounds.left;
-                        final ah = (_asset.data.atlas.height - char.atlasBounds.bottom) - (_asset.data.atlas.height - char.atlasBounds.top);
-    
-                        final pLeft   = char.planeBounds.left;
-                        final pTop    = 1 - char.planeBounds.top;
-                        final pRight  = char.planeBounds.right;
-                        final pBottom = 1 - char.planeBounds.bottom;
+                _writer.writeFloat((frame.x + ax) / frame.pageWidth);
+                _writer.writeFloat((frame.y + ay) / frame.pageHeight);
+                _writer.writeFloat((frame.x + ax + aw) / frame.pageWidth);
+                _writer.writeFloat((frame.y + ay + ah) / frame.pageHeight);
 
-                        _writer.writeFloat(pLeft);
-                        _writer.writeFloat(pTop);
-                        _writer.writeFloat(pRight);
-                        _writer.writeFloat(pBottom);
+            }
+            else
+            {
+                _writer.writeFloat(0);
+                _writer.writeFloat(0);
+                _writer.writeFloat(0);
+                _writer.writeFloat(0);
 
-                        _writer.writeFloat((frame.x + ax) / frame.pageWidth);
-                        _writer.writeFloat((frame.y + ay) / frame.pageHeight);
-                        _writer.writeFloat((frame.x + ax + aw) / frame.pageWidth);
-                        _writer.writeFloat((frame.y + ay + ah) / frame.pageHeight);
-
-                    }
-                    else
-                    {
-                        _writer.writeFloat(0);
-                        _writer.writeFloat(0);
-                        _writer.writeFloat(0);
-                        _writer.writeFloat(0);
-
-                        _writer.writeFloat(0);
-                        _writer.writeFloat(0);
-                        _writer.writeFloat(0);
-                        _writer.writeFloat(0);
-                    }
-                }
-            case NotPacked:
-                //
+                _writer.writeFloat(0);
+                _writer.writeFloat(0);
+                _writer.writeFloat(0);
+                _writer.writeFloat(0);
+            }
         }
     }
 }

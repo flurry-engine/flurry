@@ -3,9 +3,9 @@ package igloo.processors;
 class PackedAsset
 {
     /**
-     * The name of the atlas page this asset is contain within.
+     * The ID of the atlas page this asset is contain within.
      */
-    public final pageName : String;
+    public final pageID : Int;
 
 	/**
 	 * The width in pixels of the page this asset is contained within.
@@ -18,9 +18,9 @@ class PackedAsset
 	public final pageHeight : Int;
 
 	/**
-	 * The request which generated this packed asset.
+	 * ID of the asset.
 	 */
-	public final request : PackRequest;
+	public final id : String;
 
     public final x : Int;
 
@@ -38,12 +38,12 @@ class PackedAsset
 
 	public final v2 : Float;
 
-	public function new(_pageName, _pageWidth, _pageHeight, _request, _x, _y, _w, _h, _u1, _v1, _u2, _v2)
+	public function new(_pageID, _pageWidth, _pageHeight, _id, _x, _y, _w, _h, _u1, _v1, _u2, _v2)
 	{
-		pageName   = _pageName;
+		pageID     = _pageID;
 		pageWidth  = _pageWidth;
 		pageHeight = _pageHeight;
-		request    = _request;
+		id         = _id;
 		x          = _x;
 		y          = _y;
 		w          = _w;

@@ -1,3 +1,5 @@
+import igloo.utils.OneOf;
+import igloo.processors.PackedAsset;
 import sys.io.Process;
 import haxe.ds.Option;
 import haxe.Json;
@@ -8,7 +10,6 @@ import hx.files.Path;
 import igloo.parcels.ParcelContext;
 import igloo.parcels.Asset;
 import igloo.processors.AssetRequest;
-import igloo.processors.ProcessedAsset;
 import igloo.processors.AssetProcessor;
 
 using Lambda;
@@ -76,7 +77,7 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 					throw new Exception('Failed to generate core 3.3 glsl fragment shader');
 				}
 
-				new AssetRequest(new ProducedShader(vertReflection, fragReflection, vertGlslPath, fragGlslPath), None);
+				new AssetRequest(new ProducedShader(vertReflection, fragReflection, vertGlslPath, fragGlslPath), None(_asset.id));
 			case 'd3d11':
 				final vertHlslPath = _ctx.tempDirectory.join(_asset.id + '.vert.hlsl');
 				final fragHlslPath = _ctx.tempDirectory.join(_asset.id + '.frag.hlsl');
@@ -105,7 +106,7 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 							throw new Exception('Failed to generate fragment dxbc');
 						}
 
-						new AssetRequest(new ProducedShader(vertReflection, fragReflection, vertDxbcPath, fragDxbcPath), None);
+						new AssetRequest(new ProducedShader(vertReflection, fragReflection, vertDxbcPath, fragDxbcPath), None(_asset.id));
 					case None:
 						throw new Exception('Unable to find fxc.exe path');
 				}
@@ -114,9 +115,9 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 		}
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<ProducedShader>)
+	override public function write(_ctx : ParcelContext, _writer : Output, _data : ProducedShader, _either : OneOf<PackedAsset, String>)
 	{
-		_writer.writePrefixedString(_asset.id);
+		_writer.writePrefixedString(_either);
 		_writer.writePrefixedString(_ctx.gpuApi);
 
 		switch _ctx.gpuApi
@@ -125,12 +126,12 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 				// OpenGL doesn't really distinguish between vertex and fragment stages when binding.
 				// So we can filter to what we actually want.
 				final blocks = getDistinctBlocks(
-					_asset.data.vertReflection.ubos.or([]),
-					_asset.data.fragReflection.ubos.or([]));
+					_data.vertReflection.ubos.or([]),
+					_data.fragReflection.ubos.or([]));
 		
 				final combined = generateCombinedSamplers(
-					_asset.data.fragReflection.separate_images.or([]),
-					_asset.data.fragReflection.separate_samplers.or([]));
+					_data.fragReflection.separate_images.or([]),
+					_data.fragReflection.separate_samplers.or([]));
 		
 				_writer.writeInt32(blocks.length);
 				for (block in blocks)
@@ -147,8 +148,8 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 				}
 			case 'd3d11':
 				// D3D11 does care about the blocks in each stage, so include the full info.
-				final vertBlocks = _asset.data.vertReflection.ubos.or([]);
-				final fragBlocks = _asset.data.fragReflection.ubos.or([]);
+				final vertBlocks = _data.vertReflection.ubos.or([]);
+				final fragBlocks = _data.fragReflection.ubos.or([]);
 
 				_writer.writeInt32(vertBlocks.length);
 				for (block in vertBlocks)
@@ -162,18 +163,18 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 					_writer.writePrefixedString(block.name);
 				}
 
-				if (_asset.data.fragReflection.separate_images.length != _asset.data.fragReflection.separate_samplers.length)
+				if (_data.fragReflection.separate_images.length != _data.fragReflection.separate_samplers.length)
 				{
 					throw new Exception('Number of samplers and textures do not match');		
 				}
 
-				_writer.writeInt32(_asset.data.fragReflection.separate_images.length);
+				_writer.writeInt32(_data.fragReflection.separate_images.length);
 			case other:
 				throw new Exception('GlslShaderProcessor cannot write shaders for $other');
 		}
 
-		final vertBlob = _asset.data.vertPath.toFile().readAsBytes();
-		final fragBlob = _asset.data.fragPath.toFile().readAsBytes();
+		final vertBlob = _data.vertPath.toFile().readAsBytes();
+		final fragBlob = _data.fragPath.toFile().readAsBytes();
 
 		_writer.writeInt32(vertBlob.length);
 		_writer.write(vertBlob);

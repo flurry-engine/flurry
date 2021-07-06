@@ -1,3 +1,4 @@
+import igloo.utils.OneOf;
 import igloo.processors.PackedAsset;
 import haxe.Exception;
 import haxe.io.Output;
@@ -21,34 +22,28 @@ class ImageResourceProcessor extends AssetProcessor<Int>
 	{
 		final absPath = _ctx.assetDirectory.join(_asset.path);
 		
-		return new AssetRequest(0, Pack(Image(absPath)));
+		return new AssetRequest(0, Pack(Image(_asset.id, absPath)));
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<Int>)
+	override public function write(_ctx : ParcelContext, _writer : Output, _data : Int, _either : OneOf<PackedAsset, String>)
 	{
-		switch _asset.response
-		{
-			case Packed(packed):
-				final frame = packed.toAsset();
+		final frame = _either.toA();
 
-				// Writes the resources ID.
-				_writer.writePrefixedString(_asset.id);
+		// Writes the resources ID.
+		_writer.writePrefixedString(frame.id);
 
-				// Write the ID of the page resource this frame is within.
-				_writer.writePrefixedString(frame.pageName);
+		// Write the ID of the page resource this frame is within.
+		_writer.writeInt32(frame.pageID);
 
-				// Write UV information for the packed frame.
-				_writer.writeInt32(frame.x);
-				_writer.writeInt32(frame.y);
-				_writer.writeInt32(frame.w);
-				_writer.writeInt32(frame.h);
+		// Write UV information for the packed frame.
+		_writer.writeInt32(frame.x);
+		_writer.writeInt32(frame.y);
+		_writer.writeInt32(frame.w);
+		_writer.writeInt32(frame.h);
 
-				_writer.writeFloat(frame.u1);
-				_writer.writeFloat(frame.v1);
-				_writer.writeFloat(frame.u2);
-				_writer.writeFloat(frame.v2);
-			case NotPacked:
-				throw new Exception('Images can only be packed');
-		}
+		_writer.writeFloat(frame.u1);
+		_writer.writeFloat(frame.v1);
+		_writer.writeFloat(frame.u2);
+		_writer.writeFloat(frame.v2);
 	}
 }

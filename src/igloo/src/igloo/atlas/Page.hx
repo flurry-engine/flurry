@@ -7,7 +7,7 @@ import binpacking.MaxRectsPacker;
 
 class Page
 {
-    public final name : String;
+    public final id : Int;
 
     public final xPad : Int;
 
@@ -21,9 +21,9 @@ class Page
 
     final packer : MaxRectsPacker;
 
-    public function new(_name, _xPad, _yPad, _width, _height)
+    public function new(_id, _xPad, _yPad, _width, _height)
     {
-        name   = _name;
+        id     = _id;
         xPad   = _xPad;
         yPad   = _yPad;
         width  = _width;
@@ -32,7 +32,7 @@ class Page
         packer = new MaxRectsPacker(_width, _height, false);
     }
 
-    public function pack(_request, _width, _height)
+    public function pack(_assetName, _request, _width, _height)
     {
         final paddedWidth  = _width + (xPad * 2);
         final paddedHeight = _height + (yPad * 2);
@@ -59,7 +59,7 @@ class Page
 
             frames.push(frame);
 
-            new PackedAsset(name, width, height, _request, xSrc, ySrc, _width, _height, u1, v1, u2, v2);
+            new PackedAsset(id, width, height, _assetName, xSrc, ySrc, _width, _height, u1, v1, u2, v2);
         }
     }
 }

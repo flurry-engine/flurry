@@ -1,5 +1,11 @@
 package igloo.parcels;
 
+import sys.io.FileOutput;
+import igloo.processors.PackedAsset;
+import igloo.utils.OneOf;
+import igloo.processors.AssetProcessor;
+import igloo.parcels.ParcelCache.AssetMeta;
+import igloo.parcels.ParcelCache.PageMeta;
 import igloo.utils.GraphicsApi;
 import igloo.processors.ProcessorLoadResults.ProcessorLoadResult;
 import haxe.Exception;
@@ -7,7 +13,6 @@ import haxe.ds.Vector;
 import haxe.ds.Either;
 import haxe.io.Output;
 import haxe.io.BytesOutput;
-import igloo.processors.PackRequest;
 import igloo.processors.AssetRequest;
 import igloo.processors.ProcessedAsset;
 import igloo.blit.Blitter;
@@ -17,7 +22,7 @@ using Lambda;
 using Safety;
 using igloo.parcels.ParcelWriter;
 
-function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _processors : ProcessorLoadResult, _gpuApi : GraphicsApi)
+function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _processors : ProcessorLoadResult, _gpuApi : GraphicsApi, _nextID : () -> Int)
 {
     final parcelFile = _ctx.cacheDirectory.join('${ _parcel.name }.parcel');
     final parcelMeta = _ctx.cacheDirectory.join('${ _parcel.name }.parcel.meta');
@@ -30,15 +35,11 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
 
         return parcelFile;
     }
-    else
-    {
-        cache.writeMetaFile();
-    }
 
     Console.log('Cached parcel is invalid');
 
     final packed = new Map<String, Array<ProcessedAsset<Any>>>();
-    final atlas  = new Atlas(_parcel.name, _parcel.settings.xPad, _parcel.settings.yPad, _parcel.settings.maxWidth, _parcel.settings.maxHeight);
+    final atlas  = new Atlas(_parcel.settings.xPad, _parcel.settings.yPad, _parcel.settings.maxWidth, _parcel.settings.maxHeight, _nextID);
 
     // processed assets are stored in a map keyed by the ID of the processor which operated on them.
     // This allows us to pass them into the write function of that same processor later on.
@@ -66,19 +67,21 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
         }
     }
 
-    final futures = new Vector(atlas.pages.length);
-    final output  = parcelFile.toFile().openOutput(REPLACE);
+    final blitTasks     = new Vector(atlas.pages.length);
+    final output        = parcelFile.toFile().openOutput(REPLACE);
+    final writtenPages  = [];
+    final writtenAssets = [];
 
-    output.writeParcelHeader();
-    output.writeParcelTable(packed, assets.length, atlas.pages.length, getPageFormatID(_parcel.settings.format));
+    output.writeParcelHeader(atlas.pages.length, getPageFormatID(_parcel.settings.format));
 
-    // During the above processing assets are packed if they requested it.
-    // We can now blit all the packed images and write zlib compressed image data into the output stream.
+    // At this stage all assets have been packed into atlas pages if they requested it.
+    // We can now blit all the images into the final pages.
+    // Each page is independent so we can get a nice speed boost by throwing it into a task pool.
     for (i in 0...atlas.pages.length)
     {
         final page = atlas.pages[i];
 
-        futures[i] = _ctx.executor.submit(() -> {
+        blitTasks[i] = _ctx.executor.submit(() -> {
             final rgbaBytes = blit(page);
             final staging   = new BytesOutput();
     
@@ -100,13 +103,24 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
         });
     }
 
-    for (i in 0...futures.length)
+    // All the individual pages get written into a staging buffer which is returned by the task.
+    // Once each task is complete write the staging buffer into the output stream on the original thread.
+    for (i in 0...blitTasks.length)
     {
-        switch futures[i].waitAndGet(-1)
+        switch blitTasks[i].waitAndGet(-1)
         {
             case SUCCESS(result, _, _):
-                output.writeParcelPage(atlas.pages[i], result);
-                futures[i].cancel();
+                final sourcePage = atlas.pages[i];
+                final tellStart  = output.tell();
+
+                output.writeParcelPage(sourcePage, result);
+
+                final tellEnd = output.tell();
+                final length  = tellEnd - tellStart;
+
+                writtenPages.push(new PageMeta(sourcePage.id, tellStart, length, sourcePage.width, sourcePage.height));
+
+                blitTasks[i].cancel();
             case _:
                 throw new Exception('Failed to blit page');
         }
@@ -122,27 +136,54 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
             throw new Exception('Processor was not found for extension $ext');
         }
 
-        output.writeParcelResources(ext, assets.length);
+        output.writeParcelProcessor(ext);
 
         for (asset in assets)
         {
-            final tellStart = output.tell();
-
-            proc.write(_ctx, output, asset);
-
-            final tellEnd = output.tell();
-            final length  = tellEnd - tellStart;
-
-            asset.position = tellStart;
-            asset.length   = length;
+            switch asset.response
+            {
+                case Packed(packed):
+                    switch packed
+                    {
+                        case Left(v):
+                            writtenAssets.push(writeParcelResource(output, proc, _ctx, asset.data, v, _nextID));
+                        case Right(vs):
+                            for (v in vs)
+                            {
+                                writtenAssets.push(writeParcelResource(output, proc, _ctx, asset.data, v, _nextID));
+                            }
+                    }
+                case NotPacked(id):
+                    writtenAssets.push(writeParcelResource(output, proc, _ctx, asset.data, id, _nextID));
+            }
         }
     }
 
     output.writeParcelFooter();
-    output.fillParcelTable(packed);
     output.close();
 
+    cache.writeMetaFile(writtenPages, writtenAssets);
+
     return parcelFile;
+}
+
+private function writeParcelResource(_output : FileOutput, _processor : AssetProcessor<Any>, _ctx : ParcelContext, _data : Any, _asset : OneOf<PackedAsset, String>, _nextID : () -> Int)
+{
+    final tellStart = _output.tell();
+    final assetID   = _nextID();
+    final assetName = switch _asset {
+        case Left(v)  : v.id;
+        case Right(v) : v;
+    }
+
+    _output.writeString('RESR');
+
+    _processor.write(_ctx, _output, _data, _asset);
+
+    final tellEnd = _output.tell();
+    final length  = tellEnd - tellStart;
+
+    return new AssetMeta(assetID, assetName, tellStart, length);
 }
 
 private function resolveAssets(_wanted : Array<String>, _all : Array<Asset>)
@@ -175,15 +216,15 @@ private function processRequest(_id : String, _asset : AssetRequest<Any>, _atlas
     return switch _asset.request
     {
         case Pack(either):
-            switch (either : Either<PackRequest, Array<PackRequest>>)
+            switch either
             {
                 case Left(request):
-                    new ProcessedAsset(_id, _asset.data, Packed(_atlas.pack(request)));
+                    new ProcessedAsset(_asset.data, Packed(Left(_atlas.pack(request))));
                 case Right(requests):
-                    new ProcessedAsset(_id, _asset.data, Packed([ for (request in requests) _atlas.pack(request) ]));
+                    new ProcessedAsset(_asset.data, Packed(Right([ for (request in requests) _atlas.pack(request) ])));
             }
-        case None:
-            new ProcessedAsset(_id, _asset.data, NotPacked);
+        case None(id):
+            new ProcessedAsset(_asset.data, NotPacked(id));
     }
 }
 

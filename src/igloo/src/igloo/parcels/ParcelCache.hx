@@ -6,8 +6,6 @@ import json2object.JsonParser;
 import json2object.JsonWriter;
 import igloo.utils.GraphicsApi;
 import haxe.Exception;
-import igloo.processors.AssetProcessor;
-import haxe.io.Eof;
 import haxe.ds.Vector;
 import hx.files.Path;
 
@@ -107,7 +105,7 @@ class ParcelCache
         // If it is check its modification date against the cached parcels.
         for (asset in assets)
         {
-            if (metaFile.assetsPacked.find(i -> i == asset.id) == null)
+            if (metaFile.assets.find(i -> i.name == asset.id) == null)
             {
                 Console.debug('asset ${ asset.id } not found in the parcel hash ${ cachedParcelMeta }');
 
@@ -137,11 +135,10 @@ class ParcelCache
         return true;
     }
 
-    public function writeMetaFile()
+    public function writeMetaFile(_pages, _assets)
     {
         final writer   = new JsonWriter<ParcelMeta>();
-        final assets   = [ for (asset in assets) asset.id ];
-        final metaFile = new ParcelMeta(Date.now().getTime(), gpuApi, processors.names, assets);
+        final metaFile = new ParcelMeta(Date.now().getTime(), gpuApi, processors.names, _pages, _assets);
         final json     = writer.write(metaFile);
         
         cachedParcelMeta.toFile().writeString(json);
@@ -177,19 +174,59 @@ class ParcelMeta
      * If any processor in this list was re-compiled for this build the parcel will be invalid.
      */
     public var processorsInvolved : Array<String>;
+    
+    public var pages : Array<PageMeta>;
 
-    /**
-     * IDs of all the assets in the cached parcel.
-     * If one of the assets we want to pack for this build is not already in the parcel it is immediately invalidated.
-     */
-    public var assetsPacked : Array<String>;
+    public var assets : Array<AssetMeta>;
 
-    public function new(_timeGenerated, _gpuApi, _processorsInvolved, _assetsPacked)
+    public function new(_timeGenerated, _gpuApi, _processorsInvolved, _pages, _assets)
     {
         flurryVersion      = '';
         timeGenerated      = _timeGenerated;
         gpuApi             = _gpuApi;
         processorsInvolved = _processorsInvolved;
-        assetsPacked       = _assetsPacked;
+        pages              = _pages;
+        assets             = _assets;
+    }
+}
+
+class PageMeta
+{
+    public final id : Int;
+
+    public final pos : Int;
+
+    public final length : Int;
+
+    public final width : Int;
+
+    public final height : Int;
+
+    public function new(_id, _pos, _length, _width, _height)
+    {
+        id     = _id;
+        pos    = _pos;
+        length = _length;
+        width  = _width;
+        height = _height;
+    }
+}
+
+class AssetMeta
+{
+    public final name : String;
+
+    public final id : Int;
+
+    public final pos : Int;
+
+    public final length : Int;
+
+    public function new(_id, _name, _pos, _length)
+    {
+        id     = _id;
+        name   = _name;
+        pos    = _pos;
+        length = _length;
     }
 }

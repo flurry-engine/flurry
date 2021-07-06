@@ -1,9 +1,9 @@
 package igloo.processors;
 
-import igloo.utils.OneOfPackedAsset;
+import haxe.ds.Either;
 
 enum AssetResponse
 {
-    Packed(packed : OneOfPackedAsset);
-    NotPacked;
+    Packed(_packed : Either<PackedAsset, Array<PackedAsset>>);
+    NotPacked(_id : String);
 }

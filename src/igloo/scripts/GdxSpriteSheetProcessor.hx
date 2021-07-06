@@ -1,3 +1,5 @@
+import igloo.processors.PackedAsset;
+import igloo.utils.OneOf;
 import haxe.Exception;
 import haxe.io.Input;
 import haxe.io.Output;
@@ -5,7 +7,6 @@ import haxe.ds.ReadOnlyArray;
 import hx.files.Path;
 import igloo.processors.PackRequest;
 import igloo.processors.AssetRequest;
-import igloo.processors.ProcessedAsset;
 import igloo.processors.AssetProcessor;
 import igloo.parcels.Asset;
 import igloo.parcels.ParcelContext;
@@ -24,62 +25,56 @@ class GdxSpriteSheetProcessor extends AssetProcessor<Array<GdxPage>>
     {
 		final absPath = _ctx.assetDirectory.join(_asset.path);
         final pages   = parse(absPath);
-        final images  = [ for (page in pages) Image(page.image) ];
+        final images  = [];
+
+        for (page in pages)
+        {
+            final bpp    = 4;
+            final input  = page.image.toFile().openInput();
+            final reader = new format.png.Reader(input);
+            final data   = reader.read();
+            final header = format.png.Tools.getHeader(data);
+            final source = format.png.Tools.extract32(data);
+
+            input.close();
+
+            for (section in page.sections)
+            {
+                final buffer = haxe.io.Bytes.alloc(section.width * section.height * bpp);
+
+                for (i in 0...section.height)
+                {
+                    final srcAddr = ((i + section.y) * header.width * bpp) + (section.x * bpp);
+                    final dstAddr = (i * section.width * bpp);
+
+                    buffer.blit(dstAddr, source, srcAddr, section.width * bpp);
+                }
+
+                images.push(Bytes(section.name, buffer, section.width, section.height, BGRA));
+            }
+        }
 
         return new AssetRequest(pages, Pack(images));
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _asset : ProcessedAsset<Array<GdxPage>>)
+	override public function write(_ctx : ParcelContext, _writer : Output, _data : Array<GdxPage>, _either : OneOf<PackedAsset, String>)
     {
-        switch _asset.response
-        {
-            case Packed(packed):
-                final frames = packed.toAssets();
+        final frame = _either.toA();
 
-                // Writes the resources ID.
-				_writer.writePrefixedString(_asset.id);
+        // Writes the resources ID.
+        _writer.writePrefixedString(frame.id);
+        _writer.writeInt32(frame.pageID);
 
-                // write the number of assets (gdx atlas images) packed.
-                _writer.writeInt32(frames.length);
+        // Write UV information for the packed frame.
+		_writer.writeInt32(frame.x);
+		_writer.writeInt32(frame.y);
+		_writer.writeInt32(frame.w);
+		_writer.writeInt32(frame.h);
 
-                for (frame in frames)
-                {
-                    // Attempt to find the original gdx page by looking at the path of the original request.
-                    final gdxPage = switch frame.request
-                    {
-                        case Image(path): findPage(path.filenameStem, _asset.data);
-                        case _: throw new Exception('Gdx pages should be images');
-                    }
-
-                    // Write all frames in the page.
-                    _writer.writePrefixedString(frame.pageName);
-                    _writer.writeInt32(gdxPage.sections.length);
-
-                    for (section in gdxPage.sections)
-                    {
-                        _writer.writePrefixedString(section.name);
-
-                        // Write the pixel position within the texture.
-                        _writer.writeInt32(section.x + frame.x);
-                        _writer.writeInt32(section.y + frame.y);
-                        _writer.writeInt32(section.width);
-                        _writer.writeInt32(section.height);
-
-                        // Write the UV coordinates.
-                        final u1 = (frame.x + section.x) / frame.pageWidth;
-                        final v1 = (frame.y + section.y) / frame.pageHeight;
-                        final u2 = (frame.x + section.x + section.width) / frame.pageWidth;
-                        final v2 = (frame.y + section.y + section.height) / frame.pageHeight;
-
-                        _writer.writeFloat(u1);
-                        _writer.writeFloat(v1);
-                        _writer.writeFloat(u2);
-                        _writer.writeFloat(v2);
-                    }
-                }
-            case NotPacked:
-                throw new Exception('Images can only be packed');
-        }
+		_writer.writeFloat(frame.u1);
+		_writer.writeFloat(frame.v1);
+		_writer.writeFloat(frame.u2);
+		_writer.writeFloat(frame.v2);
     }
 
     function parse(_path : Path)
