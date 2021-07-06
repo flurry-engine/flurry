@@ -116,7 +116,10 @@ class Build
 
         if (projectParser.errors.length > 0)
         {
-            throw new Exception(ErrorUtils.convertErrorArray(projectParser.errors));
+            Console.error('Failed to parse project file ${ projectPath.toString() }');
+            Console.error(ErrorUtils.convertErrorArray(projectParser.errors));
+
+            return;
         }
 
         final outputDir  = projectPath.parent.join(project.app.output);
@@ -145,7 +148,7 @@ class Build
                 Console.error('Failed to parse package file ${ parcelPath.toString() }');
                 Console.error(ErrorUtils.convertErrorArray(packageParser.errors));
 
-                continue;
+                return;
             }
 
             for (parcel in bundle.parcels)
@@ -212,7 +215,7 @@ class Build
             {
                 Console.error('Failed to build flurry host');
 
-                Sys.exit(-1);
+                return;
             }
 
             if (cppia)
@@ -236,7 +239,7 @@ class Build
             {
                 Console.error('Failed to compile project');
 
-                Sys.exit(-1);
+                return;
             }
 
             final script      = buildDir.join('client.cppia').toFile();
