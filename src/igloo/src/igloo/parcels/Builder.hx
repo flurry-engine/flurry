@@ -1,49 +1,38 @@
 package igloo.parcels;
 
 import sys.io.FileOutput;
-import igloo.processors.PackedAsset;
-import igloo.utils.OneOf;
-import igloo.processors.AssetProcessor;
-import igloo.parcels.ParcelCache.AssetMeta;
-import igloo.parcels.ParcelCache.PageMeta;
-import igloo.utils.GraphicsApi;
-import igloo.processors.ProcessorLoadResults.ProcessorLoadResult;
 import haxe.Exception;
 import haxe.ds.Vector;
 import haxe.ds.Either;
 import haxe.io.Output;
 import haxe.io.BytesOutput;
-import igloo.processors.AssetRequest;
-import igloo.processors.ProcessedAsset;
+import hx.files.Path;
 import igloo.blit.Blitter;
 import igloo.atlas.Atlas;
+import igloo.utils.OneOf;
+import igloo.parcels.ParcelMeta.PageMeta;
+import igloo.parcels.ParcelMeta.AssetMeta;
+import igloo.processors.PackedAsset;
+import igloo.processors.AssetRequest;
+import igloo.processors.ProcessedAsset;
+import igloo.processors.AssetProcessor;
+import igloo.processors.ProcessorLoadResults;
+import json2object.JsonWriter;
 
 using Lambda;
 using Safety;
 using igloo.parcels.ParcelWriter;
 
-function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _processors : ProcessorLoadResult, _gpuApi : GraphicsApi, _nextID : () -> Int)
+function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : ProcessorLoadResult, _id : IDProvider)
 {
-    final parcelFile = _ctx.cacheDirectory.join('${ _parcel.name }.parcel');
-    final parcelMeta = _ctx.cacheDirectory.join('${ _parcel.name }.parcel.meta');
-    final assets     = resolveAssets(_parcel.assets, _all);
-    final cache      = new ParcelCache(_ctx.assetDirectory, parcelFile, parcelMeta, assets, _processors, _gpuApi);
-
-    if (cache.isValid())
-    {
-        Console.log('Cached parcel is valid');
-
-        return parcelFile;
-    }
-
     Console.log('Cached parcel is invalid');
 
     final packed = new Map<String, Array<ProcessedAsset<Any>>>();
-    final atlas  = new Atlas(_parcel.settings.xPad, _parcel.settings.yPad, _parcel.settings.maxWidth, _parcel.settings.maxHeight, _nextID);
+    final atlas  = new Atlas(_parcel.settings.xPad, _parcel.settings.yPad, _parcel.settings.maxWidth, _parcel.settings.maxHeight, _id);
 
     // processed assets are stored in a map keyed by the ID of the processor which operated on them.
     // This allows us to pass them into the write function of that same processor later on.
-    for (asset in assets)
+    for (asset in _parcel.assets)
     {
         final ext  = haxe.io.Path.extension(asset.path);
         final proc = _processors.loaded.get(ext);
@@ -68,7 +57,7 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
     }
 
     final blitTasks     = new Vector(atlas.pages.length);
-    final output        = parcelFile.toFile().openOutput(REPLACE);
+    final output        = _parcel.parcelFile.toFile().openOutput(REPLACE);
     final writtenPages  = [];
     final writtenAssets = [];
 
@@ -146,15 +135,15 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
                     switch packed
                     {
                         case Left(v):
-                            writtenAssets.push(writeParcelResource(output, proc, _ctx, asset.data, v, _nextID));
+                            writtenAssets.push(writeParcelResource(output, proc, _ctx, asset.data, v, _id.id()));
                         case Right(vs):
                             for (v in vs)
                             {
-                                writtenAssets.push(writeParcelResource(output, proc, _ctx, asset.data, v, _nextID));
+                                writtenAssets.push(writeParcelResource(output, proc, _ctx, asset.data, v, _id.id()));
                             }
                     }
                 case NotPacked(id):
-                    writtenAssets.push(writeParcelResource(output, proc, _ctx, asset.data, id, _nextID));
+                    writtenAssets.push(writeParcelResource(output, proc, _ctx, asset.data, id, _id.id()));
             }
         }
     }
@@ -162,15 +151,12 @@ function build(_ctx : ParcelContext, _parcel : Parcel, _all : Array<Asset>, _pro
     output.writeParcelFooter();
     output.close();
 
-    cache.writeMetaFile(writtenPages, writtenAssets);
-
-    return parcelFile;
+    writeMetaFile(_parcel.parcelMeta, _ctx.gpuApi, _processors.names, writtenPages, writtenAssets);
 }
 
-private function writeParcelResource(_output : FileOutput, _processor : AssetProcessor<Any>, _ctx : ParcelContext, _data : Any, _asset : OneOf<PackedAsset, String>, _nextID : () -> Int)
+private function writeParcelResource(_output : FileOutput, _processor : AssetProcessor<Any>, _ctx : ParcelContext, _data : Any, _asset : OneOf<PackedAsset, String>, _assetID : Int)
 {
     final tellStart = _output.tell();
-    final assetID   = _nextID();
     final assetName = switch _asset {
         case Left(v)  : v.id;
         case Right(v) : v;
@@ -183,32 +169,16 @@ private function writeParcelResource(_output : FileOutput, _processor : AssetPro
     final tellEnd = _output.tell();
     final length  = tellEnd - tellStart;
 
-    return new AssetMeta(assetID, assetName, tellStart, length);
+    return new AssetMeta(_assetID, assetName, tellStart, length);
 }
 
-private function resolveAssets(_wanted : Array<String>, _all : Array<Asset>)
+private function writeMetaFile(_file : Path, _gpuApi, _processorNames, _pages, _assets)
 {
-    final assets = new Vector(_wanted.length);
-
-    for (idx => id in _wanted)
-    {
-        assets[idx] = findAsset(id, _all);
-    }
-
-    return assets;
-}
-
-private function findAsset(_id : String, _all : Array<Asset>)
-{
-    for (asset in _all)
-    {
-        if (asset.id == _id)
-        {
-            return asset;
-        }
-    }
-
-    throw new Exception('Could not find an asset with ID $_id');
+    final writer   = new JsonWriter<ParcelMeta>();
+    final metaFile = new ParcelMeta(Date.now().getTime(), _gpuApi, _processorNames, _pages, _assets);
+    final json     = writer.write(metaFile);
+    
+    _file.toFile().writeString(json);
 }
 
 private function processRequest(_id : String, _asset : AssetRequest<Any>, _atlas : Atlas)

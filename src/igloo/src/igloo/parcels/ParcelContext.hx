@@ -10,19 +10,16 @@ class ParcelContext
 
     public final tempDirectory : Path;
 
-    public final cacheDirectory : Path;
-
     public final gpuApi : String;
 
     public final tools : Tools;
 
     public final executor : Executor;
 
-    public function new(_assetDirectory, _tempDirectory, _cacheDirectory, _graphicsApi, _tools, _executor)
+    public function new(_assetDirectory, _tempDirectory, _graphicsApi, _tools, _executor)
     {
         assetDirectory = _assetDirectory;
         tempDirectory  = _tempDirectory;
-        cacheDirectory = _cacheDirectory;
         gpuApi         = _graphicsApi;
         tools          = _tools;
         executor       = _executor;

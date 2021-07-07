@@ -18,7 +18,7 @@ function writeParcelPage(_output : Output, _page : Page, _compressed : Bytes)
     _output.writeString('PAGE');
 
     // Write the unique name of the page.
-    _output.writePrefixedString(_page.name);
+    _output.writeInt32(_page.id);
 
     // Write the page's compressed image data.
     _output.writeInt32(_compressed.length);

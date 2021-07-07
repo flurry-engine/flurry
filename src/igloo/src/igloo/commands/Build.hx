@@ -1,31 +1,29 @@
 package igloo.commands;
 
-import igloo.utils.Concurrency;
-import igloo.processors.ProcessorLoadResults.ProcessorLoadResult;
-import hx.files.File.FileCopyOption;
-import igloo.utils.GraphicsApi;
-import igloo.haxe.Haxe;
-import igloo.macros.Platform;
-import hx.concurrent.executor.Executor;
-import igloo.tools.ToolsFetcher;
 import haxe.Exception;
-import hx.files.Path;
+import igloo.haxe.Haxe;
+import igloo.utils.Concurrency;
+import igloo.utils.GraphicsApi;
+import igloo.tools.ToolsFetcher;
+import igloo.macros.Platform;
 import igloo.macros.BuildPaths;
-import igloo.parcels.Package;
 import igloo.parcels.Builder;
-import igloo.parcels.ParcelContext;
 import igloo.project.Project;
+import igloo.parcels.ParcelContext;
+import igloo.parcels.ParcelResolver;
 import igloo.processors.Cache;
+import igloo.processors.ProcessorLoadResults;
+import hx.files.Path;
+import hx.files.File.FileCopyOption;
+import hx.concurrent.executor.Executor;
 import json2object.ErrorUtils;
 import json2object.JsonParser;
 
+using Lambda;
+
 class Build
 {
-    final packageParser : JsonParser<Package>;
-
-    final projectParser : JsonParser<Project>;
-
-    var projectAssetCounter : Int;
+    final projectParser = new JsonParser<Project>();
 
     /**
      * If set the output executable will be launched after building.
@@ -101,9 +99,7 @@ class Build
 
     public function new()
     {
-        projectParser       = new JsonParser<Project>();
-        packageParser       = new JsonParser<Package>();
-        projectAssetCounter = 0;
+        //
     }
 
     @:defaultCommand
@@ -137,69 +133,50 @@ class Build
 
         // Building Assets
 
-        for (bundlePath in project.parcels)
+        final parcels    = resolveParcels(projectPath, project.parcels, outputDir, graphicsBackend, processors);
+        final idProvider = createIDProvider(parcels);
+
+        for (parcel in parcels)
         {
-            final parcelPath   = projectPath.parent.join(bundlePath);
-            final baseAssetDir = parcelPath.parent;
-            final bundle       = packageParser.fromJson(parcelPath.toFile().readAsString());
-
-            if (packageParser.errors.length > 0)
+            if (!parcel.validCache)
             {
-                Console.error('Failed to parse package file ${ parcelPath.toString() }');
-                Console.error(ErrorUtils.convertErrorArray(packageParser.errors));
-
-                return;
-            }
-
-            for (parcel in bundle.parcels)
-            {
-                Console.log('Building ${ parcel.name }');
-
-                final tempOutput   = outputDir.joinAll([ 'tmp', parcel.name ]);
-                final parcelCache  = outputDir.joinAll([ 'cache', 'parcels' ]);
-                final context      = new ParcelContext(
-                    baseAssetDir,
-                    tempOutput,
-                    parcelCache,
-                    graphicsBackend,
-                    tools,
-                    executor);
-
-                tempOutput.toDir().create();
-                parcelCache.toDir().create();
-
                 try
-                {   
-                    // Build and copy over the parcel
-                    // Copy to the cpp build directory as well, this allows us to load the exe into visual studio
-                    // for debugging without manually copying files
+                {
+                    parcel.tempDir.toDir().create();
+                    parcel.cacheDir.toDir().create();
+
+                    final ctx = new ParcelContext(
+                        parcel.assetDir,
+                        parcel.tempDir,
+                        graphicsBackend,
+                        tools,
+                        executor);
     
-                    final parcelPath      = build(context, parcel, bundle.assets, processors, graphicsBackend, getAssetID);
-                    final parcelBuildPath = buildDir.joinAll([ 'assets', parcelPath.filename ]);
-                    final parcelFinalPath = finalDir.joinAll([ 'assets', parcelPath.filename ]);
-    
-                    parcelBuildPath.parent.toDir().create();
-                    parcelFinalPath.parent.toDir().create();
-    
-                    parcelPath.toFile().copyTo(parcelBuildPath, [ FileCopyOption.OVERWRITE ]);
-                    parcelPath.toFile().copyTo(parcelFinalPath, [ FileCopyOption.OVERWRITE ]);
+                    build(ctx, parcel, processors, idProvider);
                 }
                 catch (e)
                 {
-                    // In the event of an error we will log it and try and package the rest of the parcels
-                    // We will remove the cached parcel directory to avoid any cache issues.
+                    // TODO : Cleanup tmp and cache then rethrow
+                    // This ensure we cleanup any in-process packing.
 
-                    Console.error('Packaging ${ parcel.name } failed');
+                    parcel.cacheDir.toDir().delete(true);
+                    parcel.tempDir.toDir().delete(true);
+
                     Console.error(e.details());
 
-                    parcelCache.toDir().delete(true);
-                    tempOutput.toDir().delete(true);
-
-                    return;
+                    throw e;
                 }
-
-                tempOutput.toDir().delete(true);
             }
+
+            final parcelBuildPath = buildDir.joinAll([ 'assets', parcel.parcelFile.filename ]);
+            final parcelFinalPath = finalDir.joinAll([ 'assets', parcel.parcelFile.filename ]);
+
+            parcelBuildPath.parent.toDir().create();
+            parcelFinalPath.parent.toDir().create();
+
+            parcel.parcelFile.toFile().copyTo(parcelBuildPath, [ FileCopyOption.OVERWRITE ]);
+            parcel.parcelFile.toFile().copyTo(parcelFinalPath, [ FileCopyOption.OVERWRITE ]);
+            parcel.tempDir.toDir().delete(true);
         }
 
         // Building Code
@@ -297,23 +274,6 @@ class Build
             else
             {
                 Console.warn('Glob copying is not yet implemented');
-
-                // final dir = if (path.isAbsolute)
-                // {
-                //     final endIdx = glob.indexOf('*');
-                //     final subStr = glob.substring(0, endIdx);
-    
-                //     Dir.of(subStr);
-                // }
-                // else
-                // {
-                //     projectPath.parent.toDir();
-                // }
-    
-                // for (file in dir.findFiles(glob))
-                // {
-                //     trace(file);
-                // }
             }
         }
 
@@ -399,10 +359,5 @@ class Build
         }
 
         return loadResults;
-    }
-
-    function getAssetID()
-    {
-        return projectAssetCounter++;
     }
 }

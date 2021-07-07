@@ -1,5 +1,6 @@
 package igloo.atlas;
 
+import igloo.parcels.IDProvider;
 import igloo.processors.PackRequest;
 
 using Safety;
@@ -14,17 +15,17 @@ class Atlas
 
     final maxPageHeight : Int;
 
-    final nextID : () -> Int;
+    final provider : IDProvider;
 
     public final pages : Array<Page>;
 
-    public function new(_xPad, _yPad, _maxWidth, _maxHeight, _nextID)
+    public function new(_xPad, _yPad, _maxWidth, _maxHeight, _provider)
     {
         xPad          = _xPad;
         yPad          = _yPad;
         maxPageWidth  = _maxWidth;
         maxPageHeight = _maxHeight;
-        nextID        = _nextID;
+        provider      = _provider;
         pages         = [];
     }
 
@@ -60,7 +61,7 @@ class Atlas
         }
 
         // If it could not be fit into any of the existing pages, create a new one.
-        final page   = new Page(nextID(), xPad, yPad, maxPageWidth, maxPageHeight);
+        final page   = new Page(provider.id(), xPad, yPad, maxPageWidth, maxPageHeight);
         final packed = page.pack(assetID, _request, width, height);
 
         pages.push(page);
