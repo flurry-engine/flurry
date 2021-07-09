@@ -42,12 +42,13 @@ class Cache
     /**
      * Return a `IAssetProcessor<Any>` object from a script file.
      * The script must contain a class with the same name as the file which implements `IAssetProcessor<T>`.
+     * @param _log Log object which will schedule all log requests onto a dedicated thread.
      * @param _path Absolute path to the scripts location.
      * @param _flags Flags to be provided to haxe when compiling the script.
      */
-    public function load(_path : Path, _flags : String)
+    public function load(_log, _path : Path, _flags : String)
     {
-        final logger             = new ScriptLogger(_path.filenameStem);
+        final logger             = new ScriptLogger(_log, _path.filenameStem);
         final precompiledScript  = directory.join('${ _path.filenameStem }.cppia');
         final scriptHashPath     = directory.join('${ _path.filenameStem }.cppia.hash');
         final sourceLastModified = _path.getModificationTime();
@@ -97,7 +98,7 @@ class Cache
      * @param _output Absolute path of the generated cppia file.
      * @param _flags Haxe cli command line flags to provide.
      */
-    function compileScript(_logger : Log, _path : Path, _output : Path, _flags : String)
+    function compileScript(_logger : ScriptLogger, _path : Path, _output : Path, _flags : String)
     {
         final proc = new Process('npx haxe -p $iglooCodePath -p ${ _path.parent } -L haxe-files -D dll_import=$iglooDllExportFile ${ _path.filenameStem } $_flags --cppia $_output');
         final exit = proc.exitCode();
@@ -106,13 +107,17 @@ class Cache
         {
             _logger.success('Compiled $_path');
             _logger.debug(proc.stdout.readAll().toString());
+
+            proc.close();
         }
         else
         {
-            throw new Exception(proc.stderr.readAll().toString());
-        }
+            final stderr = proc.stderr.readAll().toString();
 
-        proc.close();
+            proc.close();
+
+            throw new Exception(stderr);
+        }
     }
 
     /**

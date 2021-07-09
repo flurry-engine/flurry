@@ -5,6 +5,7 @@ import igloo.haxe.Haxe;
 import igloo.utils.Concurrency;
 import igloo.utils.GraphicsApi;
 import igloo.tools.ToolsFetcher;
+import igloo.logger.Log.Log;
 import igloo.macros.Platform;
 import igloo.macros.BuildPaths;
 import igloo.parcels.Builder;
@@ -23,7 +24,9 @@ using Lambda;
 
 class Build
 {
-    final projectParser = new JsonParser<Project>();
+    final projectParser : JsonParser<Project>;
+
+    final logger : Log;
 
     /**
      * If set the output executable will be launched after building.
@@ -97,31 +100,29 @@ class Build
     @:alias('y')
     public var rebuildHost = false;
 
-    public function new()
+    public function new(_logger)
     {
-        //
+        projectParser = new JsonParser<Project>();
+        logger        = _logger;
     }
 
     @:defaultCommand
     public function execute()
     {
-        Console.log('Igloo v0.1');
+        logger.info('Igloo v0.1');
 
         final projectPath = getBuildFilePath();
         final project     = projectParser.fromJson(projectPath.toFile().readAsString());
 
         if (projectParser.errors.length > 0)
         {
-            Console.error('Failed to parse project file ${ projectPath.toString() }');
-            Console.error(ErrorUtils.convertErrorArray(projectParser.errors));
-
-            return;
+            throw new Exception('Failed to parse project file ${ projectPath.toString() }', new Exception(ErrorUtils.convertErrorArray(projectParser.errors)));
         }
 
         final outputDir  = projectPath.parent.join(project.app.output);
-        final executor   = Executor.create(cpp.NativeMath.idiv(Concurrency.hardwareConcurrency(), 2));
+        final executor   = Executor.create(Concurrency.hardwareConcurrency());
         final tools      = fetchTools(outputDir);
-        final processors = loadProjectProcessors(executor, projectPath.parent, project);
+        final processors = loadProjectProcessors(logger, executor, projectPath.parent, project);
 
         // The .build directory will contain all the generated sources and intermediate cpp objects.
         // The final directory is just the final application, parcels, and copied files.
@@ -162,9 +163,7 @@ class Build
                     parcel.cacheDir.toDir().delete(true);
                     parcel.tempDir.toDir().delete(true);
 
-                    Console.error(e.details());
-
-                    throw e;
+                    throw new Exception('Failed to package ${ parcel.name }', e);
                 }
             }
 
@@ -190,9 +189,7 @@ class Build
 
             if (Sys.command('npx', [ 'haxe', hxmlPath.toString() ]) != 0)
             {
-                Console.error('Failed to build flurry host');
-
-                return;
+                throw new Exception('haxe returned a non zero exit code');
             }
 
             if (cppia)
@@ -214,9 +211,7 @@ class Build
 
             if (Sys.command('npx', [ 'haxe', hxmlPath.toString() ]) != 0)
             {
-                Console.error('Failed to compile project');
-
-                return;
+                throw new Exception('haxe returned a non zero exit code');
             }
 
             final script      = buildDir.join('client.cppia').toFile();
@@ -273,7 +268,7 @@ class Build
             }
             else
             {
-                Console.warn('Glob copying is not yet implemented');
+                logger.info('Glob copying is not yet implemented');
             }
         }
 
@@ -299,7 +294,7 @@ class Build
         }
     }
 
-    function loadProjectProcessors(_executor : Executor, _root : Path, _project : Project)
+    function loadProjectProcessors(_log : Log, _executor : Executor, _root : Path, _project : Project)
     {
         final processorDir = _root.joinAll([ _project.app.output, 'cache', 'processors' ]);
         final cacheLoader  = new Cache(processorDir);
@@ -317,7 +312,7 @@ class Build
                 {
                     final flagsPath = file.path.parent.join(file.path.filenameStem + '.flags');
                     final flagsText = if (flagsPath.exists()) flagsPath.toFile().readAsString() else '';
-                    final task      = _executor.submit(() -> cacheLoader.load(file.path, flagsText));
+                    final task      = _executor.submit(() -> cacheLoader.load(_log, file.path, flagsText));
 
                     tasks.push(task);
                 }
@@ -326,10 +321,12 @@ class Build
         // Load user processors
         for (request in _project.build.processors)
         {
-            tasks.push(_executor.submit(() -> cacheLoader.load(_root.join(request.source), request.flags)));
+            tasks.push(_executor.submit(() -> cacheLoader.load(_log, _root.join(request.source), request.flags)));
         }
 
         // Process each task
+        var failureCount = 0;
+
         for (task in tasks)
         {
             switch task.waitAndGet(-1)
@@ -349,15 +346,21 @@ class Build
 
                     task.cancel();
                 case FAILURE(ex, _, _):
-                    Console.error('Failed to build script');
-                    Console.error(ex.toString());
+                    _log.error('failed to compile script', new Exception(ex.toString()));
 
-                    ex.rethrow();
+                    failureCount++;
                 case NONE(_):
-                    throw new Exception('Unexpected task result of NONE');
+                    throw new Exception('Unexpected future result of NONE');
             }
         }
 
-        return loadResults;
+        return if (failureCount > 0)
+        {
+            throw new Exception('Some scripts failed to compile');
+        }
+        else
+        {
+            loadResults;
+        }
     }
 }
