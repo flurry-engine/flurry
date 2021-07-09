@@ -56,9 +56,9 @@ private function getDataForRequest(_request : PackRequest)
                             final a    = bytes.get(base + 3);
 
                             bytes.set(base + 0, r);
-                            bytes.set(base + 0, g);
-                            bytes.set(base + 0, b);
-                            bytes.set(base + 0, a);
+                            bytes.set(base + 1, g);
+                            bytes.set(base + 2, b);
+                            bytes.set(base + 3, a);
                         }
                     }
 
@@ -76,9 +76,9 @@ private function getDataForRequest(_request : PackRequest)
                                 final b    = bytes.get(base + 3);
     
                                 bytes.set(base + 0, r);
-                                bytes.set(base + 0, g);
-                                bytes.set(base + 0, b);
-                                bytes.set(base + 0, a);
+                                bytes.set(base + 1, g);
+                                bytes.set(base + 2, b);
+                                bytes.set(base + 3, a);
                             }
                         }
     
