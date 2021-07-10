@@ -167,8 +167,7 @@ private function writeParcelResource(_output : FileOutput, _processor : AssetPro
         case Right(v) : v;
     }
 
-    _output.writeString('RESR');
-
+    _output.writeInt32(_assetID);
     _processor.write(_ctx, _output, _data, _asset);
 
     final tellEnd = _output.tell();
