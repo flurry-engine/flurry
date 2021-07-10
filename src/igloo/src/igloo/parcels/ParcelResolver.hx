@@ -77,17 +77,27 @@ function createIDProvider(_parcels : Array<LoadedParcel>)
 {
     // Find the initial cached ID.
     // We want to look through all parcel metas (both valid and invalid).
-    var initial = 0;
+    var maxID = 0;
     for (parcel in _parcels)
     {
         switch parcel.metadata
         {
             case Some(v):
+                for (page in v.pages)
+                {
+                    if (page.id > maxID)
+                    {
+                        maxID = page.id;
+                    }
+                }
                 for (asset in v.assets)
                 {
-                    if (asset.id > initial)
+                    for (produced in asset.produced)
                     {
-                        initial = asset.id;
+                        if (produced.id > maxID)
+                        {
+                            maxID = produced.id;
+                        }
                     }
                 }
             case None:
@@ -95,9 +105,16 @@ function createIDProvider(_parcels : Array<LoadedParcel>)
         }
     }
 
-    Console.debug('ID provider will have an initial value of $initial');
+    // If the max ID is greater than zero then some parcels were invalidated
+    // In this case we want to increment the max ID so the first valid ID will be the next in the sequence.
+    if (maxID > 0)
+    {
+        maxID++;
+    }
 
-    final provider = new IDProvider(initial);
+    Console.debug('ID provider will have an initial value of $maxID');
+
+    final provider = new IDProvider(maxID);
     
     for (parcel in _parcels)
     {
@@ -109,11 +126,20 @@ function createIDProvider(_parcels : Array<LoadedParcel>)
         switch parcel.metadata
         {
             case Some(v):
+                for (page in v.pages)
+                {
+                    Console.debug('reclaiming ${ page.id }');
+
+                    provider.reclaim(page.id);
+                }
                 for (asset in v.assets)
                 {
-                    Console.debug('reclaiming ${ asset.id }');
+                    for (produced in asset.produced)
+                    {
+                        Console.debug('reclaiming ${ produced.id }');
 
-                    provider.reclaim(asset.id);
+                        provider.reclaim(produced.id);
+                    }
                 }
             case None:
                 //
@@ -163,8 +189,8 @@ private function loadCacheData(_parcelFile : Path, _parcelMeta : Path) : Option<
 
         if (metaParser.errors.length > 0)
         {
-            Console.debug('Unable to parse parcel meta file');
-            Console.debug(ErrorUtils.convertErrorArray(metaParser.errors));
+            Console.log('Unable to parse parcel meta file');
+            Console.log(ErrorUtils.convertErrorArray(metaParser.errors));
 
             None;
         }
@@ -196,7 +222,7 @@ private function validateMetaData(_meta : Option<ParcelMeta>, _gpuApi : Graphics
             // If the cached parcel was built with a different api to the current it is invalid.
             if (v.gpuApi != _gpuApi)
             {
-                Console.debug('Parcel was generated with a different graphics api');
+                Console.log('Parcel was generated with a different graphics api');
         
                 return false;
             }
@@ -206,7 +232,7 @@ private function validateMetaData(_meta : Option<ParcelMeta>, _gpuApi : Graphics
             {
                 if (v.processorsInvolved.contains(processor))
                 {
-                    Console.debug('processor $processor was recompiled and has invalidated the parcel');
+                    Console.log('processor $processor was recompiled and has invalidated the parcel');
         
                     return false;
                 }
@@ -218,7 +244,7 @@ private function validateMetaData(_meta : Option<ParcelMeta>, _gpuApi : Graphics
             {
                 if (v.assets.find(item -> item.name == asset.id) == null)
                 {
-                    Console.debug('asset ${ asset.id } not found in the parcel metadata');
+                    Console.log('asset ${ asset.id } not found in the parcel metadata');
         
                     return false;
                 }
@@ -231,7 +257,7 @@ private function validateMetaData(_meta : Option<ParcelMeta>, _gpuApi : Graphics
                     {
                         if (proc.isInvalid(abs, v.timeGenerated))
                         {
-                            Console.debug('asset ${ asset.id } is invalid according to processor ${ abs.filenameExt }');
+                            Console.log('asset ${ asset.id } is invalid according to processor ${ abs.filenameExt }');
         
                             return false;
                         }

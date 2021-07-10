@@ -1,11 +1,15 @@
 package igloo.haxe;
 
+import hx.strings.collection.StringArray;
+import igloo.parcels.LoadedParcel;
 import json2object.JsonWriter;
 import hx.files.Path;
 import json2object.JsonParser;
 import igloo.utils.GraphicsApi;
 import igloo.macros.Platform;
 import igloo.project.Project;
+
+using hx.strings.Strings;
 
 /**
  * Checks if the host program needs recompiling.
@@ -65,13 +69,14 @@ function writeHostMeta(_buildPath : Path, _graphicsBackend : GraphicsApi, _main 
 /**
  * Generate a hxml file for a flurry host.
  * @param _project Project to generate a hxml file.
+ * @param _parcels All parcels packaged for this project.
  * @param _cppia If cppia scripting is to be used for the client code.
  * @param _release If the host should be built without debug information.
  * @param _graphicsBackend Which graphics API the host should use.
  * @param _projectPath Location of the project file.
  * @param _output Directory to output the generated sources in.
  */
-function generateHostHxml(_project : Project, _cppia : Bool, _release : Bool, _graphicsBackend : GraphicsApi, _projectPath : Path, _output : Path)
+function generateHostHxml(_project : Project, _parcels : Array<LoadedParcel>, _cppia : Bool, _release : Bool, _graphicsBackend : GraphicsApi, _projectPath : Path, _output : Path)
 {
     final hxml = new Hxml();
 
@@ -116,6 +121,11 @@ function generateHostHxml(_project : Project, _cppia : Bool, _release : Bool, _g
     hxml.addMacro('Safety.safeNavigation("uk.aidanlee.flurry")');
     hxml.addMacro('nullSafety("uk.aidanlee.flurry.modules", Strict)');
     hxml.addMacro('nullSafety("uk.aidanlee.flurry.api", Strict)');
+
+    for (parcel in _parcels)
+    {
+        hxml.addMacro('uk.aidanlee.flurry.macros.Parcels.loadParcelMeta("${ parcel.name }", "${ haxe.io.Path.normalize(parcel.parcelMeta.toString()) }")');
+    }
 
     for (p in _project.app.codepaths)
     {

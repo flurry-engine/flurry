@@ -1,5 +1,6 @@
 package igloo.parcels;
 
+import igloo.parcels.ParcelMeta.ProducedMeta;
 import sys.io.FileOutput;
 import haxe.Exception;
 import haxe.ds.Vector;
@@ -129,22 +130,26 @@ function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : Proce
 
         for (asset in assets)
         {
+            final produced = [];
+            
             switch asset.response
             {
                 case Packed(packed):
                     switch packed
                     {
                         case Left(v):
-                            writtenAssets.push(writeParcelResource(output, proc, _ctx, asset.data, v, _id.id()));
+                            produced.push(writeParcelResource(output, proc, _ctx, asset.data, v, _id.id()));
                         case Right(vs):
                             for (v in vs)
                             {
-                                writtenAssets.push(writeParcelResource(output, proc, _ctx, asset.data, v, _id.id()));
+                                produced.push(writeParcelResource(output, proc, _ctx, asset.data, v, _id.id()));
                             }
                     }
                 case NotPacked(id):
-                    writtenAssets.push(writeParcelResource(output, proc, _ctx, asset.data, id, _id.id()));
+                    produced.push(writeParcelResource(output, proc, _ctx, asset.data, id, _id.id()));
             }
+
+            writtenAssets.push(new AssetMeta(asset.name, produced));
         }
     }
 
@@ -169,7 +174,7 @@ private function writeParcelResource(_output : FileOutput, _processor : AssetPro
     final tellEnd = _output.tell();
     final length  = tellEnd - tellStart;
 
-    return new AssetMeta(_assetID, assetName, tellStart, length);
+    return new ProducedMeta(_assetID, assetName, tellStart, length);
 }
 
 private function writeMetaFile(_file : Path, _gpuApi, _processorNames, _pages, _assets)
@@ -189,12 +194,12 @@ private function processRequest(_id : String, _asset : AssetRequest<Any>, _atlas
             switch either
             {
                 case Left(request):
-                    new ProcessedAsset(_asset.data, Packed(Left(_atlas.pack(request))));
+                    new ProcessedAsset(_id, _asset.data, Packed(Left(_atlas.pack(request))));
                 case Right(requests):
-                    new ProcessedAsset(_asset.data, Packed(Right([ for (request in requests) _atlas.pack(request) ])));
+                    new ProcessedAsset(_id, _asset.data, Packed(Right([ for (request in requests) _atlas.pack(request) ])));
             }
         case None(id):
-            new ProcessedAsset(_asset.data, NotPacked(id));
+            new ProcessedAsset(_id, _asset.data, NotPacked(id));
     }
 }
 

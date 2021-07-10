@@ -137,6 +137,7 @@ class Build
         final parcels    = resolveParcels(projectPath, project.parcels, outputDir, graphicsBackend, processors);
         final idProvider = createIDProvider(parcels);
 
+        var someParcelsPackage = false;
         for (parcel in parcels)
         {
             if (!parcel.validCache)
@@ -154,6 +155,8 @@ class Build
                         executor);
     
                     build(ctx, parcel, processors, idProvider);
+
+                    someParcelsPackage = true;
                 }
                 catch (e)
                 {
@@ -180,10 +183,10 @@ class Build
 
         // Building Code
 
-        if (hostNeedsGenerating(buildDir, graphicsBackend, project.app.main, cppia, rebuildHost))
+        if (someParcelsPackage || hostNeedsGenerating(buildDir, graphicsBackend, project.app.main, cppia, rebuildHost))
         {
             final hxmlPath = buildDir.parent.join('build-host.hxml');
-            final hxmlData = generateHostHxml(project, cppia, release, graphicsBackend, projectPath, buildDir);
+            final hxmlData = generateHostHxml(project, parcels, cppia, release, graphicsBackend, projectPath, buildDir);
 
             hxmlPath.toFile().writeString(hxmlData);
 

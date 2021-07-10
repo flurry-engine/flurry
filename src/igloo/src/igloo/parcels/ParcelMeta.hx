@@ -73,6 +73,19 @@ class AssetMeta
 {
     public final name : String;
 
+    public final produced : Array<ProducedMeta>;
+
+    public function new(_name, _produced)
+    {
+        name     = _name;
+        produced = _produced;
+    }
+}
+
+class ProducedMeta
+{
+    public final name : String;
+
     public final id : Int;
 
     public final pos : Int;
