@@ -25,10 +25,17 @@ function writeParcelPage(_output : Output, _page : Page, _compressed : Bytes)
     _output.write(_compressed);
 }
 
-function writeParcelProcessor(_output : Output, _proc : String)
+/**
+ * Writes header info into the stream about a processor.
+ * @param _output Stream object.
+ * @param _proc Processor id.
+ * @param _invocations Number of times the pack function of the processor was called (each invocation can produced multiple resources).
+ */
+function writeParcelProcessor(_output : Output, _proc : String, _invocations : Int)
 {
     _output.writeString('PROC');
     _output.writePrefixedString(_proc);
+    _output.writeInt32(_invocations);
 }
 
 function writeParcelFooter(_output : Output)

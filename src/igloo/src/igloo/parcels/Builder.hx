@@ -126,7 +126,7 @@ function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : Proce
             throw new Exception('Processor was not found for extension $ext');
         }
 
-        output.writeParcelProcessor(ext);
+        output.writeParcelProcessor(ext, assets.length);
 
         for (asset in assets)
         {
@@ -138,14 +138,20 @@ function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : Proce
                     switch packed
                     {
                         case Left(v):
+                            output.writeInt32(1);
+
                             produced.push(writeParcelResource(output, proc, _ctx, asset.data, v, _id.id()));
                         case Right(vs):
+                            output.writeInt32(vs.length);
+
                             for (v in vs)
                             {
                                 produced.push(writeParcelResource(output, proc, _ctx, asset.data, v, _id.id()));
                             }
                     }
                 case NotPacked(id):
+                    output.writeInt32(1);
+
                     produced.push(writeParcelResource(output, proc, _ctx, asset.data, id, _id.id()));
             }
 
