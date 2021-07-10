@@ -21,6 +21,26 @@ class GdxSpriteSheetProcessor extends AssetProcessor<Array<GdxPage>>
 		return [ 'atlas' ];
 	}
 
+    override function isInvalid(_path : Path, _time : Float)
+    {
+        if (_path.getModificationTime() >= _time)
+        {
+            return true;
+        }
+
+        final pages = parse(_path);
+
+        for (page in pages)
+        {
+            if (page.image.getModificationTime() >= _time)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 	override public function pack(_ctx : ParcelContext, _asset : Asset) : AssetRequest<Array<GdxPage>>
     {
 		final absPath = _ctx.assetDirectory.join(_asset.path);
@@ -62,7 +82,6 @@ class GdxSpriteSheetProcessor extends AssetProcessor<Array<GdxPage>>
         final frame = _either.toA();
 
         // Writes the resources ID.
-        _writer.writePrefixedString(frame.id);
         _writer.writeInt32(frame.pageID);
 
         // Write UV information for the packed frame.

@@ -117,7 +117,6 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 
 	override public function write(_ctx : ParcelContext, _writer : Output, _data : ProducedShader, _either : OneOf<PackedAsset, String>)
 	{
-		_writer.writePrefixedString(_either);
 		_writer.writePrefixedString(_ctx.gpuApi);
 
 		switch _ctx.gpuApi

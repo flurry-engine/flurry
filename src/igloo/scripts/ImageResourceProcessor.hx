@@ -1,13 +1,11 @@
-import igloo.utils.OneOf;
-import igloo.processors.PackedAsset;
-import haxe.Exception;
 import haxe.io.Output;
-import igloo.processors.PackRequest;
-import igloo.processors.AssetRequest;
-import igloo.processors.ProcessedAsset;
-import igloo.processors.AssetProcessor;
+import igloo.utils.OneOf;
 import igloo.parcels.Asset;
 import igloo.parcels.ParcelContext;
+import igloo.processors.PackedAsset;
+import igloo.processors.PackRequest;
+import igloo.processors.AssetRequest;
+import igloo.processors.AssetProcessor;
 
 using igloo.utils.OutputUtils;
 
@@ -28,9 +26,6 @@ class ImageResourceProcessor extends AssetProcessor<Int>
 	override public function write(_ctx : ParcelContext, _writer : Output, _data : Int, _either : OneOf<PackedAsset, String>)
 	{
 		final frame = _either.toA();
-
-		// Writes the resources ID.
-		_writer.writePrefixedString(frame.id);
 
 		// Write the ID of the page resource this frame is within.
 		_writer.writeInt32(frame.pageID);

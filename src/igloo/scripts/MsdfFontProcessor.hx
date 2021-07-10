@@ -52,9 +52,7 @@ class MsdfFontProcessor extends AssetProcessor<FontDefinition>
     {
         final frame = _either.toA();
 
-        _writer.writePrefixedString(frame.id);
         _writer.writeInt32(frame.pageID);
-
         _writer.writeFloat(_data.metrics.lineHeight);
         _writer.writeInt32(_data.glyphs.length);
 
