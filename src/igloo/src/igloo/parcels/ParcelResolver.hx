@@ -112,7 +112,7 @@ function createIDProvider(_parcels : Array<LoadedParcel>)
         maxID++;
     }
 
-    Console.debug('ID provider will have an initial value of $maxID');
+    Console.log('ID provider will have an initial value of $maxID');
 
     final provider = new IDProvider(maxID);
     
@@ -128,7 +128,7 @@ function createIDProvider(_parcels : Array<LoadedParcel>)
             case Some(v):
                 for (page in v.pages)
                 {
-                    Console.debug('reclaiming ${ page.id }');
+                    Console.log('reclaiming ${ page.id }');
 
                     provider.reclaim(page.id);
                 }
@@ -136,7 +136,7 @@ function createIDProvider(_parcels : Array<LoadedParcel>)
                 {
                     for (produced in asset.produced)
                     {
-                        Console.debug('reclaiming ${ produced.id }');
+                        Console.log('reclaiming ${ produced.id }');
 
                         provider.reclaim(produced.id);
                     }

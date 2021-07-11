@@ -1,5 +1,6 @@
 package igloo.parcels;
 
+import igloo.processors.AssetProcessor;
 import igloo.atlas.Page;
 import haxe.io.Bytes;
 import haxe.io.Output;
@@ -25,17 +26,16 @@ function writeParcelPage(_output : Output, _page : Page, _compressed : Bytes)
     _output.write(_compressed);
 }
 
-/**
- * Writes header info into the stream about a processor.
- * @param _output Stream object.
- * @param _proc Processor id.
- * @param _invocations Number of times the pack function of the processor was called (each invocation can produced multiple resources).
- */
-function writeParcelProcessor(_output : Output, _proc : String, _invocations : Int)
+function writeParcelProcessor(_output : Output, _proc : String)
 {
     _output.writeString('PROC');
     _output.writePrefixedString(_proc);
-    _output.writeInt32(_invocations);
+}
+
+function writeParcelResource(_output : Output, _proc : AssetProcessor<Any>, _ctx, _data, _id, _name, _resource)
+{
+    _output.writeString('RESR');
+    _proc.write(_ctx, _output, _data, _id, _name, _resource);
 }
 
 function writeParcelFooter(_output : Output)

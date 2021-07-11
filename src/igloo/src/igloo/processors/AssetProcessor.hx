@@ -1,6 +1,6 @@
 package igloo.processors;
 
-import igloo.utils.OneOf;
+import haxe.ds.Option;
 import haxe.Exception;
 import igloo.project.ProjectContext;
 import hx.files.Path;
@@ -49,12 +49,12 @@ class AssetProcessor<T>
         throw new Exception('Not implemented');
     }
 
-    public function pack(_ctx : ParcelContext, _asset : Asset) : AssetRequest<T>
+    public function pack(_ctx : ParcelContext, _asset : Asset) : ResourceRequest<T>
     {
         throw new Exception('Not implemented');
     }
 
-    public function write(_ctx : ParcelContext, _writer : Output, _data : T, _asset : OneOf<PackedAsset, String>) : Void
+    public function write(_ctx : ParcelContext, _writer : Output, _data : T, _id : Int, _name : String, _packed : Option<PackedResource>) : Void
     {
         throw new Exception('Not implemented');
     }

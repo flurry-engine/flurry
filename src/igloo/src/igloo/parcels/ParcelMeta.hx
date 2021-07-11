@@ -49,8 +49,14 @@ class ParcelMeta
 
 class PageMeta
 {
+    /**
+     * Project unique ID of this page.
+     */
     public final id : Int;
 
+    /**
+     * The byte position of this page in the parcel (includes the PAGE header).
+     */
     public final pos : Int;
 
     public final length : Int;
@@ -71,9 +77,15 @@ class PageMeta
 
 class AssetMeta
 {
+    /**
+     * ID of the source asset which produced the resources.
+     */
     public final name : String;
 
-    public final produced : Array<ProducedMeta>;
+    /**
+     * All resources produced by this asset.
+     */
+    public final produced : Array<ResourceMeta>;
 
     public function new(_name, _produced)
     {
@@ -82,14 +94,26 @@ class AssetMeta
     }
 }
 
-class ProducedMeta
+class ResourceMeta
 {
+    /**
+     * Parcel unique name of this resource.
+     */
     public final name : String;
 
+    /**
+     * Project unique ID of this resource.
+     */
     public final id : Int;
 
+    /**
+     * The byte position of this resource in the parcel (includes the RESR header).
+     */
     public final pos : Int;
 
+    /**
+     * The number of bytes this resource takes in the parcel (including the RESR header).
+     */
     public final length : Int;
 
     public function new(_id, _name, _pos, _length)

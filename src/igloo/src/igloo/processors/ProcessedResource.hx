@@ -1,16 +1,16 @@
 package igloo.processors;
 
-class ProcessedAsset<T>
+class ProcessedResource<T>
 {
-    public final name : String;
+    public final source : String;
 
     public final data : T;
 
     public final response : AssetResponse;
     
-    public function new(_name, _data, _response)
+    public function new(_source, _data, _response)
     {
-        name     = _name;
+        source   = _source;
         data     = _data;
         response = _response;
     }

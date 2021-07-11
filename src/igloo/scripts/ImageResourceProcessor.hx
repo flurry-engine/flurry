@@ -1,10 +1,12 @@
+import haxe.Exception;
+import haxe.ds.Option;
 import haxe.io.Output;
 import igloo.utils.OneOf;
 import igloo.parcels.Asset;
 import igloo.parcels.ParcelContext;
-import igloo.processors.PackedAsset;
+import igloo.processors.PackedResource;
 import igloo.processors.PackRequest;
-import igloo.processors.AssetRequest;
+import igloo.processors.ResourceRequest;
 import igloo.processors.AssetProcessor;
 
 using igloo.utils.OutputUtils;
@@ -20,14 +22,19 @@ class ImageResourceProcessor extends AssetProcessor<Int>
 	{
 		final absPath = _ctx.assetDirectory.join(_asset.path);
 		
-		return new AssetRequest(0, Pack(Image(_asset.id, absPath)));
+		return new ResourceRequest(0, Pack(Image(_asset.id, absPath)));
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _data : Int, _either : OneOf<PackedAsset, String>)
+	override public function write(_ctx : ParcelContext, _writer : Output, _data : Int, _id : Int, _name : String, _asset : Option<PackedResource>)
 	{
-		final frame = _either.toA();
+		final frame = switch _asset
+        {
+            case Some(v): v;
+            case None: throw new Exception('Resource was not packed');
+        }
 
 		// Write the ID of the page resource this frame is within.
+		_writer.writeInt32(_id);
 		_writer.writeInt32(frame.pageID);
 
 		// Write UV information for the packed frame.

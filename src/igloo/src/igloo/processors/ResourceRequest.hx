@@ -5,7 +5,7 @@ package igloo.processors;
  * It describes how the data wants to be packed and provides a means to transfer data
  * between the pack and write functions.
  */
-class AssetRequest<T>
+class ResourceRequest<T>
 {
     /**
      * The data provided from the processors pack function.
@@ -16,11 +16,11 @@ class AssetRequest<T>
     /**
      * The request generated from the processors pack function.
      */
-    public final request : RequestType;
+    public final type : RequestType;
 
-    public function new(_data, _request)
+    public function new(_data, _type)
     {
-        data    = _data;
-        request = _request;
+        data = _data;
+        type = _type;
     }
 }

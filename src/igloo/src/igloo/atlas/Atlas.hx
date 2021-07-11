@@ -31,30 +31,32 @@ class Atlas
 
     public function pack(_request : PackRequest)
     {
-        // Get the width and height of the rectangle to pack.
-        var width   = 0;
-        var height  = 0;
-        var assetID = '';
+        // Get the width and height and name of the resource to pack.
+        // Also generate an ID for it.
+        var width  = 0;
+        var height = 0;
+        var name   = '';
+        final id   = provider.id();
 
         switch _request
         {
-            case Image(id, path):
+            case Image(resource, path):
                 final info = stb.Image.info(path.toString());
 
-                width   = info.w;
-                height  = info.h;
-                assetID = id;
-            case Bytes(id, _, w, h, _):
-                width   = w;
-                height  = h;
-                assetID = id;
+                width  = info.w;
+                height = info.h;
+                name   = resource;
+            case Bytes(resource, _, w, h, _):
+                width  = w;
+                height = h;
+                name   = resource;
         }
 
         // Try to pack the image into one of the existing pages.
         var frame = null;
         for (page in pages)
         {
-            if (null != (frame = page.pack(assetID, _request, width, height)))
+            if (null != (frame = page.pack(id, name, _request, width, height)))
             {
                 return frame.unsafe();
             }
@@ -62,7 +64,7 @@ class Atlas
 
         // If it could not be fit into any of the existing pages, create a new one.
         final page   = new Page(provider.id(), xPad, yPad, maxPageWidth, maxPageHeight);
-        final packed = page.pack(assetID, _request, width, height);
+        final packed = page.pack(id, name, _request, width, height);
 
         pages.push(page);
 

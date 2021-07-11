@@ -1,5 +1,5 @@
+import igloo.processors.PackedResource;
 import igloo.utils.OneOf;
-import igloo.processors.PackedAsset;
 import sys.io.Process;
 import haxe.ds.Option;
 import haxe.Json;
@@ -9,7 +9,7 @@ import haxe.io.Output;
 import hx.files.Path;
 import igloo.parcels.ParcelContext;
 import igloo.parcels.Asset;
-import igloo.processors.AssetRequest;
+import igloo.processors.ResourceRequest;
 import igloo.processors.AssetProcessor;
 
 using Lambda;
@@ -77,7 +77,7 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 					throw new Exception('Failed to generate core 3.3 glsl fragment shader');
 				}
 
-				new AssetRequest(new ProducedShader(vertReflection, fragReflection, vertGlslPath, fragGlslPath), None(_asset.id));
+				new ResourceRequest(new ProducedShader(vertReflection, fragReflection, vertGlslPath, fragGlslPath), UnPacked(_asset.id));
 			case 'd3d11':
 				final vertHlslPath = _ctx.tempDirectory.join(_asset.id + '.vert.hlsl');
 				final fragHlslPath = _ctx.tempDirectory.join(_asset.id + '.frag.hlsl');
@@ -106,7 +106,7 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 							throw new Exception('Failed to generate fragment dxbc');
 						}
 
-						new AssetRequest(new ProducedShader(vertReflection, fragReflection, vertDxbcPath, fragDxbcPath), None(_asset.id));
+						new ResourceRequest(new ProducedShader(vertReflection, fragReflection, vertDxbcPath, fragDxbcPath), UnPacked(_asset.id));
 					case None:
 						throw new Exception('Unable to find fxc.exe path');
 				}
@@ -115,8 +115,9 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 		}
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _data : ProducedShader, _either : OneOf<PackedAsset, String>)
+	override public function write(_ctx : ParcelContext, _writer : Output, _data : ProducedShader, _id : Int, _name : String, _asset : Option<PackedResource>)
 	{
+		_writer.writeInt32(_id);
 		_writer.writePrefixedString(_ctx.gpuApi);
 
 		switch _ctx.gpuApi

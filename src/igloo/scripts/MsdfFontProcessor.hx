@@ -1,13 +1,12 @@
-import igloo.processors.PackedAsset;
-import igloo.utils.OneOf;
+import igloo.processors.PackedResource;
+import haxe.ds.Option;
 import igloo.processors.PackRequest;
 import haxe.Json;
 import haxe.Exception;
 import haxe.io.Output;
 import igloo.parcels.Asset;
 import igloo.parcels.ParcelContext;
-import igloo.processors.AssetRequest;
-import igloo.processors.ProcessedAsset;
+import igloo.processors.ResourceRequest;
 import igloo.processors.AssetProcessor;
 
 using igloo.utils.OutputUtils;
@@ -19,7 +18,7 @@ class MsdfFontProcessor extends AssetProcessor<FontDefinition>
 		return [ 'ttf', 'otf' ];
 	}
 
-	override public function pack(_ctx:ParcelContext, _asset:Asset)
+	override public function pack(_ctx : ParcelContext, _asset : Asset)
     {
         final absPath  = _ctx.assetDirectory.join(_asset.path);
         final imageOut = _ctx.tempDirectory.join(_asset.id + '.png');
@@ -45,13 +44,18 @@ class MsdfFontProcessor extends AssetProcessor<FontDefinition>
             throw new Exception('Unable to parse font json');
         }
 
-        return new AssetRequest(font, Pack(Image(_asset.id, imageOut)));
+        return new ResourceRequest(font, Pack(Image(_asset.id, imageOut)));
 	}
 
-	override public function write(_ctx:ParcelContext, _writer:Output, _data : FontDefinition, _either : OneOf<PackedAsset, String>)
+	override public function write(_ctx : ParcelContext, _writer : Output, _data : FontDefinition, _id : Int, _name : String, _asset : Option<PackedResource>)
     {
-        final frame = _either.toA();
+        final frame = switch _asset
+        {
+            case Some(v): v;
+            case None: throw new Exception('Resource was not packed');
+        }
 
+        _writer.writeInt32(_id);
         _writer.writeInt32(frame.pageID);
         _writer.writeFloat(_data.metrics.lineHeight);
         _writer.writeInt32(_data.glyphs.length);

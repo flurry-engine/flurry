@@ -1,4 +1,6 @@
-import igloo.processors.PackedAsset;
+import igloo.processors.PackedResource;
+import haxe.ds.Option;
+import igloo.processors.ResourceRequest;
 import igloo.utils.OneOf;
 import haxe.Exception;
 import haxe.io.Input;
@@ -6,7 +8,6 @@ import haxe.io.Output;
 import haxe.ds.ReadOnlyArray;
 import hx.files.Path;
 import igloo.processors.PackRequest;
-import igloo.processors.AssetRequest;
 import igloo.processors.AssetProcessor;
 import igloo.parcels.Asset;
 import igloo.parcels.ParcelContext;
@@ -41,7 +42,7 @@ class GdxSpriteSheetProcessor extends AssetProcessor<Array<GdxPage>>
         return false;
     }
 
-	override public function pack(_ctx : ParcelContext, _asset : Asset) : AssetRequest<Array<GdxPage>>
+	override public function pack(_ctx : ParcelContext, _asset : Asset)
     {
 		final absPath = _ctx.assetDirectory.join(_asset.path);
         final pages   = parse(absPath);
@@ -74,14 +75,19 @@ class GdxSpriteSheetProcessor extends AssetProcessor<Array<GdxPage>>
             }
         }
 
-        return new AssetRequest(pages, Pack(images));
+        return new ResourceRequest(pages, Pack(images));
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _data : Array<GdxPage>, _either : OneOf<PackedAsset, String>)
+	override public function write(_ctx : ParcelContext, _writer : Output, _data : Array<GdxPage>, _id : Int, _name : String, _asset : Option<PackedResource>)
     {
-        final frame = _either.toA();
+        final frame = switch _asset
+        {
+            case Some(v): v;
+            case None: throw new Exception('Resource was not packed');
+        }
 
         // Writes the resources ID.
+        _writer.writeInt32(_id);
         _writer.writeInt32(frame.pageID);
 
         // Write UV information for the packed frame.
