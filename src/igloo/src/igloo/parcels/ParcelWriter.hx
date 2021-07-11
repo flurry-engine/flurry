@@ -7,10 +7,9 @@ import haxe.io.Output;
 
 using igloo.utils.OutputUtils;
 
-function writeParcelHeader(_output : Output, _pageCount, _pageFormat)
+function writeParcelHeader(_output : Output, _pageFormat)
 {
     _output.writeString('PRCL');
-    _output.writeInt32(_pageCount);
     _output.writeByte(_pageFormat);
 }
 

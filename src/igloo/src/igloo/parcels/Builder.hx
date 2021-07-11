@@ -60,7 +60,7 @@ function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : Proce
     final writtenPages  = [];
     final writtenAssets = [];
 
-    output.writeParcelHeader(atlas.pages.length, getPageFormatID(_parcel.settings.format));
+    output.writeParcelHeader(getPageFormatID(_parcel.settings.format));
 
     // At this stage all assets have been packed into atlas pages if they requested it.
     // We can now blit all the images into the final pages.
