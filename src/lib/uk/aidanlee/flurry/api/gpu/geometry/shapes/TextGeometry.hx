@@ -177,7 +177,7 @@ class TextGeometry extends Geometry
 
                 if (!_font.glyphs.exists(code))
                 {
-                    throw new CharacterNotFoundException(code, _font.name);
+                    throw new CharacterNotFoundException(code, _font.id);
                 }
 
                 final char = _font.glyphs.get(code).unsafe();
@@ -237,7 +237,7 @@ class TextGeometry extends Geometry
 
 class CharacterNotFoundException extends Exception
 {
-    public function new(_code : Int, _font : String)
+    public function new(_code : Int, _font : Int)
     {
         super('Unable to find a character for the code $_code in the font $_font');
     }

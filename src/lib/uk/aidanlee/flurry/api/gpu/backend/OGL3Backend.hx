@@ -526,7 +526,7 @@ using cpp.NativeArray;
 
         if (getShaderParameter(vertex, GL_COMPILE_STATUS) == 0)
         {
-            throw new OGL3VertexCompilationError(_resource.name, getShaderInfoLog(vertex));
+            throw new OGL3VertexCompilationError(_resource.id, getShaderInfoLog(vertex));
         }
 
         // Create fragment shader.
@@ -536,7 +536,7 @@ using cpp.NativeArray;
 
         if (getShaderParameter(fragment, GL_COMPILE_STATUS) == 0)
         {
-            throw new OGL3FragmentCompilationError(_resource.name, getShaderInfoLog(fragment));
+            throw new OGL3FragmentCompilationError(_resource.id, getShaderInfoLog(fragment));
         }
 
         // Link the shaders into a program.
@@ -547,7 +547,7 @@ using cpp.NativeArray;
 
         if (getProgramParameter(program, GL_LINK_STATUS) == 0)
         {
-            throw new OGL3ShaderLinkingException(_resource.name, getProgramInfoLog(program));
+            throw new OGL3ShaderLinkingException(_resource.id, getProgramInfoLog(program));
         }
 
         // Delete the shaders now that they're linked
@@ -1376,17 +1376,9 @@ private class OGL3FailedToLoad extends Exception
     }
 }
 
-private class OGL3NoShaderSourceException extends Exception
-{
-    public function new(_id : String)
-    {
-        super('$_id does not contain source code for a openGL 3.2 shader');
-    }
-}
-
 private class OGL3VertexCompilationError extends Exception
 {
-    public function new(_id : String, _error : String)
+    public function new(_id : Int, _error : String)
     {
         super('Unable to compile the vertex shader for $_id : $_error');
     }
@@ -1394,7 +1386,7 @@ private class OGL3VertexCompilationError extends Exception
 
 private class OGL3FragmentCompilationError extends Exception
 {
-    public function new(_id : String, _error : String)
+    public function new(_id : Int, _error : String)
     {
         super('Unable to compile the fragment shader for $_id : $_error');
     }
@@ -1402,7 +1394,7 @@ private class OGL3FragmentCompilationError extends Exception
 
 private class OGL3ShaderLinkingException extends Exception
 {
-    public function new(_id : String, _error : String)
+    public function new(_id : Int, _error : String)
     {
         super('Unable to link a shader from $_id : $_error');
     }
@@ -1421,21 +1413,5 @@ private class OGL3NotEnoughTexturesException extends Exception
     public function new(_expected : Int, _actual : Int)
     {
         super('Shader expects $_expected textures but the draw command only provided $_actual');
-    }
-}
-
-private class OGL3UniformBlockNotFoundException extends Exception
-{
-    public function new(_blockName)
-    {
-        super('Unable to find a uniform block with the name $_blockName');
-    }
-}
-
-private class OGL3CameraViewportNotSetException extends Exception
-{
-    public function new()
-    {
-        super('A viewport must be defined for orthographic cameras');
     }
 }

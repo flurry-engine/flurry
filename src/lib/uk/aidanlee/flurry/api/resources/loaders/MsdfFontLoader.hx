@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.resources.loaders;
 
-import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
 import haxe.io.Input;
 
@@ -13,15 +12,13 @@ class MsdfFontLoader extends ResourceReader
         return [ 'ttf', 'otf' ];
     }
 
-    override function read(_input : Input) : Array<Resource>
+    override function read(_input : Input)
     {
-        final name       = _input.readPrefixedString();
-        final page       = _input.readPrefixedString();
+        final id         = _input.readInt32();
+        final page       = _input.readInt32();
         final lineHeight = _input.readFloat();
         final glyphCount = _input.readInt32();
         final glyphs     = new Map();
-
-        trace(name, page, lineHeight, glyphCount);
 
         for (_ in 0...glyphCount)
         {
@@ -41,7 +38,7 @@ class MsdfFontLoader extends ResourceReader
             glyphs[unicode] = new FontGlyph(advance, pLeft, pTop, pRight, pBottom, u1, v1, u2, v2);
         }
 
-        return [ new MsdfFontResource(name, Hash.hash(page), lineHeight, glyphs) ];
+        return new MsdfFontResource(id, page, lineHeight, glyphs);
     }
 }
 
@@ -53,9 +50,9 @@ class MsdfFontResource extends Resource
 
     public final glyphs : Map<Int, FontGlyph>;
 
-    public function new(_name, _page, _lineHeight, _glyphs)
+    public function new(_id, _page, _lineHeight, _glyphs)
     {
-        super(_name);
+        super(_id);
 
         page       = _page;
         lineHeight = _lineHeight;

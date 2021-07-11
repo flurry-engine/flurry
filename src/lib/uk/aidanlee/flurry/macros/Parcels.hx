@@ -26,6 +26,8 @@ typedef ParcelMeta = {
     final assets : Array<AssetMeta>;
 }
 
+var totalResources = 0;
+
 macro function loadParcelMeta(_name : String, _path : String)
 {
     final meta  = (Json.parse(File.getContent(_path)) : ParcelMeta);
@@ -33,8 +35,12 @@ macro function loadParcelMeta(_name : String, _path : String)
     final built = macro class $clazz {}
     final print = new Printer();
 
+    totalResources += meta.pages.length;
+
     for (asset in meta.assets)
     {
+        totalResources += asset.produced.length;
+
         for (produced in asset.produced)
         {
             built.fields.push({
@@ -49,4 +55,9 @@ macro function loadParcelMeta(_name : String, _path : String)
     Context.defineModule('uk.aidanlee.flurry.api.resources.Parcels', [ built ]);
 
     return macro null;
+}
+
+macro function getTotalResourceCount()
+{
+    return macro $v{ totalResources };
 }

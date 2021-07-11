@@ -3,7 +3,6 @@ package uk.aidanlee.flurry.api.resources;
 import haxe.io.Bytes;
 import uk.aidanlee.flurry.api.resources.loaders.PageFrameLoader;
 import uk.aidanlee.flurry.api.resources.loaders.MsdfFontLoader;
-import uk.aidanlee.flurry.api.resources.loaders.GdxSpriteSheetLoader;
 import uk.aidanlee.flurry.api.resources.loaders.DesktopShaderLoader;
 import haxe.ds.Vector;
 import haxe.io.Path;
@@ -49,7 +48,9 @@ class ResourceSystem
 
     final loadedParcels : Map<String, LoadedParcel>;
 
-    final loadedResources : Map<String, LoadedResource>;
+    final resources : Vector<Null<Resource>>;
+
+    final references : Vector<Int>;
 
     /**
      * Creates a new resources system.
@@ -62,9 +63,10 @@ class ResourceSystem
         syncScheduler      = _syncScheduler;
         resourceReaders    = [];
         loadedParcels      = [];
-        loadedResources    = [];
+        resources          = new Vector(uk.aidanlee.flurry.macros.Parcels.getTotalResourceCount());
+        references         = new Vector(uk.aidanlee.flurry.macros.Parcels.getTotalResourceCount());
 
-        for (loader in [ new DesktopShaderLoader(), new GdxSpriteSheetLoader(), new MsdfFontLoader(), new PageFrameLoader() ])
+        for (loader in [ new DesktopShaderLoader(), new MsdfFontLoader(), new PageFrameLoader() ])
         {
             for (id in loader.ids())
             {
@@ -92,99 +94,79 @@ class ResourceSystem
      */
     public function load(_parcels : ReadOnlyArray<String>) : IObservable<Float>
     {
-        for (parcel in _parcels)
-        {
-            final parcelPath = assetsPath.join('$parcel.parcel');
-            final input      = parcelPath.toFile().openInput();
-
-            // Parcel should start with PRCL
-            if (input.readString(4) != 'PRCL')
-            {
-                throw new Exception('stream does not contain the PRCL magic bytes');
-            }
-
-            // Read the table meta
-            if (input.readString(4) != 'TABL')
-            {
-                throw new Exception('stream does not contain the TABL header bytes');
-            }
-
-            final assetCount = input.readInt32();
-            final pageCount  = input.readInt32();
-            final pageFormat = input.readByte();
-            final readAssets = new Array<Resource>();
-
-            // For now read past the actual table contents, we don't really care about it.
-            for (_ in 0...assetCount)
-            {
-                // Skip past the name length (size we read) plus two ints for the pos and length in the parcel.
-                final nameLen = input.readInt32();
-                final name    = input.readString(nameLen);
-
-                final procLen = input.readInt32();
-                final proc    = input.readString(procLen);
-
-                final pos     = input.readInt32();
-                final length  = input.readInt32();
-            }
-
-            // Read all page data
-            for (i in 0...pageCount)
-            {
-                if (input.readString(4) != 'PAGE')
-                {
-                    throw new Exception('stream does not contain the PAGE header bytes');
-                }
-
-                final nameLen  = input.readInt32();
-                final name     = input.readString(nameLen);
-
-                final bytesLen = input.readInt32();
-                final bytes    = input.read(bytesLen);
-                final image    = stb.Image.load_from_memory(bytes.getData(), bytesLen, 4);
-
-                readAssets.push(new PageResource(name, image.w, image.h, Bytes.ofData(image.bytes)));
-            }
-
-            // Read all user resources.
-            var magic = '';
-            while ('STOP' != (magic = input.readString(4)))
-            {
-                if (magic != 'RESR')
-                {
-                    throw new Exception('stream does not contain the RESR header bytes');
-                }
-
-                final procNameLen   = input.readInt32();
-                final procName      = input.readString(procNameLen);
-                final assetsForProc = input.readInt32();
-                final processor     = resourceReaders[procName];
-
-                if (processor != null)
-                {
-                    for (_ in 0...assetsForProc)
+        return _parcels
+            .fromIterable()
+            .flatMap(parcel -> {
+                return create(obs -> {
+                    final parcelPath = assetsPath.join('$parcel.parcel');
+                    final input      = parcelPath.toFile().openInput();
+    
+                    // Parcel should start with PRCL
+                    if (input.readString(4) != 'PRCL')
                     {
-                        for (resource in processor.read(input))
+                        throw new Exception('stream does not contain the PRCL magic bytes');
+                    }
+    
+                    final pageFormat  = input.readByte();
+                    final resourceIDs = [];
+    
+                    var magic = '';
+                    var proc  = null;
+                    while ('STOP' != (magic = input.readString(4)))
+                    {
+                        switch magic
                         {
-                            readAssets.push(resource);
+                            case 'PAGE':
+                                final id       = input.readInt32();
+                                final bytesLen = input.readInt32();
+                                final bytes    = input.read(bytesLen);
+                                final image    = stb.Image.load_from_memory(bytes.getData(), bytesLen, 4);
+                                final page     = new PageResource(id, image.w, image.h, Bytes.ofData(image.bytes));
+    
+                                resourceIDs.push(page.id);
+                                syncScheduler.scheduleNow(_ -> {
+                                    addResource(page);
+    
+                                    return new Empty();
+                                });
+                            case 'PROC':
+                                final procNameLen = input.readInt32();
+                                final procName    = input.readString(procNameLen);
+    
+                                proc = resourceReaders[procName];
+                            case 'RESR':
+                                final resource = proc.unsafe().read(input);
+    
+                                resourceIDs.push(resource.id);
+                                syncScheduler.scheduleNow(_ -> {
+                                    addResource(resource);
+    
+                                    return new Empty();
+                                });
+                            case other:
+                                throw new Exception('Unkown magic bytes of $other');
                         }
                     }
-                }
-                else
-                {
-                    throw new Exception('No processor found for $procName');
-                }
-            }
+    
+                    input.close();
+    
+                    syncScheduler.scheduleNow(_ -> {
+                        loadedParcels[parcel] = new LoadedParcel(parcel, resourceIDs);
+    
+                        return new Empty();
+                    });
 
-            input.close();
+                    obs.onNext(1.0);
+                    obs.onCompleted();
 
-            for (asset in readAssets)
-            {
-                addResource(asset);
-            }
-        }
-        
-        return empty();
+                    return new Empty();
+                });
+            })
+            .subscribeOn(workScheduler)
+            .observeOn(syncScheduler)
+            .scan(0.0, (acc, next) -> acc + (next / _parcels.length))
+            .publish()
+            .refCount();
     }
 
     /**
@@ -193,31 +175,19 @@ class ResourceSystem
      */
     public function free(_name : String)
     {
-        final parcel = '$_name.parcel';
-        final loaded = loadedParcels[parcel];
+        final loaded = loadedParcels[_name];
 
         if (loaded != null)
         {
             for (id in loaded.resources)
             {
-                final cached = loadedResources[id];
+                final resource = resources[id];
 
-                if (cached != null)
+                if (resource != null)
                 {
-                    if (cached.references <= 1)
-                    {
-                        loadedResources.remove(id);
-        
-                        events.removed.onNext(cached.resource);
-                    }
-                    else
-                    {
-                        cached.references--;
-                    }
+                    removeResource(resource);
                 }
             }
-
-            loadedParcels.remove(parcel);
         }
     }
 
@@ -228,18 +198,10 @@ class ResourceSystem
      */
     public function addResource(_resource : Resource)
     {
-        final loaded = loadedResources[_resource.name];
+        resources[_resource.id] = _resource;
+        references[_resource.id]++;
 
-        if (loaded != null)
-        {
-            loaded.references++;
-        }
-        else
-        {
-            loadedResources[_resource.name] = new LoadedResource(_resource);
-
-            events.created.onNext(_resource);
-        }
+        events.created.onNext(_resource);
     }
 
     /**
@@ -250,32 +212,15 @@ class ResourceSystem
      */
     public function removeResource(_resource : Resource)
     {
-        final loaded = loadedResources[_resource.name];
-
-        if (loaded != null)
+        if (references[_resource.id] <= 1)
         {
-            if (loaded.references <= 1)
-            {
-                loadedResources.remove(_resource.name);
-
-                events.removed.onNext(loaded.resource);
-            }
-            else
-            {
-                loaded.references--;
-            }
+            references[_resource.id] = 0;
+            resources[_resource.id] = null;
         }
-    }
-
-    public function getID(_name : String) : ResourceID
-    {
-        final loaded = loadedResources[_name];
-        if (loaded != null)
+        else
         {
-            return loaded.resource.id;
+            references[_resource.id]--;
         }
-
-        throw new ResourceNotFoundException(_name);
     }
 
     /**
@@ -286,39 +231,17 @@ class ResourceSystem
      * @throws InvalidResourceTypeException If the resource cannot be cast to the specified resource class.
      * @throws ResourceNotFoundException If a resource with the provided name is not in the system.
      */
-    public function getByName<T : Resource>(_name : String, _type : Class<T>) : T
+    public function get(_id : Int) : Resource
     {
-        final loaded = loadedResources[_name];
+        final loaded = resources[_id];
         if (loaded != null)
         {
-            final casted = Std.downcast(loaded.resource, _type);
-
-            if (casted != null)
-            {
-                return casted;
-            }
-            else
-            {
-                throw new InvalidResourceTypeException(_name, Type.getClassName(_type));
-            }
+            return loaded;
         }
         else
         {
-            throw new ResourceNotFoundException(_name);
+            throw new ResourceNotFoundException(_id);
         }
-    }
-
-    /**
-     * Retrieve a resource from the system based on its unique ID.
-     * @param _id ID of the resource.
-     * @param _type Class type of the resource.
-     * @return Resource object.
-     * @throws InvalidResourceTypeException If the resource cannot be cast to the specified resource class.
-     * @throws ResourceNotFoundException If a resource with the provided ID is not in the system.
-     */
-    public function getByID<T : Resource>(_id : Int, _type : Class<T>) : T
-    {
-        throw new NotImplementedException();
     }
 }
 
@@ -332,7 +255,7 @@ class InvalidResourceTypeException extends Exception
 
 class ResourceNotFoundException extends Exception
 {
-    public function new(_resource : String)
+    public function new(_resource : Int)
     {
         super('failed to load "$_resource", it does not exist in the system');
     }
@@ -342,27 +265,11 @@ private class LoadedParcel
 {
     public final name : String;
 
-    public final pages : Vector<String>;
+    public final resources : Array<ResourceID>;
 
-    public final resources : Vector<String>;
-
-	public function new(_name, _pages, _resources)
+	public function new(_name, _resources)
     {
 		name      = _name;
-		pages     = _pages;
 		resources = _resources;
 	}
-}
-
-private class LoadedResource
-{
-    public final resource : Resource;
-
-    public var references : Int;
-
-    public function new(_resource)
-    {
-        resource   = _resource;
-        references = 0;
-    }
 }

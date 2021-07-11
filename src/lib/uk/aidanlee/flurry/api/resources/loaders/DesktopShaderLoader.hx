@@ -1,9 +1,9 @@
 package uk.aidanlee.flurry.api.resources.loaders;
 
+import haxe.Exception;
 import haxe.io.Bytes;
 import haxe.ds.Vector;
 import haxe.io.Input;
-import haxe.exceptions.NotImplementedException;
 
 using uk.aidanlee.flurry.api.InputUtils;
 
@@ -14,9 +14,9 @@ class DesktopShaderLoader extends ResourceReader
         return [ 'glsl' ];
     }
 
-    override function read(_input : Input) : Array<Resource>
+    override function read(_input : Input)
     {
-        final name = _input.readPrefixedString();
+        final id   = _input.readInt32();
         final api  = _input.readPrefixedString();
 
         return switch api
@@ -48,7 +48,7 @@ class DesktopShaderLoader extends ResourceReader
                 final fragCodeLen = _input.readInt32();
                 final fragCode    = _input.read(fragCodeLen);
 
-                [ new Ogl3Shader(name, blocks, samplers, vertCode, fragCode) ];
+                new Ogl3Shader(id, blocks, samplers, vertCode, fragCode);
             case 'd3d11':
                 final vertBlockCount = _input.readInt32();
                 final vertBlocks     = new Vector(vertBlockCount);
@@ -74,9 +74,9 @@ class DesktopShaderLoader extends ResourceReader
                 final fragCodeLen = _input.readInt32();
                 final fragCode    = _input.read(fragCodeLen);
 
-                [ new D3d11Shader(name, vertBlocks, fragBlocks, textureCount, vertCode, fragCode) ];
-            default:
-                throw new NotImplementedException();
+                new D3d11Shader(id, vertBlocks, fragBlocks, textureCount, vertCode, fragCode);
+            case other:
+                throw new Exception('DesktopShaderLoader cannot produced shaders of type $other');
         }
     }
 }

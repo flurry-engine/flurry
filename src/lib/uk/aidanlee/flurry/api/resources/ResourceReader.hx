@@ -15,7 +15,7 @@ class ResourceReader
         throw new NotImplementedException();
     }
 
-    public function read(_input : Input) : Array<Resource>
+    public function read(_input : Input) : Resource
     {
         throw new NotImplementedException();
     }

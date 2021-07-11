@@ -22,9 +22,9 @@ class PageFrameResource extends Resource
 
     public final v2 : Float;
 
-	public function new(_name, _page, _x, _y, _width, _height, _u1, _v1, _u2, _v2)
+	public function new(_id, _page, _x, _y, _width, _height, _u1, _v1, _u2, _v2)
     {
-        super(_name);
+        super(_id);
 
 		page   = _page;
 		x      = _x;

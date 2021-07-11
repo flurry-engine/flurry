@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.resources.loaders;
 
-import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 import haxe.io.Input;
 
@@ -10,14 +9,13 @@ class PageFrameLoader extends ResourceReader
 {
     override function ids()
     {
-        return [ 'png', 'jpg', 'jpeg', 'tga', 'bmp' ];
+        return [ 'png', 'jpg', 'jpeg', 'tga', 'bmp', 'atlas' ];
     }
 
-    override function read(_input : Input) : Array<Resource>
+    override function read(_input : Input)
     {
-        final name   = _input.readPrefixedString();
-        final page   = _input.readPrefixedString();
-        final pageID = Hash.hash(page);
+        final id   = _input.readInt32();
+        final page = _input.readInt32();
 
         final x = _input.readInt32();
         final y = _input.readInt32();
@@ -29,6 +27,6 @@ class PageFrameLoader extends ResourceReader
         final u2 = _input.readFloat();
         final v2 = _input.readFloat();
 
-        return [ new PageFrameResource(name, pageID, x, y, w, h, u1, v1, u2, v2) ];
+        return new PageFrameResource(id, page, x, y, w, h, u1, v1, u2, v2);
     }
 }

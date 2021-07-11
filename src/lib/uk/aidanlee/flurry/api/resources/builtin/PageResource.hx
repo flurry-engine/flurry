@@ -10,9 +10,9 @@ class PageResource extends Resource
 
     public final pixels : Bytes;
 
-    public function new(_name, _width, _height, _pixels)
+    public function new(_id, _width, _height, _pixels)
     {
-        super(_name);
+        super(_id);
 
         width  = _width;
         height = _height;
