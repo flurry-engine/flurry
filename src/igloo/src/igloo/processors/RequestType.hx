@@ -1,15 +1,21 @@
 package igloo.processors;
 
-import igloo.processors.PackRequest;
-import igloo.utils.OneOf;
+import haxe.io.Bytes;
+import hx.files.Path;
 
 enum RequestType
 {
     /**
-     * Indicate that the provided assets has data which should be packed within a atlas pages.
-     * The request will either contain a single request or an array of requests.
+     * Pack the image found at the provided absolute path.
+     * It should be a png, jpg, tga, or bmp. Other formats are not supported.
      */
-    Pack(_toPack : OneOf<PackRequest, Array<PackRequest>>);
+    PackImage(id : String, path : Path);
+
+    /**
+     * Pack the provided bytes object.
+     * The width, height, and pixel format must be provided.
+     */
+    PackBytes(id : String, bytes : Bytes, width : Int, height : Int, format : PixelFormat);
 
     /**
      * Indicate that the provided asset does not need to be packed in an atlas page.

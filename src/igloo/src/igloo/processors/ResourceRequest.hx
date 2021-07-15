@@ -1,5 +1,7 @@
 package igloo.processors;
 
+import igloo.utils.OneOf;
+
 /**
  * Each call to a `IAssetProcessor<T>`'s pack function returns one of these requests.
  * It describes how the data wants to be packed and provides a means to transfer data
@@ -16,7 +18,7 @@ class ResourceRequest<T>
     /**
      * The request generated from the processors pack function.
      */
-    public final type : RequestType;
+    public final type : OneOf<RequestType, Array<RequestType>>;
 
     public function new(_data, _type)
     {

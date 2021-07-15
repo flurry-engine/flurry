@@ -1,8 +1,8 @@
 package igloo.blit;
 
 import haxe.Exception;
-import igloo.processors.PackRequest;
 import igloo.atlas.Page;
+import igloo.processors.RequestType;
 
 function blit(_page : Page)
 {
@@ -30,15 +30,15 @@ function blit(_page : Page)
     return output;
 }
 
-private function getDataForRequest(_request : PackRequest)
+private function getDataForRequest(_request : RequestType)
 {
     return switch _request
     {
-        case Image(_, path):
+        case PackImage(_, path):
             final data = stb.Image.load(path.toString(), 4);
 
             haxe.io.Bytes.ofData(data.bytes);
-        case Bytes(_, bytes, width, height, format):
+        case PackBytes(_, bytes, width, height, format):
             switch format
             {
                 case RGBA:
@@ -86,5 +86,7 @@ private function getDataForRequest(_request : PackRequest)
                 case other:
                     throw new Exception('Bytes format $other is not yet supported');
             }
+        case other:
+            throw new Exception('Cannot blit a request of $other');
     }
 }

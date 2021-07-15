@@ -1,7 +1,6 @@
 package igloo.atlas;
 
 import igloo.parcels.IDProvider;
-import igloo.processors.PackRequest;
 
 using Safety;
 
@@ -29,34 +28,15 @@ class Atlas
         pages         = [];
     }
 
-    public function pack(_request : PackRequest)
+    public function pack(_request, _name, _width, _height)
     {
-        // Get the width and height and name of the resource to pack.
-        // Also generate an ID for it.
-        var width  = 0;
-        var height = 0;
-        var name   = '';
-        final id   = provider.id();
-
-        switch _request
-        {
-            case Image(resource, path):
-                final info = stb.Image.info(path.toString());
-
-                width  = info.w;
-                height = info.h;
-                name   = resource;
-            case Bytes(resource, _, w, h, _):
-                width  = w;
-                height = h;
-                name   = resource;
-        }
+        final id = provider.id();
 
         // Try to pack the image into one of the existing pages.
         var frame = null;
         for (page in pages)
         {
-            if (null != (frame = page.pack(id, name, _request, width, height)))
+            if (null != (frame = page.pack(id, _name, _request, _width, _height)))
             {
                 return frame.unsafe();
             }
@@ -64,7 +44,7 @@ class Atlas
 
         // If it could not be fit into any of the existing pages, create a new one.
         final page   = new Page(provider.id(), xPad, yPad, maxPageWidth, maxPageHeight);
-        final packed = page.pack(id, name, _request, width, height);
+        final packed = page.pack(id, _name, _request, _width, _height);
 
         pages.push(page);
 

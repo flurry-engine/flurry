@@ -54,7 +54,7 @@ class AssetProcessor<T>
         throw new Exception('Not implemented');
     }
 
-    public function write(_ctx : ParcelContext, _writer : Output, _data : T, _id : Int, _name : String, _packed : Option<PackedResource>) : Void
+    public function write(_ctx : ParcelContext, _writer : Output, _data : T, _response : ResourceResponse) : Void
     {
         throw new Exception('Not implemented');
     }

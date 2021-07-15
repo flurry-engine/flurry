@@ -1,3 +1,5 @@
+import igloo.processors.ResourceResponse;
+import igloo.processors.RequestType;
 import igloo.processors.PackedResource;
 import igloo.utils.OneOf;
 import sys.io.Process;
@@ -115,72 +117,78 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 		}
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _data : ProducedShader, _id : Int, _name : String, _asset : Option<PackedResource>)
+	override public function write(_ctx : ParcelContext, _writer : Output, _data : ProducedShader, _response : ResourceResponse)
 	{
-		_writer.writeInt32(_id);
-		_writer.writePrefixedString(_ctx.gpuApi);
-
-		switch _ctx.gpuApi
+		switch _response
 		{
-			case 'ogl3', 'mock':
-				// OpenGL doesn't really distinguish between vertex and fragment stages when binding.
-				// So we can filter to what we actually want.
-				final blocks = getDistinctBlocks(
-					_data.vertReflection.ubos.or([]),
-					_data.fragReflection.ubos.or([]));
-		
-				final combined = generateCombinedSamplers(
-					_data.fragReflection.separate_images.or([]),
-					_data.fragReflection.separate_samplers.or([]));
-		
-				_writer.writeInt32(blocks.length);
-				for (block in blocks)
-				{
-					_writer.writePrefixedString(block.name);
-					_writer.writePrefixedString(block.type);
-					_writer.writeInt32(block.binding);
-				}
-		
-				_writer.writeInt32(combined.length);
-				for (sampler in combined)
-				{
-					_writer.writePrefixedString(sampler);
-				}
-			case 'd3d11':
-				// D3D11 does care about the blocks in each stage, so include the full info.
-				final vertBlocks = _data.vertReflection.ubos.or([]);
-				final fragBlocks = _data.fragReflection.ubos.or([]);
+			case NotPacked(_, _id):
+				_writer.writeInt32(_id);
+				_writer.writePrefixedString(_ctx.gpuApi);
 
-				_writer.writeInt32(vertBlocks.length);
-				for (block in vertBlocks)
+				switch _ctx.gpuApi
 				{
-					_writer.writePrefixedString(block.name);
+					case 'ogl3', 'mock':
+						// OpenGL doesn't really distinguish between vertex and fragment stages when binding.
+						// So we can filter to what we actually want.
+						final blocks = getDistinctBlocks(
+							_data.vertReflection.ubos.or([]),
+							_data.fragReflection.ubos.or([]));
+				
+						final combined = generateCombinedSamplers(
+							_data.fragReflection.separate_images.or([]),
+							_data.fragReflection.separate_samplers.or([]));
+				
+						_writer.writeInt32(blocks.length);
+						for (block in blocks)
+						{
+							_writer.writePrefixedString(block.name);
+							_writer.writePrefixedString(block.type);
+							_writer.writeInt32(block.binding);
+						}
+				
+						_writer.writeInt32(combined.length);
+						for (sampler in combined)
+						{
+							_writer.writePrefixedString(sampler);
+						}
+					case 'd3d11':
+						// D3D11 does care about the blocks in each stage, so include the full info.
+						final vertBlocks = _data.vertReflection.ubos.or([]);
+						final fragBlocks = _data.fragReflection.ubos.or([]);
+
+						_writer.writeInt32(vertBlocks.length);
+						for (block in vertBlocks)
+						{
+							_writer.writePrefixedString(block.name);
+						}
+
+						_writer.writeInt32(fragBlocks.length);
+						for (block in fragBlocks)
+						{
+							_writer.writePrefixedString(block.name);
+						}
+
+						if (_data.fragReflection.separate_images.length != _data.fragReflection.separate_samplers.length)
+						{
+							throw new Exception('Number of samplers and textures do not match');		
+						}
+
+						_writer.writeInt32(_data.fragReflection.separate_images.length);
+					case other:
+						throw new Exception('GlslShaderProcessor cannot write shaders for $other');
 				}
 
-				_writer.writeInt32(fragBlocks.length);
-				for (block in fragBlocks)
-				{
-					_writer.writePrefixedString(block.name);
-				}
+				final vertBlob = _data.vertPath.toFile().readAsBytes();
+				final fragBlob = _data.fragPath.toFile().readAsBytes();
 
-				if (_data.fragReflection.separate_images.length != _data.fragReflection.separate_samplers.length)
-				{
-					throw new Exception('Number of samplers and textures do not match');		
-				}
+				_writer.writeInt32(vertBlob.length);
+				_writer.write(vertBlob);
 
-				_writer.writeInt32(_data.fragReflection.separate_images.length);
-			case other:
-				throw new Exception('GlslShaderProcessor cannot write shaders for $other');
+				_writer.writeInt32(fragBlob.length);
+				_writer.write(fragBlob);
+			case Packed(_):
+				//
 		}
-
-		final vertBlob = _data.vertPath.toFile().readAsBytes();
-		final fragBlob = _data.fragPath.toFile().readAsBytes();
-
-		_writer.writeInt32(vertBlob.length);
-		_writer.write(vertBlob);
-
-		_writer.writeInt32(fragBlob.length);
-		_writer.write(fragBlob);
 	}
 
 	function getDistinctBlocks(_set1 : Array<SpvcUbo>, _set2 : Array<SpvcUbo>)

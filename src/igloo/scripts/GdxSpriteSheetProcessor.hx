@@ -1,3 +1,5 @@
+import igloo.processors.ResourceResponse;
+import igloo.processors.RequestType;
 import igloo.processors.PackedResource;
 import haxe.ds.Option;
 import igloo.processors.ResourceRequest;
@@ -7,7 +9,6 @@ import haxe.io.Input;
 import haxe.io.Output;
 import haxe.ds.ReadOnlyArray;
 import hx.files.Path;
-import igloo.processors.PackRequest;
 import igloo.processors.AssetProcessor;
 import igloo.parcels.Asset;
 import igloo.parcels.ParcelContext;
@@ -71,35 +72,35 @@ class GdxSpriteSheetProcessor extends AssetProcessor<Array<GdxPage>>
                     buffer.blit(dstAddr, source, srcAddr, section.width * bpp);
                 }
 
-                images.push(Bytes(section.name, buffer, section.width, section.height, BGRA));
+                images.push(RequestType.PackBytes(section.name, buffer, section.width, section.height, BGRA));
             }
         }
 
-        return new ResourceRequest(pages, Pack(images));
+        return new ResourceRequest(pages, images);
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _data : Array<GdxPage>, _id : Int, _name : String, _asset : Option<PackedResource>)
+	override public function write(_ctx : ParcelContext, _writer : Output, _data : Array<GdxPage>, _response : ResourceResponse)
     {
-        final frame = switch _asset
+        switch _response
         {
-            case Some(v): v;
-            case None: throw new Exception('Resource was not packed');
+            case Packed(frame):
+                // Writes the resources ID.
+                _writer.writeInt32(frame.id);
+                _writer.writeInt32(frame.pageID);
+
+                // Write UV information for the packed frame.
+                _writer.writeInt32(frame.x);
+                _writer.writeInt32(frame.y);
+                _writer.writeInt32(frame.w);
+                _writer.writeInt32(frame.h);
+
+                _writer.writeFloat(frame.u1);
+                _writer.writeFloat(frame.v1);
+                _writer.writeFloat(frame.u2);
+                _writer.writeFloat(frame.v2);
+            case NotPacked(_, _):
+                //
         }
-
-        // Writes the resources ID.
-        _writer.writeInt32(_id);
-        _writer.writeInt32(frame.pageID);
-
-        // Write UV information for the packed frame.
-		_writer.writeInt32(frame.x);
-		_writer.writeInt32(frame.y);
-		_writer.writeInt32(frame.w);
-		_writer.writeInt32(frame.h);
-
-		_writer.writeFloat(frame.u1);
-		_writer.writeFloat(frame.v1);
-		_writer.writeFloat(frame.u2);
-		_writer.writeFloat(frame.v2);
     }
 
     function parse(_path : Path)

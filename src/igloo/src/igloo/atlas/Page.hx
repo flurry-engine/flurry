@@ -1,7 +1,6 @@
 package igloo.atlas;
 
 import haxe.Exception;
-import igloo.processors.PackRequest;
 import igloo.processors.PackedResource;
 import binpacking.MaxRectsPacker;
 

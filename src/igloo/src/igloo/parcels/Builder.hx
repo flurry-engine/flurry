@@ -1,5 +1,7 @@
 package igloo.parcels;
 
+import igloo.processors.ResourceResponse;
+import igloo.processors.RequestType;
 import sys.io.FileOutput;
 import haxe.Exception;
 import haxe.ds.Vector;
@@ -135,22 +137,16 @@ function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : Proce
         for (asset in assets)
         {
             final produced = [];
-            
+
             switch asset.response
             {
-                case Packed(packed):
-                    switch packed
+                case Left(v):
+                    writeProcessedResource(output, proc, _ctx, asset.data, v, produced);
+                case Right(vs):
+                    for (v in vs)
                     {
-                        case Left(v):
-                            writeProcessedResource(output, proc, _ctx, asset.data, v.id, v.name, Some(v), produced);
-                        case Right(vs):
-                            for (v in vs)
-                            {
-                                writeProcessedResource(output, proc, _ctx, asset.data, v.id, v.name, Some(v), produced);
-                            }
+                        writeProcessedResource(output, proc, _ctx, asset.data, v, produced);
                     }
-                case NotPacked(name, id):
-                    writeProcessedResource(output, proc, _ctx, asset.data, id, name, None, produced);
             }
 
             writtenAssets.push(new AssetMeta(asset.source, produced));
@@ -167,16 +163,23 @@ function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : Proce
  * Writes a resource into the parcel stream by invoking the `write` function of the processor which produced the request.
  * The position and length of the asset written into the stream is calculated and stored in the parcels meta file.
  */
-private function writeProcessedResource(_output : FileOutput, _proc, _ctx, _data, _id, _name, _resource, _meta : Array<ResourceMeta>)
+private function writeProcessedResource(_output : FileOutput, _proc, _ctx, _data, _resource : ResourceResponse, _meta : Array<ResourceMeta>)
 {
     final tellStart = _output.tell();
 
-    _output.writeParcelResource(_proc, _ctx, _data, _id, _name, _resource);
+    _output.writeParcelResource(_proc, _ctx, _data, _resource);
 
     final tellEnd = _output.tell();
     final length  = tellEnd - tellStart;
 
-    _meta.push(new ResourceMeta(_id, _name, tellStart, length));
+    // Extract the id and name from the resource as we need it for the parcel meta.
+    switch _resource
+    {
+        case Packed(_packed):
+            _meta.push(new ResourceMeta(_packed.id, _packed.name, tellStart, length));
+        case NotPacked(_name, _id):
+            _meta.push(new ResourceMeta(_id, _name, tellStart, length));
+    }
 }
 
 /**
@@ -205,18 +208,25 @@ private function writeMetaFile(_file : Path, _gpuApi, _processorNames, _pages, _
  */
 private function processRequest(_source : String, _request : ResourceRequest<Any>, _atlas : Atlas, _provider : IDProvider)
 {
-    return switch _request.type
+    return new ProcessedResource(_source, _request.data, switch _request.type
     {
-        case Pack(either):
-            switch either
-            {
-                case Left(single):
-                    new ProcessedResource(_source, _request.data, Packed(Left(_atlas.pack(single))));
-                case Right(multiple):
-                    new ProcessedResource(_source, _request.data, Packed(Right([ for (single in multiple) _atlas.pack(single) ])));
-            }
+        case Left(v): generateResponse(v, _atlas, _provider);
+        case Right(vs): [ for (v in vs) generateResponse(v, _atlas, _provider) ];
+    });
+}
+
+private function generateResponse(_type : RequestType, _atlas : Atlas, _provider : IDProvider)
+{
+    return switch _type
+    {
+        case PackImage(id, path):
+            final info = stb.Image.info(path.toString());
+
+            Packed(_atlas.pack(_type, id, info.w, info.h));
+        case PackBytes(id, _, width, height, _):
+            Packed(_atlas.pack(_type, id, width, height));
         case UnPacked(_name):
-            new ProcessedResource(_source, _request.data, NotPacked(_name, _provider.id()));
+            NotPacked(_name, _provider.id());
     }
 }
 

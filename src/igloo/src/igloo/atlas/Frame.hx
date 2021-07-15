@@ -1,13 +1,13 @@
 package igloo.atlas;
 
-import igloo.processors.PackRequest;
+import igloo.processors.RequestType;
 import binpacking.Rect;
 
 class Frame
 {
     public final rect : Rect;
 
-    public final request : PackRequest;
+    public final request : RequestType;
 
 	public function new(_rect, _request)
     {
