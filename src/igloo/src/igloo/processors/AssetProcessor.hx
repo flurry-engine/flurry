@@ -1,12 +1,11 @@
 package igloo.processors;
 
-import haxe.ds.Option;
 import haxe.Exception;
-import igloo.project.ProjectContext;
-import hx.files.Path;
-import igloo.parcels.ParcelContext;
-import igloo.parcels.Asset;
 import haxe.io.Output;
+import hx.files.Path;
+import igloo.parcels.Asset;
+import igloo.parcels.ParcelContext;
+import igloo.project.ProjectContext;
 
 /**
  * Abstract class all asset processors must extend.

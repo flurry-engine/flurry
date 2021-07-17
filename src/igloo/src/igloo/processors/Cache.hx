@@ -1,14 +1,12 @@
 package igloo.processors;
 
-import igloo.logger.Log;
-import igloo.logger.Log.ScriptLogger;
-import haxe.Exception;
-import haxe.MainLoop;
-import igloo.macros.BuildPaths;
 import sys.io.Process;
 import cpp.cppia.Module;
+import haxe.Exception;
 import haxe.crypto.Md5;
 import hx.files.Path;
+import igloo.logger.Log.ScriptLogger;
+import igloo.macros.BuildPaths;
 
 /**
  * The script cache will attempt to load existing pre-compiled cppia scripts if they're still valid.
