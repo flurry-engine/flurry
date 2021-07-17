@@ -1,18 +1,16 @@
-import igloo.processors.ResourceResponse;
-import igloo.processors.RequestType;
-import igloo.processors.PackedResource;
-import igloo.utils.OneOf;
 import sys.io.Process;
-import haxe.ds.Option;
 import haxe.Json;
 import haxe.Exception;
 import haxe.DynamicAccess;
 import haxe.io.Output;
+import haxe.ds.Option;
 import hx.files.Path;
-import igloo.parcels.ParcelContext;
 import igloo.parcels.Asset;
-import igloo.processors.ResourceRequest;
+import igloo.parcels.ParcelContext;
+import igloo.processors.RequestType;
 import igloo.processors.AssetProcessor;
+import igloo.processors.ResourceRequest;
+import igloo.processors.ResourceResponse;
 
 using Lambda;
 using Safety;
@@ -29,7 +27,6 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 	override public function pack(_ctx : ParcelContext, _asset : Asset)
 	{
 		// Transform our input asset path into vert and fragment versions.
-		// Throw if either don't exist.
 		final source      = Path.of(_asset.path);
 		final vertPath    = _ctx.assetDirectory.joinAll([ source.parent, source.filenameStem + '.vert.glsl' ]);
 		final fragPath    = _ctx.assetDirectory.joinAll([ source.parent, source.filenameStem + '.frag.glsl' ]);
@@ -168,12 +165,15 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 							_writer.writePrefixedString(block.name);
 						}
 
-						if (_data.fragReflection.separate_images.length != _data.fragReflection.separate_samplers.length)
+						final images   = _data.fragReflection.separate_images.or([]);
+						final samplers = _data.fragReflection.separate_samplers.or([]);
+
+						if (images.length != samplers.length)
 						{
 							throw new Exception('Number of samplers and textures do not match');		
 						}
 
-						_writer.writeInt32(_data.fragReflection.separate_images.length);
+						_writer.writeInt32(images.length);
 					case other:
 						throw new Exception('GlslShaderProcessor cannot write shaders for $other');
 				}
