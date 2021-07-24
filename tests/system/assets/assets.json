@@ -1,63 +1,20 @@
 {
-    "assets" : {
-        "bytes"  : [],
-        "texts"  : [],
-        "fonts"  : [
-            { "id" : "roboto", "path" : "fonts/Roboto-Regular.ttf" }
-        ],
-        "sheets" : [
-            { "id" : "unnamed", "path" : "sheets/unnamed.atlas" }
-        ],
-        "sprites" : [
-            { "id" : "character", "path" : "sprites/character.aseprite" }
-        ],
-        "images" : [
-            { "id" : "tank1", "path" : "images/tank1.png" },
-            { "id" : "tank2", "path" : "images/tank2.png" },
-            { "id" : "tank3", "path" : "images/tank3.png" },
-            { "id" : "wood" , "path" : "images/wood.png"  },
-            { "id" : "ui_frame" , "path" : "images/ui_frame.png"  },
-            { "id" : "ui_button", "path" : "images/ui_button.png"  }
-        ],
-        "shaders" : [
-            {
-                "id" : "textured",
-                "vertex" : "shaders/textured.vert.glsl",
-                "fragment" : "shaders/textured.frag.glsl"
-            },
-            {
-                "id" : "colourise",
-                "vertex" : "shaders/colourise.vert.glsl",
-                "fragment" : "shaders/colourise.frag.glsl"
-            },
-            {
-                "id" : "purple",
-                "vertex" : "shaders/purple.vert.glsl",
-                "fragment" : "shaders/purple.frag.glsl"
-            },
-            {
-                "id" : "msdf",
-                "vertex" : "shaders/textured.vert.glsl",
-                "fragment" : "shaders/msdf.frag.glsl"
-            }
-        ]
-    },
+    "assets" : [
+        { "id" : "tank1", "path" : "images/tank1.png" },
+        { "id" : "tank2", "path" : "images/tank2.png" },
+        { "id" : "tank3", "path" : "images/tank3.png" },
+        { "id" : "wood" , "path" : "images/wood.png"  },
+        { "id" : "ui_frame" , "path" : "images/ui_frame.png"  },
+        { "id" : "ui_button", "path" : "images/ui_button.png"  },
+        { "id" : "textured", "path" : "shaders/textured.glsl" },
+        { "id" : "colourise", "path" : "shaders/colourise.glsl" },
+        { "id" : "purple", "path" : "shaders/purple.glsl" },
+        { "id" : "msdf", "path" : "shaders/msdf.glsl" },
+        { "id" : "roboto", "path" : "fonts/Roboto-Regular.ttf" },
+        { "id" : "unnamed", "path" : "sheets/unnamed.atlas" }
+    ],
     "parcels" : [
-        {
-            "name"    : "preload",
-            "images"  : [ "tank1", "tank2", "tank3", "wood", "van", "ui_frame", "ui_button" ],
-            "sheets"  : [ "unnamed" ],
-            "fonts"   : [ "roboto" ],
-            "sprites" : [ "character" ],
-            "options" : {
-                "pagePadX"      : 2,
-                "pagePadY"      : 2,
-                "pageMaxWidth"  : 2048,
-                "pageMaxHeight" : 2048,
-                "format"        : "png",
-                "compression"   : 0
-            }
-        },
-        { "name" : "shaders", "shaders" : [ "textured", "colourise", "purple", "msdf" ] }
+        { "name" : "preload", "assets" : [ "tank1", "tank2", "tank3", "wood", "ui_frame", "ui_button", "roboto", "unnamed" ] },
+        { "name" : "shaders", "assets" : [ "textured", "msdf", "colourise", "purple" ] }
     ]
 }

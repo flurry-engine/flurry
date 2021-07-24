@@ -5,10 +5,11 @@ import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob.VertexBlobBuilder;
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
+import uk.aidanlee.flurry.api.resources.Parcels.Preload;
+import uk.aidanlee.flurry.api.resources.Parcels.Shaders;
 
 class DepthTesting extends Flurry
 {
@@ -30,12 +31,12 @@ class DepthTesting extends Flurry
         camera.update(0);
 
         final batcher = renderer.createBatcher({
-            shader : resources.getByName('textured', ShaderResource).id,
+            shader : Shaders.textured,
             camera : camera,
             depthOptions : new DepthState(true, true, LessThan)
         });
 
-        final frame = resources.getByName('wood', ImageFrameResource);
+        final frame = (cast resources.get(Preload.wood) : PageFrameResource);
         final cube  = UnIndexed(new VertexBlobBuilder()
             .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v1)
             .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
@@ -97,7 +98,7 @@ class DepthTesting extends Flurry
 
         final cubes = [ for (_ in 0...10) new Geometry({
             batchers : [ batcher ],
-            textures : Some([ frame.image ]),
+            textures : Some([ frame.page ]),
             data     : cube
         }) ];
 

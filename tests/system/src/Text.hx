@@ -1,11 +1,11 @@
 package;
 
-import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.TextGeometry;
-import uk.aidanlee.flurry.api.resources.Resource.FontResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.Parcels.Preload;
+import uk.aidanlee.flurry.api.resources.Parcels.Shaders;
 
 class Text extends Flurry
 {
@@ -23,11 +23,11 @@ class Text extends Flurry
     override function onReady()
     {
         final camera  = renderer.createCamera2D(display.width, display.height);
-        final batcher = renderer.createBatcher({ shader : resources.getByName('msdf', ShaderResource).id, camera : camera });
+        final batcher = renderer.createBatcher({ shader : Shaders.msdf, camera : camera });
 
         new TextGeometry({
             batchers : [ batcher ],
-            font     : resources.getByName('roboto', FontResource),
+            font     : cast resources.get(Preload.roboto),
             sampler  : SamplerState.linear,
             text     : 'hello world',
             size     : 48,
@@ -36,7 +36,7 @@ class Text extends Flurry
 
         new TextGeometry({
             batchers : [ batcher ],
-            font     : resources.getByName('roboto', FontResource),
+            font     : cast resources.get(Preload.roboto),
             sampler  : SamplerState.linear,
             text     : 'Lorem ipsum',
             size     : 96,

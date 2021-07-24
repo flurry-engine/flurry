@@ -6,8 +6,9 @@ import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
+import uk.aidanlee.flurry.api.resources.Parcels.Preload;
+import uk.aidanlee.flurry.api.resources.Parcels.Shaders;
 
 class Transformations extends Flurry
 {
@@ -26,11 +27,11 @@ class Transformations extends Flurry
     {
         final axis    = new Vector3(0, 0, 1);
         final camera  = renderer.createCamera2D(display.width, display.height);
-        final batcher = renderer.createBatcher({ shader : resources.getByName('textured', ShaderResource).id, camera : camera });
+        final batcher = renderer.createBatcher({ shader : Shaders.textured, camera : camera });
 
-        final g1 = new QuadGeometry({ texture : resources.getByName('tank1', ImageFrameResource), batchers : [ batcher ], sampler : new SamplerState(Clamp, Clamp, Linear, Linear) });
-        final g2 = new QuadGeometry({ texture : resources.getByName('tank2', ImageFrameResource), batchers : [ batcher ], sampler : new SamplerState(Clamp, Clamp, Linear, Linear) });
-        final g3 = new QuadGeometry({ texture : resources.getByName('tank3', ImageFrameResource), batchers : [ batcher ], sampler : new SamplerState(Clamp, Clamp, Linear, Linear) });
+        final g1 = new QuadGeometry({ texture : cast resources.get(Preload.tank1), batchers : [ batcher ], sampler : new SamplerState(Clamp, Clamp, Linear, Linear) });
+        final g2 = new QuadGeometry({ texture : cast resources.get(Preload.tank2), batchers : [ batcher ], sampler : new SamplerState(Clamp, Clamp, Linear, Linear) });
+        final g3 = new QuadGeometry({ texture : cast resources.get(Preload.tank3), batchers : [ batcher ], sampler : new SamplerState(Clamp, Clamp, Linear, Linear) });
 
         g1.origin.set_xy(128, 128);
         g2.origin.set_xy(128, 128);

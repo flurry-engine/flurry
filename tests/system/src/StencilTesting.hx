@@ -1,16 +1,17 @@
 package;
 
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.maths.Maths;
 import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
 import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.Flurry;
+import uk.aidanlee.flurry.api.resources.Parcels.Preload;
+import uk.aidanlee.flurry.api.resources.Parcels.Shaders;
 
 class StencilTesting extends Flurry
 {
@@ -33,7 +34,7 @@ class StencilTesting extends Flurry
 
         final batcher1 = renderer.createBatcher({
             depth  : 0,
-            shader : resources.getByName('textured', ShaderResource).id,
+            shader : Shaders.textured,
             camera : camera,
             depthOptions : new DepthState(true, true, LessThan),
             stencilOptions: new StencilState(true, Always, Keep, Keep, Replace, Always, Keep, Keep, Replace)
@@ -41,13 +42,13 @@ class StencilTesting extends Flurry
 
         final batcher2 = renderer.createBatcher({
             depth  : 1,
-            shader : resources.getByName('purple', ShaderResource).id,
+            shader : Shaders.purple,
             camera : camera,
             depthOptions : new DepthState(false, true, LessThan),
             stencilOptions: new StencilState(true, NotEqual, Keep, Keep, Replace, NotEqual, Keep, Keep, Replace)
         });
 
-        final frame = resources.getByName('wood', ImageFrameResource);
+        final frame = (cast resources.get(Preload.wood) : PageFrameResource);
         final data  = UnIndexed(new VertexBlobBuilder()
             .addFloat3(-0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u1, frame.v1)
             .addFloat3( 0.5, -0.5, -0.5).addFloat4(1, 1, 1, 1).addFloat2(frame.u2, frame.v1)
@@ -121,11 +122,11 @@ class StencilTesting extends Flurry
         }
     }
 
-    function cube(_batcher : Batcher, _frame : ImageFrameResource, _data : GeometryData) : Geometry
+    function cube(_batcher : Batcher, _frame : PageFrameResource, _data : GeometryData) : Geometry
     {
         return new Geometry({
             batchers : [ _batcher ],
-            textures : Some([ _frame.image ]),
+            textures : Some([ _frame.page ]),
             data     : _data
         });
     }
