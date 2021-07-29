@@ -11,7 +11,7 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera;
 import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
+import uk.aidanlee.flurry.api.resources.ResourceID;
 
 /**
  * A draw command describes how to draw a set amount of data within a vertex buffer.

@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry;
 
+import uk.aidanlee.flurry.api.gpu.GraphicsContext;
 import haxe.Exception;
 import hxrx.observer.Observer;
 import hxrx.schedulers.IScheduler;
@@ -117,10 +118,17 @@ class Flurry
             onPostUpdate();
 
             input.update();
-            renderer.queue();
 
             onPreRender();
-            renderer.submit();
+
+            final ctx = renderer.getGraphicsContext();
+
+            onRender(ctx);
+            
+            ctx.close();
+            
+            renderer.present();
+
             onPostRender();
         }
     }
@@ -163,6 +171,11 @@ class Flurry
     }
 
     function onPreRender()
+    {
+        //
+    }
+
+    function onRender(_ctx : GraphicsContext)
     {
         //
     }

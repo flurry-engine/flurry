@@ -1,6 +1,6 @@
 package uk.aidanlee.flurry.api.resources.builtin;
 
-import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
+import uk.aidanlee.flurry.api.resources.ResourceID;
 
 class PageFrameResource extends Resource
 {

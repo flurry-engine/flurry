@@ -11,7 +11,7 @@ import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 
-@:nullSafety(Off) class MockBackend implements IRendererBackend
+class MockBackend extends Renderer
 {
     final resourceEvents : ResourceEvents;
 

@@ -1,7 +1,5 @@
 package uk.aidanlee.flurry.api.resources;
 
-typedef ResourceID = Int;
-
 class Resource
 {
     public final id : ResourceID;

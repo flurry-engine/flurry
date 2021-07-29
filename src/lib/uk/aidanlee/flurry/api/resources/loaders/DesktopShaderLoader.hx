@@ -48,7 +48,7 @@ class DesktopShaderLoader extends ResourceReader
                 final fragCodeLen = _input.readInt32();
                 final fragCode    = _input.read(fragCodeLen);
 
-                new Ogl3Shader(id, blocks, samplers, vertCode, fragCode);
+                new Ogl3Shader(new ResourceID(id), blocks, samplers, vertCode, fragCode);
             case 'd3d11':
                 final vertBlockCount = _input.readInt32();
                 final vertBlocks     = new Vector(vertBlockCount);
@@ -74,7 +74,7 @@ class DesktopShaderLoader extends ResourceReader
                 final fragCodeLen = _input.readInt32();
                 final fragCode    = _input.read(fragCodeLen);
 
-                new D3d11Shader(id, vertBlocks, fragBlocks, textureCount, vertCode, fragCode);
+                new D3d11Shader(new ResourceID(id), vertBlocks, fragBlocks, textureCount, vertCode, fragCode);
             case other:
                 throw new Exception('DesktopShaderLoader cannot produced shaders of type $other');
         }

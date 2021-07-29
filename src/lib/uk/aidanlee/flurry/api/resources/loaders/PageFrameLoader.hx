@@ -1,9 +1,7 @@
 package uk.aidanlee.flurry.api.resources.loaders;
 
-import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 import haxe.io.Input;
-
-using uk.aidanlee.flurry.api.InputUtils;
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 
 class PageFrameLoader extends ResourceReader
 {
@@ -27,6 +25,6 @@ class PageFrameLoader extends ResourceReader
         final u2 = _input.readFloat();
         final v2 = _input.readFloat();
 
-        return new PageFrameResource(id, page, x, y, w, h, u1, v1, u2, v2);
+        return new PageFrameResource(new ResourceID(id), new ResourceID(page), x, y, w, h, u1, v1, u2, v2);
     }
 }

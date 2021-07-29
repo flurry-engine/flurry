@@ -1,14 +1,23 @@
 package;
 
+import VectorMath;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
-import uk.aidanlee.flurry.api.gpu.geometry.shapes.QuadGeometry;
-import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
+import uk.aidanlee.flurry.api.gpu.ShaderID;
+import uk.aidanlee.flurry.api.gpu.GraphicsContext;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
+import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
 import uk.aidanlee.flurry.api.resources.Parcels.Preload;
 import uk.aidanlee.flurry.api.resources.Parcels.Shaders;
+import uk.aidanlee.flurry.api.resources.ResourceID;
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 
 class BatcherDepth extends Flurry
 {
+    var pipeline : PipelineID;
+
+    var camera : Camera2D;
+
     override function onConfig(_config : FlurryConfig) : FlurryConfig
     {
         _config.window.title  = 'System Tests';
@@ -22,25 +31,76 @@ class BatcherDepth extends Flurry
 
     override function onReady()
     {
-        final camera   = renderer.createCamera2D(display.width, display.height);
-        final batcher1 = renderer.createBatcher({ shader : Shaders.textured, camera : camera, depth : 1 });
-        final batcher2 = renderer.createBatcher({ shader : Shaders.textured, camera : camera, depth : 0 });
-        final batcher3 = renderer.createBatcher({ shader : Shaders.textured, camera : camera, depth : 2 });
+        pipeline = renderer.createPipeline({ shader: new ShaderID(Shaders.textured) });
+        camera   = new Camera2D(vec2(0, 0), vec2(display.width, display.height), vec4(0, 0, display.width, display.height));
+    }
 
-        new QuadGeometry({
-            texture  : cast resources.get(Preload.tank1),
-            batchers : [ batcher1 ],
-            x : 192, y : 64, width : 256, height : 256
-        });
-        new QuadGeometry({
-            texture  : cast resources.get(Preload.tank2),
-            batchers : [ batcher2 ],
-            x : 256, y : 128, width : 256, height : 256
-        });
-        new QuadGeometry({
-            texture  : cast resources.get(Preload.tank3),
-            batchers : [ batcher3 ],
-            x : 320, y : 192, width : 256, height : 256
-        });
+    override function onRender(_ctx : GraphicsContext)
+    {
+        _ctx.usePipeline(pipeline);
+        _ctx.useCamera(camera);
+
+        drawFrame(_ctx, cast resources.get(Preload.tank1), 192, 64);
+        drawFrame(_ctx, cast resources.get(Preload.tank2), 256, 128);
+        drawFrame(_ctx, cast resources.get(Preload.tank3), 320, 192);
+    }
+
+    static function drawFrame(_ctx : GraphicsContext, _frame : PageFrameResource, _x : Float, _y : Float)
+    {
+        _ctx.usePage(_frame.page);
+        _ctx.prepare();
+
+        // v1
+        _ctx.vtxOutput.writeFloat(_x);
+        _ctx.vtxOutput.writeFloat(_y + _frame.height);
+        _ctx.vtxOutput.writeFloat(0);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(_frame.u1);
+        _ctx.vtxOutput.writeFloat(_frame.v2);
+
+        // v2
+        _ctx.vtxOutput.writeFloat(_x);
+        _ctx.vtxOutput.writeFloat(_y);
+        _ctx.vtxOutput.writeFloat(0);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(_frame.u1);
+        _ctx.vtxOutput.writeFloat(_frame.v1);
+
+        // v3
+        _ctx.vtxOutput.writeFloat(_x + _frame.width);
+        _ctx.vtxOutput.writeFloat(_y);
+        _ctx.vtxOutput.writeFloat(0);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(_frame.u2);
+        _ctx.vtxOutput.writeFloat(_frame.v1);
+
+        // v4
+        _ctx.vtxOutput.writeFloat(_x + _frame.width);
+        _ctx.vtxOutput.writeFloat(_y + _frame.height);
+        _ctx.vtxOutput.writeFloat(0);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(1);
+        _ctx.vtxOutput.writeFloat(_frame.u2);
+        _ctx.vtxOutput.writeFloat(_frame.v2);
+
+        // Indices
+        _ctx.idxOutput.writeUInt16(0);
+        _ctx.idxOutput.writeUInt16(1);
+        _ctx.idxOutput.writeUInt16(2);
+
+        _ctx.idxOutput.writeUInt16(0);
+        _ctx.idxOutput.writeUInt16(2);
+        _ctx.idxOutput.writeUInt16(3);
     }
 }

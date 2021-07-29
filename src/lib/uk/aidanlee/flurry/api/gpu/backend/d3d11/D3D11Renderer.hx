@@ -1,5 +1,12 @@
-package uk.aidanlee.flurry.api.gpu.backend;
+package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
+import VectorMath;
+import uk.aidanlee.flurry.api.resources.ResourceID;
+import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
+import uk.aidanlee.flurry.api.gpu.pipeline.PipelineState;
+import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
 import haxe.ds.Vector;
 import uk.aidanlee.flurry.api.resources.loaders.DesktopShaderLoader.D3d11Shader;
 import d3d11.structures.D3d11Box;
@@ -71,7 +78,6 @@ import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
-import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
 import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
 import uk.aidanlee.flurry.api.gpu.textures.Filtering;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
@@ -85,6 +91,9 @@ import uk.aidanlee.flurry.api.maths.Rectangle;
 import uk.aidanlee.flurry.api.buffers.BufferData;
 import uk.aidanlee.flurry.api.buffers.Float32BufferData;
 
+using hxrx.observables.Observables;
+
+using Safety;
 using cpp.NativeArray;
 
 @:headerCode('#include <D3Dcompiler.h>
@@ -95,22 +104,18 @@ using cpp.NativeArray;
     <lib name = "d3d11.lib"       if = "windows" unless = "static_link" />
     <lib name = "d3dcompiler.lib" if = "windows" unless = "static_link" />
 </target>')
-@:nullSafety(Off) class DX11Backend implements IRendererBackend
+@:nullSafety(Off) class D3D11Renderer extends Renderer
 {
     /**
      * The number of floats in each vertex.
      */
     static final VERTEX_BYTE_SIZE = 36;
 
-    /**
-     * Signals for when shaders and images are created and removed.
-     */
-    final resourceEvents : ResourceEvents;
-
-    /**
-     * Signals for when a window change has been requested and dispatching back the result.
-     */
     final displayEvents : DisplayEvents;
+
+    final windowConfig : FlurryWindowConfig;
+
+    final rendererConfig : FlurryRendererDx11Config;
 
     /**
      * Parameters to define the area of the window to update when presenting.
@@ -246,12 +251,12 @@ using cpp.NativeArray;
     /**
      * Map of shader name to the D3D11 resources required to use the shader.
      */
-    final shaderResources : Map<ResourceID, ShaderInformation>;
+    final shaderResources : Map<ResourceID, D3D11ShaderInformation>;
 
     /**
      * Map of texture name to the D3D11 resources required to use the texture.
      */
-    final textureResources : Map<ResourceID, TextureInformation>;
+    final textureResources : Map<ResourceID, D3D11TextureInformation>;
 
     /**
      * Sampler to use when none is provided.
@@ -268,18 +273,7 @@ using cpp.NativeArray;
      */
     final cmdViewport : Rectangle;
 
-    /**
-     * All the commands queued for uploading and drawing.
-     */
-    final commandQueue : Array<DrawCommand>;
-
-    final resourceCreatedSubscription : ISubscription;
-
-    final resourceRemovedSubscription : ISubscription;
-
-    final displaySizeChangedSubscription : ISubscription;
-
-    final displayChangeRequestSubscription : ISubscription;
+    final window : Window;
 
     // State trackers
 
@@ -291,16 +285,38 @@ using cpp.NativeArray;
     var texture  : ResourceID;
     var target   : TargetState;
 
-    // SDL Window
-
-    var window : Window;
-
-    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererDx11Config)
+    public function new(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig)
     {
-        resourceEvents = _resourceEvents;
-        displayEvents  = _displayEvents;
+        super(_resourceEvents);
 
-        createWindow(_windowConfig);
+        displayEvents  = _displayEvents;
+        windowConfig   = _windowConfig;
+        rendererConfig = _rendererConfig;
+        window         = SDL.createWindow(
+            _windowConfig.title,
+            SDL_WINDOWPOS_CENTERED,
+            SDL_WINDOWPOS_CENTERED,
+            _windowConfig.width,
+            _windowConfig.height,
+            SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
+
+        resourceEvents
+            .created
+            .filter(r -> r is D3d11Shader)
+            .subscribeFunction(createShader);
+
+        resourceEvents
+            .removed
+            .filter(r -> r is D3d11Shader)
+            .subscribeFunction(deleteShader);
+
+        displayEvents
+            .changeRequested
+            .subscribeFunction(onSizeChangeRequest);
+
+        displayEvents
+            .sizeChanged
+            .subscribeFunction(onSizeChanged);
 
         var success         = false;
         var adapterIdx      = 0;
@@ -375,10 +391,7 @@ using cpp.NativeArray;
         description.swapEffect  = FlipDiscard;
         description.alphaMode   = Unspecified;
 
-        final deviceCreationFlags = if (_rendererConfig.debugDevice)
-            D3d11CreateDeviceFlags.Debug | D3d11CreateDeviceFlags.Debuggable | D3d11CreateDeviceFlags.SingleThreaded
-        else
-            D3d11CreateDeviceFlags.None | D3d11CreateDeviceFlags.SingleThreaded;
+        final deviceCreationFlags = D3d11CreateDeviceFlags.Debug | D3d11CreateDeviceFlags.SingleThreaded;
 
         // Create our actual device and swapchain
         if (D3d11.createDevice(adapter, Unknown, null, deviceCreationFlags, [ Level11_1 ], D3d11.SdkVersion, device, null, context) != Ok)
@@ -600,7 +613,6 @@ using cpp.NativeArray;
         context.omSetBlendState(blendState, [ 1, 1, 1, 1 ], 0xffffffff);
         context.omSetDepthStencilState(depthStencilState, 1);
 
-        commandQueue = [];
         clearColour  = [
             _rendererConfig.clearColour.x,
             _rendererConfig.clearColour.y,
@@ -615,56 +627,50 @@ using cpp.NativeArray;
         // Setup initial state tracker
         topology = Triangles;
         target   = Backbuffer;
-        shader   = 0;
-        texture  = 0;
-
-        resourceCreatedSubscription = resourceEvents.created.subscribe(new Observer(onResourceCreated, null, null));
-        resourceRemovedSubscription = resourceEvents.removed.subscribe(new Observer(onResourceRemoved, null, null));
-        
-        displaySizeChangedSubscription   = displayEvents.sizeChanged.subscribe(new Observer(onSizeChanged, null, null));
-        displayChangeRequestSubscription = displayEvents.changeRequested.subscribe(new Observer(onSizeChangeRequest, null, null));
+        shader   = ResourceID.invalid;
+        texture  = ResourceID.invalid;
     }
 
-    /**
-     * Upload geometries to the gpu VRAM.
-     * @param _commands Array of commands to upload.
-     */
-    public function queue(_command : DrawCommand)
-    {
-        commandQueue.push(_command);
-    }
+    // /**
+    //  * Upload geometries to the gpu VRAM.
+    //  * @param _commands Array of commands to upload.
+    //  */
+    // public function queue(_command : DrawCommand)
+    // {
+    //     commandQueue.push(_command);
+    // }
 
-    /**
-     * Draw an array of commands. Command data must be uploaded to the GPU before being used.
-     * @param _commands    Commands to draw.
-     * @param _recordStats Record stats for this submit.
-     */
-    public function submit()
-    {
-        // Clear the backbuffer before drawing.
-        context.clearRenderTargetView(backbuffer.renderTargetView, clearColour);
-        context.clearDepthStencilView(depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
+    // /**
+    //  * Draw an array of commands. Command data must be uploaded to the GPU before being used.
+    //  * @param _commands    Commands to draw.
+    //  * @param _recordStats Record stats for this submit.
+    //  */
+    // public function submit()
+    // {
+    //     // Clear the backbuffer before drawing.
+    //     context.clearRenderTargetView(backbuffer.renderTargetView, clearColour);
+    //     context.clearDepthStencilView(depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
 
-        // Upload and draw all commands
-        uploadCommands();
-        drawCommands();
+    //     // Upload and draw all commands
+    //     uploadCommands();
+    //     drawCommands();
 
-        // Once we've submitted our draws present the backbuffer and clear the queue.
-        swapchain.present1(0, 0, presentParameters);
+    //     // Once we've submitted our draws present the backbuffer and clear the queue.
+    //     swapchain.present1(0, 0, presentParameters);
 
-        commandQueue.resize(0);
+    //     commandQueue.resize(0);
 
-        // Set the backbuffer to the the target, this is required to get the next buffer in the flip present mode.
-        context.omSetRenderTarget(backbuffer.renderTargetView, depthStencilView);
-        target = Backbuffer;
-    }
+    //     // Set the backbuffer to the the target, this is required to get the next buffer in the flip present mode.
+    //     context.omSetRenderTarget(backbuffer.renderTargetView, depthStencilView);
+    //     target = Backbuffer;
+    // }
 
     /**
      * Resize the backbuffer and re-assign the backbuffer pointer.
      * @param _width  New width of the window.
      * @param _height New height of the window.
      */
-    public function resize(_width : Int, _height : Int)
+    function resize(_width : Int, _height : Int)
     {
         backbuffer.width  = _width;
         backbuffer.height = _height;
@@ -744,372 +750,165 @@ using cpp.NativeArray;
      */
     public function cleanup()
     {
-        resourceCreatedSubscription.unsubscribe();
-        resourceRemovedSubscription.unsubscribe();
-
-        displaySizeChangedSubscription.unsubscribe();
-        displayChangeRequestSubscription.unsubscribe();
-
         SDL.destroyWindow(window);
     }
 
-    public function uploadTexture(_frame : PageFrameResource, _data : BytesData)
-    {
-        final id          = _frame.page;
-        final textureInfo = textureResources.get(id);
+    // function uploadCommands()
+    // {
+    //     if (context.map(vertexBuffer, 0, WriteDiscard, 0, mappedVertexBuffer) != Ok)
+    //     {
+    //         throw new DX11MappingBufferException('Vertex Buffer');
+    //     }
+    //     if (context.map(indexBuffer, 0, WriteDiscard, 0, mappedIndexBuffer) != Ok)
+    //     {
+    //         throw new DX11MappingBufferException('Index Buffer');
+    //     }
+    //     if (context.map(matrixBuffer, 0, WriteDiscard, 0, mappedMatrixBuffer) != Ok)
+    //     {
+    //         throw new DX11MappingBufferException('Matrix Buffer');
+    //     }
+    //     if (context.map(uniformBuffer, 0, WriteDiscard, 0, mappedUniformBuffer) != Ok)
+    //     {
+    //         throw new DX11MappingBufferException('Uniform Buffer');
+    //     }
 
-        final box = new D3d11Box();
-        box.left   = _frame.x;
-        box.top    = _frame.y;
-        box.front  = 0;
-        box.right  = _frame.x + _frame.width;
-        box.bottom = _frame.y + _frame.height;
-        box.back   = 1;
+    //     final vtxDst : Pointer<UInt8> = mappedVertexBuffer.data.reinterpret();
+    //     final idxDst : Pointer<UInt8> = mappedIndexBuffer.data.reinterpret();
+    //     final matDst : Pointer<UInt8> = mappedMatrixBuffer.data.reinterpret();
+    //     final unfDst : Pointer<UInt8> = mappedUniformBuffer.data.reinterpret();
 
-        context.updateSubresource(textureInfo.texture, 0, box, _data, _frame.width * 4, 0);
-    }
+    //     var vtxUploaded = 0;
+    //     var idxUploaded = 0;
+    //     var matUploaded = 0;
+    //     var unfUploaded = 0;
 
-    // #region SDL Window Management
+    //     for (command in commandQueue)
+    //     {
+    //         for (geometry in command.geometry)
+    //         {
+    //             // Upload vertex data
+    //             switch geometry.data
+    //             {
+    //                 case Indexed(_vertices, _indices):
+    //                     memcpy(
+    //                         idxDst.add(idxUploaded),
+    //                         _indices.buffer.bytes.getData().address(_indices.buffer.byteOffset),
+    //                         _indices.buffer.byteLength);
 
-    function createWindow(_options : FlurryWindowConfig)
-    {        
-        window = SDL.createWindow(_options.title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _options.width, _options.height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
-    }
+    //                     memcpy(
+    //                         vtxDst.add(vtxUploaded),
+    //                         _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
+    //                         _vertices.buffer.byteLength);
 
-    // #endregion
+    //                     vtxUploaded += _vertices.buffer.byteLength;
+    //                     idxUploaded += _indices.buffer.byteLength;
+    //                 case UnIndexed(_vertices):
+    //                     memcpy(
+    //                         vtxDst.add(vtxUploaded),
+    //                         _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
+    //                         _vertices.buffer.byteLength);
 
-    // #region resource handling
+    //                     vtxUploaded += _vertices.buffer.byteLength;
+    //             }
 
-    function onResourceCreated(_resource : Resource)
-    {
-        if (_resource is PageResource)
-        {
-            createTexture(cast _resource);
-        }
-        else if (_resource is D3d11Shader)
-        {
-            createShader(cast _resource);
-        }
-    }
+    //             final view       = command.camera.view;
+    //             final projection = command.camera.projection;
+    //             final model      = geometry.transformation.world.matrix;
 
-    function onResourceRemoved(_resource : Resource)
-    {
-        if (_resource is PageResource)
-        {
-            removeTexture(cast _resource);
-        }
-        else if (_resource is D3d11Shader)
-        {
-            removeShader(cast _resource);
-        }
-    }
+    //             memcpy(matDst.add(matUploaded)      , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
+    //             memcpy(matDst.add(matUploaded +  64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
+    //             memcpy(matDst.add(matUploaded + 128), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
 
-    /**
-     * Create the D3D11 resources required for a shader.
-     * @param _vert   Vertex source.
-     * @param _frag   Pixel source.
-     * @param _layout JSON shader layout description.
-     * @return Shader
-     */
-    function createShader(_resource : D3d11Shader)
-    {
-        if (shaderResources.exists(_resource.id))
-        {
-            return;
-        }
+    //             matUploaded = Maths.nextMultipleOff(matUploaded + 192, 256);
 
-        final vertexBytecode = new D3dBlob();
-        final pixelBytecode  = new D3dBlob();
-
-        if (D3dCompiler.createBlob(_resource.vertCode.length, vertexBytecode) != 0)
-        {
-            throw new Dx11ResourceCreationException('ID3DBlob');
-        }
-        if (D3dCompiler.createBlob(_resource.fragCode.length, pixelBytecode) != 0)
-        {
-            throw new Dx11ResourceCreationException('ID3DBlob');
-        }
-
-        memcpy(vertexBytecode.getBufferPointer(), _resource.vertCode.getData().address(0), _resource.vertCode.length);
-        memcpy(pixelBytecode.getBufferPointer(), _resource.fragCode.getData().address(0), _resource.fragCode.length);
-
-        // Create the vertex shader
-        final vertexShader = new D3d11VertexShader();
-        if (device.createVertexShader(vertexBytecode, null, vertexShader) != Ok)
-        {
-            throw new Dx11ResourceCreationException('ID3D11VertexShader');
-        }
-
-        // Create the fragment shader
-        final pixelShader = new D3d11PixelShader();
-        if (device.createPixelShader(pixelBytecode, null, pixelShader) != Ok)
-        {
-            throw new Dx11ResourceCreationException('ID3D11PixelShader');
-        }
-
-        // Create the shader layout.
-        final elementPos = new D3d11InputElementDescription();
-        elementPos.semanticName         = "TEXCOORD";
-        elementPos.semanticIndex        = 0;
-        elementPos.format               = R32G32B32Float;
-        elementPos.inputSlot            = 0;
-        elementPos.alignedByteOffset    = 0;
-        elementPos.inputSlotClass       = PerVertexData;
-        elementPos.instanceDataStepRate = 0;
-        final elementCol = new D3d11InputElementDescription();
-        elementCol.semanticName         = "TEXCOORD";
-        elementCol.semanticIndex        = 1;
-        elementCol.format               = R32G32B32A32Float;
-        elementCol.inputSlot            = 0;
-        elementCol.alignedByteOffset    = 12;
-        elementCol.inputSlotClass       = PerVertexData;
-        elementCol.instanceDataStepRate = 0;
-        final elementTex = new D3d11InputElementDescription();
-        elementTex.semanticName         = "TEXCOORD";
-        elementTex.semanticIndex        = 2;
-        elementTex.format               = R32G32Float;
-        elementTex.inputSlot            = 0;
-        elementTex.alignedByteOffset    = 28;
-        elementTex.inputSlotClass       = PerVertexData;
-        elementTex.instanceDataStepRate = 0;
-
-        final inputLayout = new D3d11InputLayout();
-        if (device.createInputLayout([ elementPos, elementCol, elementTex ], vertexBytecode, inputLayout) != Ok)
-        {
-            throw new Dx11ResourceCreationException('ID3D11InputLayout');
-        }
-
-        // Create our shader and a class to store its resources.
-        shaderResources.set(_resource.id, new ShaderInformation(_resource.vertBlocks, _resource.fragBlocks, _resource.textureCount, vertexShader, pixelShader, inputLayout));
-    }
-
-    /**
-     * Remove the D3D11 resources used by a shader.
-     * @param _name Name of the shader to remove.
-     */
-    function removeShader(_resource : D3d11Shader)
-    {
-        shaderResources[_resource.id].destroy();
-        shaderResources.remove(_resource.id);
-    }
-
-    /**
-     * Create the D3D11 resources needed for a texture.
-     * @param _pixels Raw image RGBA data.
-     * @param _width  Width of the texture.
-     * @param _height Height of the texture.
-     * @return Texture
-     */
-    function createTexture(_resource : PageResource)
-    {
-        // Sub resource struct to hold the raw image bytes.
-        final imgData = new D3d11SubResourceData();
-        imgData.systemMemory           = _resource.pixels.getData();
-        imgData.systemMemoryPitch      = 4 * _resource.width;
-        imgData.systemMemorySlicePatch = 0;
-
-        // Texture description struct. Describes how our raw image data is formated and usage of the texture.
-        final imgDesc = new D3d11Texture2DDescription();
-        imgDesc.width              = _resource.width;
-        imgDesc.height             = _resource.height;
-        imgDesc.mipLevels          = 1;
-        imgDesc.arraySize          = 1;
-        imgDesc.format             = R8G8B8A8UNorm;
-        imgDesc.sampleDesc.count   = 1;
-        imgDesc.sampleDesc.quality = 0;
-        imgDesc.usage              = Default;
-        imgDesc.bindFlags          = ShaderResource | RenderTarget;
-        imgDesc.cpuAccessFlags     = 0;
-        imgDesc.miscFlags          = 0;
-
-        final texture = new D3d11Texture2D();
-        final resView = new D3d11ShaderResourceView();
-        final rtvView = new D3d11RenderTargetView();
-
-        if (device.createTexture2D(imgDesc, imgData, texture) != Ok)
-        {
-            throw new Dx11ResourceCreationException('ID3D11Texture2D');
-        }
-        if (device.createShaderResourceView(texture, null, resView) != Ok)
-        {
-            throw new Dx11ResourceCreationException('ID3D11ShaderResourceView');
-        }
-        if (device.createRenderTargetView(texture, null, rtvView) != Ok)
-        {
-            throw new Dx11ResourceCreationException('D3D11RenderTargetView');
-        }
-
-        textureResources.set(_resource.id, new TextureInformation(texture, resView, rtvView, imgDesc));
-    }
-
-    /**
-     * Free the D3D11 resources used by a texture.
-     * @param _name Name of the texture to remove.
-     */
-    function removeTexture(_resource : PageResource)
-    {
-        textureResources[_resource.id].destroy();
-        textureResources.remove(_resource.id);
-    }
-
-    // #endregion
-
-    function uploadCommands()
-    {
-        if (context.map(vertexBuffer, 0, WriteDiscard, 0, mappedVertexBuffer) != Ok)
-        {
-            throw new DX11MappingBufferException('Vertex Buffer');
-        }
-        if (context.map(indexBuffer, 0, WriteDiscard, 0, mappedIndexBuffer) != Ok)
-        {
-            throw new DX11MappingBufferException('Index Buffer');
-        }
-        if (context.map(matrixBuffer, 0, WriteDiscard, 0, mappedMatrixBuffer) != Ok)
-        {
-            throw new DX11MappingBufferException('Matrix Buffer');
-        }
-        if (context.map(uniformBuffer, 0, WriteDiscard, 0, mappedUniformBuffer) != Ok)
-        {
-            throw new DX11MappingBufferException('Uniform Buffer');
-        }
-
-        final vtxDst : Pointer<UInt8> = mappedVertexBuffer.data.reinterpret();
-        final idxDst : Pointer<UInt8> = mappedIndexBuffer.data.reinterpret();
-        final matDst : Pointer<UInt8> = mappedMatrixBuffer.data.reinterpret();
-        final unfDst : Pointer<UInt8> = mappedUniformBuffer.data.reinterpret();
-
-        var vtxUploaded = 0;
-        var idxUploaded = 0;
-        var matUploaded = 0;
-        var unfUploaded = 0;
-
-        for (command in commandQueue)
-        {
-            for (geometry in command.geometry)
-            {
-                // Upload vertex data
-                switch geometry.data
-                {
-                    case Indexed(_vertices, _indices):
-                        memcpy(
-                            idxDst.add(idxUploaded),
-                            _indices.buffer.bytes.getData().address(_indices.buffer.byteOffset),
-                            _indices.buffer.byteLength);
-
-                        memcpy(
-                            vtxDst.add(vtxUploaded),
-                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
-                            _vertices.buffer.byteLength);
-
-                        vtxUploaded += _vertices.buffer.byteLength;
-                        idxUploaded += _indices.buffer.byteLength;
-                    case UnIndexed(_vertices):
-                        memcpy(
-                            vtxDst.add(vtxUploaded),
-                            _vertices.buffer.bytes.getData().address(_vertices.buffer.byteOffset),
-                            _vertices.buffer.byteLength);
-
-                        vtxUploaded += _vertices.buffer.byteLength;
-                }
-
-                final view       = command.camera.view;
-                final projection = command.camera.projection;
-                final model      = geometry.transformation.world.matrix;
-
-                memcpy(matDst.add(matUploaded)      , (projection : Float32BufferData).bytes.getData().address((projection : Float32BufferData).byteOffset), 64);
-                memcpy(matDst.add(matUploaded +  64), (view       : Float32BufferData).bytes.getData().address((view       : Float32BufferData).byteOffset), 64);
-                memcpy(matDst.add(matUploaded + 128), (model      : Float32BufferData).bytes.getData().address((model      : Float32BufferData).byteOffset), 64);
-
-                matUploaded = Maths.nextMultipleOff(matUploaded + 192, 256);
-
-                // Upload uniform data
-                for (block in command.uniforms)
-                {
-                    memcpy(
-                        unfDst.add(unfUploaded),
-                        block.buffer.bytes.getData().address(block.buffer.byteOffset),
-                        block.buffer.byteLength);
+    //             // Upload uniform data
+    //             for (block in command.uniforms)
+    //             {
+    //                 memcpy(
+    //                     unfDst.add(unfUploaded),
+    //                     block.buffer.bytes.getData().address(block.buffer.byteOffset),
+    //                     block.buffer.byteLength);
     
-                    unfUploaded = Maths.nextMultipleOff(unfUploaded + block.buffer.byteLength, 256);
-                }
-            }
-        }
+    //                 unfUploaded = Maths.nextMultipleOff(unfUploaded + block.buffer.byteLength, 256);
+    //             }
+    //         }
+    //     }
 
-        context.unmap(vertexBuffer, 0);
-        context.unmap(indexBuffer, 0);
-        context.unmap(matrixBuffer, 0);
-        context.unmap(uniformBuffer, 0);
-    }
+    //     context.unmap(vertexBuffer, 0);
+    //     context.unmap(indexBuffer, 0);
+    //     context.unmap(matrixBuffer, 0);
+    //     context.unmap(uniformBuffer, 0);
+    // }
 
-    function drawCommands()
-    {
-        var matOffset = 0;
-        var idxOffset = 0;
-        var vtxOffset = 0;
-        var unfOffset = 0;
+    // function drawCommands()
+    // {
+    //     var matOffset = 0;
+    //     var idxOffset = 0;
+    //     var vtxOffset = 0;
+    //     var unfOffset = 0;
 
-        for (command in commandQueue)
-        {
-            updateState(command);
+    //     for (command in commandQueue)
+    //     {
+    //         updateState(command);
             
-            for (block in command.uniforms)
-            {
-                // Bind uniform buffers to both vertex and fragment stage
-                // Might at some point be worth having the user specify which stages the blocks apply to.
-                final buffer = uniformBuffer;
-                final offset = cpp.NativeMath.idiv(unfOffset, 16);
-                final length = Maths.nextMultipleOff(block.buffer.byteLength, 256);
-                final info   = shaderResources[command.shader];
+    //         for (block in command.uniforms)
+    //         {
+    //             // Bind uniform buffers to both vertex and fragment stage
+    //             // Might at some point be worth having the user specify which stages the blocks apply to.
+    //             final buffer = uniformBuffer;
+    //             final offset = cpp.NativeMath.idiv(unfOffset, 16);
+    //             final length = Maths.nextMultipleOff(block.buffer.byteLength, 256);
+    //             final info   = shaderResources[command.shader];
 
-                final location = findBlockIndexByName(block.name, info.vertBlocks);
-                if (location != -1)
-                {
-                    context.vsSetConstantBuffer1(location, buffer, offset, length);
-                }
+    //             final location = findBlockIndexByName(block.name, info.vertBlocks);
+    //             if (location != -1)
+    //             {
+    //                 context.vsSetConstantBuffer1(location, buffer, offset, length);
+    //             }
 
-                final location = findBlockIndexByName(block.name, info.fragBlocks);
-                if (location != -1)
-                {
-                    context.psSetConstantBuffer1(location, buffer, offset, length);
-                }
+    //             final location = findBlockIndexByName(block.name, info.fragBlocks);
+    //             if (location != -1)
+    //             {
+    //                 context.psSetConstantBuffer1(location, buffer, offset, length);
+    //             }
 
-                unfOffset = Maths.nextMultipleOff(unfOffset + block.buffer.byteLength, 256);
-            }
+    //             unfOffset = Maths.nextMultipleOff(unfOffset + block.buffer.byteLength, 256);
+    //         }
 
-            final shader   = shaderResources[command.shader];
-            final location = findBlockIndexByName('flurry_matrices', shader.vertBlocks);
+    //         final shader   = shaderResources[command.shader];
+    //         final location = findBlockIndexByName('flurry_matrices', shader.vertBlocks);
 
-            for (geometry in command.geometry)
-            {
-                if (location != -1)
-                {
-                    // Bind Matrix CBuffer
-                    final buffer = matrixBuffer;
-                    final offset = cpp.NativeMath.idiv(matOffset, 16);
-                    final length = 256;
+    //         for (geometry in command.geometry)
+    //         {
+    //             if (location != -1)
+    //             {
+    //                 // Bind Matrix CBuffer
+    //                 final buffer = matrixBuffer;
+    //                 final offset = cpp.NativeMath.idiv(matOffset, 16);
+    //                 final length = 256;
 
-                    context.vsSetConstantBuffer1(location, buffer, offset, length);
-                }
+    //                 context.vsSetConstantBuffer1(location, buffer, offset, length);
+    //             }
 
-                matOffset += 256;
+    //             matOffset += 256;
                 
-                switch geometry.data
-                {
-                    case Indexed(_vertices, _indices):
-                        context.drawIndexed(_indices.shortAccess.length, idxOffset, vtxOffset);
+    //             switch geometry.data
+    //             {
+    //                 case Indexed(_vertices, _indices):
+    //                     context.drawIndexed(_indices.shortAccess.length, idxOffset, vtxOffset);
 
-                        idxOffset += _indices.shortAccess.length;
-                        vtxOffset += Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
-                    case UnIndexed(_vertices):
-                        final vertices = Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
+    //                     idxOffset += _indices.shortAccess.length;
+    //                     vtxOffset += Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
+    //                 case UnIndexed(_vertices):
+    //                     final vertices = Std.int(_vertices.buffer.byteLength / VERTEX_BYTE_SIZE);
 
-                        context.draw(vertices, vtxOffset);
+    //                     context.draw(vertices, vtxOffset);
 
-                        vtxOffset += vertices;
-                }
-            }
-        }
-    }
+    //                     vtxOffset += vertices;
+    //             }
+    //         }
+    //     }
+    // }
 
     function findBlockIndexByName(_name : String, _blocks : Vector<String>)
     {
@@ -1469,9 +1268,229 @@ using cpp.NativeArray;
 
     function onSizeChangeRequest(_data : DisplayEventChangeRequest)
     {
-        SDL.setWindowFullscreen(window, _data.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : NONE);
+        SDL.setWindowFullscreen(window, if (_data.fullscreen) SDL_WINDOW_FULLSCREEN_DESKTOP else NONE);
 
         resize(_data.width, _data.height);
+    }
+
+    final pipelines = new Vector<Null<D3D11PipelineState>>(1024);
+
+    public function present()
+    {
+        if (swapchain.present1(0, 0, presentParameters) != Ok)
+        {
+            throw new Exception('Failed to present swapchain');
+        }
+    }
+
+    public function getGraphicsContext()
+    {
+        // Clear the backbuffer before drawing.
+        context.clearRenderTargetView(backbuffer.renderTargetView, clearColour);
+        context.clearDepthStencilView(depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
+
+        // Set the backbuffer as the target, this is required to get the next buffer in the flip present mode.
+        context.omSetRenderTarget(backbuffer.renderTargetView, depthStencilView);
+
+        return new D3D11GraphicsContext(
+            device,
+            context,
+            pipelines,
+            shaderResources,
+            textureResources,
+            vertexBuffer,
+            indexBuffer,
+            uniformBuffer);
+    }
+
+	public function createPipeline(_state : PipelineState)
+    {
+        final id         = new PipelineID(0);
+        final dsState    = new D3d11DepthStencilState();
+        final blendState = new D3d11BlendState();
+
+        // Create the depth and stencil state.
+        final dsDesc = new D3d11DepthStencilDescription();
+        dsDesc.depthEnable    = _state.depth.enabled;
+        dsDesc.depthWriteMask = if (_state.depth.masking) All else Zero;
+        dsDesc.depthFunction  = getComparisonFunction(_state.depth.func);
+
+        dsDesc.stencilEnable    = _state.stencil.enabled;
+        dsDesc.stencilReadMask  = 0xff;
+        dsDesc.stencilWriteMask = 0xff;
+
+        dsDesc.frontFace.stencilFailOp      = getStencilOp(_state.stencil.frontTestFail);
+        dsDesc.frontFace.stencilDepthFailOp = getStencilOp(_state.stencil.frontDepthTestFail);
+        dsDesc.frontFace.stencilPassOp      = getStencilOp(_state.stencil.frontDepthTestPass);
+        dsDesc.frontFace.stencilFunction    = getComparisonFunction(_state.stencil.frontFunc);
+
+        dsDesc.backFace.stencilFailOp      = getStencilOp(_state.stencil.backTestFail);
+        dsDesc.backFace.stencilDepthFailOp = getStencilOp(_state.stencil.backDepthTestFail);
+        dsDesc.backFace.stencilPassOp      = getStencilOp(_state.stencil.backDepthTestPass);
+        dsDesc.backFace.stencilFunction    = getComparisonFunction(_state.stencil.backFunc);
+
+        if (device.createDepthStencilState(dsDesc, dsState) != Ok)
+        {
+            throw new Dx11ResourceCreationException('ID3D11DepthStencilState');
+        }
+
+        // Create the blend state.
+        final blendDesc = new D3d11BlendDescription();
+        blendDesc.alphaToCoverageEnable          = false;
+        blendDesc.independentBlendEnable         = false;
+        blendDesc.renderTarget[0].blendEnable    = _state.blend.enabled;
+        blendDesc.renderTarget[0].srcBlend       = getBlend(_state.blend.srcRgb);
+        blendDesc.renderTarget[0].srcBlendAlpha  = getBlend(_state.blend.srcAlpha);
+        blendDesc.renderTarget[0].destBlend      = getBlend(_state.blend.dstRgb);
+        blendDesc.renderTarget[0].destBlendAlpha = getBlend(_state.blend.dstAlpha);
+        blendDesc.renderTarget[0].blendOp        = Add;
+        blendDesc.renderTarget[0].blendOpAlpha   = Add;
+        blendDesc.renderTarget[0].renderTargetWriteMask = D3d11ColorWriteEnable.All;
+
+        if (device.createBlendState(blendDesc, blendState) != Ok)
+        {
+            throw new Dx11ResourceCreationException('ID3D11BlendState');
+        }
+
+        pipelines[id] = new D3D11PipelineState(
+            _state.shader,
+            dsState,
+            blendState,
+            getPrimitive(_state.primitive));
+
+		return id;
+	}
+
+	public function deletePipeline(_id : PipelineID)
+    {
+        pipelines[_id] = null;
+    }
+
+	function createShader(_resource : Resource)
+    {
+        if (shaderResources.exists(_resource.id))
+        {
+            return;
+        }
+
+        final shader         = Std.downcast(_resource, D3d11Shader);
+        final vertexBytecode = new D3dBlob();
+        final pixelBytecode  = new D3dBlob();
+
+        if (D3dCompiler.createBlob(shader.vertCode.length, vertexBytecode) != 0)
+        {
+            throw new Dx11ResourceCreationException('ID3DBlob');
+        }
+        if (D3dCompiler.createBlob(shader.fragCode.length, pixelBytecode) != 0)
+        {
+            throw new Dx11ResourceCreationException('ID3DBlob');
+        }
+
+        memcpy(vertexBytecode.getBufferPointer(), shader.vertCode.getData().address(0), shader.vertCode.length);
+        memcpy(pixelBytecode.getBufferPointer(), shader.fragCode.getData().address(0), shader.fragCode.length);
+
+        // Create the vertex shader
+        final vertexShader = new D3d11VertexShader();
+        if (device.createVertexShader(vertexBytecode, null, vertexShader) != Ok)
+        {
+            throw new Dx11ResourceCreationException('ID3D11VertexShader');
+        }
+
+        // Create the fragment shader
+        final pixelShader = new D3d11PixelShader();
+        if (device.createPixelShader(pixelBytecode, null, pixelShader) != Ok)
+        {
+            throw new Dx11ResourceCreationException('ID3D11PixelShader');
+        }
+
+        // Create the shader layout.
+        final elementPos = new D3d11InputElementDescription();
+        elementPos.semanticName         = "TEXCOORD";
+        elementPos.semanticIndex        = 0;
+        elementPos.format               = R32G32B32Float;
+        elementPos.inputSlot            = 0;
+        elementPos.alignedByteOffset    = 0;
+        elementPos.inputSlotClass       = PerVertexData;
+        elementPos.instanceDataStepRate = 0;
+        final elementCol = new D3d11InputElementDescription();
+        elementCol.semanticName         = "TEXCOORD";
+        elementCol.semanticIndex        = 1;
+        elementCol.format               = R32G32B32A32Float;
+        elementCol.inputSlot            = 0;
+        elementCol.alignedByteOffset    = 12;
+        elementCol.inputSlotClass       = PerVertexData;
+        elementCol.instanceDataStepRate = 0;
+        final elementTex = new D3d11InputElementDescription();
+        elementTex.semanticName         = "TEXCOORD";
+        elementTex.semanticIndex        = 2;
+        elementTex.format               = R32G32Float;
+        elementTex.inputSlot            = 0;
+        elementTex.alignedByteOffset    = 28;
+        elementTex.inputSlotClass       = PerVertexData;
+        elementTex.instanceDataStepRate = 0;
+
+        final inputLayout = new D3d11InputLayout();
+        if (device.createInputLayout([ elementPos, elementCol, elementTex ], vertexBytecode, inputLayout) != Ok)
+        {
+            throw new Dx11ResourceCreationException('ID3D11InputLayout');
+        }
+
+        // Create our shader and a class to store its resources.
+        shaderResources.set(_resource.id, new D3D11ShaderInformation(shader.vertBlocks, shader.fragBlocks, shader.textureCount, vertexShader, pixelShader, inputLayout));
+    }
+
+	function deleteShader(_resource : Resource)
+    {
+        shaderResources[_resource.id].destroy();
+        shaderResources.remove(_resource.id);
+    }
+
+    function createTexture(_resource : PageResource)
+    {
+        // Sub resource struct to hold the raw image bytes.
+        final imgData = new D3d11SubResourceData();
+        imgData.systemMemory           = _resource.pixels.getData();
+        imgData.systemMemoryPitch      = 4 * _resource.width;
+        imgData.systemMemorySlicePatch = 0;
+
+        // Texture description struct. Describes how our raw image data is formated and usage of the texture.
+        final imgDesc = new D3d11Texture2DDescription();
+        imgDesc.width              = _resource.width;
+        imgDesc.height             = _resource.height;
+        imgDesc.mipLevels          = 1;
+        imgDesc.arraySize          = 1;
+        imgDesc.format             = R8G8B8A8UNorm;
+        imgDesc.sampleDesc.count   = 1;
+        imgDesc.sampleDesc.quality = 0;
+        imgDesc.usage              = Default;
+        imgDesc.bindFlags          = ShaderResource | RenderTarget;
+        imgDesc.cpuAccessFlags     = 0;
+        imgDesc.miscFlags          = 0;
+
+        final texture = new D3d11Texture2D();
+        final resView = new D3d11ShaderResourceView();
+        final rtvView = new D3d11RenderTargetView();
+
+        if (device.createTexture2D(imgDesc, imgData, texture) != Ok)
+        {
+            throw new Dx11ResourceCreationException('ID3D11Texture2D');
+        }
+        if (device.createShaderResourceView(texture, null, resView) != Ok)
+        {
+            throw new Dx11ResourceCreationException('ID3D11ShaderResourceView');
+        }
+        if (device.createRenderTargetView(texture, null, rtvView) != Ok)
+        {
+            throw new Dx11ResourceCreationException('D3D11RenderTargetView');
+        }
+
+        textureResources.set(_resource.id, new D3D11TextureInformation(texture, resView, rtvView, imgDesc));
+    }
+
+    function deleteTexture(_resource : PageResource)
+    {
+        textureResources[_resource.id].destroy();
+        textureResources.remove(_resource.id);
     }
 }
 
@@ -1506,102 +1525,6 @@ private class BackBuffer
         height           = _height;
         viewportScale    = _viewportScale;
         renderTargetView = new D3d11RenderTargetView();
-    }
-}
-
-/**
- * Holds the DirectX resources required for drawing a texture.
- */
-private class TextureInformation
-{
-    /**
-     * D3D11 Texture2D pointer.
-     */
-    public final texture : D3d11Texture2D;
-
-    /**
-     * D3D11 Shader Resource View to view the texture.
-     */
-    public final shaderResourceView : D3d11ShaderResourceView;
-
-    /**
-     * D3D11 Render Target View to draw to the texture.
-     */
-    public final renderTargetView : D3d11RenderTargetView;
-
-    /**
-     * D3D11 Texture 2D description, contains info on the underlying texture data.
-     */
-    public final description : D3d11Texture2DDescription;
-
-    /**
-     * D3D11 Sampler State to sample the textures data.
-     */
-    public final samplers : Map<SamplerState, D3d11SamplerState>;
-
-    public function new(_texture, _resView, _rtvView, _description)
-    {
-        texture            = _texture;
-        shaderResourceView = _resView;
-        renderTargetView   = _rtvView;
-        description        = _description;
-        samplers           = [];
-    }
-
-    public function destroy()
-    {
-        texture.release();
-        shaderResourceView.release();
-        renderTargetView.release();
-
-        for (sampler in samplers)
-        {
-            sampler.release();
-        }
-    }
-}
-
-/**
- * Holds the DirectX resources required for setting and uploading data to a shader.
- */
-private class ShaderInformation
-{
-    public final vertBlocks : Vector<String>;
-
-    public final fragBlocks : Vector<String>;
-
-    public final textures : Int;
-
-    /**
-     * D3D11 vertex shader pointer.
-     */
-    public final vertexShader : D3d11VertexShader;
-
-    /**
-     * D3D11 pixel shader pointer.
-     */
-    public final pixelShader : D3d11PixelShader;
-
-    /**
-     * D3D11 Vertex input description of this shader.
-     */
-    public final inputLayout : D3d11InputLayout;
-
-    public function new(_vertBlocks, _fragBlocks, _textures, _vertex, _pixel, _input)
-    {
-        vertBlocks   = _vertBlocks;
-        fragBlocks   = _fragBlocks;
-        textures     = _textures;
-        vertexShader = _vertex;
-        pixelShader  = _pixel;
-        inputLayout  = _input;
-    }
-
-    public function destroy()
-    {
-        vertexShader.release();
-        pixelShader.release();
-        inputLayout.release();
     }
 }
 

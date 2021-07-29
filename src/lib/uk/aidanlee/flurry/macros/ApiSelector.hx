@@ -25,7 +25,7 @@ class ApiSelector
         return macro $v{ Mock };
     }
 
-    public static macro function getGraphicsBackend(_resourceEvents : ExprOf<uk.aidanlee.flurry.api.resources.ResourceEvents>, _displayEvents : ExprOf<uk.aidanlee.flurry.api.display.DisplayEvents>, _windowConfig : ExprOf<uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig>, _rendererConfig : ExprOf<uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig>) : ExprOf<uk.aidanlee.flurry.api.gpu.backend.IRendererBackend>
+    public static macro function getGraphicsBackend(_resourceEvents : ExprOf<uk.aidanlee.flurry.api.resources.ResourceEvents>, _displayEvents : ExprOf<uk.aidanlee.flurry.api.display.DisplayEvents>, _windowConfig : ExprOf<uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig>, _rendererConfig : ExprOf<uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig>) : ExprOf<uk.aidanlee.flurry.api.gpu.Renderer>
     {
         if (Context.defined('flurry-gpu-api'))
         {
@@ -33,7 +33,7 @@ class ApiSelector
             {
                 case 'mock'  : macro new uk.aidanlee.flurry.api.gpu.backend.MockBackend($_resourceEvents);
                 case 'ogl3'  : macro new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend($_resourceEvents, $_displayEvents, $_windowConfig, $_rendererConfig.ogl3);
-                case 'd3d11' : macro new uk.aidanlee.flurry.api.gpu.backend.DX11Backend($_resourceEvents, $_displayEvents, $_windowConfig, $_rendererConfig.dx11);
+                case 'd3d11' : macro new uk.aidanlee.flurry.api.gpu.backend.d3d11.D3D11Renderer($_resourceEvents, $_displayEvents, $_windowConfig, $_rendererConfig.dx11);
                 case other   : Context.error('unknown value of $other for flurry-gpu-api', Context.currentPos());
             }
         }

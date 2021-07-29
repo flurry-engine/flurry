@@ -1,6 +1,6 @@
 package uk.aidanlee.flurry.api.resources.loaders;
 
-import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
+import uk.aidanlee.flurry.api.resources.ResourceID;
 import haxe.io.Input;
 
 using uk.aidanlee.flurry.api.InputUtils;
@@ -38,7 +38,7 @@ class MsdfFontLoader extends ResourceReader
             glyphs[unicode] = new FontGlyph(advance, pLeft, pTop, pRight, pBottom, u1, v1, u2, v2);
         }
 
-        return new MsdfFontResource(id, page, lineHeight, glyphs);
+        return new MsdfFontResource(new ResourceID(id), new ResourceID(page), lineHeight, glyphs);
     }
 }
 

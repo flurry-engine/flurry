@@ -46,8 +46,8 @@ macro function loadParcelMeta(_name : String, _path : String)
             built.fields.push({
                 name: produced.name,
                 pos : Context.currentPos(),
-                kind: FVar(macro : Int, macro $v{ produced.id }),
-                access: [ APublic, AStatic, AInline ]
+                kind: FVar(macro : uk.aidanlee.flurry.api.resources.ResourceID, macro new uk.aidanlee.flurry.api.resources.ResourceID($v{ produced.id })),
+                access: [ APublic, AStatic, AFinal ]
             });
         }
     }

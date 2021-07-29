@@ -121,7 +121,7 @@ class ResourceSystem
                                 final bytesLen = input.readInt32();
                                 final bytes    = input.read(bytesLen);
                                 final image    = stb.Image.load_from_memory(bytes.getData(), bytesLen, 4);
-                                final page     = new PageResource(id, image.w, image.h, Bytes.ofData(image.bytes));
+                                final page     = new PageResource(new ResourceID(id), image.w, image.h, Bytes.ofData(image.bytes));
     
                                 resourceIDs.push(page.id);
                                 syncScheduler.scheduleNow(_ -> {

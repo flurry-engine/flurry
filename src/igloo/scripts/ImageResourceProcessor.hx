@@ -1,16 +1,11 @@
-import igloo.processors.ResourceResponse;
-import igloo.processors.RequestType;
 import haxe.Exception;
-import haxe.ds.Option;
 import haxe.io.Output;
-import igloo.utils.OneOf;
 import igloo.parcels.Asset;
 import igloo.parcels.ParcelContext;
-import igloo.processors.PackedResource;
-import igloo.processors.ResourceRequest;
+import igloo.processors.RequestType;
 import igloo.processors.AssetProcessor;
-
-using igloo.utils.OutputUtils;
+import igloo.processors.ResourceRequest;
+import igloo.processors.ResourceResponse;
 
 class ImageResourceProcessor extends AssetProcessor<Int>
 {
@@ -44,8 +39,8 @@ class ImageResourceProcessor extends AssetProcessor<Int>
 				_writer.writeFloat(frame.v1);
 				_writer.writeFloat(frame.u2);
 				_writer.writeFloat(frame.v2);
-			case _:
-				//
+			case NotPacked(_, _):
+				throw new Exception('ImageResourceProcessor can only operate on packed responses');
 		}
 	}
 }

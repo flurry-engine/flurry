@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.hosts;
 
+import uk.aidanlee.flurry.macros.ApiSelector;
 import haxe.Timer;
 import haxe.EnumFlags;
 import haxe.io.Path;
@@ -93,7 +94,7 @@ class SDLHost
 
         flurry.config(config);
 
-        final renderer      = new Renderer(events.resource, events.display, config.window, config.renderer);
+        final renderer      = ApiSelector.getGraphicsBackend(events.resource, events.display, config.window, config.renderer);
         final resources     = new ResourceSystem(events.resource, config.resources.loaders, taskScheduler, mainScheduler);
         final input         = new Input(events.input);
         final display       = new Display(events.display, events.input, config);

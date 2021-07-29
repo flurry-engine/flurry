@@ -8,7 +8,6 @@ import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
 import uk.aidanlee.flurry.api.gpu.state.ClipState;
 import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.core.Unit;
@@ -16,7 +15,7 @@ import uk.aidanlee.flurry.api.maths.Hash;
 import uk.aidanlee.flurry.api.maths.Vector3;
 import uk.aidanlee.flurry.api.maths.Quaternion;
 import uk.aidanlee.flurry.api.maths.Transformation;
-import uk.aidanlee.flurry.api.resources.Resource.ResourceID;
+import uk.aidanlee.flurry.api.resources.ResourceID;
 
 using Safety;
 
@@ -221,14 +220,6 @@ class Geometry
         clip           = _options.clip;
         blend          = _options.blend;
         primitive      = _options.primitive;
-
-        if (_options.batchers != null)
-        {
-            for (batcher in _options.batchers)
-            {
-                batcher.addGeometry(this);
-            }
-        }
     }
 }
 
@@ -290,9 +281,4 @@ class Geometry
      * The primitive to draw this geometries vertex data with.
      */
     public final primitive = PrimitiveType.Triangles;
-
-    /**
-     * The batchers to initially add this geometry to.
-     */
-    public final batchers = new Array<Batcher>();
 }
