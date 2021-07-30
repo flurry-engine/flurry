@@ -26,7 +26,8 @@ typedef ParcelMeta = {
     final assets : Array<AssetMeta>;
 }
 
-var totalResources = 0;
+private var totalParcels   = 0;
+private var totalResources = 0;
 
 macro function loadParcelMeta(_name : String, _path : String)
 {

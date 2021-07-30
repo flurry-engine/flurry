@@ -2,7 +2,6 @@ package uk.aidanlee.flurry.api.schedulers;
 
 import sys.thread.Mutex;
 import haxe.Timer;
-import haxe.ds.ArraySort;
 import hxrx.ISubscription;
 import hxrx.schedulers.IScheduler;
 import hxrx.schedulers.ScheduledItem;
@@ -40,36 +39,25 @@ class ThreadPoolScheduler implements IScheduler
 
     public function scheduleNow(_action : (_scheduler : IScheduler) -> ISubscription) : ISubscription
     {
-        return scheduleIn(0, _action);
+        final future = pool.submit(_action.bind(this));
+
+        return new hxrx.subscriptions.Single(future.cancel);
     }
 
     public function scheduleAt(_dueTime : Date, _action : (_scheduler : IScheduler) -> ISubscription) : ISubscription
     {
-        final diff = _dueTime.getTime() - Date.now().getTime();
+        final diff   = Std.int(_dueTime.getTime() - Date.now().getTime());
+        final future = pool.submit(_action.bind(this), ONCE(diff));
 
-        return scheduleIn(diff / 1000, _action);
+        return new hxrx.subscriptions.Single(future.cancel);
     }
 
     public function scheduleIn(_dueTime : Float, _action : (_scheduler : IScheduler) -> ISubscription) : ISubscription
     {
-        final task = new ScheduledItem(this, _action, _dueTime);
+        final time   = Std.int(_dueTime * 1000);
+        final future = pool.submit(_action.bind(this), ONCE(time));
 
-        queueLock.acquire();       
-        tasks.push(task);
-
-        // Since we sort in descending order any actions with a due time of 0 will naturally appear at the end of the list.
-        // As we're pushing to the end of the list we don't need to force a resort since it will already be in the correct order.
-        if (_dueTime != 0)
-        {
-            resort = true;
-        }
-        queueLock.release();
-
-        return new Single(() -> {
-            queueLock.acquire();
-            tasks.remove(task);
-            queueLock.release();
-        });
+        return new hxrx.subscriptions.Single(future.cancel);
     }
 
     /**
@@ -79,52 +67,6 @@ class ThreadPoolScheduler implements IScheduler
      */
     public function dispatch()
     {
-        queueLock.acquire();
-
-        if (tasks.length > 0)
-        {
-            if (resort)
-            {
-                // Sort in descending order, actions closest to execution time will be at the bottom of the array.
-                ArraySort.sort(tasks, (a1, a2) -> Std.int(a2.dueTime - a1.dueTime));
-
-                resort = false;
-            }
-            
-            final currentTime = time();
-            
-            var dispatchable = 0;
-            var length       = tasks.length;
-
-            // Iterate starting at the end of the list to find the first item ready for execution.
-            while (length > 0)
-            {
-                final action = tasks[length - 1];
-
-                if (action.dueTime <= currentTime)
-                {
-                    dispatchable++;
-                    length--;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            // If we have actions which can be dispatched loop forward from the first found action index to the end.
-            // We can then safely resize by the amount dispatched since we have a sorted array and initially searched back to front.
-            if (dispatchable > 0)
-            {
-                for (i in length...tasks.length)
-                {
-                    pool.submit(tasks[i].invoke, ONCE(0));
-                }
-
-                tasks.resize(tasks.length - dispatchable);
-            }
-        }
-
-        queueLock.release();
+        //
     }
 }

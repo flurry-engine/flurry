@@ -33,6 +33,8 @@ function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : Proce
     // Each source asset produces 1-n resource requests. Each request has a type, packed or unpacked.
     // These requests are then resolved by packing them into the atlas if needed.
     // The request and all resolved resources are then stored for blitting and writing.
+    var totalResponses = 0;
+
     for (asset in _parcel.assets)
     {
         final ext  = haxe.io.Path.extension(asset.path);
@@ -47,6 +49,12 @@ function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : Proce
         final processed = processRequest(asset.id, request, atlas, _id);
         final existing  = packed.get(ext);
 
+        switch processed.response
+        {
+            case Left(_): totalResponses++;
+            case Right(v): totalResponses += v.length;
+        }
+
         if (existing == null)
         {
             packed.set(ext, [ processed ]);
@@ -57,12 +65,13 @@ function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : Proce
         }
     }
 
+    final totalResources = atlas.pages.length + totalResponses;
     final blitTasks     = new Vector(atlas.pages.length);
     final output        = _parcel.parcelFile.toFile().openOutput(REPLACE);
     final writtenPages  = [];
     final writtenAssets = [];
 
-    output.writeParcelHeader(getPageFormatID(_parcel.settings.format));
+    output.writeParcelHeader(totalResources, getPageFormatID(_parcel.settings.format));
 
     // At this stage all assets have been packed into atlas pages if they requested it.
     // We can now blit all the images into the final pages.

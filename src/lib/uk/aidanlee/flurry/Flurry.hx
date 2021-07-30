@@ -12,6 +12,7 @@ import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import uk.aidanlee.flurry.api.schedulers.ThreadPoolScheduler;
 import uk.aidanlee.flurry.api.schedulers.MainThreadScheduler;
 
+using hxrx.observables.Observables;
 using Safety;
 
 class Flurry
@@ -93,7 +94,7 @@ class Flurry
         {
             resources
                 .load(flurryConfig.resources.preload)
-                .subscribe(new Observer(null, onPreloadParcelError, onPreloadParcelComplete));
+                .subscribeFunction(onPreloadParcelProgress, onPreloadParcelError, onPreloadParcelComplete);
         }
         else
         {
@@ -202,5 +203,10 @@ class Flurry
     final function onPreloadParcelError(_error : Exception)
     {
         trace('Error loading preload parcel : ${ _error.message }');
+    }
+
+    final function onPreloadParcelProgress(_v : Float)
+    {
+        trace('preload progress ${ _v * 100 }%');
     }
 }

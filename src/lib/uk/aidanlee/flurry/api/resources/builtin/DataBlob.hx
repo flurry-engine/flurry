@@ -4,13 +4,13 @@ import haxe.io.BytesData;
 
 class DataBlob
 {
-    public final name : String;
+    public final id : ResourceID;
 
     public final data : BytesData;
 
-    public function new(_name, _data)
+    public function new(_id, _data)
     {
-        name = _name;
+        id   = _id;
         data = _data;
     }
 }

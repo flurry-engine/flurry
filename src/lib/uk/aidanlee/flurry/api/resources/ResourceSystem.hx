@@ -5,22 +5,15 @@ import uk.aidanlee.flurry.api.resources.loaders.PageFrameLoader;
 import uk.aidanlee.flurry.api.resources.loaders.MsdfFontLoader;
 import uk.aidanlee.flurry.api.resources.loaders.DesktopShaderLoader;
 import haxe.ds.Vector;
-import haxe.io.Path;
 import haxe.ds.ReadOnlyArray;
 import haxe.Exception;
-import haxe.exceptions.NotImplementedException;
-import hxrx.IObserver;
 import hxrx.IObservable;
-import hxrx.ISubscription;
-import hxrx.schedulers.IScheduler;
 import hxrx.observables.Observables;
 import hxrx.subscriptions.Empty;
-import hxrx.subscriptions.Single;
 import uk.aidanlee.flurry.api.resources.Resource;
-import uk.aidanlee.flurry.api.resources.builtin.DataBlob;
 import uk.aidanlee.flurry.api.resources.builtin.PageResource;
-import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 
+using hxrx.schedulers.IScheduler;
 using hxrx.observables.Observables;
 using Safety;
 
@@ -96,8 +89,8 @@ class ResourceSystem
     {
         return _parcels
             .fromIterable()
-            .flatMap(parcel -> {
-                return create(obs -> {
+            .flatMap(parcel ->
+                create(obs -> {
                     final parcelPath = assetsPath.join('$parcel.parcel');
                     final input      = parcelPath.toFile().openInput();
     
@@ -107,9 +100,12 @@ class ResourceSystem
                         throw new Exception('stream does not contain the PRCL magic bytes');
                     }
     
+                    final resources   = input.readInt32();
                     final pageFormat  = input.readByte();
-                    final resourceIDs = [];
+                    final resourceIDs = new Vector(resources);
+                    final tickValue   = 1 / resources;
     
+                    var index = 0;
                     var magic = '';
                     var proc  = null;
                     while ('STOP' != (magic = input.readString(4)))
@@ -123,12 +119,11 @@ class ResourceSystem
                                 final image    = stb.Image.load_from_memory(bytes.getData(), bytesLen, 4);
                                 final page     = new PageResource(new ResourceID(id), image.w, image.h, Bytes.ofData(image.bytes));
     
-                                resourceIDs.push(page.id);
-                                syncScheduler.scheduleNow(_ -> {
-                                    addResource(page);
-    
-                                    return new Empty();
-                                });
+                                resourceIDs.set(index++, page.id);
+
+                                obs.onNext(tickValue);
+
+                                syncScheduler.scheduleFunction(addResource.bind(page));
                             case 'PROC':
                                 final procNameLen = input.readInt32();
                                 final procName    = input.readString(procNameLen);
@@ -136,13 +131,12 @@ class ResourceSystem
                                 proc = resourceReaders[procName];
                             case 'RESR':
                                 final resource = proc.unsafe().read(input);
-    
-                                resourceIDs.push(resource.id);
-                                syncScheduler.scheduleNow(_ -> {
-                                    addResource(resource);
-    
-                                    return new Empty();
-                                });
+
+                                resourceIDs.set(index++, resource.id);
+
+                                obs.onNext(tickValue);
+
+                                syncScheduler.scheduleFunction(addResource.bind(resource));
                             case other:
                                 throw new Exception('Unkown magic bytes of $other');
                         }
@@ -150,21 +144,15 @@ class ResourceSystem
     
                     input.close();
     
-                    syncScheduler.scheduleNow(_ -> {
-                        loadedParcels[parcel] = new LoadedParcel(parcel, resourceIDs);
-    
-                        return new Empty();
-                    });
+                    syncScheduler.scheduleFunction(() -> loadedParcels[parcel] = new LoadedParcel(parcel, resourceIDs));
 
-                    obs.onNext(1.0);
                     obs.onCompleted();
 
-                    return new Empty();
-                });
-            })
+                    return new hxrx.subscriptions.Single(() -> trace('$parcel disposed of'));
+                }))
+            .scan(0.0, (acc, next) -> acc + (next / _parcels.length))
             .subscribeOn(workScheduler)
             .observeOn(syncScheduler)
-            .scan(0.0, (acc, next) -> acc + (next / _parcels.length))
             .publish()
             .refCount();
     }
@@ -265,7 +253,7 @@ private class LoadedParcel
 {
     public final name : String;
 
-    public final resources : Array<ResourceID>;
+    public final resources : Vector<ResourceID>;
 
 	public function new(_name, _resources)
     {
