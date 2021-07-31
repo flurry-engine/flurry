@@ -1,11 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
-import uk.aidanlee.flurry.api.maths.Vector4;
-import uk.aidanlee.flurry.api.maths.Vector3;
-import uk.aidanlee.flurry.api.maths.Vector2;
-import uk.aidanlee.flurry.api.buffers.BufferData;
-import uk.aidanlee.flurry.api.buffers.GrowingBuffer;
-import uk.aidanlee.flurry.api.buffers.Float32BufferData;
+import haxe.io.BytesOutput;
+import haxe.io.Float32Array;
 
 /**
  * Container class for vertex bytes data.
@@ -15,17 +11,11 @@ class VertexBlob
     /**
      * Underlying bytes data.
      */
-    public final buffer : BufferData;
+    public final buffer : Float32Array;
 
-    /**
-     * Quick access to the underlying bytes data as a typed float buffer.
-     */
-    public final floatAccess : Float32BufferData;
-
-    public function new(_buffer : BufferData)
+    public function new(_buffer : Float32Array)
     {
-        buffer      = _buffer;
-        floatAccess = _buffer;
+        buffer = _buffer;
     }
 }
 
@@ -35,88 +25,86 @@ class VertexBlob
  */
 class VertexBlobBuilder
 {
-    final builder : GrowingBuffer;
+    final builder : BytesOutput;
 
     public function new()
     {
-        builder = new GrowingBuffer();
+        builder = new BytesOutput();
     }
 
     public function addFloat(_val : Float) : VertexBlobBuilder
     {
-        builder.addFloat(_val);
+        builder.writeFloat(_val);
 
         return this;
     }
 
     public function addFloat2(_val1 : Float, _val2 : Float) : VertexBlobBuilder
     {
-        builder.addFloat(_val1);
-        builder.addFloat(_val2);
+        builder.writeFloat(_val1);
+        builder.writeFloat(_val2);
 
         return this;
     }
 
     public function addFloat3(_val1 : Float, _val2 : Float, _val3 : Float) : VertexBlobBuilder
     {
-        builder.addFloat(_val1);
-        builder.addFloat(_val2);
-        builder.addFloat(_val3);
+        builder.writeFloat(_val1);
+        builder.writeFloat(_val2);
+        builder.writeFloat(_val3);
 
         return this;
     }
 
     public function addFloat4(_val1 : Float, _val2 : Float, _val3 : Float, _val4 : Float) : VertexBlobBuilder
     {
-        builder.addFloat(_val1);
-        builder.addFloat(_val2);
-        builder.addFloat(_val3);
-        builder.addFloat(_val4);
+        builder.writeFloat(_val1);
+        builder.writeFloat(_val2);
+        builder.writeFloat(_val3);
+        builder.writeFloat(_val4);
 
         return this;
     }
 
-    public function addVector2(_vec : Vector2) : VertexBlobBuilder
-    {
-        builder.addFloat(_vec.x);
-        builder.addFloat(_vec.y);
+    // public function addVector2(_vec : Vector2) : VertexBlobBuilder
+    // {
+    //     builder.addFloat(_vec.x);
+    //     builder.addFloat(_vec.y);
 
-        return this;
-    }
+    //     return this;
+    // }
 
-    public function addVector3(_vec : Vector3) : VertexBlobBuilder
-    {
-        builder.addFloat(_vec.x);
-        builder.addFloat(_vec.y);
-        builder.addFloat(_vec.z);
+    // public function addVector3(_vec : Vector3) : VertexBlobBuilder
+    // {
+    //     builder.addFloat(_vec.x);
+    //     builder.addFloat(_vec.y);
+    //     builder.addFloat(_vec.z);
 
-        return this;
-    }
+    //     return this;
+    // }
 
-    public function addVector4(_vec : Vector4) : VertexBlobBuilder
-    {
-        builder.addFloat(_vec.x);
-        builder.addFloat(_vec.y);
-        builder.addFloat(_vec.z);
-        builder.addFloat(_vec.w);
+    // public function addVector4(_vec : Vector4) : VertexBlobBuilder
+    // {
+    //     builder.addFloat(_vec.x);
+    //     builder.addFloat(_vec.y);
+    //     builder.addFloat(_vec.z);
+    //     builder.addFloat(_vec.w);
 
-        return this;
-    }
+    //     return this;
+    // }
 
-    public function addFloats(_array : Array<Float>) : VertexBlobBuilder
-    {
-        for (v in _array)
-        {
-            builder.addFloat(v);
-        }
+    // public function addFloats(_array : Array<Float>) : VertexBlobBuilder
+    // {
+    //     for (v in _array)
+    //     {
+    //         builder.addFloat(v);
+    //     }
 
-        return this;
-    }
+    //     return this;
+    // }
 
     public function vertexBlob()
     {
-        final bytes = builder.getBytes();
-
-        return new VertexBlob(new BufferData(bytes, 0, bytes.length));
+        return new VertexBlob(Float32Array.fromBytes(builder.getBytes()));
     }
 }

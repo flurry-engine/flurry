@@ -1,23 +1,25 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
-import d3d11.interfaces.D3d11Device.D3d11Device1;
-import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
-import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
-import haxe.io.Output;
-import d3d11.constants.D3d11Error;
 import haxe.Exception;
-import VectorMath;
-import Mat4;
-import d3d11.structures.D3d11Viewport;
+import haxe.ds.Vector;
+import haxe.io.Output;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
-import d3d11.structures.D3d11MappedSubResource;
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
+import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.resources.ResourceID;
-import haxe.ds.Vector;
+import d3d11.constants.D3d11Error;
 import d3d11.interfaces.D3d11Buffer;
+import d3d11.interfaces.D3d11Device.D3d11Device1;
 import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
+import d3d11.structures.D3d11Viewport;
+import d3d11.structures.D3d11MappedSubResource;
 
-@:nullSafety(Off) class D3D11GraphicsContext extends GraphicsContext
+using Safety;
+using uk.aidanlee.flurry.api.utils.OutputUtils;
+
+class D3D11GraphicsContext extends GraphicsContext
 {
     final device : D3d11Device1;
 
@@ -122,97 +124,19 @@ import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
 
         context.rsSetViewport(view);
 
-        // Create the camera view.
-        final theta = 0;
-        final scale = 1;
-        final c     = Math.cos(theta);
-        final s     = Math.sin(theta);
-        final view  = mat4(
-                c * scale,    -s * scale, 0, 0,
-                s * scale,     c * scale, 0, 0,
-                        0,             0, 1, 0,
-            _camera.pos.x, _camera.pos.y, 0, 1
-        );
-
-        // Create the camera projection.
-        // Orthographic projection, D3D NDC z space (0 - 1)
-        final left   = 0;
-        final right  = _camera.size.x;
-        final top    = 0;
-        final bottom = _camera.size.y;
-        final near   = -100;
-        final far    = 100;
-
-        final a      =  2 / (right - left);
-        final b      =  2 / (top - bottom);
-        final c      = -2 / (far - near);
-        final proj = mat4(
-            a, 0, 0, 0,
-            0, b, 0, 0,
-            0, 0, c, 0,
-            - (right + left) / (right - left), - (top + bottom) / (top - bottom), - (far + near) / (far - near), 1
-        );
-
-        final model = mat4(1);
+        // Create the camera matrices.
+        final proj  = makeFrustum(0, _camera.size.x, 0, _camera.size.y, -100, 100);
+        final view  = make2D(_camera.pos.x, _camera.pos.y);
+        final model = identity();
 
         // Create a combined view * projection matrix and upload it
-        final shaderID   = pipelines[currentPipeline].shader;
-        final shaderInfo = shaders[shaderID];
+        final shaderID   = pipelines[currentPipeline].unsafe().shader;
+        final shaderInfo = shaders[shaderID].unsafe();
         final location   = shaderInfo.findVertexBlockLocation('flurry_matrices');
 
-        final matrix = (proj : Mat4Data);
-        unfBuffer.writeFloat(matrix.c0.x);
-        unfBuffer.writeFloat(matrix.c0.y);
-        unfBuffer.writeFloat(matrix.c0.z);
-        unfBuffer.writeFloat(matrix.c0.w);
-        unfBuffer.writeFloat(matrix.c1.x);
-        unfBuffer.writeFloat(matrix.c1.y);
-        unfBuffer.writeFloat(matrix.c1.z);
-        unfBuffer.writeFloat(matrix.c1.w);
-        unfBuffer.writeFloat(matrix.c2.x);
-        unfBuffer.writeFloat(matrix.c2.y);
-        unfBuffer.writeFloat(matrix.c2.z);
-        unfBuffer.writeFloat(matrix.c2.w);
-        unfBuffer.writeFloat(matrix.c3.x);
-        unfBuffer.writeFloat(matrix.c3.y);
-        unfBuffer.writeFloat(matrix.c3.z);
-        unfBuffer.writeFloat(matrix.c3.w);
-
-        final matrix = (view : Mat4Data);
-        unfBuffer.writeFloat(matrix.c0.x);
-        unfBuffer.writeFloat(matrix.c0.y);
-        unfBuffer.writeFloat(matrix.c0.z);
-        unfBuffer.writeFloat(matrix.c0.w);
-        unfBuffer.writeFloat(matrix.c1.x);
-        unfBuffer.writeFloat(matrix.c1.y);
-        unfBuffer.writeFloat(matrix.c1.z);
-        unfBuffer.writeFloat(matrix.c1.w);
-        unfBuffer.writeFloat(matrix.c2.x);
-        unfBuffer.writeFloat(matrix.c2.y);
-        unfBuffer.writeFloat(matrix.c2.z);
-        unfBuffer.writeFloat(matrix.c2.w);
-        unfBuffer.writeFloat(matrix.c3.x);
-        unfBuffer.writeFloat(matrix.c3.y);
-        unfBuffer.writeFloat(matrix.c3.z);
-        unfBuffer.writeFloat(matrix.c3.w);
-
-        final matrix = (model : Mat4Data);
-        unfBuffer.writeFloat(matrix.c0.x);
-        unfBuffer.writeFloat(matrix.c0.y);
-        unfBuffer.writeFloat(matrix.c0.z);
-        unfBuffer.writeFloat(matrix.c0.w);
-        unfBuffer.writeFloat(matrix.c1.x);
-        unfBuffer.writeFloat(matrix.c1.y);
-        unfBuffer.writeFloat(matrix.c1.z);
-        unfBuffer.writeFloat(matrix.c1.w);
-        unfBuffer.writeFloat(matrix.c2.x);
-        unfBuffer.writeFloat(matrix.c2.y);
-        unfBuffer.writeFloat(matrix.c2.z);
-        unfBuffer.writeFloat(matrix.c2.w);
-        unfBuffer.writeFloat(matrix.c3.x);
-        unfBuffer.writeFloat(matrix.c3.y);
-        unfBuffer.writeFloat(matrix.c3.z);
-        unfBuffer.writeFloat(matrix.c3.w);
+        unfBuffer.writeMatrix(proj);
+        unfBuffer.writeMatrix(view);
+        unfBuffer.writeMatrix(model);
 
         context.vsSetConstantBuffer1(location, unfBuffer.buffer, 0, 256);
     }
@@ -225,7 +149,7 @@ import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
 
             currentPage = _id;
 
-            final texture = textures[currentPage];
+            final texture = textures[currentPage].unsafe();
             final sampler = texture.getOrCreateSampler(device, SamplerState.nearest);
 
             context.psSetShaderResources(0, [ texture.shaderResourceView ]);
@@ -308,16 +232,18 @@ import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
         }
     }
 
-	function get_vtxOutput():Output {
+	function get_vtxOutput() : Output
+    {
 		return vtxBuffer;
 	}
 
-	function get_idxOutput():Output {
+	function get_idxOutput() : Output
+    {
 		return idxBuffer;
 	}
 }
 
-@:nullSafety(Off) private class D3D11MappableOutput extends Output
+private class D3D11MappableOutput extends Output
 {
     public final buffer : D3d11Buffer;
 
@@ -364,17 +290,16 @@ import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
 
     public override function writeByte(_byte : Int)
     {
-        final ptr = mappedResource.backing.data;
-        final idx = bytesWritten;
+        final ptr = @:nullSafety(Off) mappedResource.backing.data;
 
-        untyped __cpp__('*((unsigned char*){0} + {1}) = {2}', ptr, idx, _byte);
+        untyped __cpp__('*((unsigned char*){0} + {1}) = {2}', ptr, bytesWritten, _byte);
 
         bytesWritten = bytesWritten + 1;
     }
 
     public override function writeFloat(_float : Float)
     {
-        final ptr = mappedResource.backing.data;
+        final ptr = @:nullSafety(Off) mappedResource.backing.data;
 
         untyped __cpp__('int idx = {0} / 4', bytesWritten);
         untyped __cpp__('*((float*){0} + idx) = {1}', ptr, _float);
@@ -384,7 +309,7 @@ import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
 
     public override function writeUInt16(_int : Int)
     {
-        final ptr = mappedResource.backing.data;
+        final ptr = @:nullSafety(Off) mappedResource.backing.data;
 
         untyped __cpp__('int idx = {0} / 2', bytesWritten);
         untyped __cpp__('*((unsigned short*){0} + idx) = {1}', ptr, _int);
@@ -394,7 +319,7 @@ import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
 
     public override function writeInt16(_int : Int)
     {
-        final ptr = mappedResource.backing.data;
+        final ptr = @:nullSafety(Off) mappedResource.backing.data;
 
         untyped __cpp__('int idx = {0} / 2', bytesWritten);
         untyped __cpp__('*((signed short*){0} + idx) = {1}', ptr, _int);

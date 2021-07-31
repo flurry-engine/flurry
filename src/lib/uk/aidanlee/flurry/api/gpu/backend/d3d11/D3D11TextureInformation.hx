@@ -1,15 +1,16 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
-import d3d11.structures.D3d11SamplerDescription;
-import d3d11.interfaces.D3d11Device.D3d11Device1;
 import haxe.Exception;
-import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
-import d3d11.interfaces.D3d11SamplerState;
-import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
+import d3d11.structures.D3d11SamplerDescription;
 import d3d11.structures.D3d11Texture2DDescription;
+import d3d11.interfaces.D3d11Device.D3d11Device1;
+import d3d11.interfaces.D3d11Texture2D;
+import d3d11.interfaces.D3d11SamplerState;
 import d3d11.interfaces.D3d11RenderTargetView;
 import d3d11.interfaces.D3d11ShaderResourceView;
-import d3d11.interfaces.D3d11Texture2D;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
+
+using Safety;
 
 /**
  * Holds the DirectX resources required for drawing a texture.
@@ -66,7 +67,7 @@ import d3d11.interfaces.D3d11Texture2D;
     {
         return if (samplers.exists(_state))
         {
-            samplers.get(_state);
+            samplers.get(_state).unsafe();
         }
         else
         {

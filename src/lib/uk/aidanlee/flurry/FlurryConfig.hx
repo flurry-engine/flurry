@@ -1,7 +1,7 @@
 package uk.aidanlee.flurry;
 
+import VectorMath;
 import uk.aidanlee.flurry.macros.Project;
-import uk.aidanlee.flurry.api.maths.Vector4;
 import uk.aidanlee.flurry.api.resources.ResourceReader;
 
 class FlurryConfig
@@ -141,7 +141,7 @@ class FlurryRendererOgl3Config
     /**
      * The colour clear the backbuffer to at the beginning of each frame.
      */
-    public var clearColour : Vector4;
+    public var clearColour : Vec4;
 
     public function new()
     {
@@ -149,7 +149,7 @@ class FlurryRendererOgl3Config
         indexBufferSize   = 1200000;
         matrixBufferSize  = 25600000;
         uniformBufferSize = 10000000;
-        clearColour       = new Vector4(0.2, 0.2, 0.2, 1.0);
+        clearColour       = vec4(0.2, 0.2, 0.2, 1.0);
     }
 }
 
@@ -188,7 +188,7 @@ class FlurryRendererOgl4Config
     /**
      * The colour clear the backbuffer to at the beginning of each frame.
      */
-    public var clearColour : Vector4;
+    public var clearColour : Vec4;
 
     /**
      * The amount of buffering to perform on the internal buffers.
@@ -209,7 +209,7 @@ class FlurryRendererOgl4Config
         matrixBufferSize   = 25600000;
         uniformBufferSize  = 10000000;
         indirectBufferSize = 2000000;
-        clearColour        = new Vector4(0.2, 0.2, 0.2, 1.0);
+        clearColour        = vec4(0.2, 0.2, 0.2, 1.0);
         bufferingCount     = 3;
         enableDebugOutput  = false;
     }
@@ -244,7 +244,7 @@ class FlurryRendererDx11Config
     /**
      * The colour clear the backbuffer to at the beginning of each frame.
      */
-    public var clearColour : Vector4;
+    public var clearColour : Vec4;
 
     /**
      * If the ID3D11Device is created in debug mode (requires gpu debugging tools to be installed).
@@ -258,7 +258,7 @@ class FlurryRendererDx11Config
         indexBufferSize   = 1200000;
         matrixBufferSize  = 25600000;
         uniformBufferSize = 10000000;
-        clearColour       = new Vector4(0.2, 0.2, 0.2, 1.0);
+        clearColour       = vec4(0.2, 0.2, 0.2, 1.0);
         debugDevice       = false;
     }
 }

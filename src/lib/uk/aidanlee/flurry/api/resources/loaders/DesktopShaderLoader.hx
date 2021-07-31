@@ -5,7 +5,7 @@ import haxe.io.Bytes;
 import haxe.ds.Vector;
 import haxe.io.Input;
 
-using uk.aidanlee.flurry.api.InputUtils;
+using uk.aidanlee.flurry.api.resources.loaders.DesktopShaderLoader;
 
 class DesktopShaderLoader extends ResourceReader
 {
@@ -78,6 +78,14 @@ class DesktopShaderLoader extends ResourceReader
             case other:
                 throw new Exception('DesktopShaderLoader cannot produced shaders of type $other');
         }
+    }
+
+    static function readPrefixedString(_input : Input)
+    {
+        final len = _input.readInt32();
+        final str = _input.readString(len);
+    
+        return str;
     }
 }
 

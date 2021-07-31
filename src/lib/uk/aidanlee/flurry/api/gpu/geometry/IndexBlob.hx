@@ -1,8 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.geometry;
 
-import uk.aidanlee.flurry.api.buffers.BufferData;
-import uk.aidanlee.flurry.api.buffers.GrowingBuffer;
-import uk.aidanlee.flurry.api.buffers.UInt16BufferData;
+import haxe.io.BytesOutput;
+import haxe.io.UInt16Array;
 
 /**
  * Container class for index bytes data.
@@ -12,17 +11,11 @@ class IndexBlob
     /**
      * Underlying bytes data.
      */
-    public final buffer : BufferData;
+    public final buffer : UInt16Array;
 
-    /**
-     * Quick access to the underlying bytes data as a typed ushort buffer.
-     */
-    public final shortAccess : UInt16BufferData;
-
-    public function new(_buffer : BufferData)
+    public function new(_buffer : UInt16Array)
     {
-        buffer      = _buffer;
-        shortAccess = _buffer;
+        buffer = _buffer;
     }
 }
 
@@ -32,11 +25,11 @@ class IndexBlob
  */
 class IndexBlobBuilder
 {
-    final builder : GrowingBuffer;
+    final builder : BytesOutput;
 
     public function new()
     {
-        builder = new GrowingBuffer();
+        builder = new BytesOutput();
     }
 
     public function addInts(_array : Array<Int>) : IndexBlobBuilder
@@ -51,15 +44,13 @@ class IndexBlobBuilder
 
     public function addInt(_val : Int) : IndexBlobBuilder
     {
-        builder.addUInt16(_val);
+        builder.writeUInt16(_val);
 
         return this;
     }
 
     public function indexBlob()
     {
-        final bytes = builder.getBytes();
-
-        return new IndexBlob(new BufferData(bytes, 0, bytes.length));
+        return new IndexBlob(UInt16Array.fromBytes(builder.getBytes()));
     }
 }

@@ -3,8 +3,6 @@ package uk.aidanlee.flurry.api.resources.loaders;
 import uk.aidanlee.flurry.api.resources.ResourceID;
 import haxe.io.Input;
 
-using uk.aidanlee.flurry.api.InputUtils;
-
 class MsdfFontLoader extends ResourceReader
 {
     override function ids()
