@@ -76,6 +76,7 @@ import uk.aidanlee.flurry.api.gpu.state.BlendState;
 import uk.aidanlee.flurry.api.gpu.state.StencilState;
 import uk.aidanlee.flurry.api.gpu.state.DepthState;
 import uk.aidanlee.flurry.api.gpu.state.TargetState;
+import uk.aidanlee.flurry.api.gpu.backend.d3d11.D3D11Conversions;
 import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
 import uk.aidanlee.flurry.api.gpu.textures.Filtering;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
@@ -144,34 +145,9 @@ using cpp.NativeArray;
     final indexBuffer : D3d11Buffer;
 
     /**
-     * Buffer which will store all model, view, projection matrix collections.
-     */
-    final matrixBuffer : D3d11Buffer;
-
-    /**
      * Buffer which will stor all uniform data.
      */
     final uniformBuffer : D3d11Buffer;
-
-    /**
-     * Native D3D viewport struct.
-     */
-    final nativeView : D3d11Viewport;
-
-    /**
-     * Native D3D scissor clip struct.
-     */
-    final nativeClip : D3d11Rect;
-
-    /**
-     * Native D3D blend description struct.
-     */
-    final blendDescription : D3d11BlendDescription;
-
-    /**
-     * Native D3D blend state interface.
-     */
-    final blendState : D3d11BlendState;
 
     /**
      * Native D3D raster state interface.
@@ -199,50 +175,14 @@ using cpp.NativeArray;
     final swapchainTexture : D3d11Texture2D;
 
     /**
+     * Render target view for drawing to the backbuffer.
+     */
+    final backbufferRenderTargetView : D3d11RenderTargetView;
+
+    /**
      * The texture used for the depth and stencil view.
      */
     final depthStencilTexture : D3d11Texture2D;
-
-    /**
-     * D3D11 resource used for mapping the vertex buffer.
-     */
-    final mappedVertexBuffer : D3d11MappedSubResource;
-
-    /**
-     * D3D11 resource used for mapping the index buffer.
-     */
-    final mappedIndexBuffer : D3d11MappedSubResource;
-
-    /**
-     * D3D11 resource used for mapping the matrix buffer.
-     */
-    final mappedMatrixBuffer : D3d11MappedSubResource;
-
-    /**
-     * D3D11 resource used for mapping the uniform buffer.
-     */
-    final mappedUniformBuffer : D3d11MappedSubResource;
-
-    /**
-     * Representation of the backbuffer.
-     * Used as a default render target.
-     */
-    final backbuffer : BackBuffer;
-
-    /**
-     * Normalised RGBA colour to clear the backbuffer with each frame.
-     */
-    final clearColour : Array<Float>;
-
-    /**
-     * All the resource views which will be bound for the shader.
-     */
-    final shaderTextureResources : Array<Null<D3d11ShaderResourceView>>;
-
-    /**
-     * All the samplers which will be bound for the shader.
-     */
-    final shaderTextureSamplers : Array<Null<D3d11SamplerState>>;
 
     /**
      * Map of shader name to the D3D11 resources required to use the shader.
@@ -255,31 +195,19 @@ using cpp.NativeArray;
     final textureResources : Map<ResourceID, D3D11TextureInformation>;
 
     /**
-     * Sampler to use when none is provided.
+     * Normalised RGBA colour to clear the backbuffer with each frame.
      */
-    final defaultSampler : D3d11SamplerState;
+    final clearColour : Array<Float>;
 
     /**
-     * Rectangle used to hold the clip coordinates of the command currently being processed.
+     * Storage for all pipeline objects.
      */
-    final cmdClip : Rectangle;
+    final pipelines : Vector<Null<D3D11PipelineState>>;
 
     /**
-     * Rectangle used to hold the viewport coordinates of the command currently being processed.
+     * SDL window handle.
      */
-    final cmdViewport : Rectangle;
-
     final window : Window;
-
-    // State trackers
-
-    var depth    : DepthState;
-    var stencil  : StencilState;
-    var blend    : BlendState;
-    var topology : PrimitiveType;
-    var shader   : ResourceID;
-    var texture  : ResourceID;
-    var target   : TargetState;
 
     public function new(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig)
     {
@@ -332,28 +260,21 @@ using cpp.NativeArray;
 
         shaderResources  = [];
         textureResources = [];
-        shaderTextureResources = [ for (_ in 0...16) null ];
-        shaderTextureSamplers  = [ for (_ in 0...16) null ];
 
         // Persistent D3D11 objects and descriptions
-        swapchain               = new DxgiSwapChain1();
-        swapchainTexture        = new D3d11Texture2D();
-        device                  = new D3d11Device1();
-        context                 = new D3d11DeviceContext1();
-        depthStencilView        = new D3d11DepthStencilView();
-        depthStencilState       = new D3d11DepthStencilState();
-        depthStencilTexture     = new D3d11Texture2D();
-        blendState              = new D3d11BlendState();
-        rasterState             = new D3d11RasterizerState();
-        mappedVertexBuffer      = new D3d11MappedSubResource();
-        mappedIndexBuffer       = new D3d11MappedSubResource();
-        mappedMatrixBuffer      = new D3d11MappedSubResource();
-        mappedUniformBuffer     = new D3d11MappedSubResource();
-        vertexBuffer            = new D3d11Buffer();
-        indexBuffer             = new D3d11Buffer();
-        matrixBuffer            = new D3d11Buffer();
-        uniformBuffer           = new D3d11Buffer();
-        depthStencilDescription = new D3d11DepthStencilDescription();
+        swapchain                  = new DxgiSwapChain1();
+        swapchainTexture           = new D3d11Texture2D();
+        device                     = new D3d11Device1();
+        context                    = new D3d11DeviceContext1();
+        depthStencilView           = new D3d11DepthStencilView();
+        depthStencilState          = new D3d11DepthStencilState();
+        depthStencilTexture        = new D3d11Texture2D();
+        rasterState                = new D3d11RasterizerState();
+        vertexBuffer               = new D3d11Buffer();
+        indexBuffer                = new D3d11Buffer();
+        uniformBuffer              = new D3d11Buffer();
+        backbufferRenderTargetView = new D3d11RenderTargetView();
+        depthStencilDescription    = new D3d11DepthStencilDescription();
 
         // Setup the DXGI factory and get this windows adapter and output.
         final factory = new DxgiFactory2();
@@ -409,7 +330,6 @@ using cpp.NativeArray;
             throw new Exception('IDXGISwapChain');
         }
 
-        backbuffer        = new BackBuffer(_windowConfig.width, _windowConfig.height, 1);
         presentParameters = new DxgiPresentParameters();
         presentParameters.dirtyRectsCount = 0;
 
@@ -417,26 +337,10 @@ using cpp.NativeArray;
         {
             throw new Exception('Failed to get swapchain buffer');
         }
-        if (device.createRenderTargetView(swapchainTexture, null, backbuffer.renderTargetView) != 0)
+        if (device.createRenderTargetView(swapchainTexture, null, backbufferRenderTargetView) != 0)
         {
             throw new Exception('ID3D11RenderTargetView');
         }
-
-        // Create the default viewport
-        nativeView = new D3d11Viewport();
-        nativeView.topLeftX = 0;
-        nativeView.topLeftY = 0;
-        nativeView.width    = _windowConfig.width;
-        nativeView.height   = _windowConfig.height;
-        nativeView.minDepth = 0;
-        nativeView.maxDepth = 1;
-
-        // Create the default clip
-        nativeClip = new D3d11Rect();
-        nativeClip.top    = 0;
-        nativeClip.left   = 0;
-        nativeClip.right  = _windowConfig.width;
-        nativeClip.bottom = _windowConfig.height;
 
         // Setup the rasterizer state.
         final rasterDescription = new D3d11RasterizerDescription();
@@ -446,7 +350,7 @@ using cpp.NativeArray;
         rasterDescription.depthBias             = 0;
         rasterDescription.slopeScaledDepthBias  = 0;
         rasterDescription.depthBiasClamp        = 0;
-        rasterDescription.scissorEnable         = true;
+        rasterDescription.scissorEnable         = false;
         rasterDescription.depthClipEnable       = false;
         rasterDescription.multisampleEnable     = false;
         rasterDescription.antialiasedLineEnable = false;
@@ -454,24 +358,6 @@ using cpp.NativeArray;
         if (device.createRasterizerState(rasterDescription, rasterState) != Ok)
         {
             throw new Exception('ID3D11RasterizerState');
-        }
-
-        // Setup the initial blend state
-        blendDescription = new D3d11BlendDescription();
-        blendDescription.alphaToCoverageEnable  = false;
-        blendDescription.independentBlendEnable = false;
-        blendDescription.renderTarget[0].blendEnable    = true;
-        blendDescription.renderTarget[0].srcBlend       = SourceAlpha;
-        blendDescription.renderTarget[0].srcBlendAlpha  = One;
-        blendDescription.renderTarget[0].destBlend      = InverseSourceAlpha;
-        blendDescription.renderTarget[0].destBlendAlpha = Zero;
-        blendDescription.renderTarget[0].blendOp        = Add;
-        blendDescription.renderTarget[0].blendOpAlpha   = Add;
-        blendDescription.renderTarget[0].renderTargetWriteMask = D3d11ColorWriteEnable.All;
-
-        if (device.createBlendState(blendDescription, blendState) != Ok)
-        {
-            throw new Exception('ID3D11BlendState');
         }
 
         // Create the vertex buffer.
@@ -494,18 +380,6 @@ using cpp.NativeArray;
         bufferDesc.cpuAccessFlags = Write;
 
         if (device.createBuffer(bufferDesc, null, indexBuffer) != Ok)
-        {
-            throw new Exception('ID3D11Buffer');
-        }
-
-        // Create the matrix buffer
-        final bufferDesc = new D3d11BufferDescription();
-        bufferDesc.byteWidth      = _rendererConfig.matrixBufferSize;
-        bufferDesc.usage          = Dynamic;
-        bufferDesc.bindFlags      = ConstantBuffer;
-        bufferDesc.cpuAccessFlags = Write;
-
-        if (device.createBuffer(bufferDesc, null, matrixBuffer) != Ok)
         {
             throw new Exception('ID3D11Buffer');
         }
@@ -550,28 +424,6 @@ using cpp.NativeArray;
             throw new Exception('ID3D11DepthStencilView');
         }
 
-        // Create the default texture sampler
-        final samplerDescription = new D3d11SamplerDescription();
-        samplerDescription.filter         = MinMagMipPoint;
-        samplerDescription.addressU       = Clamp;
-        samplerDescription.addressV       = Clamp;
-        samplerDescription.addressW       = Clamp;
-        samplerDescription.mipLodBias     = 0;
-        samplerDescription.maxAnisotropy  = 1;
-        samplerDescription.comparisonFunc = Never;
-        samplerDescription.borderColor[0] = 1;
-        samplerDescription.borderColor[1] = 1;
-        samplerDescription.borderColor[2] = 1;
-        samplerDescription.borderColor[3] = 1;
-        samplerDescription.minLod         = -1;
-        samplerDescription.minLod         = 1;
-
-        defaultSampler = new D3d11SamplerState();
-        if (device.createSamplerState(samplerDescription, defaultSampler) != Ok)
-        {
-            throw new Exception('ID3D11SamplerState');
-        }
-
         // Create the default depth and stencil testing
         depthStencilDescription.depthEnable    = false;
         depthStencilDescription.depthWriteMask = Zero;
@@ -601,30 +453,16 @@ using cpp.NativeArray;
         final offset = 0;
         context.iaSetIndexBuffer(indexBuffer, R16UInt, offset);
         context.iaSetVertexBuffer(0, vertexBuffer, stride, offset);
-        context.iaSetPrimitiveTopology(TriangleList);
-        context.rsSetViewport(nativeView);
-        context.rsSetScissorRect(nativeClip);
         context.rsSetState(rasterState);
-        context.omSetRenderTarget(backbuffer.renderTargetView, depthStencilView);
-        context.omSetBlendState(blendState, [ 1, 1, 1, 1 ], 0xffffffff);
-        context.omSetDepthStencilState(depthStencilState, 1);
+        context.omSetRenderTarget(backbufferRenderTargetView, depthStencilView);
 
+        pipelines    = new Vector(1024);
         clearColour  = [
             _rendererConfig.clearColour.x,
             _rendererConfig.clearColour.y,
             _rendererConfig.clearColour.z,
-            _rendererConfig.clearColour.w ];
-        cmdClip     = new Rectangle();
-        cmdViewport = new Rectangle();
-        blend       = BlendState.none;
-        depth       = DepthState.none;
-        stencil     = StencilState.none;
-
-        // Setup initial state tracker
-        topology = Triangles;
-        target   = Backbuffer;
-        shader   = ResourceID.invalid;
-        texture  = ResourceID.invalid;
+            _rendererConfig.clearColour.w
+        ];
     }
 
     /**
@@ -634,12 +472,9 @@ using cpp.NativeArray;
      */
     function resize(_width : Int, _height : Int)
     {
-        backbuffer.width  = _width;
-        backbuffer.height = _height;
-
         context.omSetRenderTargets(null, null);
 
-        backbuffer.renderTargetView.release();
+        backbufferRenderTargetView.release();
         swapchainTexture.release();
 
         // Resise the swapchain texture
@@ -651,7 +486,7 @@ using cpp.NativeArray;
         {
             throw new Exception('Failed to get swapchain buffer');
         }
-        if (device.createRenderTargetView(swapchainTexture, null, backbuffer.renderTargetView) != Ok)
+        if (device.createRenderTargetView(swapchainTexture, null, backbufferRenderTargetView) != Ok)
         {
             throw new Exception('ID3D11RenderTargetView');
         }
@@ -672,7 +507,7 @@ using cpp.NativeArray;
         depthTextureDesc.cpuAccessFlags     = 0;
         depthTextureDesc.miscFlags          = 0;
 
-        if (device.createTexture2D(depthTextureDesc, null, depthStencilTexture) != 0)
+        if (device.createTexture2D(depthTextureDesc, null, depthStencilTexture) != Ok)
         {
             throw new Exception('ID3D11Texture2D');
         }
@@ -682,29 +517,10 @@ using cpp.NativeArray;
         depthStencilViewDescription.viewDimension      = Texture2D;
         depthStencilViewDescription.texture2D.mipSlice = 0;
 
-        if (device.createDepthStencilView(depthStencilTexture, depthStencilViewDescription, depthStencilView) != 0)
+        if (device.createDepthStencilView(depthStencilTexture, depthStencilViewDescription, depthStencilView) != Ok)
         {
             throw new Exception('ID3D11DepthStencilView');
         }
-
-        // If we don't force a render target change here then the previous backbuffer pointer might still be bound and used.
-        // This would cause nothing to render since that old backbuffer has now been released.
-        context.omSetRenderTarget(backbuffer.renderTargetView, depthStencilView);
-        target = Backbuffer;
-
-        // Set the scissor to the new width and height.
-        // This is needed to force a clip change so it doesn't stay with the old backbuffer size.
-        nativeClip.left   = 0;
-        nativeClip.top    = 0;
-        nativeClip.right  = _width;
-        nativeClip.bottom = _height;
-        context.rsSetScissorRect(nativeClip);
-
-        nativeView.topLeftX = 0;
-        nativeView.topLeftY = 0;
-        nativeView.width    = _width;
-        nativeView.height   = _height;
-        context.rsSetViewport(nativeView);
     }
 
     /**
@@ -713,86 +529,6 @@ using cpp.NativeArray;
     public function cleanup()
     {
         SDL.destroyWindow(window);
-    }
-
-    function getBlend(_blend : BlendMode) : D3d11Blend
-    {
-        return switch _blend
-        {
-            case Zero             : Zero;
-            case One              : One;
-            case SrcAlphaSaturate : SourceAlphaSat;
-            case SrcColor         : SourceColor;
-            case OneMinusSrcColor : InverseSourceColor;
-            case SrcAlpha         : SourceAlpha;
-            case OneMinusSrcAlpha : InverseSourceAlpha;
-            case DstAlpha         : DestinationAlpha;
-            case OneMinusDstAlpha : InverseDestinationAlpha;
-            case DstColor         : DestinationColor;
-            case OneMinusDstColor : InverseDestinationColour;
-        }
-    }
-
-    function getPrimitive(_primitive : PrimitiveType) : D3d11PrimitiveTopology
-    {
-        return switch _primitive
-        {
-            case Points        : PointList;
-            case Lines         : LineList;
-            case LineStrip     : LineStrip;
-            case Triangles     : TriangleList;
-            case TriangleStrip : TriangleStrip;
-        }
-    }
-
-    function getComparisonFunction(_function : ComparisonFunction) : D3d11ComparisonFunction
-    {
-        return switch _function
-        {
-            case Always             : Always;
-            case Never              : Never;
-            case Equal              : Equal;
-            case LessThan           : Less;
-            case LessThanOrEqual    : LessEqual;
-            case GreaterThan        : Greater;
-            case GreaterThanOrEqual : GreaterEqual;
-            case NotEqual           : NotEqual;
-        }
-    }
-
-    function getStencilOp(_stencil : StencilFunction) : D3d11StencilOp
-    {
-        return switch _stencil
-        {
-            case Keep          : Keep;
-            case Zero          : Zero;
-            case Replace       : Replace;
-            case Invert        : Invert;
-            case Increment     : IncrSat;
-            case IncrementWrap : Incr;
-            case Decrement     : DecrSat;
-            case DecrementWrap : Decr;
-        }
-    }
-
-    function getFilterType(_filter : Filtering) : D3d11Filter
-    {
-        return switch _filter
-        {
-            case Nearest : MinMagMipPoint;
-            case Linear  : MinMagMipLinear;
-        }
-    }
-
-    function getEdgeClamping(_clamp : EdgeClamping) : D3d11TextureAddressMode
-    {
-        return switch _clamp
-        {
-            case Wrap   : Wrap;
-            case Mirror : Mirror;
-            case Clamp  : Clamp;
-            case Border : Border;
-        }
     }
 
     function onSizeChanged(_data : DisplayEventData)
@@ -807,8 +543,6 @@ using cpp.NativeArray;
         resize(_data.width, _data.height);
     }
 
-    final pipelines = new Vector<Null<D3D11PipelineState>>(1024);
-
     public function present()
     {
         if (swapchain.present1(0, 0, presentParameters) != Ok)
@@ -820,11 +554,11 @@ using cpp.NativeArray;
     public function getGraphicsContext()
     {
         // Clear the backbuffer before drawing.
-        context.clearRenderTargetView(backbuffer.renderTargetView, clearColour);
+        context.clearRenderTargetView(backbufferRenderTargetView, clearColour);
         context.clearDepthStencilView(depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
 
         // Set the backbuffer as the target, this is required to get the next buffer in the flip present mode.
-        context.omSetRenderTarget(backbuffer.renderTargetView, depthStencilView);
+        context.omSetRenderTarget(backbufferRenderTargetView, depthStencilView);
 
         return new D3D11GraphicsContext(
             device,
@@ -1025,39 +759,5 @@ using cpp.NativeArray;
     {
         textureResources[_resource.id].destroy();
         textureResources.remove(_resource.id);
-    }
-}
-
-/**
- * Representation of the backbuffer.
- */
-private class BackBuffer
-{
-    /**
-     * Width of the backbuffer.
-     */
-    public var width : Int;
-
-    /**
-     * Height of the backbuffer.
-     */
-    public var height : Int;
-
-    /**
-     * View scale of the backbuffer.
-     */
-    public final viewportScale : Float;
-
-    /**
-     * Framebuffer object for the backbuffer.
-     */
-    public final renderTargetView : D3d11RenderTargetView;
-
-    public function new(_width : Int, _height : Int, _viewportScale : Float)
-    {
-        width            = _width;
-        height           = _height;
-        viewportScale    = _viewportScale;
-        renderTargetView = new D3d11RenderTargetView();
     }
 }

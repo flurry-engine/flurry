@@ -95,20 +95,14 @@ class FlurryRendererConfig
     public var ogl3 : FlurryRendererOgl3Config;
 
     /**
-     * Config options for the OpenGL 4 renderer.
-     */
-    public var ogl4 : FlurryRendererOgl4Config;
-
-    /**
      * Config options for the D3D11 renderer.
      */
     public var dx11 : FlurryRendererDx11Config;
 
     public function new()
     {
-        ogl3    = new FlurryRendererOgl3Config();
-        ogl4    = new FlurryRendererOgl4Config();
-        dx11    = new FlurryRendererDx11Config();
+        ogl3 = new FlurryRendererOgl3Config();
+        dx11 = new FlurryRendererDx11Config();
     }
 }
 
@@ -153,68 +147,6 @@ class FlurryRendererOgl3Config
     }
 }
 
-class FlurryRendererOgl4Config
-{
-    /**
-     * Size in bytes of the vertex buffer.
-     * Default size is enough to store 100,000 indexed quads vertices.
-     */
-    public var vertexBufferSize : Int;
-
-     /**
-      * Size in bytes of the index buffer.
-      * Default size is enough to store 100,000 indexed quads indices.
-      */
-    public var indexBufferSize : Int;
- 
-     /**
-      * Size in bytes of the matrix buffer.
-      * Default size is enough to store 100,000 mvp matrices (assuming 256 byte ubo alignment).
-      */
-    public var matrixBufferSize : Int;
- 
-     /**
-      * Size in bytes of the uniform buffer.
-      * Default size is 10Mb.
-      */
-    public var uniformBufferSize : Int;
-
-    /**
-     * Size in bytes of the indirect buffer.
-     * Default size is enough to store 100,000 commands for indexed drawing.
-     */
-    public var indirectBufferSize : Int;
-
-    /**
-     * The colour clear the backbuffer to at the beginning of each frame.
-     */
-    public var clearColour : Vec4;
-
-    /**
-     * The amount of buffering to perform on the internal buffers.
-     * Defaults to triple buffering.
-     */
-    public var bufferingCount : Int;
-
-    /**
-     * If enabled creates the OpenGL context with the debug flag and listens to debug output.
-     * Defaults to false.
-     */
-    public var enableDebugOutput : Bool;
-
-    public function new()
-    {
-        vertexBufferSize   = 14400000;
-        indexBufferSize    = 1200000;
-        matrixBufferSize   = 25600000;
-        uniformBufferSize  = 10000000;
-        indirectBufferSize = 2000000;
-        clearColour        = vec4(0.2, 0.2, 0.2, 1.0);
-        bufferingCount     = 3;
-        enableDebugOutput  = false;
-    }
-}
-
 class FlurryRendererDx11Config
 {
     /**
@@ -228,12 +160,6 @@ class FlurryRendererDx11Config
      * Default size is enough to store 100,000 indexed quads indices.
      */
     public var indexBufferSize : Int;
-
-    /**
-     * Size in bytes of the matrix buffer.
-     * Default size is enough to store 100,000 mvp matrices.
-     */
-    public var matrixBufferSize : Int;
  
     /**
      * Size in bytes of the uniform buffer.
@@ -254,9 +180,8 @@ class FlurryRendererDx11Config
 
     public function new()
     {
-        vertexBufferSize  = 14400000;
-        indexBufferSize   = 1200000;
-        matrixBufferSize  = 25600000;
+        vertexBufferSize  = 10000000;
+        indexBufferSize   = 10000000;
         uniformBufferSize = 10000000;
         clearColour       = vec4(0.2, 0.2, 0.2, 1.0);
         debugDevice       = false;
