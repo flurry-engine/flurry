@@ -128,11 +128,11 @@ import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
         final c     = Math.cos(theta);
         final s     = Math.sin(theta);
         final view  = mat4(
-             c * scale, s * scale,  0, _camera.pos.x,
-            -s * scale, c * scale,  0, _camera.pos.y,
-                     0,         0,  1,  0,
-                     0,         0,  0,  1
-        ).transpose();
+                c * scale,    -s * scale, 0, 0,
+                s * scale,     c * scale, 0, 0,
+                        0,             0, 1, 0,
+            _camera.pos.x, _camera.pos.y, 0, 1
+        );
 
         // Create the camera projection.
         // Orthographic projection, D3D NDC z space (0 - 1)
@@ -146,12 +146,12 @@ import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
         final a      =  2 / (right - left);
         final b      =  2 / (top - bottom);
         final c      = -2 / (far - near);
-        final proj   = mat4(
-            a, 0, 0, - (right + left) / (right - left),
-            0, b, 0, - (top + bottom) / (top - bottom),
-            0, 0, c, - (far + near) / (far - near),
-            0, 0, 0, 1
-        ).transpose();
+        final proj = mat4(
+            a, 0, 0, 0,
+            0, b, 0, 0,
+            0, 0, c, 0,
+            - (right + left) / (right - left), - (top + bottom) / (top - bottom), - (far + near) / (far - near), 1
+        );
 
         final model = mat4(1);
 
@@ -317,7 +317,7 @@ import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
 	}
 }
 
-private class D3D11MappableOutput extends Output
+@:nullSafety(Off) private class D3D11MappableOutput extends Output
 {
     public final buffer : D3d11Buffer;
 
@@ -327,8 +327,6 @@ private class D3D11MappableOutput extends Output
 
     final mappedResource : D3d11MappedSubResource;
 
-    var pointer : Null<cpp.Pointer<cpp.UInt8>>;
-
     var bytesWritten : Int;
 
     public function new(_elementSize, _context, _buffer)
@@ -337,7 +335,6 @@ private class D3D11MappableOutput extends Output
         context           = _context;
         buffer            = _buffer;
         mappedResource    = new D3d11MappedSubResource();
-        pointer           = null;
         bytesWritten      = 0;
     }
 
@@ -358,8 +355,6 @@ private class D3D11MappableOutput extends Output
         {
             throw new Exception('Failed to map D3D11 resource, HRESULT $result');
         }
-
-        pointer = @:nullSafety(Off) mappedResource.data.reinterpret();
     }
 
     public function unmap()
@@ -369,14 +364,42 @@ private class D3D11MappableOutput extends Output
 
     public override function writeByte(_byte : Int)
     {
-        if (pointer != null)
-        {
-            pointer[bytesWritten++] = _byte;
-        }
-        else
-        {
-            throw new Exception('Mapped buffer pointer is null');
-        }
+        final ptr = mappedResource.backing.data;
+        final idx = bytesWritten;
+
+        untyped __cpp__('*((unsigned char*){0} + {1}) = {2}', ptr, idx, _byte);
+
+        bytesWritten = bytesWritten + 1;
+    }
+
+    public override function writeFloat(_float : Float)
+    {
+        final ptr = mappedResource.backing.data;
+
+        untyped __cpp__('int idx = {0} / 4', bytesWritten);
+        untyped __cpp__('*((float*){0} + idx) = {1}', ptr, _float);
+
+        bytesWritten = bytesWritten + 4;
+    }
+
+    public override function writeUInt16(_int : Int)
+    {
+        final ptr = mappedResource.backing.data;
+
+        untyped __cpp__('int idx = {0} / 2', bytesWritten);
+        untyped __cpp__('*((unsigned short*){0} + idx) = {1}', ptr, _int);
+
+        bytesWritten = bytesWritten + 2;
+    }
+
+    public override function writeInt16(_int : Int)
+    {
+        final ptr = mappedResource.backing.data;
+
+        untyped __cpp__('int idx = {0} / 2', bytesWritten);
+        untyped __cpp__('*((signed short*){0} + idx) = {1}', ptr, _int);
+
+        bytesWritten = bytesWritten + 2;
     }
 }
 
