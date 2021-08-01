@@ -17,7 +17,7 @@ abstract class Renderer
 
     public function new(_resourceEvents)
     {
-        api            = ApiSelector.getGraphicsApi();
+        api            = getGraphicsApi();
         resourceEvents = _resourceEvents;
 
         resourceEvents
