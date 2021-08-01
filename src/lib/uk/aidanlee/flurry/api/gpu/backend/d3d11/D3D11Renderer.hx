@@ -205,6 +205,11 @@ using cpp.NativeArray;
     final samplers : D3D11SamplerCache;
 
     /**
+     * Re-usable graphics context.
+     */
+    final graphicsContext : D3D11GraphicsContext;
+
+    /**
      * SDL window handle.
      */
     final window : Window;
@@ -464,6 +469,15 @@ using cpp.NativeArray;
             _rendererConfig.clearColour.z,
             _rendererConfig.clearColour.w
         ];
+        graphicsContext = new D3D11GraphicsContext(
+            context,
+            samplers,
+            pipelines,
+            shaderResources,
+            textureResources,
+            vertexBuffer,
+            indexBuffer,
+            uniformBuffer);
     }
 
     public function getGraphicsContext()
@@ -475,15 +489,7 @@ using cpp.NativeArray;
         // Set the backbuffer as the target, this is required to get the next buffer in the flip present mode.
         context.omSetRenderTarget(backbufferRenderTargetView, depthStencilView);
 
-        return new D3D11GraphicsContext(
-            context,
-            samplers,
-            pipelines,
-            shaderResources,
-            textureResources,
-            vertexBuffer,
-            indexBuffer,
-            uniformBuffer);
+        return graphicsContext;
     }
 
     public function present()

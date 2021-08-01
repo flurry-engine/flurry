@@ -12,7 +12,7 @@ using Safety;
 /**
  * Holds the DirectX resources required for drawing a texture.
  */
-@:nullSafety(Off) class D3D11TextureInformation
+class D3D11TextureInformation
 {
     /**
      * D3D11 Texture2D pointer.

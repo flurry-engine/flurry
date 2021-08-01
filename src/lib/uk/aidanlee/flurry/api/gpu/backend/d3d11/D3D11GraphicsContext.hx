@@ -15,7 +15,6 @@ import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
 import d3d11.structures.D3d11Viewport;
 import d3d11.structures.D3d11MappedSubResource;
 
-using Safety;
 using uk.aidanlee.flurry.api.utils.OutputUtils;
 
 class D3D11GraphicsContext extends GraphicsContext
@@ -35,6 +34,8 @@ class D3D11GraphicsContext extends GraphicsContext
     final idxBuffer : D3D11MappableIndexOutput;
 
     final unfBuffer : D3D11MappableOutput;
+
+    final nativeView : D3d11Viewport;
 
     final currentUniformBlobs : Vector<Null<UniformBlob>>;
 
@@ -56,6 +57,7 @@ class D3D11GraphicsContext extends GraphicsContext
         vtxBuffer               = new D3D11MappableOutput(4 * 9, context, _vtxBuffer);
         idxBuffer               = new D3D11MappableIndexOutput(context, _idxBuffer);
         unfBuffer               = new D3D11MappableOutput(4, context, _unfBuffer);
+        nativeView              = new D3d11Viewport();
         currentUniformBlobs     = new Vector(14);
         currentUniformLocations = new Vector(14);
         currentPipeline         = PipelineID.invalid;
@@ -72,40 +74,31 @@ class D3D11GraphicsContext extends GraphicsContext
     {
         if (currentPipeline != _id)
         {
-            final newPipeline = pipelines[_id];
-
-            if (newPipeline != null)
+            switch pipelines.get(_id)
             {
-                final shader = shaders.get(newPipeline.shader);
-
-                if (shader != null)
-                {
-                    flush();
-
-                    vtxBuffer.map();
-                    idxBuffer.map();
-                    unfBuffer.map();
-
-                    // Set D3D state according to the pipeline.
-                    context.iaSetInputLayout(shader.inputLayout);
-                    context.vsSetShader(shader.vertexShader, null);
-                    context.psSetShader(shader.pixelShader, null);
-
-                    context.omSetDepthStencilState(newPipeline.depthStencilState, 1);
-                    context.omSetBlendState(newPipeline.blendState, [ 1, 1, 1, 1 ], 0xffffffff);
-                    context.iaSetPrimitiveTopology(newPipeline.primitive);
-
-                    currentPipeline = _id;
-                    currentShader   = newPipeline.shader;
-                }
-                else
-                {
-                    throw new Exception('No shader with an ID of ${ newPipeline.shader } was found');
-                }
-            }
-            else
-            {
-                throw new Exception('No pipeline with an ID of $_id was found.');
+                case null:
+                    throw new Exception('No pipeline with an ID of $_id was found.');
+                case pipeline:
+                    switch shaders.get(pipeline.shader)
+                    {
+                        case null:
+                            throw new Exception('No shader with an ID of ${ pipeline.shader } was found');
+                        case shader:
+                            flush();
+                            map();
+        
+                            // Set D3D state according to the pipeline.
+                            context.iaSetInputLayout(shader.inputLayout);
+                            context.vsSetShader(shader.vertexShader, null);
+                            context.psSetShader(shader.pixelShader, null);
+        
+                            context.omSetDepthStencilState(pipeline.depthStencilState, 1);
+                            context.omSetBlendState(pipeline.blendState, [ 1, 1, 1, 1 ], 0xffffffff);
+                            context.iaSetPrimitiveTopology(pipeline.primitive);
+        
+                            currentPipeline = _id;
+                            currentShader   = pipeline.shader;
+                    }
             }
         }
     }
@@ -113,19 +106,13 @@ class D3D11GraphicsContext extends GraphicsContext
     public function useCamera(_camera : Camera2D)
     {
         flush();
+        map();
 
-        vtxBuffer.map();
-        idxBuffer.map();
-        unfBuffer.map();
-
-        // Set the viewport.
-        final view = new D3d11Viewport();
-        view.topLeftX = _camera.viewport.x;
-        view.topLeftY = _camera.viewport.y;
-        view.width    = _camera.viewport.z;
-        view.height   = _camera.viewport.w;
-
-        context.rsSetViewport(view);
+        nativeView.topLeftX = _camera.viewport.x;
+        nativeView.topLeftY = _camera.viewport.y;
+        nativeView.width    = _camera.viewport.z;
+        nativeView.height   = _camera.viewport.w;
+        context.rsSetViewport(nativeView);
 
         // Create the camera matrices.
         final proj  = makeFrustum(0, _camera.size.x, 0, _camera.size.y, -100, 100);
@@ -133,29 +120,40 @@ class D3D11GraphicsContext extends GraphicsContext
         final model = identity();
 
         // Create a combined view * projection matrix and upload it
-        final shader   = shaders[currentShader].unsafe();
-        final location = shader.findVertexBlockLocation('flurry_matrices');
+        switch shaders[currentShader]
+        {
+            case null:
+                throw new Exception('Current shader $currentShader has no information stored about it');
+            case shader:
+                final location = shader.findVertexBlockLocation('flurry_matrices');
 
-        unfBuffer.writeMatrix(proj);
-        unfBuffer.writeMatrix(view);
-        unfBuffer.writeMatrix(model);
-
-        context.vsSetConstantBuffer1(location, unfBuffer.buffer, 0, 256);
+                unfBuffer.writeMatrix(proj);
+                unfBuffer.writeMatrix(view);
+                unfBuffer.writeMatrix(model);
+        
+                context.vsSetConstantBuffer1(location, unfBuffer.buffer, 0, 256);
+        }
     }
 
     public function usePage(_id : ResourceID)
     {
         if (currentPage != _id)
         {
-            flush();
+            switch textures[_id]
+            {
+                case null:
+                    throw new Exception('No texture with an ID of $_id was found');
+                case texture:
+                    flush();
+                    map();
 
-            currentPage = _id;
+                    currentPage = _id;
 
-            final texture = textures[currentPage].unsafe();
-            final sampler = samplers.get(SamplerState.nearest);
+                    final sampler = samplers.get(SamplerState.nearest);
 
-            context.psSetShaderResources(0, [ texture.shaderResourceView ]);
-            context.psSetSamplers(0, [ sampler ]);
+                    context.psSetShaderResources(0, [ texture.shaderResourceView ]);
+                    context.psSetSamplers(0, [ sampler ]);
+            }
         }
     }
 
@@ -171,10 +169,7 @@ class D3D11GraphicsContext extends GraphicsContext
                     // There is already a blob with the same name queued for uploading.
                     // We need to flush the current data before inserting the blob in the queue.
                     flush();
-
-                    vtxBuffer.map();
-                    idxBuffer.map();
-                    unfBuffer.map();
+                    map();
     
                     currentUniformBlobs[i] = blob;
 
@@ -197,9 +192,7 @@ class D3D11GraphicsContext extends GraphicsContext
         if (idxCount > 0)
         {
             // Ensure the buffers are unmapped and changes visible to the GPU.
-            vtxBuffer.unmap();
-            idxBuffer.unmap();
-            unfBuffer.unmap();
+            unmap();
 
             // TODO : Attach all uniform blocks to their appropriate position.
 
@@ -232,6 +225,20 @@ class D3D11GraphicsContext extends GraphicsContext
         {
             currentUniformLocations[i] = -1;
         }
+    }
+
+    function map()
+    {
+        vtxBuffer.map();
+        idxBuffer.map();
+        unfBuffer.map();
+    }
+
+    function unmap()
+    {
+        vtxBuffer.unmap();
+        idxBuffer.unmap();
+        unfBuffer.unmap();
     }
 
 	function get_vtxOutput() : Output
@@ -288,6 +295,8 @@ private class D3D11MappableOutput extends Output
     public function unmap()
     {
         context.unmap(buffer, 0);
+
+        bytesWritten = 0;
     }
 
     public override function writeByte(_byte : Int)

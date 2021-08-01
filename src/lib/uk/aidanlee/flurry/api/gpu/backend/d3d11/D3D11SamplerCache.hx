@@ -10,7 +10,7 @@ import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 
 using Safety;
 
-@:nullSafety(Off) class D3D11SamplerCache
+class D3D11SamplerCache
 {
     final device : D3d11Device1;
 
@@ -36,30 +36,32 @@ using Safety;
         return switch samplers.get(_state)
         {
             case null:
-                final sampler = new D3d11SamplerState();
-                description.filter         = getFilterType(_state.minification, _state.magnification);
-                description.addressU       = getEdgeClamping(_state.uClamping);
-                description.addressV       = getEdgeClamping(_state.vClamping);
-                description.addressW       = Clamp;
-                description.mipLodBias     = 0;
-                description.maxAnisotropy  = 1;
-                description.comparisonFunc = Never;
-                description.borderColor[0] = 1;
-                description.borderColor[1] = 1;
-                description.borderColor[2] = 1;
-                description.borderColor[3] = 1;
-                description.minLod         = -1;
-                description.minLod         = 1;
+                @:nullSafety(Off) {
+                    final sampler = new D3d11SamplerState();
+                    description.filter         = getFilterType(_state.minification, _state.magnification);
+                    description.addressU       = getEdgeClamping(_state.uClamping);
+                    description.addressV       = getEdgeClamping(_state.vClamping);
+                    description.addressW       = Clamp;
+                    description.mipLodBias     = 0;
+                    description.maxAnisotropy  = 1;
+                    description.comparisonFunc = Never;
+                    description.borderColor[0] = 1;
+                    description.borderColor[1] = 1;
+                    description.borderColor[2] = 1;
+                    description.borderColor[3] = 1;
+                    description.minLod         = -1;
+                    description.minLod         = 1;
 
-                var result = Ok;
-                if (Ok != (result = device.createSamplerState(description, sampler)))
-                {
-                    throw new Exception('Failed to create sampler state for $_state HRESULT : $result');
+                    var result = Ok;
+                    if (Ok != (result = device.createSamplerState(description, sampler)))
+                    {
+                        throw new Exception('Failed to create sampler state for $_state HRESULT : $result');
+                    }
+
+                    samplers[_state] = sampler;
                 }
-
-                samplers[_state] = sampler;
             case cached:
-                cached.unsafe();
+                (cached : D3d11SamplerState);
         }
     }
 }
