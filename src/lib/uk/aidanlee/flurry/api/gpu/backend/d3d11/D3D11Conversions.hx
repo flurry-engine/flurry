@@ -69,12 +69,23 @@ function getStencilOp(_stencil : StencilFunction) : D3d11StencilOp
     }
 }
 
-function getFilterType(_filter : Filtering) : D3d11Filter
+function getFilterType(_min : Filtering, _mag : Filtering) : D3d11Filter
 {
-    return switch _filter
+    if (_min == Filtering.Linear && _mag == Filtering.Linear)
     {
-        case Nearest : MinMagMipPoint;
-        case Linear  : MinMagMipLinear;
+        return MinMagMipLinear;
+    }
+    else if (_min == Filtering.Linear && _mag == Filtering.Nearest)
+    {
+        return MinMagLinearMipPoint;
+    }
+    if (_min == Filtering.Nearest && _mag == Filtering.Linear)
+    {
+        return MinPointMagMipLinear;
+    }
+    else
+    {
+        return MinMagPointMipLinear;
     }
 }
 

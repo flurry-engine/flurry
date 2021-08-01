@@ -1,13 +1,10 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
-import haxe.Exception;
-import d3d11.structures.D3d11SamplerDescription;
-import d3d11.structures.D3d11Texture2DDescription;
-import d3d11.interfaces.D3d11Device.D3d11Device1;
 import d3d11.interfaces.D3d11Texture2D;
 import d3d11.interfaces.D3d11SamplerState;
 import d3d11.interfaces.D3d11RenderTargetView;
 import d3d11.interfaces.D3d11ShaderResourceView;
+import d3d11.structures.D3d11Texture2DDescription;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 
 using Safety;
@@ -60,39 +57,6 @@ using Safety;
         for (sampler in samplers)
         {
             sampler.release();
-        }
-    }
-
-    public function getOrCreateSampler(_device : D3d11Device1, _state : SamplerState)
-    {
-        return if (samplers.exists(_state))
-        {
-            samplers.get(_state).unsafe();
-        }
-        else
-        {
-            final samplerDescription          = new D3d11SamplerDescription();
-            samplerDescription.filter         = MinMagMipPoint;
-            samplerDescription.addressU       = Clamp;
-            samplerDescription.addressV       = Clamp;
-            samplerDescription.addressW       = Clamp;
-            samplerDescription.mipLodBias     = 0;
-            samplerDescription.maxAnisotropy  = 1;
-            samplerDescription.comparisonFunc = Never;
-            samplerDescription.borderColor[0] = 1;
-            samplerDescription.borderColor[1] = 1;
-            samplerDescription.borderColor[2] = 1;
-            samplerDescription.borderColor[3] = 1;
-            samplerDescription.minLod         = -1;
-            samplerDescription.minLod         = 1;
-
-            final sampler = new D3d11SamplerState();
-            if (_device.createSamplerState(samplerDescription, sampler) != Ok)
-            {
-                throw new Exception('ID3D11SamplerState');
-            }
-
-            samplers[_state] = sampler;
         }
     }
 }

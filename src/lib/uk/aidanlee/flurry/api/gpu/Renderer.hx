@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.gpu;
 
-import hxrx.observer.Observer;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.resources.builtin.PageResource;
@@ -12,7 +11,7 @@ using hxrx.observables.Observables;
 
 abstract class Renderer
 {
-    final api : RendererBackend;
+    public final api : RendererBackend;
 
     final resourceEvents : ResourceEvents;
 
@@ -25,13 +24,13 @@ abstract class Renderer
             .created
             .filter(r -> r is PageResource)
             .map(r -> Std.downcast(r, PageResource))
-            .subscribe(new Observer(createTexture, null, null));
+            .subscribeFunction(createTexture);
 
         resourceEvents
             .removed
             .filter(r -> r is PageResource)
             .map(r -> Std.downcast(r, PageResource))
-            .subscribe(new Observer(createTexture, null, null));
+            .subscribeFunction(createTexture);
     }
 
     public abstract function getGraphicsContext() : GraphicsContext;

@@ -103,11 +103,6 @@ using cpp.NativeArray;
 </target>')
 @:nullSafety(Off) class D3D11Renderer extends Renderer
 {
-    /**
-     * The number of floats in each vertex.
-     */
-    static final VERTEX_BYTE_SIZE = 36;
-
     final displayEvents : DisplayEvents;
 
     final windowConfig : FlurryWindowConfig;
@@ -203,6 +198,11 @@ using cpp.NativeArray;
      * Storage for all pipeline objects.
      */
     final pipelines : Vector<Null<D3D11PipelineState>>;
+
+    /**
+     * Object which caches d3d11 sampler objects.
+     */
+    final samplers : D3D11SamplerCache;
 
     /**
      * SDL window handle.
@@ -457,98 +457,13 @@ using cpp.NativeArray;
         context.omSetRenderTarget(backbufferRenderTargetView, depthStencilView);
 
         pipelines    = new Vector(1024);
+        samplers     = new D3D11SamplerCache(device);
         clearColour  = [
             _rendererConfig.clearColour.x,
             _rendererConfig.clearColour.y,
             _rendererConfig.clearColour.z,
             _rendererConfig.clearColour.w
         ];
-    }
-
-    /**
-     * Resize the backbuffer and re-assign the backbuffer pointer.
-     * @param _width  New width of the window.
-     * @param _height New height of the window.
-     */
-    function resize(_width : Int, _height : Int)
-    {
-        context.omSetRenderTargets(null, null);
-
-        backbufferRenderTargetView.release();
-        swapchainTexture.release();
-
-        // Resise the swapchain texture
-        if (swapchain.resizeBuffers(0, _width, _height, Unknown, 0) != Ok)
-        {
-            throw new Exception('Failed to resize swapchain');
-        }
-        if (swapchain.getBuffer(0, NativeID3D11Texture2D.uuid(), swapchainTexture) != Ok)
-        {
-            throw new Exception('Failed to get swapchain buffer');
-        }
-        if (device.createRenderTargetView(swapchainTexture, null, backbufferRenderTargetView) != Ok)
-        {
-            throw new Exception('ID3D11RenderTargetView');
-        }
-
-        // Rebuild the depth and stencil buffer
-        depthStencilView.release();
-
-        final depthTextureDesc = new D3d11Texture2DDescription();
-        depthTextureDesc.width              = _width;
-        depthTextureDesc.height             = _height;
-        depthTextureDesc.mipLevels          = 1;
-        depthTextureDesc.arraySize          = 1;
-        depthTextureDesc.format             = D32FloatS8X24UInt;
-        depthTextureDesc.sampleDesc.count   = 1;
-        depthTextureDesc.sampleDesc.quality = 0;
-        depthTextureDesc.usage              = Default;
-        depthTextureDesc.bindFlags          = DepthStencil;
-        depthTextureDesc.cpuAccessFlags     = 0;
-        depthTextureDesc.miscFlags          = 0;
-
-        if (device.createTexture2D(depthTextureDesc, null, depthStencilTexture) != Ok)
-        {
-            throw new Exception('ID3D11Texture2D');
-        }
-
-        final depthStencilViewDescription = new D3d11DepthStencilViewDescription();
-        depthStencilViewDescription.format             = D32FloatS8X24UInt;
-        depthStencilViewDescription.viewDimension      = Texture2D;
-        depthStencilViewDescription.texture2D.mipSlice = 0;
-
-        if (device.createDepthStencilView(depthStencilTexture, depthStencilViewDescription, depthStencilView) != Ok)
-        {
-            throw new Exception('ID3D11DepthStencilView');
-        }
-    }
-
-    /**
-     * Release all DX11 interface pointers.
-     */
-    public function cleanup()
-    {
-        SDL.destroyWindow(window);
-    }
-
-    function onSizeChanged(_data : DisplayEventData)
-    {
-        resize(_data.width, _data.height);
-    }
-
-    function onSizeChangeRequest(_data : DisplayEventChangeRequest)
-    {
-        SDL.setWindowFullscreen(window, if (_data.fullscreen) SDL_WINDOW_FULLSCREEN_DESKTOP else NONE);
-
-        resize(_data.width, _data.height);
-    }
-
-    public function present()
-    {
-        if (swapchain.present1(0, 0, presentParameters) != Ok)
-        {
-            throw new Exception('Failed to present swapchain');
-        }
     }
 
     public function getGraphicsContext()
@@ -561,14 +476,22 @@ using cpp.NativeArray;
         context.omSetRenderTarget(backbufferRenderTargetView, depthStencilView);
 
         return new D3D11GraphicsContext(
-            device,
             context,
+            samplers,
             pipelines,
             shaderResources,
             textureResources,
             vertexBuffer,
             indexBuffer,
             uniformBuffer);
+    }
+
+    public function present()
+    {
+        if (swapchain.present1(0, 0, presentParameters) != Ok)
+        {
+            throw new Exception('Failed to present swapchain');
+        }
     }
 
 	public function createPipeline(_state : PipelineState)
@@ -634,7 +557,7 @@ using cpp.NativeArray;
         pipelines[_id] = null;
     }
 
-	function createShader(_resource : Resource)
+	public function createShader(_resource : Resource)
     {
         if (shaderResources.exists(_resource.id))
         {
@@ -707,13 +630,13 @@ using cpp.NativeArray;
         shaderResources.set(_resource.id, new D3D11ShaderInformation(shader.vertBlocks, shader.fragBlocks, shader.textureCount, vertexShader, pixelShader, inputLayout));
     }
 
-	function deleteShader(_resource : Resource)
+	public function deleteShader(_resource : Resource)
     {
         shaderResources[_resource.id].destroy();
         shaderResources.remove(_resource.id);
     }
 
-    function createTexture(_resource : PageResource)
+    public function createTexture(_resource : PageResource)
     {
         // Sub resource struct to hold the raw image bytes.
         final imgData = new D3d11SubResourceData();
@@ -755,9 +678,79 @@ using cpp.NativeArray;
         textureResources.set(_resource.id, new D3D11TextureInformation(texture, resView, rtvView, imgDesc));
     }
 
-    function deleteTexture(_resource : PageResource)
+    public function deleteTexture(_resource : PageResource)
     {
         textureResources[_resource.id].destroy();
         textureResources.remove(_resource.id);
+    }
+
+    function onSizeChanged(_data : DisplayEventData)
+    {
+        resize(_data.width, _data.height);
+    }
+
+    function onSizeChangeRequest(_data : DisplayEventChangeRequest)
+    {
+        SDL.setWindowFullscreen(window, if (_data.fullscreen) SDL_WINDOW_FULLSCREEN_DESKTOP else NONE);
+
+        resize(_data.width, _data.height);
+    }
+
+    /**
+     * Resize the backbuffer and re-assign the backbuffer pointer.
+     * @param _width  New width of the window.
+     * @param _height New height of the window.
+     */
+    function resize(_width : Int, _height : Int)
+    {
+        context.omSetRenderTargets(null, null);
+
+        backbufferRenderTargetView.release();
+        swapchainTexture.release();
+
+        // Resise the swapchain texture
+        if (swapchain.resizeBuffers(0, _width, _height, Unknown, 0) != Ok)
+        {
+            throw new Exception('Failed to resize swapchain');
+        }
+        if (swapchain.getBuffer(0, NativeID3D11Texture2D.uuid(), swapchainTexture) != Ok)
+        {
+            throw new Exception('Failed to get swapchain buffer');
+        }
+        if (device.createRenderTargetView(swapchainTexture, null, backbufferRenderTargetView) != Ok)
+        {
+            throw new Exception('ID3D11RenderTargetView');
+        }
+
+        // Rebuild the depth and stencil buffer
+        depthStencilView.release();
+
+        final depthTextureDesc = new D3d11Texture2DDescription();
+        depthTextureDesc.width              = _width;
+        depthTextureDesc.height             = _height;
+        depthTextureDesc.mipLevels          = 1;
+        depthTextureDesc.arraySize          = 1;
+        depthTextureDesc.format             = D32FloatS8X24UInt;
+        depthTextureDesc.sampleDesc.count   = 1;
+        depthTextureDesc.sampleDesc.quality = 0;
+        depthTextureDesc.usage              = Default;
+        depthTextureDesc.bindFlags          = DepthStencil;
+        depthTextureDesc.cpuAccessFlags     = 0;
+        depthTextureDesc.miscFlags          = 0;
+
+        if (device.createTexture2D(depthTextureDesc, null, depthStencilTexture) != Ok)
+        {
+            throw new Exception('ID3D11Texture2D');
+        }
+
+        final depthStencilViewDescription = new D3d11DepthStencilViewDescription();
+        depthStencilViewDescription.format             = D32FloatS8X24UInt;
+        depthStencilViewDescription.viewDimension      = Texture2D;
+        depthStencilViewDescription.texture2D.mipSlice = 0;
+
+        if (device.createDepthStencilView(depthStencilTexture, depthStencilViewDescription, depthStencilView) != Ok)
+        {
+            throw new Exception('ID3D11DepthStencilView');
+        }
     }
 }

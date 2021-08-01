@@ -11,7 +11,6 @@ import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.resources.ResourceID;
 import d3d11.constants.D3d11Error;
 import d3d11.interfaces.D3d11Buffer;
-import d3d11.interfaces.D3d11Device.D3d11Device1;
 import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
 import d3d11.structures.D3d11Viewport;
 import d3d11.structures.D3d11MappedSubResource;
@@ -21,9 +20,9 @@ using uk.aidanlee.flurry.api.utils.OutputUtils;
 
 class D3D11GraphicsContext extends GraphicsContext
 {
-    final device : D3d11Device1;
-
     final context : D3d11DeviceContext1;
+
+    final samplers : D3D11SamplerCache;
 
     final pipelines : Vector<Null<D3D11PipelineState>>;
 
@@ -43,12 +42,14 @@ class D3D11GraphicsContext extends GraphicsContext
 
     var currentPipeline : PipelineID;
 
+    var currentShader : ResourceID;
+
     var currentPage : ResourceID;
 
-    public function new(_device, _context, _pipelines, _shaders, _textures, _vtxBuffer, _idxBuffer, _unfBuffer)
+    public function new(_context, _samplers, _pipelines, _shaders, _textures, _vtxBuffer, _idxBuffer, _unfBuffer)
     {
-        device                  = _device;
         context                 = _context;
+        samplers                = _samplers;
         pipelines               = _pipelines;
         shaders                 = _shaders;
         textures                = _textures;
@@ -58,6 +59,7 @@ class D3D11GraphicsContext extends GraphicsContext
         currentUniformBlobs     = new Vector(14);
         currentUniformLocations = new Vector(14);
         currentPipeline         = PipelineID.invalid;
+        currentShader           = ResourceID.invalid;
         currentPage             = ResourceID.invalid;
 
         for (i in 0...currentUniformLocations.length)
@@ -94,6 +96,7 @@ class D3D11GraphicsContext extends GraphicsContext
                     context.iaSetPrimitiveTopology(newPipeline.primitive);
 
                     currentPipeline = _id;
+                    currentShader   = newPipeline.shader;
                 }
                 else
                 {
@@ -130,9 +133,8 @@ class D3D11GraphicsContext extends GraphicsContext
         final model = identity();
 
         // Create a combined view * projection matrix and upload it
-        final shaderID   = pipelines[currentPipeline].unsafe().shader;
-        final shaderInfo = shaders[shaderID].unsafe();
-        final location   = shaderInfo.findVertexBlockLocation('flurry_matrices');
+        final shader   = shaders[currentShader].unsafe();
+        final location = shader.findVertexBlockLocation('flurry_matrices');
 
         unfBuffer.writeMatrix(proj);
         unfBuffer.writeMatrix(view);
@@ -150,7 +152,7 @@ class D3D11GraphicsContext extends GraphicsContext
             currentPage = _id;
 
             final texture = textures[currentPage].unsafe();
-            final sampler = texture.getOrCreateSampler(device, SamplerState.nearest);
+            final sampler = samplers.get(SamplerState.nearest);
 
             context.psSetShaderResources(0, [ texture.shaderResourceView ]);
             context.psSetSamplers(0, [ sampler ]);
