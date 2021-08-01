@@ -502,7 +502,7 @@ using cpp.NativeArray;
 
 	public function createPipeline(_state : PipelineState)
     {
-        final id         = new PipelineID(0);
+        final id         = new PipelineID(getNextPipelineID());
         final dsState    = new D3d11DepthStencilState();
         final blendState = new D3d11BlendState();
 
@@ -688,6 +688,19 @@ using cpp.NativeArray;
     {
         textureResources[_resource.id].destroy();
         textureResources.remove(_resource.id);
+    }
+
+    function getNextPipelineID()
+    {
+        for (i in 0...pipelines.length)
+        {
+            if (pipelines[i] == null)
+            {
+                return i;
+            }
+        }
+
+        throw new Exception('Maximum number of pipelines met');
     }
 
     function onSizeChanged(_data : DisplayEventData)
