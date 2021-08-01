@@ -47,6 +47,8 @@ class D3D11GraphicsContext extends GraphicsContext
 
     var currentPage : ResourceID;
 
+    var mapped : Bool;
+
     public function new(_context, _samplers, _pipelines, _shaders, _textures, _vtxBuffer, _idxBuffer, _unfBuffer)
     {
         context                 = _context;
@@ -63,6 +65,7 @@ class D3D11GraphicsContext extends GraphicsContext
         currentPipeline         = PipelineID.invalid;
         currentShader           = ResourceID.invalid;
         currentPage             = ResourceID.invalid;
+        mapped                  = false;
 
         for (i in 0...currentUniformLocations.length)
         {
@@ -229,16 +232,30 @@ class D3D11GraphicsContext extends GraphicsContext
 
     function map()
     {
+        if (mapped)
+        {
+            return;
+        }
+
         vtxBuffer.map();
         idxBuffer.map();
         unfBuffer.map();
+
+        mapped = true;
     }
 
     function unmap()
     {
+        if (!mapped)
+        {
+            return;
+        }
+
         vtxBuffer.unmap();
         idxBuffer.unmap();
         unfBuffer.unmap();
+
+        mapped = false;
     }
 
 	function get_vtxOutput() : Output
