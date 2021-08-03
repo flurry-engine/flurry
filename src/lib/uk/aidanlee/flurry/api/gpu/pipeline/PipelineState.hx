@@ -1,9 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.pipeline;
 
-import uk.aidanlee.flurry.api.gpu.state.BlendState;
-import uk.aidanlee.flurry.api.gpu.state.DepthState;
-import uk.aidanlee.flurry.api.gpu.state.StencilState;
-
 @:publicFields @:structInit class PipelineState
 {
     final shader : ShaderID;

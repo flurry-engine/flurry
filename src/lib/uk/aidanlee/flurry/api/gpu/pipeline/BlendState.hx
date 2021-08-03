@@ -1,4 +1,4 @@
-package uk.aidanlee.flurry.api.gpu.state;
+package uk.aidanlee.flurry.api.gpu.pipeline;
 
 import uk.aidanlee.flurry.api.maths.Maths;
 

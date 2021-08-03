@@ -8,6 +8,10 @@ import d3d11.enumerations.D3d11TextureAddressMode;
 import d3d11.enumerations.D3d11PrimitiveTopology;
 import uk.aidanlee.flurry.api.gpu.textures.Filtering;
 import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
+import uk.aidanlee.flurry.api.gpu.pipeline.BlendMode;
+import uk.aidanlee.flurry.api.gpu.pipeline.PrimitiveType;
+import uk.aidanlee.flurry.api.gpu.pipeline.StencilFunction;
+import uk.aidanlee.flurry.api.gpu.pipeline.ComparisonFunction;
 
 function getBlend(_blend : BlendMode) : D3d11Blend
 {

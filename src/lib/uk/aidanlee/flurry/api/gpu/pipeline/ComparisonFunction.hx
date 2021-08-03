@@ -1,4 +1,4 @@
-package uk.aidanlee.flurry.api.gpu;
+package uk.aidanlee.flurry.api.gpu.pipeline;
 
 enum abstract ComparisonFunction(Int) to Int
 {
