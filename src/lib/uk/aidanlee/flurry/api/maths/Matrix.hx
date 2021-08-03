@@ -21,13 +21,12 @@ overload extern inline function make2D(_x : Float, _y : Float, _angle : Float, _
 {
     final c   = Math.cos(_angle);
     final s   = Math.sin(_angle);
-    final mat = mat4(
-        c * _scale, -s * _scale, 0, 0,
-        s * _scale,  c * _scale, 0, 0,
-                 0,           0, 1, 0,
-                _x,          _y, 0, 1
+    final mat = mat3(
+        c * _scale, -s * _scale, 0,
+        s * _scale,  c * _scale, 0,
+                _x,          _y, 1
     );
-
+    
     return mat;
 }
 
@@ -38,27 +37,47 @@ overload extern inline function makeScale(_x : Float, _y : Float)
 
 overload extern inline function makeScale(_x : Float, _y : Float, _z : Float)
 {
-    return mat4(
-        _x,  0,  0, 0,
-         0, _y,  0, 0,
-         0,  0, _z, 0,
-         0,  0,  0, 0
+    return mat3(
+        _x,  0,  0,
+         0, _y,  0,
+         0,  0, _z
     );
 }
 
 overload extern inline function makeTranslation(_x : Float, _y : Float)
 {
-    return makeTranslation(_x, _y, 0);
+    return makeTranslation(_x, _y, 1);
+}
+
+overload extern inline function makeTranslation(_v : Vec2)
+{
+    return makeTranslation(_v.x, _v.y, 1);
+}
+
+overload extern inline function makeTranslation(_v : Vec3)
+{
+    return makeTranslation(_v.x, _v.y, _v.z);
 }
 
 overload extern inline function makeTranslation(_x : Float, _y : Float, _z : Float)
 {
-    return mat4(
-        1,  0,  0, 0,
-        0,  1,  0, 0,
-        0,  0,  1, 0,
-       _x, _y, _z, 1
+    return mat3(
+        1,  0,  0,
+        0,  1,  0,
+       _x, _y, _z
    );
+}
+
+inline function makeRotationZ(_angle : Float)
+{
+    final c = Maths.cos(_angle);
+    final s = Maths.sin(_angle);
+
+    return mat3(
+        c, -s,  0,
+        s,  c,  0,
+        0,  0,  1
+    );
 }
 
 /**

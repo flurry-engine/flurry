@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
+import VectorMath;
 import haxe.Exception;
 import haxe.ds.Vector;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
@@ -124,7 +125,7 @@ class D3D11GraphicsContext extends GraphicsContext
 
                 final location = shader.findVertexBlockLocation('flurry_matrices');
                 final proj     = makeFrustum(0, _camera.size.x, 0, _camera.size.y, -100, 100);
-                final view     = make2D(_camera.pos.x, _camera.pos.y);
+                final view     = mat4(make2D(_camera.pos.x, _camera.pos.y, 0, 1));
                 final model    = identity();
 
                 unfOutput.write(proj);
