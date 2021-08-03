@@ -118,7 +118,7 @@ class Rectangle
      * @param _p Vector to check.
      * @return Bool
      */
-    public function containsPoint(_p : Vector2) : Bool
+    public function containsPoint(_p : Vec2) : Bool
     {
         return _p.x > x && _p.y > y && _p.x < (x + w) && _p.y < (y + h);
     }
