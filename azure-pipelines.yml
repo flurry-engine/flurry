@@ -1,5 +1,8 @@
+variables:
+  isMaster: $[eq(variables['Build.SourceBranch'], 'refs/heads/master')]
 jobs:
   - job: CppUnitTests
+    condition: and(succeeded(), eq(variables.isMaster, 'true'))
     displayName: C++ Unit Tests
     strategy:
       matrix:
@@ -41,6 +44,7 @@ jobs:
 
   - job: JsUnitTests
     displayName: Js Unit Tests
+    condition: and(succeeded(), eq(variables.isMaster, 'true'))
     pool:
       vmImage: 'ubuntu-latest'
     steps:
@@ -91,6 +95,7 @@ jobs:
 
   - job: ToolUnitTests
     displayName: Tool Unit Tests
+    condition: and(succeeded(), eq(variables.isMaster, 'true'))
     pool:
       vmImage: 'windows-latest'
     steps:
@@ -113,6 +118,7 @@ jobs:
 
   - job: SystemTestsOgl3
     displayName: System Tests (OpenGL 3 Backend)
+    condition: and(succeeded(), eq(variables.isMaster, 'true'))
     pool:
       name: Default
       demands:
@@ -145,6 +151,7 @@ jobs:
 
   - job: SystemTestsD3D11
     displayName: System Tests (D3D11 Backend)
+    condition: and(succeeded(), eq(variables.isMaster, 'true'))
     pool:
       name: Default
       demands:
