@@ -30,6 +30,11 @@ overload extern inline function make2D(_x : Float, _y : Float, _angle : Float, _
     return mat;
 }
 
+overload extern inline function makeScale(_v : Vec2)
+{
+    return makeScale(_v.x, _v.y, 1);
+}
+
 overload extern inline function makeScale(_x : Float, _y : Float)
 {
     return makeScale(_x, _y, 1);
