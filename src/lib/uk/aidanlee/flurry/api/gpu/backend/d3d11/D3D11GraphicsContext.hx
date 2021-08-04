@@ -133,67 +133,28 @@ class D3D11GraphicsContext extends GraphicsContext
                     case -1:
                         // Shader does not want camera matrices.
                     case location:
-                        final proj  = makeFrustum(0, _camera.size.x, 0, _camera.size.y, -100, 100);
-                        final view  = mat4(make2D(_camera.pos.x, _camera.pos.y, 0, 1));
-                        final model = identity();
+                        final proj     = makeFrustum(0, _camera.size.x, 0, _camera.size.y, -100, 100);
+                        final view     = mat4(make2D(_camera.pos.x, _camera.pos.y, 0, 1));
+                        final combined = view * proj;
+                        
                         final bytes = unfCameraBlob.buffer.buffer.getData();
-
-                        final base = 0;
-                        final data = (proj : Mat4Data);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  0, data.c0.x);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  4, data.c0.y);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  8, data.c0.z);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 12, data.c0.w);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 16, data.c1.x);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 20, data.c1.y);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 24, data.c1.z);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 28, data.c1.w);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 32, data.c2.x);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 36, data.c2.y);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 40, data.c2.z);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 44, data.c2.w);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 48, data.c3.x);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 52, data.c3.y);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 56, data.c3.z);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 60, data.c3.w);
-
-                        final base = 64;
-                        final data = (view : Mat4Data);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  0, data.c0.x);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  4, data.c0.y);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  8, data.c0.z);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 12, data.c0.w);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 16, data.c1.x);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 20, data.c1.y);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 24, data.c1.z);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 28, data.c1.w);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 32, data.c2.x);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 36, data.c2.y);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 40, data.c2.z);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 44, data.c2.w);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 48, data.c3.x);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 52, data.c3.y);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 56, data.c3.z);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 60, data.c3.w);
-
-                        final base = 128;
-                        final data = (model : Mat4Data);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  0, data.c0.x);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  4, data.c0.y);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  8, data.c0.z);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 12, data.c0.w);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 16, data.c1.x);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 20, data.c1.y);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 24, data.c1.z);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 28, data.c1.w);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 32, data.c2.x);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 36, data.c2.y);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 40, data.c2.z);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 44, data.c2.w);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 48, data.c3.x);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 52, data.c3.y);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 56, data.c3.z);
-                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 60, data.c3.w);
+                        final data  = (combined : Mat4Data);
+                        untyped __global__.__hxcpp_memory_set_float(bytes,  0, data.c0.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes,  4, data.c0.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes,  8, data.c0.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, 12, data.c0.w);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, 16, data.c1.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, 20, data.c1.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, 24, data.c1.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, 28, data.c1.w);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, 32, data.c2.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, 36, data.c2.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, 40, data.c2.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, 44, data.c2.w);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, 48, data.c3.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, 52, data.c3.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, 56, data.c3.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, 60, data.c3.w);
 
                         currentUniformBlobs[location] = unfCameraBlob;
                 }

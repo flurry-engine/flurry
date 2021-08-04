@@ -6,12 +6,10 @@ layout(location = 2) in vec2 aTex;
 
 layout(std140, binding = 0) uniform flurry_matrices
 {
-    mat4 projection;
-    mat4 view;
-    mat4 model;
+    mat4 viewproj;
 };
 
 void main()
 {
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
+    gl_Position = viewproj * vec4(aPos, 1.0);
 }
