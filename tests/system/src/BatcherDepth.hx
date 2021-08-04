@@ -73,6 +73,7 @@ class BatcherDepth extends Flurry
         _ctx.usePipeline(solid);
         _ctx.useCamera(camera);
 
+        // Setting a uniform blob which has already been assigned will flush the current data automatically.
         _ctx.useUniformBlob(uniform1);
         _ctx.drawFrame(cast resources.get(Preload.emote_angry), vec2(192, 192), vec2(0.5, 0.5));
 

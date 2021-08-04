@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
-import haxe.Exception;
 import d3d11.interfaces.D3d11InputLayout;
 import d3d11.interfaces.D3d11PixelShader;
 import d3d11.interfaces.D3d11VertexShader;

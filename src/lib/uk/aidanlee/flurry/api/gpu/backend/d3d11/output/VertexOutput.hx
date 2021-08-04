@@ -5,6 +5,7 @@ import d3d11.constants.D3d11Error;
 import d3d11.interfaces.D3d11Buffer;
 import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
 import d3d11.structures.D3d11MappedSubResource;
+import d3d11.enumerations.D3d11Map;
 
 @:nullSafety(Off) class VertexOutput
 {
@@ -18,71 +19,91 @@ import d3d11.structures.D3d11MappedSubResource;
 
     var floatPointer : cpp.RawPointer<cpp.Float32>;
 
-    var floatsWritten : Int;
+    var floatCursor : Int;
+
+    var lastUnmapCursor : Int;
+
+    var baseFloatCursor : Int;
 
     public function new(_context, _buffer)
     {
-        context       = _context;
-        buffer        = _buffer;
-        mapped        = new D3d11MappedSubResource();
-        floatPointer  = null;
-        floatsWritten = 0;
+        context         = _context;
+        buffer          = _buffer;
+        mapped          = new D3d11MappedSubResource();
+        floatPointer    = null;
+        floatCursor     = 0;
+        lastUnmapCursor = 0;
+        baseFloatCursor = 0;
     }
 
     public function map()
     {
-        var result = Ok;
-        if (Ok != (result = context.map(buffer, 0, WriteDiscard, 0, mapped)))
+        final flag  = if (floatCursor == 0) D3d11Map.WriteDiscard else D3d11Map.WriteNoOverwrite;
+        var result  = Ok;
+        if (Ok != (result = context.map(buffer, 0, flag, 0, mapped)))
         {
             throw new Exception('Failed to map D3D11 vertex buffer : HRESULT $result');
         }
 
-        floatPointer = cast mapped.data.raw;
+        baseFloatCursor = floatCursor;
+        floatPointer    = cast mapped.data.raw;
     }
 
     public function unmap()
     {
         context.unmap(buffer, 0);
 
-        floatsWritten = 0;
+        lastUnmapCursor = floatCursor;
+    }
+
+    public function close()
+    {
+        floatCursor     = 0;
+        lastUnmapCursor = 0;
+        baseFloatCursor = 0;
     }
 
     public function getVerticesWritten()
     {
-        return cpp.NativeMath.idiv(floatsWritten, VERTEX_STRIDE);
+        return cpp.NativeMath.idiv(floatCursor - lastUnmapCursor, VERTEX_STRIDE);
+    }
+
+    public function getBaseVertex()
+    {
+        return cpp.NativeMath.idiv(baseFloatCursor, VERTEX_STRIDE);
     }
 
     public overload inline extern function write(_v : Float)
     {
-        floatPointer[floatsWritten] = _v;
+        floatPointer[floatCursor] = _v;
 
-        floatsWritten++;
+        floatCursor++;
     }
 
     public overload inline extern function write(_v : Vec2)
     {
-        floatPointer[floatsWritten + 0] = _v.x;
-        floatPointer[floatsWritten + 1] = _v.y;
+        floatPointer[floatCursor + 0] = _v.x;
+        floatPointer[floatCursor + 1] = _v.y;
 
-        floatsWritten += 2;
+        floatCursor += 2;
     }
 
     public overload inline extern function write(_v : Vec3)
     {
-        floatPointer[floatsWritten + 0] = _v.x;
-        floatPointer[floatsWritten + 1] = _v.y;
-        floatPointer[floatsWritten + 2] = _v.z;
+        floatPointer[floatCursor + 0] = _v.x;
+        floatPointer[floatCursor + 1] = _v.y;
+        floatPointer[floatCursor + 2] = _v.z;
 
-        floatsWritten += 3;
+        floatCursor += 3;
     }
 
     public overload inline extern function write(_v : Vec4)
     {
-        floatPointer[floatsWritten + 0] = _v.x;
-        floatPointer[floatsWritten + 1] = _v.y;
-        floatPointer[floatsWritten + 2] = _v.z;
-        floatPointer[floatsWritten + 3] = _v.w;
+        floatPointer[floatCursor + 0] = _v.x;
+        floatPointer[floatCursor + 1] = _v.y;
+        floatPointer[floatCursor + 2] = _v.z;
+        floatPointer[floatCursor + 3] = _v.w;
 
-        floatsWritten += 4;
+        floatCursor += 4;
     }
 }

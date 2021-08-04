@@ -230,7 +230,10 @@ class D3D11GraphicsContext extends GraphicsContext
             // TODO : Attach all textures to their appropriate position.
 
             // Unindexed draws are not supported.
-            context.drawIndexed(idxCount, 0, 0);
+            final baseVtx = vtxOutput.getBaseVertex();
+            final baseIdx = idxOutput.getBaseIndex();
+
+            context.drawIndexed(idxCount, baseIdx, baseVtx);
 
             prepare();
         }
@@ -239,6 +242,10 @@ class D3D11GraphicsContext extends GraphicsContext
     public function close()
     {
         flush();
+
+        vtxOutput.close();
+        idxOutput.close();
+        unfOutput.close();
 
         // Reset state trackers
 
