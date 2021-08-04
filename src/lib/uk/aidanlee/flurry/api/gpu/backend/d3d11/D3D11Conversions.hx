@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
+import uk.aidanlee.flurry.api.maths.Maths;
 import d3d11.enumerations.D3d11Blend;
 import d3d11.enumerations.D3d11Filter;
 import d3d11.enumerations.D3d11StencilOp;
@@ -102,4 +103,12 @@ function getEdgeClamping(_clamp : EdgeClamping) : D3d11TextureAddressMode
         case Clamp  : Clamp;
         case Border : Border;
     }
+}
+
+function bytesToAlignedShaderConstants(_bytes : Int)
+{
+    final paddedByteSize = Maths.nextMultipleOff(_bytes, 256);
+    final shaderConstants = cpp.NativeMath.idiv(paddedByteSize, 16);
+
+    return shaderConstants;
 }

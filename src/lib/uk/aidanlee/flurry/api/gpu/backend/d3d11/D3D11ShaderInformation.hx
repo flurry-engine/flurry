@@ -52,7 +52,7 @@ class D3D11ShaderInformation
             }
         }
 
-        throw new Exception('Unable to find vertex block with the name $_name');
+        return -1;
     }
 
     public function destroy()

@@ -1,7 +1,9 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11.output;
 
+import uk.aidanlee.flurry.api.maths.Maths;
 import Mat4;
 import haxe.Exception;
+import haxe.io.ArrayBufferView;
 import d3d11.constants.D3d11Error;
 import d3d11.interfaces.D3d11Buffer;
 import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
@@ -9,6 +11,8 @@ import d3d11.structures.D3d11MappedSubResource;
 
 @:nullSafety(Off) class UniformOutput
 {
+    private static inline var HLSL_CONSTANT_FLOAT_ALIGNMENT = 16 * 4;
+
     final context : D3d11DeviceContext1;
 
     final buffer : D3d11Buffer;
@@ -55,37 +59,22 @@ import d3d11.structures.D3d11MappedSubResource;
     {
         return buffer;
     }
-
-    public overload inline extern function write(_v : Vec4)
+    
+    public function write(_buffer : ArrayBufferView)
     {
-        floatPointer[floatsWritten + 0] = _v.x;
-        floatPointer[floatsWritten + 1] = _v.y;
-        floatPointer[floatsWritten + 2] = _v.z;
-        floatPointer[floatsWritten + 3] = _v.w;
+        final constantPos = cpp.NativeMath.idiv(floatsWritten, 4);
+        final srcPos      = _buffer.byteOffset;
+        final length      = _buffer.byteLength;
+        final floats      = cpp.NativeMath.idiv(length, 4);
+        final dstPtr      = (mapped.data.reinterpret() : cpp.Pointer<cpp.Float32>).add(floatsWritten);
+        
+        cpp.Native.memcpy(
+            dstPtr,
+            cpp.NativeArray.address(_buffer.buffer.getData(), srcPos),
+            length);
 
-        floatsWritten += 4;
-    }
+        floatsWritten = Maths.nextMultipleOff(floatsWritten + floats, HLSL_CONSTANT_FLOAT_ALIGNMENT);
 
-    public overload inline extern function write(_v : Mat4)
-    {
-        final data = (_v : Mat4Data);
-        floatPointer[floatsWritten +  0] = data.c0.x;
-        floatPointer[floatsWritten +  1] = data.c0.y;
-        floatPointer[floatsWritten +  2] = data.c0.z;
-        floatPointer[floatsWritten +  3] = data.c0.w;
-        floatPointer[floatsWritten +  4] = data.c1.x;
-        floatPointer[floatsWritten +  5] = data.c1.y;
-        floatPointer[floatsWritten +  6] = data.c1.z;
-        floatPointer[floatsWritten +  7] = data.c1.w;
-        floatPointer[floatsWritten +  8] = data.c2.x;
-        floatPointer[floatsWritten +  9] = data.c2.y;
-        floatPointer[floatsWritten + 10] = data.c2.z;
-        floatPointer[floatsWritten + 11] = data.c2.w;
-        floatPointer[floatsWritten + 12] = data.c3.x;
-        floatPointer[floatsWritten + 13] = data.c3.y;
-        floatPointer[floatsWritten + 14] = data.c3.z;
-        floatPointer[floatsWritten + 15] = data.c3.w;
-
-        floatsWritten += 16;
+        return constantPos;
     }
 }

@@ -1,12 +1,15 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
+import Mat4;
 import VectorMath;
 import haxe.Exception;
 import haxe.ds.Vector;
+import haxe.io.ArrayBufferView;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
+import uk.aidanlee.flurry.api.gpu.backend.d3d11.D3D11Conversions;
 import uk.aidanlee.flurry.api.gpu.backend.d3d11.output.IndexOutput;
 import uk.aidanlee.flurry.api.gpu.backend.d3d11.output.VertexOutput;
 import uk.aidanlee.flurry.api.gpu.backend.d3d11.output.UniformOutput;
@@ -31,11 +34,11 @@ class D3D11GraphicsContext extends GraphicsContext
 
     final unfOutput : UniformOutput;
 
+    final unfCameraBlob : UniformBlob;
+
     final nativeView : D3d11Viewport;
 
     final currentUniformBlobs : Vector<Null<UniformBlob>>;
-
-    final currentUniformLocations : Vector<Int>;
 
     var currentPipeline : PipelineID;
 
@@ -58,18 +61,13 @@ class D3D11GraphicsContext extends GraphicsContext
         shaders                 = _shaders;
         textures                = _textures;
         unfOutput               = new UniformOutput(context, _unfBuffer);
+        unfCameraBlob           = new UniformBlob('flurry_matrices', new ArrayBufferView(192), []);
         nativeView              = new D3d11Viewport();
-        currentUniformBlobs     = new Vector(14);
-        currentUniformLocations = new Vector(14);
+        currentUniformBlobs     = new Vector(15);
         currentPipeline         = PipelineID.invalid;
         currentShader           = ResourceID.invalid;
         currentPage             = ResourceID.invalid;
         mapped                  = false;
-
-        for (i in 0...currentUniformLocations.length)
-        {
-            currentUniformLocations[i] = -1;
-        }
     }
 
 	public function usePipeline(_id : PipelineID)
@@ -103,6 +101,13 @@ class D3D11GraphicsContext extends GraphicsContext
     
                         currentPipeline = _id;
                         currentShader   = pipeline.shader;
+
+                        // Clear all uniform blobs.
+                        // No guarentee the existing cached ones are valid for this new pipeline.
+                        for (i in 0...currentUniformBlobs.length)
+                        {
+                            currentUniformBlobs[i] = null;
+                        }
                 }
         }
     }
@@ -123,16 +128,75 @@ class D3D11GraphicsContext extends GraphicsContext
                 nativeView.height   = _camera.viewport.w;
                 context.rsSetViewport(nativeView);
 
-                final location = shader.findVertexBlockLocation('flurry_matrices');
-                final proj     = makeFrustum(0, _camera.size.x, 0, _camera.size.y, -100, 100);
-                final view     = mat4(make2D(_camera.pos.x, _camera.pos.y, 0, 1));
-                final model    = identity();
+                switch shader.findVertexBlockLocation('flurry_matrices')
+                {
+                    case -1:
+                        // Shader does not want camera matrices.
+                    case location:
+                        final proj  = makeFrustum(0, _camera.size.x, 0, _camera.size.y, -100, 100);
+                        final view  = mat4(make2D(_camera.pos.x, _camera.pos.y, 0, 1));
+                        final model = identity();
+                        final bytes = unfCameraBlob.buffer.buffer.getData();
 
-                unfOutput.write(proj);
-                unfOutput.write(view);
-                unfOutput.write(model);
-        
-                context.vsSetConstantBuffer1(location, unfOutput.getBuffer(), 0, 256);
+                        final base = 0;
+                        final data = (proj : Mat4Data);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  0, data.c0.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  4, data.c0.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  8, data.c0.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 12, data.c0.w);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 16, data.c1.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 20, data.c1.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 24, data.c1.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 28, data.c1.w);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 32, data.c2.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 36, data.c2.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 40, data.c2.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 44, data.c2.w);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 48, data.c3.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 52, data.c3.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 56, data.c3.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 60, data.c3.w);
+
+                        final base = 64;
+                        final data = (view : Mat4Data);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  0, data.c0.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  4, data.c0.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  8, data.c0.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 12, data.c0.w);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 16, data.c1.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 20, data.c1.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 24, data.c1.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 28, data.c1.w);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 32, data.c2.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 36, data.c2.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 40, data.c2.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 44, data.c2.w);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 48, data.c3.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 52, data.c3.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 56, data.c3.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 60, data.c3.w);
+
+                        final base = 128;
+                        final data = (model : Mat4Data);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  0, data.c0.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  4, data.c0.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base +  8, data.c0.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 12, data.c0.w);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 16, data.c1.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 20, data.c1.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 24, data.c1.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 28, data.c1.w);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 32, data.c2.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 36, data.c2.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 40, data.c2.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 44, data.c2.w);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 48, data.c3.x);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 52, data.c3.y);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 56, data.c3.z);
+                        untyped __global__.__hxcpp_memory_set_float(bytes, base + 60, data.c3.w);
+
+                        currentUniformBlobs[location] = unfCameraBlob;
+                }
         }
     }
 
@@ -162,23 +226,26 @@ class D3D11GraphicsContext extends GraphicsContext
 
     public function useUniformBlob(_blob : UniformBlob)
     {
-        for (i in 0...currentUniformBlobs.length)
+        switch shaders.get(currentShader)
         {
-            final blob = currentUniformBlobs[i];
-            if (blob != null)
-            {
-                if (blob.id == _blob.id)
+            case null:
+                throw new Exception('Current shader $currentShader has no information stored about it');
+            case shader:
+                switch shader.findVertexBlockLocation(_blob.name)
                 {
-                    // There is already a blob with the same name queued for uploading.
-                    // We need to flush the current data before inserting the blob in the queue.
-                    flush();
-                    map();
-    
-                    currentUniformBlobs[i] = blob;
-
-                    return;
+                    case -1:
+                        throw new Exception('Shader $currentShader does not use a cbuffer called ${ _blob.name }');
+                    case location:
+                        if (currentUniformBlobs[location] != null)
+                        {
+                            // There is already a blob with the same name queued for uploading.
+                            // We need to flush the current data before inserting the blob in the queue.
+                            flush();
+                            map();
+                        }
+        
+                        currentUniformBlobs[location] = _blob;
                 }
-            }
         }
     }
 
@@ -193,10 +260,11 @@ class D3D11GraphicsContext extends GraphicsContext
 
         if (idxCount > 0)
         {
+            // Copy all blobs into the buffer and attach them to the context.
+            uploadUniforms();
+
             // Ensure the buffers are unmapped and changes visible to the GPU.
             unmap();
-
-            // TODO : Attach all uniform blocks to their appropriate position.
 
             // TODO : Attach all textures to their appropriate position.
 
@@ -222,10 +290,23 @@ class D3D11GraphicsContext extends GraphicsContext
         {
             currentUniformBlobs[i] = null;
         }
+    }
 
-        for (i in 0...currentUniformLocations.length)
+    function uploadUniforms()
+    {
+        for (i in 0...currentUniformBlobs.length)
         {
-            currentUniformLocations[i] = -1;
+            switch (currentUniformBlobs[i])
+            {
+                case null:
+                    continue;
+                case blob:
+                    final blockLocation  = i;
+                    final constantOffset = unfOutput.write(blob.buffer);
+                    final constantsSize  = bytesToAlignedShaderConstants(blob.buffer.byteLength);
+
+                    context.vsSetConstantBuffer1(blockLocation, unfOutput.getBuffer(), constantOffset, constantsSize);
+            }
         }
     }
 
