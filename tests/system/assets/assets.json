@@ -16,6 +16,7 @@
         { "id" : "ui_button", "path" : "images/ui_button.png"  },
         { "id" : "textured", "path" : "shaders/textured.glsl" },
         { "id" : "colourise", "path" : "shaders/colourise.glsl" },
+        { "id" : "format", "path" : "shaders/format.glsl" },
         { "id" : "purple", "path" : "shaders/purple.glsl" },
         { "id" : "msdf", "path" : "shaders/msdf.glsl" },
         { "id" : "roboto", "path" : "fonts/Roboto-Regular.ttf" },
@@ -23,6 +24,6 @@
     ],
     "parcels" : [
         { "name" : "preload", "assets" : [ "tank1", "tank2", "tank3", "wood", "ui_frame", "ui_button", "roboto", "unnamed", "background", "blue_worker", "blue_shield", "blue_spear", "blue_king", "blue_wizard", "die", "emote_angry" ] },
-        { "name" : "shaders", "assets" : [ "textured", "msdf", "colourise", "purple" ] }
+        { "name" : "shaders", "assets" : [ "textured", "msdf", "colourise", "purple", "format" ] }
     ]
 }
