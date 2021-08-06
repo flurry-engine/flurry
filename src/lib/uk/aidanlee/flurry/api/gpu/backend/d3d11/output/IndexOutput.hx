@@ -62,22 +62,16 @@ import uk.aidanlee.flurry.api.maths.Maths;
     }
 
     /**
-     * Seek the index buffer write cursor to the next multiple of the supplied stride value.
-     * This also resets the shorts written and abse index value as its assumed this is only called
-     * when the vertex buffer is rebound with an offset.
-     * @param _stride Stride of the new vertex format in bytes.
-     * @returns Bytes value of the writing cursor position, aligned to the nearest multiple of the stride.
+     * Reset the base index and indices writen counter as its assumed the index buffer will be rebound
+     * with an offset after calling this.
+     * @returns Bytes value of the writing cursor position.
      */
-    public function seek(_stride : Int)
+    public function reset()
     {
-        final bytesCursor = shortCursor * 2;
-        final bytesSeek   = Maths.nextMultipleOff(bytesCursor, 256);
-
-        shortCursor   = cpp.NativeMath.idiv(bytesSeek, 2);
         shortsWritten = 0;
         baseIndex     = 0;
 
-        return bytesSeek;
+        return shortCursor * 2;
     }
 
     /**

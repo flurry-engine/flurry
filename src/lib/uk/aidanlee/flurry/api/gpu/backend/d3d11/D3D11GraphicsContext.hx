@@ -91,7 +91,7 @@ class D3D11GraphicsContext extends GraphicsContext
                         map();
 
                         final vtxOffset = vtxOutput.seek(shader.inputStride);
-                        final idxOffset = idxOutput.seek(shader.inputStride);
+                        final idxOffset = idxOutput.reset();
     
                         // Set D3D state according to the pipeline.
                         context.iaSetVertexBuffer(0, vtxOutput.buffer, shader.inputStride, vtxOffset);
