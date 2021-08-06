@@ -1,12 +1,12 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11.output;
 
-import d3d11.enumerations.D3d11Map;
 import haxe.Exception;
 import haxe.io.ArrayBufferView;
 import d3d11.constants.D3d11Error;
 import d3d11.interfaces.D3d11Buffer;
 import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
 import d3d11.structures.D3d11MappedSubResource;
+import d3d11.enumerations.D3d11Map;
 import uk.aidanlee.flurry.api.maths.Maths;
 
 @:nullSafety(Off) class UniformOutput

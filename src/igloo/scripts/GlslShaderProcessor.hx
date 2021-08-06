@@ -122,6 +122,13 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 				_writer.writeInt32(_id);
 				_writer.writePrefixedString(_ctx.gpuApi);
 
+				_writer.writeByte(_data.vertReflection.inputs.length);
+				for (element in _data.vertReflection.inputs)
+				{
+					_writer.writeByte(element.location);
+					_writer.writeByte(inputTypeToByte(element.type));
+				}
+
 				switch _ctx.gpuApi
 				{
 					case 'ogl3', 'mock':
@@ -271,6 +278,17 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 		}
 
 		return None;
+	}
+
+	function inputTypeToByte(_in : String)
+	{
+		return switch _in
+		{
+			case 'vec2': 0;
+			case 'vec3': 1;
+			case 'vec4': 2;
+			case other: throw new Exception('Unsupported input tyoe $other');
+		}
 	}
 }
 

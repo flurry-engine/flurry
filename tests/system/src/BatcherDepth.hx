@@ -1,4 +1,3 @@
-import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import haxe.ds.Vector;
 import VectorMath;
 import uk.aidanlee.flurry.Flurry;
@@ -8,6 +7,7 @@ import uk.aidanlee.flurry.api.gpu.ShaderID;
 import uk.aidanlee.flurry.api.gpu.GraphicsContext;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.resources.Parcels.Preload;
 import uk.aidanlee.flurry.api.resources.Parcels.Shaders;
 import uk.aidanlee.flurry.api.resources.ResourceID;
@@ -19,7 +19,11 @@ class BatcherDepth extends Flurry
 {
     var pipeline : PipelineID;
 
-    var solid : PipelineID;
+    var colour : PipelineID;
+
+    var format : PipelineID;
+
+    var purple : PipelineID;
 
     var camera : Camera2D;
 
@@ -41,7 +45,9 @@ class BatcherDepth extends Flurry
     override function onReady()
     {
         pipeline = renderer.createPipeline({ shader: new ShaderID(Shaders.textured) });
-        solid    = renderer.createPipeline({ shader: new ShaderID(Shaders.colourise) });
+        colour   = renderer.createPipeline({ shader: new ShaderID(Shaders.colourise) });
+        format   = renderer.createPipeline({ shader: new ShaderID(Shaders.format) });
+        purple   = renderer.createPipeline({ shader: new ShaderID(Shaders.purple) });
         camera   = new Camera2D(vec2(0, 0), vec2(display.width, display.height), vec4(0, 0, display.width, display.height));
         uniform1 = new UniformBlobBuilder("colours").addVector4('colour', vec4(1.0, 0.5, 0.5, 1.0)).uniformBlob();
         uniform2 = new UniformBlobBuilder("colours").addVector4('colour', vec4(1.0, 0.5, 1.0, 1.0)).uniformBlob();
@@ -67,17 +73,60 @@ class BatcherDepth extends Flurry
         _ctx.drawFrame(cast resources.get(Preload.die), vec2(573, 64), vec2(0.5, 0.5), vec2(0.75, 2.25), 45);
 
         // Draw a colourised and semi-transparent frame
-        _ctx.drawFrame(cast resources.get(Preload.emote_angry), vec2(704, 64), vec2(0.5, 0.5), vec2(1, 1), 0, yellow());
+        _ctx.drawFrame(cast resources.get(Preload.emote_angry), vec2(704, 64), vec2(0.5, 0.5), vec2(1, 1), 0, Colour.yellow);
         _ctx.drawFrame(cast resources.get(Preload.emote_angry), vec2(64, 192), vec2(0.5, 0.5), vec2(1, 1), 0, vec4(1, 1, 1, 0.5));
 
-        _ctx.usePipeline(solid);
+        _ctx.usePipeline(colour);
         _ctx.useCamera(camera);
 
-        // Setting a uniform blob which has already been assigned will flush the current data automatically.
+        // These two uniforms occupy the same location in the shader so re-assigning it will flush whats been queued so far.
         _ctx.useUniformBlob(uniform1);
         _ctx.drawFrame(cast resources.get(Preload.emote_angry), vec2(192, 192), vec2(0.5, 0.5));
 
         _ctx.useUniformBlob(uniform2);
         _ctx.drawFrame(cast resources.get(Preload.emote_angry), vec2(320, 192), vec2(0.5, 0.5));
+
+        // Different vertex format and custom drawing.
+        _ctx.usePipeline(format);
+        _ctx.useCamera(camera);
+
+        drawCustomFrame(_ctx, cast resources.get(Preload.blue_worker), 384, 128);
+
+        // Switch to yet another pipeline, this time just solid purple for all fragments.
+        _ctx.usePipeline(purple);
+        _ctx.useCamera(camera);
+
+        _ctx.drawFrame(cast resources.get(Preload.blue_worker), vec2(512, 128));
+    }
+
+    function drawCustomFrame(_ctx : GraphicsContext, _frame : PageFrameResource, _x : Float, _y : Float)
+    {
+        _ctx.usePage(_frame.page);
+        _ctx.prepare();
+    
+        // v1
+        _ctx.vtxOutput.write(vec3(_x, _y + _frame.height, 0));
+        _ctx.vtxOutput.write(vec2(_frame.u1, _frame.v2));
+    
+        // v2
+        _ctx.vtxOutput.write(vec3(_x, _y, 0));
+        _ctx.vtxOutput.write(vec2(_frame.u1, _frame.v1));
+    
+        // v3
+        _ctx.vtxOutput.write(vec3(_x + _frame.width, _y, 0));
+        _ctx.vtxOutput.write(vec2(_frame.u2, _frame.v1));
+    
+        // v4
+        _ctx.vtxOutput.write(vec3(_x + _frame.width, _y + _frame.height, 0));
+        _ctx.vtxOutput.write(vec2(_frame.u2, _frame.v2));
+    
+        // Indices
+        _ctx.idxOutput.write(0);
+        _ctx.idxOutput.write(1);
+        _ctx.idxOutput.write(2);
+    
+        _ctx.idxOutput.write(0);
+        _ctx.idxOutput.write(2);
+        _ctx.idxOutput.write(3);
     }
 }

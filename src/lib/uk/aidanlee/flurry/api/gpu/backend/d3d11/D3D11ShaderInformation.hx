@@ -31,14 +31,20 @@ class D3D11ShaderInformation
      */
     public final inputLayout : D3d11InputLayout;
 
-    public function new(_vertBlocks, _fragBlocks, _textures, _vertex, _pixel, _input)
+    /**
+     * Number of bytes between each element in this shaders vertex input.
+     */
+    public final inputStride : Int;
+
+    public function new(_vertBlocks, _fragBlocks, _textures, _vertex, _pixel, _inputLayout, _inputStride)
     {
         vertBlocks   = _vertBlocks;
         fragBlocks   = _fragBlocks;
         textures     = _textures;
         vertexShader = _vertex;
         pixelShader  = _pixel;
-        inputLayout  = _input;
+        inputLayout  = _inputLayout;
+        inputStride  = _inputStride;
     }
 
     public function findVertexBlockLocation(_name : String)
@@ -52,12 +58,5 @@ class D3D11ShaderInformation
         }
 
         return -1;
-    }
-
-    public function destroy()
-    {
-        vertexShader.release();
-        pixelShader.release();
-        inputLayout.release();
     }
 }

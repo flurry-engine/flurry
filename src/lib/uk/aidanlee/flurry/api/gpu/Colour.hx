@@ -2,7 +2,9 @@ package uk.aidanlee.flurry.api.gpu;
 
 import VectorMath;
 
-inline function yellow()
+class Colour
 {
-    return vec4(1, 1, 0, 1);
+    public static var yellow (get, never) : Vec4;
+
+    inline static function get_yellow() return vec4(1, 1, 0, 1);
 }

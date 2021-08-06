@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
+import dxgi.enumerations.DxgiFormat;
 import uk.aidanlee.flurry.api.maths.Maths;
 import d3d11.enumerations.D3d11Blend;
 import d3d11.enumerations.D3d11Filter;
@@ -11,6 +12,7 @@ import uk.aidanlee.flurry.api.gpu.textures.Filtering;
 import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
 import uk.aidanlee.flurry.api.gpu.pipeline.BlendMode;
 import uk.aidanlee.flurry.api.gpu.pipeline.PrimitiveType;
+import uk.aidanlee.flurry.api.gpu.pipeline.VertexElement.VertexType;
 import uk.aidanlee.flurry.api.gpu.pipeline.StencilFunction;
 import uk.aidanlee.flurry.api.gpu.pipeline.ComparisonFunction;
 
@@ -111,4 +113,24 @@ function bytesToAlignedShaderConstants(_bytes : Int)
     final shaderConstants = cpp.NativeMath.idiv(paddedByteSize, 16);
 
     return shaderConstants;
+}
+
+function getInputFormat(_format : VertexType)
+{
+    return switch _format
+    {
+        case Vector2: DxgiFormat.R32G32Float;
+        case Vector3: DxgiFormat.R32G32B32Float;
+        case Vector4: DxgiFormat.R32G32B32A32Float;
+    }
+}
+
+function getInputFormatSize(_format : VertexType)
+{
+    return switch _format
+    {
+        case Vector2: 8;
+        case Vector3: 12;
+        case Vector4: 16;
+    }
 }

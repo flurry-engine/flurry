@@ -115,7 +115,9 @@ class Flurry
         if (loaded)
         {
             onPreUpdate();
+
             onUpdate(_dt);
+
             onPostUpdate();
 
             input.update();
@@ -127,10 +129,10 @@ class Flurry
             onRender(ctx);
             
             ctx.close();
-            
-            renderer.present();
 
             onPostRender();
+
+            renderer.present();
         }
     }
 

@@ -89,8 +89,13 @@ class D3D11GraphicsContext extends GraphicsContext
                     case shader:
                         flush();
                         map();
+
+                        final vtxOffset = vtxOutput.seek(shader.inputStride);
+                        final idxOffset = idxOutput.seek(shader.inputStride);
     
                         // Set D3D state according to the pipeline.
+                        context.iaSetVertexBuffer(0, vtxOutput.buffer, shader.inputStride, vtxOffset);
+                        context.iaSetIndexBuffer(idxOutput.buffer, R16UInt, idxOffset);
                         context.iaSetInputLayout(shader.inputLayout);
                         context.vsSetShader(shader.vertexShader, null);
                         context.psSetShader(shader.pixelShader, null);
@@ -100,14 +105,7 @@ class D3D11GraphicsContext extends GraphicsContext
                         context.iaSetPrimitiveTopology(pipeline.primitive);
     
                         currentPipeline = _id;
-                        currentShader   = pipeline.shader;
-
-                        // Clear all uniform blobs.
-                        // No guarentee the existing cached ones are valid for this new pipeline.
-                        for (i in 0...currentUniformBlobs.length)
-                        {
-                            currentUniformBlobs[i] = null;
-                        }
+                        currentShader   = pipeline.shader;                       
                 }
         }
     }

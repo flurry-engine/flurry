@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
+import uk.aidanlee.flurry.api.gpu.pipeline.VertexFormat;
 import VectorMath;
 import uk.aidanlee.flurry.api.resources.ResourceID;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
@@ -453,10 +454,6 @@ using cpp.NativeArray;
         }
 
         // Set the initial context state.
-        final stride = (9 * 4);
-        final offset = 0;
-        context.iaSetIndexBuffer(indexBuffer, R16UInt, offset);
-        context.iaSetVertexBuffer(0, vertexBuffer, stride, offset);
         context.rsSetState(rasterState);
         context.omSetRenderTarget(backbufferRenderTargetView, depthStencilView);
 
@@ -599,45 +596,41 @@ using cpp.NativeArray;
             throw new Exception('ID3D11PixelShader');
         }
 
-        // Create the shader layout.
-        final elementPos = new D3d11InputElementDescription();
-        elementPos.semanticName         = "TEXCOORD";
-        elementPos.semanticIndex        = 0;
-        elementPos.format               = R32G32B32Float;
-        elementPos.inputSlot            = 0;
-        elementPos.alignedByteOffset    = 0;
-        elementPos.inputSlotClass       = PerVertexData;
-        elementPos.instanceDataStepRate = 0;
-        final elementCol = new D3d11InputElementDescription();
-        elementCol.semanticName         = "TEXCOORD";
-        elementCol.semanticIndex        = 1;
-        elementCol.format               = R32G32B32A32Float;
-        elementCol.inputSlot            = 0;
-        elementCol.alignedByteOffset    = 12;
-        elementCol.inputSlotClass       = PerVertexData;
-        elementCol.instanceDataStepRate = 0;
-        final elementTex = new D3d11InputElementDescription();
-        elementTex.semanticName         = "TEXCOORD";
-        elementTex.semanticIndex        = 2;
-        elementTex.format               = R32G32Float;
-        elementTex.inputSlot            = 0;
-        elementTex.alignedByteOffset    = 28;
-        elementTex.inputSlotClass       = PerVertexData;
-        elementTex.instanceDataStepRate = 0;
+        // Create a new input format one does not exist for the shaders input.
+        // TODO : Reuse input layouts instead of creating a new one for each shader.
+        var offset = 0;
+
+        final layout = [];
+
+        for (i in 0...shader.format.count)
+        {
+            final element = shader.format.get(i);
+            final native  = new D3d11InputElementDescription();
+            native.semanticName         = "TEXCOORD";
+            native.semanticIndex        = element.location;
+            native.format               = getInputFormat(element.type);
+            native.inputSlot            = 0;
+            native.alignedByteOffset    = offset;
+            native.inputSlotClass       = PerVertexData;
+            native.instanceDataStepRate = 0;
+
+            offset += getInputFormatSize(element.type);
+
+            layout.push(native);
+        }
 
         final inputLayout = new D3d11InputLayout();
-        if (device.createInputLayout([ elementPos, elementCol, elementTex ], vertexBytecode, inputLayout) != Ok)
+        if (device.createInputLayout(layout, vertexBytecode, inputLayout) != Ok)
         {
             throw new Exception('ID3D11InputLayout');
         }
 
         // Create our shader and a class to store its resources.
-        shaderResources.set(_resource.id, new D3D11ShaderInformation(shader.vertBlocks, shader.fragBlocks, shader.textureCount, vertexShader, pixelShader, inputLayout));
+        shaderResources.set(_resource.id, new D3D11ShaderInformation(shader.vertBlocks, shader.fragBlocks, shader.textureCount, vertexShader, pixelShader, inputLayout, offset));
     }
 
 	public function deleteShader(_resource : Resource)
     {
-        shaderResources[_resource.id].destroy();
         shaderResources.remove(_resource.id);
     }
 
