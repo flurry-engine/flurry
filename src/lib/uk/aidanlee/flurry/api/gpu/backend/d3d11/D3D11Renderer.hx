@@ -494,7 +494,16 @@ using cpp.NativeArray;
 
 	public function deletePipeline(_id : PipelineID)
     {
-        pipelines[_id] = null;
+        switch pipelines[_id]
+        {
+            case null:
+                // Pipeline does not exist.
+            case pipeline:
+                pipeline.blendState.release();
+                pipeline.depthStencilState.release();
+
+                pipelines[_id] = null;
+        }
     }
 
     public function createSurface(_width : Int, _height : Int)
@@ -581,6 +590,7 @@ using cpp.NativeArray;
                 surface.surfaceRenderView.release();
                 surface.depthStencilView.release();
                 surface.depthStencilTexture.release();
+
                 surfaces[_id] = null;
         }
     }
@@ -657,7 +667,17 @@ using cpp.NativeArray;
 
 	function deleteShader(_resource : Resource)
     {
-        shaderResources.remove(_resource.id);
+        switch shaderResources.get(_resource.id)
+        {
+            case null:
+                // Shader does not exist.
+            case shader:
+                shader.inputLayout.release();
+                shader.pixelShader.release();
+                shader.vertexShader.release();
+
+                shaderResources.remove(_resource.id);
+        }
     }
 
     function createTexture(_resource : PageResource)
@@ -706,7 +726,16 @@ using cpp.NativeArray;
 
     function deleteTexture(_resource : PageResource)
     {
-        textureResources.remove(_resource.id);
+        switch textureResources.get(_resource.id)
+        {
+            case null:
+                // Page does not exist.
+            case texture:
+                texture.shaderResourceView.release();
+                texture.texture.release();
+
+                textureResources.remove(_resource.id);
+        }
     }
 
     function createBackbufferSurface(_backbufferWidth : Int, _backbufferHeight : Int)
@@ -805,7 +834,6 @@ using cpp.NativeArray;
 
         final backbuffer = surfaces[SurfaceID.backbuffer];
 
-        backbuffer.surfaceView.release();
         backbuffer.surfaceTexture.release();
         backbuffer.surfaceRenderView.release();
         backbuffer.depthStencilView.release();
