@@ -28,6 +28,8 @@ class D3D11GraphicsContext extends GraphicsContext
 
     final pipelines : Vector<Null<D3D11PipelineState>>;
 
+    final surfaces : Vector<Null<D3D11SurfaceInformation>>;
+
     final shaders : Map<ResourceID, D3D11ShaderInformation>;
 
     final textures : Map<ResourceID, D3D11TextureInformation>;
@@ -48,26 +50,27 @@ class D3D11GraphicsContext extends GraphicsContext
 
     var mapped : Bool;
 
-    public function new(_context, _samplers, _pipelines, _shaders, _textures, _vtxBuffer, _idxBuffer, _unfBuffer)
+    public function new(_context, _samplers, _pipelines, _surfaces, _shaders, _textures, _vtxBuffer, _idxBuffer, _unfBuffer)
     {
         super(
             new VertexOutput(_context, _vtxBuffer),
             new IndexOutput(_context, _idxBuffer)
         );
 
-        context                 = _context;
-        samplers                = _samplers;
-        pipelines               = _pipelines;
-        shaders                 = _shaders;
-        textures                = _textures;
-        unfOutput               = new UniformOutput(context, _unfBuffer);
-        unfCameraBlob           = new UniformBlob('flurry_matrices', new ArrayBufferView(192), []);
-        nativeView              = new D3d11Viewport();
-        currentUniformBlobs     = new Vector(15);
-        currentPipeline         = PipelineID.invalid;
-        currentShader           = ResourceID.invalid;
-        currentPage             = ResourceID.invalid;
-        mapped                  = false;
+        context             = _context;
+        samplers            = _samplers;
+        pipelines           = _pipelines;
+        surfaces            = _surfaces;
+        shaders             = _shaders;
+        textures            = _textures;
+        unfOutput           = new UniformOutput(context, _unfBuffer);
+        unfCameraBlob       = new UniformBlob('flurry_matrices', new ArrayBufferView(192), []);
+        nativeView          = new D3d11Viewport();
+        currentUniformBlobs = new Vector(15);
+        currentPipeline     = PipelineID.invalid;
+        currentShader       = ResourceID.invalid;
+        currentPage         = ResourceID.invalid;
+        mapped              = false;
     }
 
 	public function usePipeline(_id : PipelineID)
@@ -82,30 +85,38 @@ class D3D11GraphicsContext extends GraphicsContext
             case null:
                 throw new Exception('No pipeline with an ID of $_id was found.');
             case pipeline:
-                switch shaders.get(pipeline.shader)
+                switch surfaces.get(pipeline.surface)
                 {
                     case null:
-                        throw new Exception('No shader with an ID of ${ pipeline.shader } was found');
-                    case shader:
-                        flush();
-                        map();
+                        throw new Exception('No surface with an ID of ${ pipeline.surface } was found');
+                    case target:
+                        switch shaders.get(pipeline.shader)
+                        {
+                            case null:
+                                throw new Exception('No shader with an ID of ${ pipeline.shader } was found');
+                            case shader:
+                                flush();
+                                map();
 
-                        final vtxOffset = vtxOutput.seek(shader.inputStride);
-                        final idxOffset = idxOutput.reset();
-    
-                        // Set D3D state according to the pipeline.
-                        context.iaSetVertexBuffer(0, vtxOutput.buffer, shader.inputStride, vtxOffset);
-                        context.iaSetIndexBuffer(idxOutput.buffer, R16UInt, idxOffset);
-                        context.iaSetInputLayout(shader.inputLayout);
-                        context.vsSetShader(shader.vertexShader, null);
-                        context.psSetShader(shader.pixelShader, null);
-    
-                        context.omSetDepthStencilState(pipeline.depthStencilState, 1);
-                        context.omSetBlendState(pipeline.blendState, [ 1, 1, 1, 1 ], 0xffffffff);
-                        context.iaSetPrimitiveTopology(pipeline.primitive);
-    
-                        currentPipeline = _id;
-                        currentShader   = pipeline.shader;                       
+                                final vtxOffset = vtxOutput.seek(shader.inputStride);
+                                final idxOffset = idxOutput.reset();
+
+                                // Set D3D state according to the pipeline.
+                                // TODO: We should do our own state tracking to avoid re-setting expensive state.
+                                context.omSetRenderTarget(target.surfaceRenderView, target.depthStencilView);
+                                context.iaSetVertexBuffer(0, vtxOutput.buffer, shader.inputStride, vtxOffset);
+                                context.iaSetIndexBuffer(idxOutput.buffer, R16UInt, idxOffset);
+                                context.iaSetInputLayout(shader.inputLayout);
+                                context.vsSetShader(shader.vertexShader, null);
+                                context.psSetShader(shader.pixelShader, null);
+
+                                context.omSetDepthStencilState(pipeline.depthStencilState, 1);
+                                context.omSetBlendState(pipeline.blendState, [ 1, 1, 1, 1 ], 0xffffffff);
+                                context.iaSetPrimitiveTopology(pipeline.primitive);
+
+                                currentPipeline = _id;
+                                currentShader   = pipeline.shader;  
+                        }
                 }
         }
     }
@@ -179,6 +190,25 @@ class D3D11GraphicsContext extends GraphicsContext
                 final sampler = samplers.get(SamplerState.nearest);
 
                 context.psSetShaderResources(0, [ texture.shaderResourceView ]);
+                context.psSetSamplers(0, [ sampler ]);
+        }
+    }
+
+    public function useSurface(_id : SurfaceID)
+    {
+        switch surfaces.get(_id)
+        {
+            case null:
+                throw new Exception('No surface with an ID of $_id was found');
+            case surface:
+                flush();
+                map();
+
+                currentPage = ResourceID.invalid;
+
+                final sampler = samplers.get(SamplerState.nearest);
+
+                context.psSetShaderResources(0, [ surface.surfaceView ]);
                 context.psSetSamplers(0, [ sampler ]);
         }
     }

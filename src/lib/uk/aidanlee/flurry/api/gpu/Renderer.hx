@@ -41,6 +41,10 @@ abstract class Renderer
 
     public abstract function deletePipeline(_pipeline : PipelineID) : Void;
 
+    public abstract function createSurface(_width : Int, _height : Int) : SurfaceID;
+
+    public abstract function deleteSurface(_id : SurfaceID) : Void;
+
     abstract function createShader(_resource : Resource) : Void;
 
     abstract function deleteShader(_resource : Resource) : Void;

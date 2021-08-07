@@ -1,3 +1,5 @@
+import uk.aidanlee.flurry.api.input.Keycodes;
+import uk.aidanlee.flurry.api.gpu.SurfaceID;
 import haxe.ds.Vector;
 import VectorMath;
 import uk.aidanlee.flurry.Flurry;
@@ -24,8 +26,14 @@ class BatcherDepth extends Flurry
     var format : PipelineID;
 
     var purple : PipelineID;
+    
+    var target : PipelineID;
+
+    var surface : SurfaceID;
 
     var camera : Camera2D;
+
+    var camera2 : Camera2D;
 
     var uniform1 : UniformBlob;
 
@@ -44,13 +52,26 @@ class BatcherDepth extends Flurry
 
     override function onReady()
     {
+        surface  = renderer.createSurface(128, 128);
         pipeline = renderer.createPipeline({ shader: new ShaderID(Shaders.textured) });
         colour   = renderer.createPipeline({ shader: new ShaderID(Shaders.colourise) });
         format   = renderer.createPipeline({ shader: new ShaderID(Shaders.format) });
         purple   = renderer.createPipeline({ shader: new ShaderID(Shaders.purple) });
+        target   = renderer.createPipeline({ shader: new ShaderID(Shaders.textured), surface: surface });
         camera   = new Camera2D(vec2(0, 0), vec2(display.width, display.height), vec4(0, 0, display.width, display.height));
+        camera2  = new Camera2D(vec2(0, 0), vec2(128, 128), vec4(0, 0, 128, 128));
         uniform1 = new UniformBlobBuilder("colours").addVector4('colour', vec4(1.0, 0.5, 0.5, 1.0)).uniformBlob();
         uniform2 = new UniformBlobBuilder("colours").addVector4('colour', vec4(1.0, 0.5, 1.0, 1.0)).uniformBlob();
+    }
+
+    override function onUpdate(_dt : Float)
+    {
+        if (input.wasKeyPressed(Keycodes.space))
+        {
+            trace('deleting surface');
+
+            renderer.deleteSurface(surface);
+        }
     }
 
     override function onRender(_ctx : GraphicsContext)
@@ -97,6 +118,17 @@ class BatcherDepth extends Flurry
         _ctx.useCamera(camera);
 
         _ctx.drawFrame(cast resources.get(Preload.blue_worker), vec2(512, 128));
+
+        // Draw to surface
+        _ctx.usePipeline(target);
+        _ctx.useCamera(camera2);
+        _ctx.drawFrame(cast resources.get(Preload.blue_worker), vec2(0, 0));
+
+        // Then draw surface to backbuffer
+        _ctx.usePipeline(pipeline);
+        _ctx.useCamera(camera);
+
+        drawSurface(_ctx, surface, 640, 128, 128, 128);
     }
 
     function drawCustomFrame(_ctx : GraphicsContext, _frame : PageFrameResource, _x : Float, _y : Float)
@@ -119,6 +151,41 @@ class BatcherDepth extends Flurry
         // v4
         _ctx.vtxOutput.write(vec3(_x + _frame.width, _y + _frame.height, 0));
         _ctx.vtxOutput.write(vec2(_frame.u2, _frame.v2));
+    
+        // Indices
+        _ctx.idxOutput.write(0);
+        _ctx.idxOutput.write(1);
+        _ctx.idxOutput.write(2);
+    
+        _ctx.idxOutput.write(0);
+        _ctx.idxOutput.write(2);
+        _ctx.idxOutput.write(3);
+    }
+
+    function drawSurface(_ctx : GraphicsContext, _surface : SurfaceID, _x : Float, _y : Float, _width : Int, _height : Int)
+    {
+        _ctx.useSurface(_surface);
+        _ctx.prepare();
+    
+        // v1
+        _ctx.vtxOutput.write(vec3(_x, _y + _height, 0));
+        _ctx.vtxOutput.write(vec4(1));
+        _ctx.vtxOutput.write(vec2(0, 1));
+    
+        // v2
+        _ctx.vtxOutput.write(vec3(_x, _y, 0));
+        _ctx.vtxOutput.write(vec4(1));
+        _ctx.vtxOutput.write(vec2(0, 0));
+    
+        // v3
+        _ctx.vtxOutput.write(vec3(_x + _width, _y, 0));
+        _ctx.vtxOutput.write(vec4(1));
+        _ctx.vtxOutput.write(vec2(1, 0));
+    
+        // v4
+        _ctx.vtxOutput.write(vec3(_x + _width, _y + _height, 0));
+        _ctx.vtxOutput.write(vec4(1));
+        _ctx.vtxOutput.write(vec2(1, 1));
     
         // Indices
         _ctx.idxOutput.write(0);

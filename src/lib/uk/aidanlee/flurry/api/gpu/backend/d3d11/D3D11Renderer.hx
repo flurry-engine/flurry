@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
+import haxe.exceptions.NotImplementedException;
 import uk.aidanlee.flurry.api.gpu.pipeline.VertexFormat;
 import VectorMath;
 import uk.aidanlee.flurry.api.resources.ResourceID;
@@ -150,36 +151,6 @@ using cpp.NativeArray;
     final rasterState : D3d11RasterizerState;
 
     /**
-     * Depth and stencil state.
-     */
-    final depthStencilState : D3d11DepthStencilState;
-
-    /**
-     * Description of the depth and stencil state.
-     */
-    final depthStencilDescription : D3d11DepthStencilDescription;
-
-    /**
-     * Depth and stencil resource view.
-     */
-    final depthStencilView : D3d11DepthStencilView;
-
-    /**
-     * The texture used for the dxgi swapchain.
-     */
-    final swapchainTexture : D3d11Texture2D;
-
-    /**
-     * Render target view for drawing to the backbuffer.
-     */
-    final backbufferRenderTargetView : D3d11RenderTargetView;
-
-    /**
-     * The texture used for the depth and stencil view.
-     */
-    final depthStencilTexture : D3d11Texture2D;
-
-    /**
      * Map of shader name to the D3D11 resources required to use the shader.
      */
     final shaderResources : Map<ResourceID, D3D11ShaderInformation>;
@@ -195,9 +166,19 @@ using cpp.NativeArray;
     final clearColour : Array<Float>;
 
     /**
+     * Normalised RGBA colour to clear all user surfaces with each frame.
+     */
+    final surfaceClearColour : Array<Float>;
+
+    /**
      * Storage for all pipeline objects.
      */
     final pipelines : Vector<Null<D3D11PipelineState>>;
+
+    /**
+     * Storage for all surface objects.
+     */
+    final surfaces : Vector<Null<D3D11SurfaceInformation>>;
 
     /**
      * Object which caches d3d11 sampler objects.
@@ -268,18 +249,12 @@ using cpp.NativeArray;
 
         // Persistent D3D11 objects and descriptions
         swapchain                  = new DxgiSwapChain1();
-        swapchainTexture           = new D3d11Texture2D();
         device                     = new D3d11Device1();
         context                    = new D3d11DeviceContext1();
-        depthStencilView           = new D3d11DepthStencilView();
-        depthStencilState          = new D3d11DepthStencilState();
-        depthStencilTexture        = new D3d11Texture2D();
         rasterState                = new D3d11RasterizerState();
         vertexBuffer               = new D3d11Buffer();
         indexBuffer                = new D3d11Buffer();
         uniformBuffer              = new D3d11Buffer();
-        backbufferRenderTargetView = new D3d11RenderTargetView();
-        depthStencilDescription    = new D3d11DepthStencilDescription();
 
         // Setup the DXGI factory and get this windows adapter and output.
         final factory = new DxgiFactory2();
@@ -335,17 +310,9 @@ using cpp.NativeArray;
             throw new Exception('IDXGISwapChain');
         }
 
+        // Default presentation params.
         presentParameters = new DxgiPresentParameters();
         presentParameters.dirtyRectsCount = 0;
-
-        if (swapchain.getBuffer(0, NativeID3D11Texture2D.uuid(), swapchainTexture) != Ok)
-        {
-            throw new Exception('Failed to get swapchain buffer');
-        }
-        if (device.createRenderTargetView(swapchainTexture, null, backbufferRenderTargetView) != 0)
-        {
-            throw new Exception('ID3D11RenderTargetView');
-        }
 
         // Setup the rasterizer state.
         final rasterDescription = new D3d11RasterizerDescription();
@@ -401,63 +368,11 @@ using cpp.NativeArray;
             throw new Exception('ID3D11Buffer');
         }
 
-        final depthTextureDesc = new D3d11Texture2DDescription();
-        depthTextureDesc.width              = _windowConfig.width;
-        depthTextureDesc.height             = _windowConfig.height;
-        depthTextureDesc.mipLevels          = 1;
-        depthTextureDesc.arraySize          = 1;
-        depthTextureDesc.format             = D32FloatS8X24UInt;
-        depthTextureDesc.sampleDesc.count   = 1;
-        depthTextureDesc.sampleDesc.quality = 0;
-        depthTextureDesc.usage              = Default;
-        depthTextureDesc.bindFlags          = DepthStencil;
-        depthTextureDesc.cpuAccessFlags     = 0;
-        depthTextureDesc.miscFlags          = 0;
-
-        if (device.createTexture2D(depthTextureDesc, null, depthStencilTexture) != 0)
-        {
-            throw new Exception('ID3D11Texture2D');
-        }
-
-        final depthStencilViewDescription = new D3d11DepthStencilViewDescription();
-        depthStencilViewDescription.format             = D32FloatS8X24UInt;
-        depthStencilViewDescription.viewDimension      = Texture2D;
-        depthStencilViewDescription.texture2D.mipSlice = 0;
-
-        if (device.createDepthStencilView(depthStencilTexture, depthStencilViewDescription, depthStencilView) != 0)
-        {
-            throw new Exception('ID3D11DepthStencilView');
-        }
-
-        // Create the default depth and stencil testing
-        depthStencilDescription.depthEnable    = false;
-        depthStencilDescription.depthWriteMask = Zero;
-        depthStencilDescription.depthFunction  = Always;
-
-        depthStencilDescription.stencilEnable    = false;
-        depthStencilDescription.stencilReadMask  = 0xff;
-        depthStencilDescription.stencilWriteMask = 0xff;
-
-        depthStencilDescription.frontFace.stencilFailOp      = Keep;
-        depthStencilDescription.frontFace.stencilDepthFailOp = Keep;
-        depthStencilDescription.frontFace.stencilPassOp      = Keep;
-        depthStencilDescription.frontFace.stencilFunction    = Always;
-
-        depthStencilDescription.backFace.stencilFailOp      = Keep;
-        depthStencilDescription.backFace.stencilDepthFailOp = Keep;
-        depthStencilDescription.backFace.stencilPassOp      = Keep;
-        depthStencilDescription.backFace.stencilFunction    = Always;
-
-        if (device.createDepthStencilState(depthStencilDescription, depthStencilState) != Ok)
-        {
-            throw new Exception('ID3D11DepthStencilState');
-        }
-
         // Set the initial context state.
         context.rsSetState(rasterState);
-        context.omSetRenderTarget(backbufferRenderTargetView, depthStencilView);
 
         pipelines    = new Vector(1024);
+        surfaces     = new Vector(1024);
         samplers     = new D3D11SamplerCache(device);
         clearColour  = [
             _rendererConfig.clearColour.x,
@@ -465,25 +380,47 @@ using cpp.NativeArray;
             _rendererConfig.clearColour.z,
             _rendererConfig.clearColour.w
         ];
+        surfaceClearColour = [ 1, 1, 1, 0 ];
         graphicsContext = new D3D11GraphicsContext(
             context,
             samplers,
             pipelines,
+            surfaces,
             shaderResources,
             textureResources,
             vertexBuffer,
             indexBuffer,
             uniformBuffer);
+
+        createBackbufferSurface(_windowConfig.width, _windowConfig.height);
     }
 
     public function getGraphicsContext()
     {
-        // Clear the backbuffer before drawing.
-        context.clearRenderTargetView(backbufferRenderTargetView, clearColour);
-        context.clearDepthStencilView(depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
+        // Surface 0 is the backbuffer and should be cleared with a different colour.
+        for (i in 1...surfaces.length)
+        {
+            switch surfaces[i]
+            {
+                case null:
+                    //
+                case surface:
+                    context.clearRenderTargetView(surface.surfaceRenderView, surfaceClearColour);
+                    context.clearDepthStencilView(surface.depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
+            }
+        }
 
-        // Set the backbuffer as the target, this is required to get the next buffer in the flip present mode.
-        context.omSetRenderTarget(backbufferRenderTargetView, depthStencilView);
+        // We need to set the backbuffer as the target in flip present mode to get the next backbuffer.
+        switch surfaces[SurfaceID.backbuffer]
+        {
+            case null:
+                throw new Exception('Backbuffer surface was null');
+            case backbuffer:
+                context.clearRenderTargetView(backbuffer.surfaceRenderView, clearColour);
+                context.clearDepthStencilView(backbuffer.depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
+
+                context.omSetRenderTarget(backbuffer.surfaceRenderView, backbuffer.depthStencilView);
+        }
 
         return graphicsContext;
     }
@@ -547,6 +484,7 @@ using cpp.NativeArray;
 
         pipelines[id] = new D3D11PipelineState(
             _state.shader,
+            _state.surface,
             dsState,
             blendState,
             getPrimitive(_state.primitive));
@@ -559,7 +497,95 @@ using cpp.NativeArray;
         pipelines[_id] = null;
     }
 
-	public function createShader(_resource : Resource)
+    public function createSurface(_width : Int, _height : Int)
+    {
+        final id = getNextSurfaceID();
+
+        // Create an empty texture and the structures needed to render to it.
+        final imgDesc = new D3d11Texture2DDescription();
+        imgDesc.width              = _width;
+        imgDesc.height             = _height;
+        imgDesc.mipLevels          = 1;
+        imgDesc.arraySize          = 1;
+        imgDesc.format             = R8G8B8A8UNorm;
+        imgDesc.sampleDesc.count   = 1;
+        imgDesc.sampleDesc.quality = 0;
+        imgDesc.usage              = Default;
+        imgDesc.bindFlags          = ShaderResource | RenderTarget;
+        imgDesc.cpuAccessFlags     = 0;
+        imgDesc.miscFlags          = 0;
+
+        final texture = new D3d11Texture2D();   
+        if (device.createTexture2D(imgDesc, null, texture) != Ok)
+        {
+            throw new Exception('ID3D11Texture2D');
+        }
+
+        final shaderView = new D3d11ShaderResourceView();
+        if (device.createShaderResourceView(texture, null, shaderView) != Ok)
+        {
+            throw new Exception('ID3D11ShaderResourceView');
+        }
+
+        final targetView = new D3d11RenderTargetView();
+        if (device.createRenderTargetView(texture, null, targetView) != Ok)
+        {
+            throw new Exception('ID3D11RenderTargetView');
+        }
+
+        // Now create a depth texture for the target
+        final depthTextureDesc = new D3d11Texture2DDescription();
+        depthTextureDesc.width              = _width;
+        depthTextureDesc.height             = _height;
+        depthTextureDesc.mipLevels          = 1;
+        depthTextureDesc.arraySize          = 1;
+        depthTextureDesc.format             = D32FloatS8X24UInt;
+        depthTextureDesc.sampleDesc.count   = 1;
+        depthTextureDesc.sampleDesc.quality = 0;
+        depthTextureDesc.usage              = Default;
+        depthTextureDesc.bindFlags          = DepthStencil;
+        depthTextureDesc.cpuAccessFlags     = 0;
+        depthTextureDesc.miscFlags          = 0;
+
+        final depthStencilTexture = new D3d11Texture2D();
+        if (device.createTexture2D(depthTextureDesc, null, depthStencilTexture) != 0)
+        {
+            throw new Exception('ID3D11Texture2D');
+        }
+
+        final depthStencilViewDescription = new D3d11DepthStencilViewDescription();
+        depthStencilViewDescription.format             = D32FloatS8X24UInt;
+        depthStencilViewDescription.viewDimension      = Texture2D;
+        depthStencilViewDescription.texture2D.mipSlice = 0;
+
+        final depthStencilView = new D3d11DepthStencilView();
+        if (device.createDepthStencilView(depthStencilTexture, depthStencilViewDescription, depthStencilView) != 0)
+        {
+            throw new Exception('ID3D11DepthStencilView');
+        }
+
+        surfaces[id] = new D3D11SurfaceInformation(texture, shaderView, targetView, depthStencilTexture, depthStencilView);
+
+        return new SurfaceID(id);
+    }
+
+    public function deleteSurface(_id : SurfaceID)
+    {
+        switch surfaces[_id]
+        {
+            case null:
+                // Do nothing, surface does not exist.
+            case surface:
+                surface.surfaceView.release();
+                surface.surfaceTexture.release();
+                surface.surfaceRenderView.release();
+                surface.depthStencilView.release();
+                surface.depthStencilTexture.release();
+                surfaces[_id] = null;
+        }
+    }
+
+	function createShader(_resource : Resource)
     {
         if (shaderResources.exists(_resource.id))
         {
@@ -629,57 +655,105 @@ using cpp.NativeArray;
         shaderResources.set(_resource.id, new D3D11ShaderInformation(shader.vertBlocks, shader.fragBlocks, shader.textureCount, vertexShader, pixelShader, inputLayout, offset));
     }
 
-	public function deleteShader(_resource : Resource)
+	function deleteShader(_resource : Resource)
     {
         shaderResources.remove(_resource.id);
     }
 
-    public function createTexture(_resource : PageResource)
+    function createTexture(_resource : PageResource)
     {
-        // Sub resource struct to hold the raw image bytes.
-        final imgData = new D3d11SubResourceData();
-        imgData.systemMemory           = _resource.pixels.getData();
-        imgData.systemMemoryPitch      = 4 * _resource.width;
-        imgData.systemMemorySlicePatch = 0;
+        if (textureResources.exists(_resource.id))
+        {
+            throw new NotImplementedException('Texture updating not implemented');
+        }
+        else
+        {
+            // Sub resource struct to hold the raw image bytes.
+            final imgData = new D3d11SubResourceData();
+            imgData.systemMemory           = _resource.pixels.getData();
+            imgData.systemMemoryPitch      = 4 * _resource.width;
+            imgData.systemMemorySlicePatch = 0;
+    
+            // Texture description struct. Describes how our raw image data is formated and usage of the texture.
+            final imgDesc = new D3d11Texture2DDescription();
+            imgDesc.width              = _resource.width;
+            imgDesc.height             = _resource.height;
+            imgDesc.mipLevels          = 1;
+            imgDesc.arraySize          = 1;
+            imgDesc.format             = R8G8B8A8UNorm;
+            imgDesc.sampleDesc.count   = 1;
+            imgDesc.sampleDesc.quality = 0;
+            imgDesc.usage              = Default;
+            imgDesc.bindFlags          = ShaderResource;
+            imgDesc.cpuAccessFlags     = 0;
+            imgDesc.miscFlags          = 0;
+    
+            final texture = new D3d11Texture2D();   
+            if (device.createTexture2D(imgDesc, imgData, texture) != Ok)
+            {
+                throw new Exception('ID3D11Texture2D');
+            }
 
-        // Texture description struct. Describes how our raw image data is formated and usage of the texture.
-        final imgDesc = new D3d11Texture2DDescription();
-        imgDesc.width              = _resource.width;
-        imgDesc.height             = _resource.height;
-        imgDesc.mipLevels          = 1;
-        imgDesc.arraySize          = 1;
-        imgDesc.format             = R8G8B8A8UNorm;
-        imgDesc.sampleDesc.count   = 1;
-        imgDesc.sampleDesc.quality = 0;
-        imgDesc.usage              = Default;
-        imgDesc.bindFlags          = ShaderResource | RenderTarget;
-        imgDesc.cpuAccessFlags     = 0;
-        imgDesc.miscFlags          = 0;
+            final shaderView = new D3d11ShaderResourceView();
+            if (device.createShaderResourceView(texture, null, shaderView) != Ok)
+            {
+                throw new Exception('ID3D11ShaderResourceView');
+            }
+    
+            textureResources.set(_resource.id, new D3D11TextureInformation(texture, shaderView));
+        }
+    }
 
-        final texture = new D3d11Texture2D();
-        final resView = new D3d11ShaderResourceView();
-        final rtvView = new D3d11RenderTargetView();
+    function deleteTexture(_resource : PageResource)
+    {
+        textureResources.remove(_resource.id);
+    }
 
-        if (device.createTexture2D(imgDesc, imgData, texture) != Ok)
+    function createBackbufferSurface(_backbufferWidth : Int, _backbufferHeight : Int)
+    {
+        final swapchainTexture = new D3d11Texture2D();
+        if (swapchain.getBuffer(0, NativeID3D11Texture2D.uuid(), swapchainTexture) != Ok)
+        {
+            throw new Exception('Failed to get swapchain buffer');
+        }
+
+        final backbufferRenderTargetView = new D3d11RenderTargetView();
+        if (device.createRenderTargetView(swapchainTexture, null, backbufferRenderTargetView) != Ok)
+        {
+            throw new Exception('ID3D11RenderTargetView');
+        }
+
+        final depthTextureDesc = new D3d11Texture2DDescription();
+        depthTextureDesc.width              = _backbufferWidth;
+        depthTextureDesc.height             = _backbufferHeight;
+        depthTextureDesc.mipLevels          = 1;
+        depthTextureDesc.arraySize          = 1;
+        depthTextureDesc.format             = D32FloatS8X24UInt;
+        depthTextureDesc.sampleDesc.count   = 1;
+        depthTextureDesc.sampleDesc.quality = 0;
+        depthTextureDesc.usage              = Default;
+        depthTextureDesc.bindFlags          = DepthStencil;
+        depthTextureDesc.cpuAccessFlags     = 0;
+        depthTextureDesc.miscFlags          = 0;
+
+        final depthStencilTexture = new D3d11Texture2D();
+        if (device.createTexture2D(depthTextureDesc, null, depthStencilTexture) != 0)
         {
             throw new Exception('ID3D11Texture2D');
         }
-        if (device.createShaderResourceView(texture, null, resView) != Ok)
+
+        final depthStencilViewDescription = new D3d11DepthStencilViewDescription();
+        depthStencilViewDescription.format             = D32FloatS8X24UInt;
+        depthStencilViewDescription.viewDimension      = Texture2D;
+        depthStencilViewDescription.texture2D.mipSlice = 0;
+
+        final depthStencilView = new D3d11DepthStencilView();
+        if (device.createDepthStencilView(depthStencilTexture, depthStencilViewDescription, depthStencilView) != 0)
         {
-            throw new Exception('ID3D11ShaderResourceView');
-        }
-        if (device.createRenderTargetView(texture, null, rtvView) != Ok)
-        {
-            throw new Exception('D3D11RenderTargetView');
+            throw new Exception('ID3D11DepthStencilView');
         }
 
-        textureResources.set(_resource.id, new D3D11TextureInformation(texture, resView, rtvView, imgDesc));
-    }
-
-    public function deleteTexture(_resource : PageResource)
-    {
-        textureResources[_resource.id].destroy();
-        textureResources.remove(_resource.id);
+        surfaces[SurfaceID.backbuffer] = new D3D11SurfaceInformation(swapchainTexture, null, backbufferRenderTargetView, depthStencilTexture, depthStencilView);
     }
 
     function getNextPipelineID()
@@ -693,6 +767,19 @@ using cpp.NativeArray;
         }
 
         throw new Exception('Maximum number of pipelines met');
+    }
+
+    function getNextSurfaceID()
+    {
+        for (i in 0...surfaces.length)
+        {
+            if (surfaces[i] == null)
+            {
+                return i;
+            }
+        }
+
+        throw new Exception('Maximum number of surfaces met');
     }
 
     function onSizeChanged(_data : DisplayEventData)
@@ -716,52 +803,19 @@ using cpp.NativeArray;
     {
         context.omSetRenderTargets(null, null);
 
-        backbufferRenderTargetView.release();
-        swapchainTexture.release();
+        final backbuffer = surfaces[SurfaceID.backbuffer];
 
-        // Resise the swapchain texture
+        backbuffer.surfaceView.release();
+        backbuffer.surfaceTexture.release();
+        backbuffer.surfaceRenderView.release();
+        backbuffer.depthStencilView.release();
+        backbuffer.depthStencilTexture.release();
+
         if (swapchain.resizeBuffers(0, _width, _height, Unknown, 0) != Ok)
         {
             throw new Exception('Failed to resize swapchain');
         }
-        if (swapchain.getBuffer(0, NativeID3D11Texture2D.uuid(), swapchainTexture) != Ok)
-        {
-            throw new Exception('Failed to get swapchain buffer');
-        }
-        if (device.createRenderTargetView(swapchainTexture, null, backbufferRenderTargetView) != Ok)
-        {
-            throw new Exception('ID3D11RenderTargetView');
-        }
 
-        // Rebuild the depth and stencil buffer
-        depthStencilView.release();
-
-        final depthTextureDesc = new D3d11Texture2DDescription();
-        depthTextureDesc.width              = _width;
-        depthTextureDesc.height             = _height;
-        depthTextureDesc.mipLevels          = 1;
-        depthTextureDesc.arraySize          = 1;
-        depthTextureDesc.format             = D32FloatS8X24UInt;
-        depthTextureDesc.sampleDesc.count   = 1;
-        depthTextureDesc.sampleDesc.quality = 0;
-        depthTextureDesc.usage              = Default;
-        depthTextureDesc.bindFlags          = DepthStencil;
-        depthTextureDesc.cpuAccessFlags     = 0;
-        depthTextureDesc.miscFlags          = 0;
-
-        if (device.createTexture2D(depthTextureDesc, null, depthStencilTexture) != Ok)
-        {
-            throw new Exception('ID3D11Texture2D');
-        }
-
-        final depthStencilViewDescription = new D3d11DepthStencilViewDescription();
-        depthStencilViewDescription.format             = D32FloatS8X24UInt;
-        depthStencilViewDescription.viewDimension      = Texture2D;
-        depthStencilViewDescription.texture2D.mipSlice = 0;
-
-        if (device.createDepthStencilView(depthStencilTexture, depthStencilViewDescription, depthStencilView) != Ok)
-        {
-            throw new Exception('ID3D11DepthStencilView');
-        }
+        createBackbufferSurface(_width, _height);
     }
 }

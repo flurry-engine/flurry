@@ -20,6 +20,8 @@ abstract class GraphicsContext
 
     public abstract function usePage(_id : ResourceID) : Void;
 
+    public abstract function useSurface(_id : SurfaceID) : Void;
+
     public abstract function useUniformBlob(_blob : UniformBlob) : Void;
 
     public abstract function prepare() : Void;

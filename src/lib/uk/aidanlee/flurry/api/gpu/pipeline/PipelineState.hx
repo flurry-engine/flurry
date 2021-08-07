@@ -4,7 +4,7 @@ package uk.aidanlee.flurry.api.gpu.pipeline;
 {
     final shader : ShaderID;
 
-    final target = TargetID.backbuffer;
+    final surface = SurfaceID.backbuffer;
 
     final depth = DepthState.none;
 
