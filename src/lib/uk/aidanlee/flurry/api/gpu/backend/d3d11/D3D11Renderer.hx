@@ -280,7 +280,11 @@ using cpp.NativeArray;
         description.swapEffect  = FlipDiscard;
         description.alphaMode   = Unspecified;
 
-        final deviceCreationFlags = D3d11CreateDeviceFlags.Debug | D3d11CreateDeviceFlags.SingleThreaded;
+        final deviceCreationFlags =
+            if (_rendererConfig.debugDevice)
+                D3d11CreateDeviceFlags.Debug | D3d11CreateDeviceFlags.SingleThreaded
+            else
+                D3d11CreateDeviceFlags.SingleThreaded;
 
         // Create our actual device and swapchain
         if (D3d11.createDevice(adapter, Unknown, null, deviceCreationFlags, [ Level11_1 ], D3d11.SdkVersion, device, null, context) != Ok)
