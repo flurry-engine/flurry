@@ -42,11 +42,11 @@ class D3D11GraphicsContext extends GraphicsContext
 
     final currentUniformBlobs : Vector<Null<UniformBlob>>;
 
-    var currentPipeline : PipelineID;
-
     var currentShader : ResourceID;
 
     var currentPage : ResourceID;
+
+    var currentSurface : SurfaceID;
 
     var mapped : Bool;
 
@@ -67,19 +67,14 @@ class D3D11GraphicsContext extends GraphicsContext
         unfCameraBlob       = new UniformBlob('flurry_matrices', new ArrayBufferView(192), []);
         nativeView          = new D3d11Viewport();
         currentUniformBlobs = new Vector(15);
-        currentPipeline     = PipelineID.invalid;
         currentShader       = ResourceID.invalid;
         currentPage         = ResourceID.invalid;
+        currentSurface      = SurfaceID.backbuffer;
         mapped              = false;
     }
 
 	public function usePipeline(_id : PipelineID)
     {
-        if (currentPipeline == _id)
-        {
-            return;
-        }
-
         switch pipelines.get(_id)
         {
             case null:
@@ -114,8 +109,9 @@ class D3D11GraphicsContext extends GraphicsContext
                                 context.omSetBlendState(pipeline.blendState, [ 1, 1, 1, 1 ], 0xffffffff);
                                 context.iaSetPrimitiveTopology(pipeline.primitive);
 
-                                currentPipeline = _id;
-                                currentShader   = pipeline.shader;  
+                                currentShader  = pipeline.shader;
+                                currentPage    = ResourceID.invalid;
+                                currentSurface = SurfaceID.backbuffer;
                         }
                 }
         }
@@ -185,7 +181,8 @@ class D3D11GraphicsContext extends GraphicsContext
                 flush();
                 map();
 
-                currentPage = _id;
+                currentPage    = _id;
+                currentSurface = SurfaceID.backbuffer;
 
                 final sampler = samplers.get(SamplerState.nearest);
 
@@ -196,6 +193,11 @@ class D3D11GraphicsContext extends GraphicsContext
 
     public function useSurface(_id : SurfaceID)
     {
+        if (currentSurface == _id)
+        {
+            return;
+        }
+        
         switch surfaces.get(_id)
         {
             case null:
@@ -204,7 +206,8 @@ class D3D11GraphicsContext extends GraphicsContext
                 flush();
                 map();
 
-                currentPage = ResourceID.invalid;
+                currentPage    = ResourceID.invalid;
+                currentSurface = _id;
 
                 final sampler = samplers.get(SamplerState.nearest);
 
@@ -277,8 +280,9 @@ class D3D11GraphicsContext extends GraphicsContext
 
         // Reset state trackers
 
-        currentPipeline = PipelineID.invalid;
-        currentPage     = ResourceID.invalid;
+        currentPage    = ResourceID.invalid;
+        currentShader  = ResourceID.invalid;
+        currentSurface = SurfaceID.backbuffer;
 
         // Clear all uniform blobs.
 
