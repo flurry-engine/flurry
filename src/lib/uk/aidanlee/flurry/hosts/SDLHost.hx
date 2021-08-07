@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.hosts;
 
+import hx.concurrent.executor.Executor;
 import uk.aidanlee.flurry.macros.ApiSelector;
 import haxe.Timer;
 import haxe.EnumFlags;
@@ -84,9 +85,10 @@ class SDLHost
         gamepadSlots               = [];
         gamepadInstanceSlotMapping = [];
 
+        final pool          = Executor.create(8);
         final events        = new FlurryEvents();
-        final mainScheduler = new MainThreadScheduler();
-        final taskScheduler = new ThreadPoolScheduler();
+        final mainScheduler = new MainThreadScheduler(pool);
+        final taskScheduler = new ThreadPoolScheduler(pool);
 
         flurry = Host.entry(events, mainScheduler, taskScheduler);
 

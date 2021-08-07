@@ -1,12 +1,11 @@
 package uk.aidanlee.flurry.api.schedulers;
 
-import sys.thread.Mutex;
+import sys.thread.Deque;
 import haxe.Timer;
-import haxe.ds.ArraySort;
 import hxrx.ISubscription;
 import hxrx.schedulers.IScheduler;
-import hxrx.schedulers.ScheduledItem;
 import hxrx.subscriptions.Single;
+import hx.concurrent.executor.Executor;
 
 class MainThreadScheduler implements IScheduler
 {
@@ -14,17 +13,14 @@ class MainThreadScheduler implements IScheduler
      * All of the timed actions queued for execution on the main thread.
      * After a call to `dispatch` they will be sorted by `execTime` in descending order.
      */
-    final tasks : Array<ScheduledItem>;
+    final tasks : Deque<(_scheduler : IScheduler) -> ISubscription>;
 
-    final queueLock : Mutex;
+    final pool : Executor;
 
-    var resort : Bool;
-
-    public function new()
+    public function new(_pool)
     {
-        tasks     = [];
-        queueLock = new Mutex();
-        resort    = false;
+        tasks = new Deque();
+        pool  = _pool;
     }
 
     public function time()
@@ -34,91 +30,38 @@ class MainThreadScheduler implements IScheduler
 
     public function scheduleNow(_action : (_scheduler : IScheduler) -> ISubscription) : ISubscription
     {
-        return scheduleIn(0, _action);
+        final future = pool.submit(enqueue.bind(_action));
+
+        return new Single(future.cancel);
     }
 
     public function scheduleAt(_dueTime : Date, _action : (_scheduler : IScheduler) -> ISubscription) : ISubscription
     {
-        final diff = _dueTime.getTime() - Date.now().getTime();
+        final diff   = Std.int(_dueTime.getTime() - Date.now().getTime());
+        final future = pool.submit(enqueue.bind(_action), ONCE(diff));
 
-        return scheduleIn(diff / 1000, _action);
+        return new Single(future.cancel);
     }
 
     public function scheduleIn(_dueTime : Float, _action : (_scheduler : IScheduler) -> ISubscription) : ISubscription
     {
-        final task = new ScheduledItem(this, _action, _dueTime);
+        final time   = Std.int(_dueTime * 1000);
+        final future = pool.submit(enqueue.bind(_action), ONCE(time));
 
-        queueLock.acquire();       
-        tasks.push(task);
-
-        // Since we sort in descending order any actions with a due time of 0 will naturally appear at the end of the list.
-        // As we're pushing to the end of the list we don't need to force a resort since it will already be in the correct order.
-        if (_dueTime != 0)
-        {
-            resort = true;
-        }
-        queueLock.release();
-
-        return new Single(() -> {
-            queueLock.acquire();
-            tasks.remove(task);
-            queueLock.release();
-        });
+        return new Single(future.cancel);
     }
 
-    /**
-     * Loops over all tasks and executes any if the exec time is due.
-     * If a new task has been scheduled then we will re-sort the list before searching.
-     * This allows us to exit the loop as soon as the first tasks which isn't due appears.
-     */
     public function dispatch()
     {
-        queueLock.acquire();
-
-        if (tasks.length > 0)
+        var task = null;
+        while (null != (task = tasks.pop(false)))
         {
-            if (resort)
-            {
-                // Sort in descending order, actions closest to execution time will be at the bottom of the array.
-                ArraySort.sort(tasks, (a1, a2) -> Std.int(a2.dueTime - a1.dueTime));
-
-                resort = false;
-            }
-            
-            final currentTime = time();
-            
-            var dispatchable = 0;
-            var length       = tasks.length;
-
-            // Iterate starting at the end of the list to find the first item ready for execution.
-            while (length > 0)
-            {
-                final action = tasks[length - 1];
-
-                if (action.dueTime <= currentTime)
-                {
-                    dispatchable++;
-                    length--;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            // If we have actions which can be dispatched loop forward from the first found action index to the end.
-            // We can then safely resize by the amount dispatched since we have a sorted array and initially searched back to front.
-            if (dispatchable > 0)
-            {
-                for (i in length...tasks.length)
-                {
-                    tasks[i].invoke();
-                }
-
-                tasks.resize(tasks.length - dispatchable);
-            }
+            @:nullSafety(Off) task(this);
         }
+    }
 
-        queueLock.release();
+    function enqueue(_func : (_scheduler : IScheduler) -> ISubscription)
+    {
+        tasks.add(_func);
     }
 }

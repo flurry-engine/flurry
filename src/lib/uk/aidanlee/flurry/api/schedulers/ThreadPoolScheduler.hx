@@ -1,10 +1,8 @@
 package uk.aidanlee.flurry.api.schedulers;
 
-import sys.thread.Mutex;
 import haxe.Timer;
 import hxrx.ISubscription;
 import hxrx.schedulers.IScheduler;
-import hxrx.schedulers.ScheduledItem;
 import hxrx.subscriptions.Single;
 import hx.concurrent.executor.Executor;
 
@@ -14,22 +12,9 @@ class ThreadPoolScheduler implements IScheduler
 {
     final pool : Executor;
 
-    /**
-     * All of the timed actions queued for execution on the main thread.
-     * After a call to `dispatch` they will be sorted by `execTime` in descending order.
-     */
-    final tasks : Array<ScheduledItem>;
-
-    final queueLock : Mutex;
-
-    var resort : Bool;
-
-    public function new()
+    public function new(_pool)
     {
-        pool      = Executor.create(8);
-        tasks     = [];
-        queueLock = new Mutex();
-        resort    = false;
+        pool = _pool;
     }
 
     public function time()
@@ -41,7 +26,7 @@ class ThreadPoolScheduler implements IScheduler
     {
         final future = pool.submit(_action.bind(this));
 
-        return new hxrx.subscriptions.Single(future.cancel);
+        return new Single(future.cancel);
     }
 
     public function scheduleAt(_dueTime : Date, _action : (_scheduler : IScheduler) -> ISubscription) : ISubscription
@@ -49,7 +34,7 @@ class ThreadPoolScheduler implements IScheduler
         final diff   = Std.int(_dueTime.getTime() - Date.now().getTime());
         final future = pool.submit(_action.bind(this), ONCE(diff));
 
-        return new hxrx.subscriptions.Single(future.cancel);
+        return new Single(future.cancel);
     }
 
     public function scheduleIn(_dueTime : Float, _action : (_scheduler : IScheduler) -> ISubscription) : ISubscription
@@ -57,16 +42,6 @@ class ThreadPoolScheduler implements IScheduler
         final time   = Std.int(_dueTime * 1000);
         final future = pool.submit(_action.bind(this), ONCE(time));
 
-        return new hxrx.subscriptions.Single(future.cancel);
-    }
-
-    /**
-     * Loops over all tasks and executes any if the exec time is due.
-     * If a new task has been scheduled then we will re-sort the list before searching.
-     * This allows us to exit the loop as soon as the first tasks which isn't due appears.
-     */
-    public function dispatch()
-    {
-        //
+        return new Single(future.cancel);
     }
 }

@@ -105,7 +105,6 @@ class Flurry
     public final function tick(_dt : Float)
     {
         (cast mainThreadScheduler : MainThreadScheduler).dispatch();
-        (cast taskThreadScheduler : ThreadPoolScheduler).dispatch();
 
         onTick(_dt);
     }
