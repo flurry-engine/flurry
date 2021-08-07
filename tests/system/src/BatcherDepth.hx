@@ -1,11 +1,10 @@
-import uk.aidanlee.flurry.api.input.Keycodes;
-import uk.aidanlee.flurry.api.gpu.SurfaceID;
-import haxe.ds.Vector;
 import VectorMath;
+import haxe.ds.Vector;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.gpu.Colour;
 import uk.aidanlee.flurry.api.gpu.ShaderID;
+import uk.aidanlee.flurry.api.gpu.SurfaceID;
 import uk.aidanlee.flurry.api.gpu.GraphicsContext;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
@@ -16,6 +15,8 @@ import uk.aidanlee.flurry.api.resources.ResourceID;
 import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 
 using uk.aidanlee.flurry.api.gpu.drawing.Frames;
+using uk.aidanlee.flurry.api.gpu.drawing.Surfaces;
+using hxrx.schedulers.IScheduler;
 
 class BatcherDepth extends Flurry
 {
@@ -66,12 +67,7 @@ class BatcherDepth extends Flurry
 
     override function onUpdate(_dt : Float)
     {
-        if (input.wasKeyPressed(Keycodes.space))
-        {
-            trace('deleting surface');
-
-            renderer.deleteSurface(surface);
-        }
+        //
     }
 
     override function onRender(_ctx : GraphicsContext)
@@ -128,7 +124,7 @@ class BatcherDepth extends Flurry
         _ctx.usePipeline(pipeline);
         _ctx.useCamera(camera);
 
-        drawSurface(_ctx, surface, 640, 128, 128, 128);
+        _ctx.drawSurface(surface, vec2(640, 128), vec2(128, 128));
     }
 
     function drawCustomFrame(_ctx : GraphicsContext, _frame : PageFrameResource, _x : Float, _y : Float)
@@ -151,41 +147,6 @@ class BatcherDepth extends Flurry
         // v4
         _ctx.vtxOutput.write(vec3(_x + _frame.width, _y + _frame.height, 0));
         _ctx.vtxOutput.write(vec2(_frame.u2, _frame.v2));
-    
-        // Indices
-        _ctx.idxOutput.write(0);
-        _ctx.idxOutput.write(1);
-        _ctx.idxOutput.write(2);
-    
-        _ctx.idxOutput.write(0);
-        _ctx.idxOutput.write(2);
-        _ctx.idxOutput.write(3);
-    }
-
-    function drawSurface(_ctx : GraphicsContext, _surface : SurfaceID, _x : Float, _y : Float, _width : Int, _height : Int)
-    {
-        _ctx.useSurface(_surface);
-        _ctx.prepare();
-    
-        // v1
-        _ctx.vtxOutput.write(vec3(_x, _y + _height, 0));
-        _ctx.vtxOutput.write(vec4(1));
-        _ctx.vtxOutput.write(vec2(0, 1));
-    
-        // v2
-        _ctx.vtxOutput.write(vec3(_x, _y, 0));
-        _ctx.vtxOutput.write(vec4(1));
-        _ctx.vtxOutput.write(vec2(0, 0));
-    
-        // v3
-        _ctx.vtxOutput.write(vec3(_x + _width, _y, 0));
-        _ctx.vtxOutput.write(vec4(1));
-        _ctx.vtxOutput.write(vec2(1, 0));
-    
-        // v4
-        _ctx.vtxOutput.write(vec3(_x + _width, _y + _height, 0));
-        _ctx.vtxOutput.write(vec4(1));
-        _ctx.vtxOutput.write(vec2(1, 1));
     
         // Indices
         _ctx.idxOutput.write(0);
