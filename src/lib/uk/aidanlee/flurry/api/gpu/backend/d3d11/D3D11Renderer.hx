@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
+import uk.aidanlee.flurry.api.resources.builtin.ShaderResource;
 import haxe.exceptions.NotImplementedException;
 import uk.aidanlee.flurry.api.gpu.pipeline.VertexFormat;
 import VectorMath;
@@ -209,16 +210,6 @@ using cpp.NativeArray;
             _windowConfig.width,
             _windowConfig.height,
             SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
-
-        resourceEvents
-            .created
-            .filter(r -> r is D3d11Shader)
-            .subscribeFunction(createShader);
-
-        resourceEvents
-            .removed
-            .filter(r -> r is D3d11Shader)
-            .subscribeFunction(deleteShader);
 
         displayEvents
             .changeRequested
@@ -594,80 +585,87 @@ using cpp.NativeArray;
                 surfaces[_id] = null;
         }
     }
-
-	function createShader(_resource : Resource)
+    
+	function createShader(_resource : ShaderResource)
     {
+        final shader = switch Std.downcast(_resource, D3d11Shader)
+        {
+            case null: throw new Exception('Shader resource is not D3d11Shader');
+            case v: v;
+        }
+
         if (shaderResources.exists(_resource.id))
         {
-            return;
+            throw new NotImplementedException('shader patching not yet implemented');
         }
-
-        final shader         = Std.downcast(_resource, D3d11Shader);
-        final vertexBytecode = new D3dBlob();
-        final pixelBytecode  = new D3dBlob();
-
-        if (D3dCompiler.createBlob(shader.vertCode.length, vertexBytecode) != 0)
+        else
         {
-            throw new Exception('ID3DBlob');
+            final vertexBytecode = new D3dBlob();
+            final pixelBytecode  = new D3dBlob();
+    
+            if (D3dCompiler.createBlob(shader.vertCode.length, vertexBytecode) != 0)
+            {
+                throw new Exception('ID3DBlob');
+            }
+            if (D3dCompiler.createBlob(shader.fragCode.length, pixelBytecode) != 0)
+            {
+                throw new Exception('ID3DBlob');
+            }
+    
+            memcpy(vertexBytecode.getBufferPointer(), shader.vertCode.getData().address(0), shader.vertCode.length);
+            memcpy(pixelBytecode.getBufferPointer(), shader.fragCode.getData().address(0), shader.fragCode.length);
+    
+            // Create the vertex shader
+            final vertexShader = new D3d11VertexShader();
+            if (device.createVertexShader(vertexBytecode, null, vertexShader) != Ok)
+            {
+                throw new Exception('ID3D11VertexShader');
+            }
+    
+            // Create the fragment shader
+            final pixelShader = new D3d11PixelShader();
+            if (device.createPixelShader(pixelBytecode, null, pixelShader) != Ok)
+            {
+                throw new Exception('ID3D11PixelShader');
+            }
+    
+            // Create a new input format one does not exist for the shaders input.
+            // TODO : Reuse input layouts instead of creating a new one for each shader.
+            var offset = 0;
+    
+            final layout = [];
+    
+            for (i in 0...shader.format.count)
+            {
+                final element = shader.format.get(i);
+                final native  = new D3d11InputElementDescription();
+                native.semanticName         = "TEXCOORD";
+                native.semanticIndex        = element.location;
+                native.format               = getInputFormat(element.type);
+                native.inputSlot            = 0;
+                native.alignedByteOffset    = offset;
+                native.inputSlotClass       = PerVertexData;
+                native.instanceDataStepRate = 0;
+    
+                offset += getInputFormatSize(element.type);
+    
+                layout.push(native);
+            }
+    
+            final inputLayout = new D3d11InputLayout();
+            if (device.createInputLayout(layout, vertexBytecode, inputLayout) != Ok)
+            {
+                throw new Exception('ID3D11InputLayout');
+            }
+    
+            // Create our shader and a class to store its resources.
+            shaderResources.set(_resource.id, new D3D11ShaderInformation(shader.vertBlocks, shader.fragBlocks, shader.textureCount, vertexShader, pixelShader, inputLayout, offset));
         }
-        if (D3dCompiler.createBlob(shader.fragCode.length, pixelBytecode) != 0)
-        {
-            throw new Exception('ID3DBlob');
-        }
-
-        memcpy(vertexBytecode.getBufferPointer(), shader.vertCode.getData().address(0), shader.vertCode.length);
-        memcpy(pixelBytecode.getBufferPointer(), shader.fragCode.getData().address(0), shader.fragCode.length);
-
-        // Create the vertex shader
-        final vertexShader = new D3d11VertexShader();
-        if (device.createVertexShader(vertexBytecode, null, vertexShader) != Ok)
-        {
-            throw new Exception('ID3D11VertexShader');
-        }
-
-        // Create the fragment shader
-        final pixelShader = new D3d11PixelShader();
-        if (device.createPixelShader(pixelBytecode, null, pixelShader) != Ok)
-        {
-            throw new Exception('ID3D11PixelShader');
-        }
-
-        // Create a new input format one does not exist for the shaders input.
-        // TODO : Reuse input layouts instead of creating a new one for each shader.
-        var offset = 0;
-
-        final layout = [];
-
-        for (i in 0...shader.format.count)
-        {
-            final element = shader.format.get(i);
-            final native  = new D3d11InputElementDescription();
-            native.semanticName         = "TEXCOORD";
-            native.semanticIndex        = element.location;
-            native.format               = getInputFormat(element.type);
-            native.inputSlot            = 0;
-            native.alignedByteOffset    = offset;
-            native.inputSlotClass       = PerVertexData;
-            native.instanceDataStepRate = 0;
-
-            offset += getInputFormatSize(element.type);
-
-            layout.push(native);
-        }
-
-        final inputLayout = new D3d11InputLayout();
-        if (device.createInputLayout(layout, vertexBytecode, inputLayout) != Ok)
-        {
-            throw new Exception('ID3D11InputLayout');
-        }
-
-        // Create our shader and a class to store its resources.
-        shaderResources.set(_resource.id, new D3D11ShaderInformation(shader.vertBlocks, shader.fragBlocks, shader.textureCount, vertexShader, pixelShader, inputLayout, offset));
     }
 
-	function deleteShader(_resource : Resource)
+	function deleteShader(_id : ResourceID)
     {
-        switch shaderResources.get(_resource.id)
+        switch shaderResources.get(_id)
         {
             case null:
                 // Shader does not exist.
@@ -676,7 +674,7 @@ using cpp.NativeArray;
                 shader.pixelShader.release();
                 shader.vertexShader.release();
 
-                shaderResources.remove(_resource.id);
+                shaderResources.remove(_id);
         }
     }
 
@@ -724,9 +722,9 @@ using cpp.NativeArray;
         }
     }
 
-    function deleteTexture(_resource : PageResource)
+    function deleteTexture(_id : ResourceID)
     {
-        switch textureResources.get(_resource.id)
+        switch textureResources.get(_id)
         {
             case null:
                 // Page does not exist.
@@ -734,7 +732,7 @@ using cpp.NativeArray;
                 texture.shaderResourceView.release();
                 texture.texture.release();
 
-                textureResources.remove(_resource.id);
+                textureResources.remove(_id);
         }
     }
 

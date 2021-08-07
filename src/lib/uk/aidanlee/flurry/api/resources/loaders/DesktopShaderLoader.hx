@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.resources.loaders;
 
+import uk.aidanlee.flurry.api.resources.builtin.ShaderResource;
 import haxe.Exception;
 import haxe.io.Bytes;
 import haxe.io.Input;
@@ -110,7 +111,7 @@ class DesktopShaderLoader extends ResourceReader
     }
 }
 
-class D3d11Shader extends Resource
+class D3d11Shader extends ShaderResource
 {
     public final format : VertexFormat;
 
@@ -137,7 +138,7 @@ class D3d11Shader extends Resource
 	}
 }
 
-class Ogl3Shader extends Resource
+class Ogl3Shader extends ShaderResource
 {
     public final format : VertexFormat;
 

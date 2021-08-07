@@ -1,8 +1,10 @@
 package uk.aidanlee.flurry.api.gpu;
 
 import uk.aidanlee.flurry.api.resources.Resource;
+import uk.aidanlee.flurry.api.resources.ResourceID;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.resources.builtin.PageResource;
+import uk.aidanlee.flurry.api.resources.builtin.ShaderResource;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineState;
 import uk.aidanlee.flurry.macros.ApiSelector;
@@ -22,15 +24,27 @@ abstract class Renderer
 
         resourceEvents
             .created
-            .filter(r -> r is PageResource)
-            .map(r -> Std.downcast(r, PageResource))
+            .filter(isPageResource)
+            .map(toPageResource)
             .subscribeFunction(createTexture);
 
         resourceEvents
             .removed
-            .filter(r -> r is PageResource)
-            .map(r -> Std.downcast(r, PageResource))
-            .subscribeFunction(createTexture);
+            .filter(isPageResource)
+            .map(toResourceID)
+            .subscribeFunction(deleteTexture);
+
+        resourceEvents
+            .created
+            .filter(isShaderResource)
+            .map(toShaderResource)
+            .subscribeFunction(createShader);
+
+        resourceEvents
+            .removed
+            .filter(isShaderResource)
+            .map(toResourceID)
+            .subscribeFunction(deleteShader);
     }
 
     public abstract function getGraphicsContext() : GraphicsContext;
@@ -45,11 +59,36 @@ abstract class Renderer
 
     public abstract function deleteSurface(_id : SurfaceID) : Void;
 
-    abstract function createShader(_resource : Resource) : Void;
+    abstract function createShader(_resource : ShaderResource) : Void;
 
-    abstract function deleteShader(_resource : Resource) : Void;
+    abstract function deleteShader(_id : ResourceID) : Void;
 
     abstract function createTexture(_resource : PageResource) : Void;
 
-    abstract function deleteTexture(_resource : PageResource) : Void;
+    abstract function deleteTexture(_id : ResourceID) : Void;
+
+    function isPageResource(_resource : Resource)
+    {
+        return _resource is PageResource;
+    }
+
+    function isShaderResource(_resource : Resource)
+    {
+        return _resource is ShaderResource;
+    }
+
+    function toPageResource(_resource : Resource)
+    {
+        return Std.downcast(_resource, PageResource);
+    }
+
+    function toShaderResource(_resource : Resource)
+    {
+        return Std.downcast(_resource, ShaderResource);
+    }
+
+    function toResourceID(_resource : Resource)
+    {
+        return _resource.id;
+    }
 }
