@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu;
 
+import haxe.io.ArrayBufferView;
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.ResourceID;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
@@ -58,6 +60,8 @@ abstract class Renderer
     public abstract function createSurface(_width : Int, _height : Int) : SurfaceID;
 
     public abstract function deleteSurface(_id : SurfaceID) : Void;
+
+    public abstract function updateTexture(_frame : PageFrameResource, _data : ArrayBufferView) : Void;
 
     abstract function createShader(_resource : ShaderResource) : Void;
 

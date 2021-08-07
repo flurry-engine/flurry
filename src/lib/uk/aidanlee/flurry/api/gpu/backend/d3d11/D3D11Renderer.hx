@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
+import haxe.io.ArrayBufferView;
 import uk.aidanlee.flurry.api.resources.builtin.ShaderResource;
 import haxe.exceptions.NotImplementedException;
 import uk.aidanlee.flurry.api.gpu.pipeline.VertexFormat;
@@ -586,6 +587,30 @@ using cpp.NativeArray;
         }
     }
     
+    public function updateTexture(_frame : PageFrameResource, _data : ArrayBufferView)
+    {
+        switch textureResources.get(_frame.page)
+        {
+            case null:
+                throw new Exception('Page ${ _frame.page } does not exist');
+            case texture:
+                if (_data.byteLength != (_frame.width * _frame.height * 4))
+                {
+                    throw new Exception('Provided buffer does not match the frame byte size');
+                }
+
+                final box = new D3d11Box();
+                box.left   = _frame.x;
+                box.top    = _frame.y;
+                box.front  = 0;
+                box.right  = _frame.x + _frame.width;
+                box.bottom = _frame.y + _frame.height;
+                box.back   = 1;
+
+                context.updateSubresource(texture.texture, 0, box, _data.buffer.getData(), _frame.width * 4, 0);
+        }
+    }
+
 	function createShader(_resource : ShaderResource)
     {
         final shader = switch Std.downcast(_resource, D3d11Shader)
