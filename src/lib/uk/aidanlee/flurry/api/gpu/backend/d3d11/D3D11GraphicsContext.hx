@@ -139,7 +139,7 @@ class D3D11GraphicsContext extends GraphicsContext
                         // Shader does not want camera matrices.
                     case location:
                         final proj     = makeFrustum(0, _camera.size.x, 0, _camera.size.y, -100, 100);
-                        final view     = mat4(make2D(_camera.pos.x, _camera.pos.y, 0, 1));
+                        final view     = mat4(make2D(_camera.pos));
                         final combined = view * proj;
                         
                         final bytes = unfCameraBlob.buffer.buffer.getData();
