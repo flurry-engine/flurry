@@ -8,7 +8,7 @@ abstract StencilState(Int)
 
     public var enabled (get, never) : Bool;
 
-    inline function get_enabled() return Maths.intToBool(this & 0x1);
+    inline function get_enabled() return intToBool(this & 0x1);
 
     public var frontFunc (get, never) : ComparisonFunction;
 
@@ -55,7 +55,7 @@ abstract StencilState(Int)
     )
     {
         this =
-            (Maths.boolToInt(_enabled) & 0x1) |
+            (boolToInt(_enabled) & 0x1) |
             ((_frontFunc & 0x7) << 1) |
             ((_frontTestFail & 0x7) << 4) |
             ((_frontDepthTestFail & 0x7) << 7) |

@@ -34,31 +34,26 @@ overload extern inline function drawSurface(_ctx : GraphicsContext, _surface : S
     _ctx.prepare();
 
     // Generate Transformation
-    final originAbs   = _origin * _size;
-    final translation = makeTranslation(_pos - originAbs);
-    final origin      = makeTranslation(originAbs);
-    final rotation    = makeRotationZ(radians(_angle));
-    final scale       = makeScale(_scale);
-    final originUndo  = makeTranslation(-originAbs);
-    final transform   = translation * origin * rotation * scale * originUndo;
+    final origin    = _origin * _size;
+    final transform = make2D(_pos, origin, _scale, radians(_angle));
 
     // v1
-    _ctx.vtxOutput.write(transform * vec3(_pos.x, _pos.y + _size.y, 0));
+    _ctx.vtxOutput.write(vec3(transform * vec4(0, _size.y, 0, 1)));
     _ctx.vtxOutput.write(_colour);
     _ctx.vtxOutput.write(vec2(0, 1));
 
     // v2
-    _ctx.vtxOutput.write(transform * vec3(_pos.x, _pos.y, 0));
+    _ctx.vtxOutput.write(vec3(transform * vec4(0, 0, 0, 1)));
     _ctx.vtxOutput.write(_colour);
     _ctx.vtxOutput.write(vec2(0, 0));
 
     // v3
-    _ctx.vtxOutput.write(transform * vec3(_pos.x + _size.x, _pos.y, 0));
+    _ctx.vtxOutput.write(vec3(transform * vec4(_size.x, 0, 0, 1)));
     _ctx.vtxOutput.write(_colour);
     _ctx.vtxOutput.write(vec2(1, 0));
 
     // v4
-    _ctx.vtxOutput.write(transform * vec3(_pos.x + _size.x, _pos.y + _size.y, 0));
+    _ctx.vtxOutput.write(vec3(transform * vec4(_size.x, _size.y, 0, 1)));
     _ctx.vtxOutput.write(_colour);
     _ctx.vtxOutput.write(vec2(1, 1));
 

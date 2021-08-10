@@ -71,7 +71,7 @@ import uk.aidanlee.flurry.api.maths.Maths;
     public function seek(_stride : Int)
     {
         final bytesCursor = floatCursor * 4;
-        final bytesSeek   = Maths.nextMultipleOff(bytesCursor, _stride);
+        final bytesSeek   = nextMultipleOff(bytesCursor, _stride);
 
         floatCursor   = cpp.NativeMath.idiv(bytesSeek, 4);
         floatStride   = cpp.NativeMath.idiv(_stride, 4);

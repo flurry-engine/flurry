@@ -33,6 +33,6 @@ abstract BlendState(Int)
         _dstRgb : BlendMode,
         _dstAlpha : BlendMode)
     {
-        this = (((((((_dstAlpha << 4) | (_dstRgb & 0xF)) << 4) | (_srcAlpha & 0xF)) << 4) | (_srcRgb & 0xF)) << 1) | (Maths.boolToInt(_enabled) & 0x1);
+        this = (((((((_dstAlpha << 4) | (_dstRgb & 0xF)) << 4) | (_srcAlpha & 0xF)) << 4) | (_srcRgb & 0xF)) << 1) | (boolToInt(_enabled) & 0x1);
     }
 }

@@ -70,7 +70,7 @@ overload extern inline function drawFrameTiled(_ctx : GraphicsContext, _frame : 
     }
 }
 
-private inline function drawTransformedQuad(_ctx : GraphicsContext, _frame : PageFrameResource, _transform : Mat3, _colour : Vec4)
+private inline function drawTransformedQuad(_ctx : GraphicsContext, _frame : PageFrameResource, _transform : Mat4, _colour : Vec4)
 {
     _ctx.usePage(_frame.page);
     _ctx.prepare();
@@ -78,22 +78,22 @@ private inline function drawTransformedQuad(_ctx : GraphicsContext, _frame : Pag
     // Clockwise Winding Order
 
     // top right
-    _ctx.vtxOutput.write(_transform * vec3(_frame.width, 0, 1));
+    _ctx.vtxOutput.write(vec3(_transform * vec4(_frame.width, 0, 0, 1)));
     _ctx.vtxOutput.write(_colour);
     _ctx.vtxOutput.write(vec2(_frame.u2, _frame.v1));
 
     // top left
-    _ctx.vtxOutput.write(_transform * vec3(0, 0, 1));
+    _ctx.vtxOutput.write(vec3(_transform * vec4(0, 0, 0, 1)));
     _ctx.vtxOutput.write(_colour);
     _ctx.vtxOutput.write(vec2(_frame.u1, _frame.v1));
 
     // bottom left
-    _ctx.vtxOutput.write(_transform * vec3(0, _frame.height, 1));
+    _ctx.vtxOutput.write(vec3(_transform * vec4(0, _frame.height, 0, 1)));
     _ctx.vtxOutput.write(_colour);
     _ctx.vtxOutput.write(vec2(_frame.u1, _frame.v2));
 
     // bottom right
-    _ctx.vtxOutput.write(_transform * vec3(_frame.width, _frame.height, 1));
+    _ctx.vtxOutput.write(vec3(_transform * vec4(_frame.width, _frame.height, 0, 1)));
     _ctx.vtxOutput.write(_colour);
     _ctx.vtxOutput.write(vec2(_frame.u2, _frame.v2));
 

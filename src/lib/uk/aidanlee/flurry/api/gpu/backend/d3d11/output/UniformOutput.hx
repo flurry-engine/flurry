@@ -88,7 +88,7 @@ import uk.aidanlee.flurry.api.maths.Maths;
             cpp.NativeArray.address(_buffer.buffer.getData(), srcPos),
             length);
 
-        floatCursor = Maths.nextMultipleOff(floatCursor + floats, HLSL_CONSTANT_FLOAT_ALIGNMENT);
+        floatCursor = nextMultipleOff(floatCursor + floats, HLSL_CONSTANT_FLOAT_ALIGNMENT);
 
         return constantPos;
     }

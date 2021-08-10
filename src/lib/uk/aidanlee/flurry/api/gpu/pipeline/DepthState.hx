@@ -20,6 +20,6 @@ abstract DepthState(Int)
 
 	public inline function new(_enabled : Bool, _masking : Bool, _func : ComparisonFunction)
 	{
-		this = (((_func << 1) | (Maths.boolToInt(_masking) & 1)) << 1) | (Maths.boolToInt(_enabled) & 0x1);
+		this = (((_func << 1) | (boolToInt(_masking) & 1)) << 1) | (boolToInt(_enabled) & 0x1);
     }
 }

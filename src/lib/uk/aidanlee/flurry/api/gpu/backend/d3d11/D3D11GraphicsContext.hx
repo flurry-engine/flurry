@@ -138,9 +138,9 @@ class D3D11GraphicsContext extends GraphicsContext
                     case -1:
                         // Shader does not want camera matrices.
                     case location:
-                        final proj     = makeFrustum(0, _camera.size.x, 0, _camera.size.y, -100, 100);
-                        final view     = mat4(make2D(_camera.pos));
-                        final combined = view * proj;
+                        final proj     = makeCentredFrustumRH(0, _camera.size.x, 0, _camera.size.y, -100, 100);
+                        final view     = make2D(_camera.pos, _camera.origin, _camera.scale, _camera.angle).inverse();
+                        final combined = proj * view;
                         
                         final bytes = unfCameraBlob.buffer.buffer.getData();
                         final data  = (combined : Mat4Data);
@@ -186,8 +186,8 @@ class D3D11GraphicsContext extends GraphicsContext
 
                 final sampler = samplers.get(SamplerState.nearest);
 
-                context.psSetShaderResources(0, [ texture.shaderResourceView ]);
-                context.psSetSamplers(0, [ sampler ]);
+                context.psSetShaderResource(0, texture.shaderResourceView);
+                context.psSetSampler(0, sampler);
         }
     }
 
@@ -211,8 +211,8 @@ class D3D11GraphicsContext extends GraphicsContext
 
                 final sampler = samplers.get(SamplerState.nearest);
 
-                context.psSetShaderResources(0, [ surface.surfaceView ]);
-                context.psSetSamplers(0, [ sampler ]);
+                context.psSetShaderResource(0, surface.surfaceView);
+                context.psSetSampler(0, sampler);
         }
     }
 
