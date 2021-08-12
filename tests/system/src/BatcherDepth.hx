@@ -86,12 +86,12 @@ class BatcherDepth extends Flurry
         _ctx.drawFrame(cast resources.get(Preload.blue_shield), vec2(320, 64), vec2(0.5, 0.5), -45);
 
         // Scaling and rotated scaling around an origin
-        _ctx.drawFrame(cast resources.get(Preload.die), vec2(384, 48), vec2(0, 0), vec2(2, 0.5));
-        _ctx.drawFrame(cast resources.get(Preload.die), vec2(573, 64), vec2(0.5, 0.5), vec2(0.75, 2.25), 45);
+        _ctx.drawFrameScaled(cast resources.get(Preload.die), vec2(384, 48), vec2(0, 0), vec2(2, 0.5));
+        _ctx.drawFrameScaled(cast resources.get(Preload.die), vec2(573, 64), vec2(0.5, 0.5), vec2(0.75, 2.25), 45);
 
         // Draw a colourised and semi-transparent frame
-        _ctx.drawFrame(cast resources.get(Preload.emote_angry), vec2(704, 64), vec2(0.5, 0.5), vec2(1, 1), 0, Colour.yellow);
-        _ctx.drawFrame(cast resources.get(Preload.emote_angry), vec2(64, 192), vec2(0.5, 0.5), vec2(1, 1), 0, vec4(1, 1, 1, 0.5));
+        _ctx.drawFrame(cast resources.get(Preload.emote_angry), vec2(704, 64), vec2(0.5, 0.5), 0, Colour.yellow);
+        _ctx.drawFrame(cast resources.get(Preload.emote_angry), vec2(64, 192), vec2(0.5, 0.5), 0, vec4(1, 1, 1, 0.5));
 
         _ctx.usePipeline(colour);
         _ctx.useCamera(camera);
@@ -125,6 +125,9 @@ class BatcherDepth extends Flurry
         _ctx.useCamera(camera);
 
         _ctx.drawSurface(surface, vec2(640, 128), vec2(128, 128));
+
+        // Draw a partial section of a frame
+        _ctx.drawFramePartial(cast resources.get(Preload.blue_worker), vec2(0, 256), vec4(32, 32, 64, 64));
     }
 
     function drawCustomFrame(_ctx : GraphicsContext, _frame : PageFrameResource, _x : Float, _y : Float)
