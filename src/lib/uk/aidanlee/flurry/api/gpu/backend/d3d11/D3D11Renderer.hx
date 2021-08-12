@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
+import d3d11.constants.D3d11Error;
 import haxe.io.ArrayBufferView;
 import uk.aidanlee.flurry.api.resources.builtin.ShaderResource;
 import haxe.exceptions.NotImplementedException;
@@ -465,17 +466,18 @@ using cpp.NativeArray;
         blendDesc.alphaToCoverageEnable          = false;
         blendDesc.independentBlendEnable         = false;
         blendDesc.renderTarget[0].blendEnable    = _state.blend.enabled;
-        blendDesc.renderTarget[0].srcBlend       = getBlend(_state.blend.srcRgb);
-        blendDesc.renderTarget[0].srcBlendAlpha  = getBlend(_state.blend.srcAlpha);
-        blendDesc.renderTarget[0].destBlend      = getBlend(_state.blend.dstRgb);
-        blendDesc.renderTarget[0].destBlendAlpha = getBlend(_state.blend.dstAlpha);
-        blendDesc.renderTarget[0].blendOp        = Add;
-        blendDesc.renderTarget[0].blendOpAlpha   = Add;
+        blendDesc.renderTarget[0].srcBlend       = getBlend(_state.blend.srcFactor);
+        blendDesc.renderTarget[0].srcBlendAlpha  = getBlend(_state.blend.srcFactor);
+        blendDesc.renderTarget[0].destBlend      = getBlend(_state.blend.dstFactor);
+        blendDesc.renderTarget[0].destBlendAlpha = getBlend(_state.blend.dstFactor);
+        blendDesc.renderTarget[0].blendOp        = getBlendOp(_state.blend.op);
+        blendDesc.renderTarget[0].blendOpAlpha   = getBlendOp(_state.blend.op);
         blendDesc.renderTarget[0].renderTargetWriteMask = D3d11ColorWriteEnable.All;
 
-        if (device.createBlendState(blendDesc, blendState) != Ok)
+        var result = D3d11Error.Ok;
+        if (Ok != (result = device.createBlendState(blendDesc, blendState)))
         {
-            throw new Exception('ID3D11BlendState');
+            throw new Exception('Error creating blend state, HRESULT : $result');
         }
 
         pipelines[id] = new D3D11PipelineState(

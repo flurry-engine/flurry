@@ -1,36 +1,50 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
 import dxgi.enumerations.DxgiFormat;
-import uk.aidanlee.flurry.api.maths.Maths;
 import d3d11.enumerations.D3d11Blend;
 import d3d11.enumerations.D3d11Filter;
+import d3d11.enumerations.D3d11BlendOp;
 import d3d11.enumerations.D3d11StencilOp;
+import d3d11.enumerations.D3d11PrimitiveTopology;
 import d3d11.enumerations.D3d11ComparisonFunction;
 import d3d11.enumerations.D3d11TextureAddressMode;
-import d3d11.enumerations.D3d11PrimitiveTopology;
+import uk.aidanlee.flurry.api.gpu.pipeline.BlendOp;
+import uk.aidanlee.flurry.api.gpu.pipeline.BlendMode;
 import uk.aidanlee.flurry.api.gpu.textures.Filtering;
 import uk.aidanlee.flurry.api.gpu.textures.EdgeClamping;
-import uk.aidanlee.flurry.api.gpu.pipeline.BlendMode;
 import uk.aidanlee.flurry.api.gpu.pipeline.PrimitiveType;
 import uk.aidanlee.flurry.api.gpu.pipeline.VertexElement.VertexType;
 import uk.aidanlee.flurry.api.gpu.pipeline.StencilFunction;
 import uk.aidanlee.flurry.api.gpu.pipeline.ComparisonFunction;
+import uk.aidanlee.flurry.api.maths.Maths;
 
 function getBlend(_blend : BlendMode) : D3d11Blend
 {
     return switch _blend
     {
-        case Zero             : Zero;
-        case One              : One;
-        case SrcAlphaSaturate : SourceAlphaSat;
-        case SrcColor         : SourceColor;
-        case OneMinusSrcColor : InverseSourceColor;
-        case SrcAlpha         : SourceAlpha;
-        case OneMinusSrcAlpha : InverseSourceAlpha;
-        case DstAlpha         : DestinationAlpha;
-        case OneMinusDstAlpha : InverseDestinationAlpha;
-        case DstColor         : DestinationColor;
-        case OneMinusDstColor : InverseDestinationColour;
+        case Zero              : Zero;
+        case One               : One;
+        case SrcAlphaSaturate  : SourceAlphaSat;
+        case SrcColour         : SourceColor;
+        case OneMinusSrcColour : InverseSourceColor;
+        case SrcAlpha          : SourceAlpha;
+        case OneMinusSrcAlpha  : InverseSourceAlpha;
+        case DstAlpha          : DestinationAlpha;
+        case OneMinusDstAlpha  : InverseDestinationAlpha;
+        case DstColour         : DestinationColor;
+        case OneMinusDstColour : InverseDestinationColour;
+    }
+}
+
+function getBlendOp(_op : BlendOp) : D3d11BlendOp
+{
+    return switch _op
+    {
+        case Add             : Add;
+        case Subtract        : Subtract;
+        case ReverseSubtract : ReverseSubtract;
+        case Min             : Min;
+        case Max             : Max;
     }
 }
 
