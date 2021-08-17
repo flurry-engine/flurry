@@ -68,18 +68,6 @@ class Frames extends Flurry
         uniform2 = new UniformBlobBuilder("colours").addVector4('colour', vec4(1.0, 0.5, 1.0, 1.0)).uniformBlob();
     }
 
-    override function onUpdate(_dt : Float)
-    {
-        if (input.wasKeyPressed(Keycodes.space))
-        {
-            final data  = stb.Image.load('C:/Users/AidanLee/Downloads/small.png', 4);
-            final view  = ArrayBufferView.fromBytes(Bytes.ofData(data.bytes));
-            final frame = resources.get(Preload.blue_worker);
-
-            renderer.updateTexture(cast frame, view);
-        }
-    }
-
     override function onRender(_ctx : GraphicsContext)
     {
         _ctx.usePipeline(pipeline);
