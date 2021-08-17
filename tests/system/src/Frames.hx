@@ -1,5 +1,7 @@
 import VectorMath;
+import haxe.io.Bytes;
 import haxe.ds.Vector;
+import haxe.io.ArrayBufferView;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.gpu.Colour;
@@ -9,6 +11,7 @@ import uk.aidanlee.flurry.api.gpu.GraphicsContext;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
+import uk.aidanlee.flurry.api.input.Keycodes;
 import uk.aidanlee.flurry.api.resources.Parcels.Preload;
 import uk.aidanlee.flurry.api.resources.Parcels.Shaders;
 import uk.aidanlee.flurry.api.resources.ResourceID;
@@ -18,7 +21,7 @@ using uk.aidanlee.flurry.api.gpu.drawing.Frames;
 using uk.aidanlee.flurry.api.gpu.drawing.Surfaces;
 using hxrx.schedulers.IScheduler;
 
-class BatcherDepth extends Flurry
+class Frames extends Flurry
 {
     var pipeline : PipelineID;
 
@@ -67,7 +70,14 @@ class BatcherDepth extends Flurry
 
     override function onUpdate(_dt : Float)
     {
-        //
+        if (input.wasKeyPressed(Keycodes.space))
+        {
+            final data  = stb.Image.load('C:/Users/AidanLee/Downloads/small.png', 4);
+            final view  = ArrayBufferView.fromBytes(Bytes.ofData(data.bytes));
+            final frame = resources.get(Preload.blue_worker);
+
+            renderer.updateTexture(cast frame, view);
+        }
     }
 
     override function onRender(_ctx : GraphicsContext)
@@ -125,9 +135,6 @@ class BatcherDepth extends Flurry
         _ctx.useCamera(camera);
 
         _ctx.drawSurface(surface, vec2(640, 128), vec2(128, 128));
-
-        // Draw a partial section of a frame
-        _ctx.drawFramePartial(cast resources.get(Preload.blue_worker), vec2(0, 256), vec4(32, 32, 64, 64));
     }
 
     function drawCustomFrame(_ctx : GraphicsContext, _frame : PageFrameResource, _x : Float, _y : Float)
