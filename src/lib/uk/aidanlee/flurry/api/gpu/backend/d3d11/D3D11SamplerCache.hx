@@ -61,7 +61,7 @@ class D3D11SamplerCache
                     samplers[_state] = sampler;
                 }
             case cached:
-                (cached : D3d11SamplerState);
+                cached.unsafe();
         }
     }
 }

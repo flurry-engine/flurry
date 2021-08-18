@@ -1,6 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.drawing;
 
 import VectorMath;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Matrix;
 
 overload extern inline function drawSurface(_ctx : GraphicsContext, _surface : SurfaceID, _pos : Vec2, _size : Vec2)
@@ -30,7 +31,7 @@ overload extern inline function drawSurface(_ctx : GraphicsContext, _surface : S
 
 overload extern inline function drawSurface(_ctx : GraphicsContext, _surface : SurfaceID, _pos : Vec2, _size : Vec2, _origin : Vec2, _scale : Vec2, _angle : Float, _colour : Vec4)
 {   
-    _ctx.useSurface(_surface);
+    _ctx.useSurface(_surface, SamplerState.nearest);
     _ctx.prepare();
 
     // Generate Transformation

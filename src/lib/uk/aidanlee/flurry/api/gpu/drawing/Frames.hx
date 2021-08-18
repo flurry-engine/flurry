@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.drawing;
 
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import VectorMath;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
@@ -183,7 +184,7 @@ overload extern inline function drawFramePartialStretched(_ctx : GraphicsContext
     final uv2       = vec2(_frame.u1, _frame.v1) + ((vec2(_area.xy) + vec2(_area.zw)) / pxSize * uvSize);
     final transform = make2D(_pos);
 
-    _ctx.usePage(_frame.page);
+    _ctx.usePage(_frame.page, SamplerState.nearest);
     
     drawQuad(
         _ctx,
@@ -210,7 +211,7 @@ overload extern inline function drawFramePartialStretched(_ctx : GraphicsContext
     final uv2       = vec2(_frame.u1, _frame.v1) + ((vec2(_area.xy) + vec2(_area.zw)) / pxSize * uvSize);
     final transform = make2D(_pos, radians(_angle));
 
-    _ctx.usePage(_frame.page);
+    _ctx.usePage(_frame.page, SamplerState.nearest);
     
     drawQuad(
         _ctx,
@@ -237,7 +238,7 @@ overload extern inline function drawFramePartialStretched(_ctx : GraphicsContext
     final uv2       = vec2(_frame.u1, _frame.v1) + ((vec2(_area.xy) + vec2(_area.zw)) / pxSize * uvSize);
     final transform = make2D(_pos, radians(_angle));
 
-    _ctx.usePage(_frame.page);
+    _ctx.usePage(_frame.page, SamplerState.nearest);
     
     drawQuad(
         _ctx,
@@ -265,7 +266,7 @@ overload extern inline function drawFramePartialStretched(_ctx : GraphicsContext
     final origin    = _origin * _size;
     final transform = make2D(_pos, origin);
 
-    _ctx.usePage(_frame.page);
+    _ctx.usePage(_frame.page, SamplerState.nearest);
     
     drawQuad(
         _ctx,
@@ -293,7 +294,7 @@ overload extern inline function drawFramePartialStretched(_ctx : GraphicsContext
     final origin    = _origin * _size;
     final transform = make2D(_pos, origin, _angle);
 
-    _ctx.usePage(_frame.page);
+    _ctx.usePage(_frame.page, SamplerState.nearest);
     
     drawQuad(
         _ctx,
@@ -321,7 +322,7 @@ overload extern inline function drawFramePartialStretched(_ctx : GraphicsContext
     final origin    = _origin * _size;
     final transform = make2D(_pos, origin, _angle);
 
-    _ctx.usePage(_frame.page);
+    _ctx.usePage(_frame.page, SamplerState.nearest);
     
     drawQuad(
         _ctx,
@@ -376,7 +377,7 @@ overload extern inline function drawFrameDistorted(_ctx : GraphicsContext, _fram
 
 overload extern inline function drawFrameDistorted(_ctx : GraphicsContext, _frame : PageFrameResource, _p1 : Vec2, _p2 : Vec2, _p3 : Vec2, _p4 : Vec2, _colour : Vec4)
 {
-    _ctx.usePage(_frame.page);
+    _ctx.usePage(_frame.page, SamplerState.nearest);
     
     drawQuad(
         _ctx,
@@ -408,7 +409,7 @@ overload extern inline function drawFrameDistorted(_ctx : GraphicsContext, _fram
  */
 private inline function drawFrameTransformed(_ctx : GraphicsContext, _frame : PageFrameResource, _transform : Mat4, _colour : Vec4)
 {
-    _ctx.usePage(_frame.page);
+    _ctx.usePage(_frame.page, SamplerState.nearest);
     
     drawQuad(
         _ctx,

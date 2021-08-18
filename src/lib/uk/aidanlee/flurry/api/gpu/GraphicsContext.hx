@@ -1,8 +1,9 @@
 package uk.aidanlee.flurry.api.gpu;
 
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
-import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
+import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.resources.ResourceID;
 
 @:build(uk.aidanlee.flurry.macros.ApiSelector.buildGraphicsContextOutputs())
@@ -18,9 +19,9 @@ abstract class GraphicsContext
 
     public abstract function useCamera(_camera : Camera2D) : Void;
 
-    public abstract function usePage(_id : ResourceID) : Void;
+    public abstract function usePage(_id : ResourceID, _sampler : SamplerState) : Void;
 
-    public abstract function useSurface(_id : SurfaceID) : Void;
+    public abstract function useSurface(_id : SurfaceID, _sampler : SamplerState) : Void;
 
     public abstract function useUniformBlob(_blob : UniformBlob) : Void;
 

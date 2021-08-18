@@ -166,7 +166,7 @@ class D3D11GraphicsContext extends GraphicsContext
         }
     }
 
-    public function usePage(_id : ResourceID)
+    public function usePage(_id : ResourceID, _sampler : SamplerState)
     {
         if (currentPage == _id)
         {
@@ -184,14 +184,12 @@ class D3D11GraphicsContext extends GraphicsContext
                 currentPage    = _id;
                 currentSurface = SurfaceID.backbuffer;
 
-                final sampler = samplers.get(SamplerState.nearest);
-
                 context.psSetShaderResource(0, texture.shaderResourceView);
-                context.psSetSampler(0, sampler);
+                context.psSetSampler(0, samplers.get(_sampler));
         }
     }
 
-    public function useSurface(_id : SurfaceID)
+    public function useSurface(_id : SurfaceID, _sampler : SamplerState)
     {
         if (currentSurface == _id)
         {
@@ -209,10 +207,8 @@ class D3D11GraphicsContext extends GraphicsContext
                 currentPage    = ResourceID.invalid;
                 currentSurface = _id;
 
-                final sampler = samplers.get(SamplerState.nearest);
-
                 context.psSetShaderResource(0, surface.surfaceView);
-                context.psSetSampler(0, sampler);
+                context.psSetSampler(0, samplers.get(_sampler));
         }
     }
 
