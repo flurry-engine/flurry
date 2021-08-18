@@ -123,6 +123,38 @@ overload extern inline function drawTriangle(_ctx : GraphicsContext, _p0 : Vec2,
     _ctx.idxOutput.write(2);
 }
 
+overload extern inline function drawRectangle(_ctx : GraphicsContext, _size : Vec4)
+{
+    drawRectangle(_ctx, _size, vec4(1));
+}
+
+overload extern inline function drawRectangle(_ctx : GraphicsContext, _size : Vec4, _colour : Vec4)
+{
+    // Clockwise Winding Order
+    _ctx.prepare();
+
+    _ctx.vtxOutput.write(vec3(_size.xy, 0));
+    _ctx.vtxOutput.write(_colour);
+
+    _ctx.vtxOutput.write(vec3(_size.x + _size.z, _size.y, 0));
+    _ctx.vtxOutput.write(_colour);
+
+    _ctx.vtxOutput.write(vec3(_size.xy + _size.zw, 0));
+    _ctx.vtxOutput.write(_colour);
+
+    _ctx.vtxOutput.write(vec3(_size.x, _size.y + _size.w, 0));
+    _ctx.vtxOutput.write(_colour);
+
+    // Indices
+    _ctx.idxOutput.write(0);
+    _ctx.idxOutput.write(1);
+    _ctx.idxOutput.write(2);
+
+    _ctx.idxOutput.write(0);
+    _ctx.idxOutput.write(2);
+    _ctx.idxOutput.write(3);
+}
+
 overload extern inline function drawPolygon(_ctx : GraphicsContext, _centre : Vec2, _radius : Float, _sides : Int)
 {
     drawPolygon(_ctx, _centre, _radius, _sides, vec4(1));
@@ -206,6 +238,19 @@ overload extern inline function drawArc(_ctx : GraphicsContext, _centre : Vec2, 
         _ctx.idxOutput.write((i * 4) + 3);
         _ctx.idxOutput.write((i * 4) + 2);
     }
+}
+
+overload extern inline function drawRectangleOutline(_ctx : GraphicsContext, _size : Vec4, _thickness = 1.0)
+{
+    drawRectangleOutline(_ctx, _size, _thickness, vec4(1));
+}
+
+overload extern inline function drawRectangleOutline(_ctx : GraphicsContext, _size : Vec4, _thickness = 1.0, _colour : Vec4)
+{
+    drawLine(_ctx, vec2(_size.xy), vec2(_size.x + _size.z, _size.y), _thickness, _colour);
+    drawLine(_ctx, vec2(_size.x + _size.z, _size.y), vec2(_size.x + _size.z, _size.y + _size.w), _thickness, _colour);
+    drawLine(_ctx, vec2(_size.x + _size.z, _size.y + _size.w), vec2(_size.x, _size.y + _size.w), _thickness, _colour);
+    drawLine(_ctx, vec2(_size.x, _size.y + _size.w), vec2(_size.xy), _thickness, _colour);
 }
 
 overload extern inline function drawPolygonOutline(_ctx : GraphicsContext, _centre : Vec2, _radius : Float, _sides : Int, _thickness = 1.0)
