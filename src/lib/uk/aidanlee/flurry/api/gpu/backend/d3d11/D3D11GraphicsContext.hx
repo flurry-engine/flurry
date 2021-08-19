@@ -46,6 +46,8 @@ class D3D11GraphicsContext extends GraphicsContext
 
     var currentPage : ResourceID;
 
+    var currentSampler : SamplerState;
+
     var currentSurface : SurfaceID;
 
     var mapped : Bool;
@@ -168,7 +170,7 @@ class D3D11GraphicsContext extends GraphicsContext
 
     public function usePage(_id : ResourceID, _sampler : SamplerState)
     {
-        if (currentPage == _id)
+        if (currentPage == _id && currentSampler == _sampler)
         {
             return;
         }
@@ -182,6 +184,7 @@ class D3D11GraphicsContext extends GraphicsContext
                 map();
 
                 currentPage    = _id;
+                currentSampler = _sampler;
                 currentSurface = SurfaceID.backbuffer;
 
                 context.psSetShaderResource(0, texture.shaderResourceView);
@@ -191,7 +194,7 @@ class D3D11GraphicsContext extends GraphicsContext
 
     public function useSurface(_id : SurfaceID, _sampler : SamplerState)
     {
-        if (currentSurface == _id)
+        if (currentSurface == _id && currentSampler == _sampler)
         {
             return;
         }
@@ -205,6 +208,7 @@ class D3D11GraphicsContext extends GraphicsContext
                 map();
 
                 currentPage    = ResourceID.invalid;
+                currentSampler = _sampler;
                 currentSurface = _id;
 
                 context.psSetShaderResource(0, surface.surfaceView);
