@@ -72,6 +72,7 @@ class D3D11GraphicsContext extends GraphicsContext
         currentShader       = ResourceID.invalid;
         currentPage         = ResourceID.invalid;
         currentSurface      = SurfaceID.backbuffer;
+        currentSampler      = SamplerState.nearest;
         mapped              = false;
     }
 
