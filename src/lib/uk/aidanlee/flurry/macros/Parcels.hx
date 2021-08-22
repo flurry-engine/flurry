@@ -53,7 +53,22 @@ macro function loadParcelMeta(_name : String, _path : String)
         }
     }
 
-    Context.defineModule('uk.aidanlee.flurry.api.resources.Parcels', [ built ]);
+    built.pack = [ 'uk', 'aidanlee', 'flurry', 'api', 'resources', 'parcels' ];
+
+    final fullType = 'uk.aidanlee.flurry.api.resources.parcels.${ clazz }';
+
+    try
+    {
+        Context.getType(fullType);
+
+        // What should we do if the type is already defined?!
+    }
+    catch (e)
+    {
+        // not defined, so do so now.
+
+        Context.defineType(built);
+    }
 
     return macro null;
 }
