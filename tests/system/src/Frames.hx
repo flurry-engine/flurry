@@ -1,3 +1,4 @@
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import VectorMath;
 import haxe.io.Bytes;
 import haxe.ds.Vector;
@@ -12,8 +13,8 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.input.Keycodes;
-import uk.aidanlee.flurry.api.resources.Parcels.Preload;
-import uk.aidanlee.flurry.api.resources.Parcels.Shaders;
+import uk.aidanlee.flurry.api.resources.parcels.Preload;
+import uk.aidanlee.flurry.api.resources.parcels.Shaders;
 import uk.aidanlee.flurry.api.resources.ResourceID;
 import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 
@@ -127,7 +128,7 @@ class Frames extends Flurry
 
     function drawCustomFrame(_ctx : GraphicsContext, _frame : PageFrameResource, _x : Float, _y : Float)
     {
-        _ctx.usePage(_frame.page);
+        _ctx.usePage(_frame.page, SamplerState.nearest);
         _ctx.prepare();
     
         // v1
