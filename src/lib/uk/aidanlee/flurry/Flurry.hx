@@ -94,7 +94,7 @@ class Flurry
         {
             resources
                 .load(flurryConfig.resources.preload)
-                .subscribeFunction(onPreloadParcelProgress, onPreloadParcelError, onPreloadParcelComplete);
+                .subscribeFunction(null, onPreloadParcelError, onPreloadParcelComplete);
         }
         else
         {
@@ -203,11 +203,6 @@ class Flurry
 
     final function onPreloadParcelError(_error : Exception)
     {
-        trace('Error loading preload parcel : ${ _error.message }');
-    }
-
-    final function onPreloadParcelProgress(_v : Float)
-    {
-        trace('preload progress ${ _v * 100 }%');
+        throw new Exception('Error loading preload parcel', _error);
     }
 }
