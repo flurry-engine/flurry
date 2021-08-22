@@ -1,17 +1,17 @@
 package uk.aidanlee.flurry.api.resources;
 
+import haxe.Exception;
 import haxe.io.Bytes;
-import uk.aidanlee.flurry.api.resources.loaders.PageFrameLoader;
-import uk.aidanlee.flurry.api.resources.loaders.MsdfFontLoader;
-import uk.aidanlee.flurry.api.resources.loaders.DesktopShaderLoader;
 import haxe.ds.Vector;
 import haxe.ds.ReadOnlyArray;
-import haxe.Exception;
 import hxrx.IObservable;
 import hxrx.observables.Observables;
 import hxrx.subscriptions.Empty;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.builtin.PageResource;
+import uk.aidanlee.flurry.api.resources.loaders.MsdfFontLoader;
+import uk.aidanlee.flurry.api.resources.loaders.PageFrameLoader;
+import uk.aidanlee.flurry.api.resources.loaders.DesktopShaderLoader;
 
 using hxrx.schedulers.IScheduler;
 using hxrx.observables.Observables;
@@ -99,7 +99,9 @@ class ResourceSystem
                     // Parcel should start with PRCL
                     if (input.readString(4) != 'PRCL')
                     {
-                        throw new Exception('stream does not contain the PRCL magic bytes');
+                        obs.onError(new Exception('stream does not contain the PRCL magic bytes'));
+
+                        return new Empty();
                     }
     
                     final resources   = input.readInt32();
@@ -130,7 +132,15 @@ class ResourceSystem
                                 final procNameLen = input.readInt32();
                                 final procName    = input.readString(procNameLen);
     
-                                proc = resourceReaders[procName];
+                                proc = switch resourceReaders[procName]
+                                {
+                                    case null:
+                                        obs.onError(new Exception('No resource reader found for resources produced with processor $procName'));
+
+                                        return new Empty();
+                                    case reader:
+                                        reader;
+                                }
                             case 'RESR':
                                 final resource = proc.unsafe().read(input);
 
@@ -140,7 +150,9 @@ class ResourceSystem
 
                                 syncScheduler.scheduleFunction(addResource.bind(resource));
                             case other:
-                                throw new Exception('Unkown magic bytes of $other');
+                                obs.onError(new Exception('Unkown magic bytes of $other'));
+
+                                return new Empty();
                         }
                     }
     

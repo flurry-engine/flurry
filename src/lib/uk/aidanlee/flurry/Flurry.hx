@@ -203,6 +203,6 @@ class Flurry
 
     final function onPreloadParcelError(_error : Exception)
     {
-        throw new Exception('Error loading preload parcel', _error);
+        throw _error;
     }
 }
