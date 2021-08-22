@@ -80,10 +80,12 @@ class ResourceSystem
     }
 
     /**
-     * Loads the provided parcels resources into the system.
-     * If a parcel in the list has already been added its resources will not be added again.
-     * @param _parcels List parcel files to load.
-     * @return Observable of loading progress (normalised 0 - 1)
+     * Loads the provided parcels into the resource system.
+     * Parcels will not start to be loaded until the returned observable is subscribed to.
+     * 
+     * Loading occurs on the task pool and progress, completion, and error notifications arrive on the main thread.
+     * @param _parcels Array of parcels to load.
+     * @return Observable which provides a normalised loading count.
      */
     public function load(_parcels : ReadOnlyArray<String>) : IObservable<Float>
     {
@@ -148,7 +150,7 @@ class ResourceSystem
 
                     obs.onCompleted();
 
-                    return new hxrx.subscriptions.Single(() -> trace('$parcel disposed of'));
+                    return new Empty();
                 }))
             .scan(0.0, (acc, next) -> acc + (next / _parcels.length))
             .subscribeOn(workScheduler)
@@ -160,36 +162,41 @@ class ResourceSystem
     /**
      * Free a parcel and its resources from the system.
      * @param _name Parcel name.
+     * @throws ParcelNotLoadedException if the parcel to free is not actually loaded.
+     * @throws ResourceNotFoundException if one of the resources in the parcel to free is not currently in the system.
      */
     public function free(_name : String)
     {
-        final loaded = loadedParcels[_name];
-
-        if (loaded != null)
+        switch loadedParcels[_name]
         {
-            for (id in loaded.resources)
-            {
-                final resource = resources[id];
-
-                if (resource != null)
+            case null:
+                throw new ParcelNotLoadedException(_name);
+            case loaded:
+                for (id in loaded.resources)
                 {
-                    removeResource(resource);
+                    removeResource(get(id));
                 }
-            }
         }
     }
 
     /**
      * Add a resource to this system.
+     * The resource is passed into the created resource event if it has not yet been added to the system.
      * If the resource has already been added to this system the reference count is increased by one.
      * @param _resource The resource to add.
      */
     public function addResource(_resource : Resource)
     {
-        resources[_resource.id] = _resource;
-        references[_resource.id]++;
+        switch resources[_resource.id]
+        {
+            case null:
+                resources[_resource.id] = _resource;
+                references[_resource.id] = 1;
 
-        events.created.onNext(_resource);
+                events.created.onNext(_resource);
+            case _:
+                references[_resource.id]++;
+        }
     }
 
     /**
@@ -212,30 +219,49 @@ class ResourceSystem
     }
 
     /**
-     * Retrieve a resource from the system based on its unique string name.
-     * @param _name Name of the resource.
-     * @param _type Class type of the resource.
-     * @return Resource object.
-     * @throws InvalidResourceTypeException If the resource cannot be cast to the specified resource class.
-     * @throws ResourceNotFoundException If a resource with the provided name is not in the system.
+     * Return the resource object for the provided ID.
+     * @param _id ID of the resource to return.
+     * @throws ResourceNotFoundException if the resource is not currently loaded.
      */
-    public function get(_id : Int) : Resource
+    public function get(_id : Int)
     {
-        final loaded = resources[_id];
-        if (loaded != null)
+        return switch resources[_id]
         {
-            return loaded;
+            case null:
+                throw new ResourceNotFoundException(_id);
+            case loaded:
+                loaded.unsafe();
         }
-        else
+    }
+
+    /**
+     * Return the resource object for the provided ID casted to a specific type.
+     * @param _id ID of the resource to return.
+     * @param _as Resource class to cast the resource object to.
+     * @throws ResourceNotFoundException if the resource is not currently loaded.
+     * @throws InvalidResourceTypeException if the resource cannot be casted to the provided type.
+     */
+    public function getAs<T : Resource>(_id : Int, _as : Class<T>)
+    {
+        return switch resources[_id]
         {
-            throw new ResourceNotFoundException(_id);
+            case null:
+                throw new ResourceNotFoundException(_id);
+            case loaded:
+                switch Std.downcast(loaded, _as)
+                {
+                    case null:
+                        throw new InvalidResourceTypeException(_id, Type.getClassName(_as));
+                    case typed:
+                        typed;
+                }
         }
     }
 }
 
 class InvalidResourceTypeException extends Exception
 {
-    public function new(_resource : String, _type : String)
+    public function new(_resource : Int, _type : String)
     {
         super('resource $_resource is not a $_type');
     }
@@ -246,6 +272,14 @@ class ResourceNotFoundException extends Exception
     public function new(_resource : Int)
     {
         super('failed to load "$_resource", it does not exist in the system');
+    }
+}
+
+class ParcelNotLoadedException extends Exception
+{
+    public function new(_parcel : String)
+    {
+        super('parcel $_parcel is not currently loaded');
     }
 }
 
