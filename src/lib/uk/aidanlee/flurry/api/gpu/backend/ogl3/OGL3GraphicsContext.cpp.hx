@@ -4,6 +4,7 @@ import Mat4;
 import VectorMath;
 import haxe.io.ArrayBufferView;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineState;
+import uk.aidanlee.flurry.api.gpu.backend.ogl3.OGL3Conversions;
 import uk.aidanlee.flurry.api.gpu.backend.ogl3.output.UniformOutput;
 import haxe.ds.Vector;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
@@ -103,6 +104,17 @@ class OGL3GraphicsContext extends GraphicsContext
 
                                 glUseProgram(shader.program);
                                 glBindFramebuffer(GL_FRAMEBUFFER, target.frameBuffer);
+
+                                if (pipeline.blend.enabled)
+                                {
+                                    glEnable(GL_BLEND);
+                                    glBlendFunc(getBlend(pipeline.blend.srcFactor), getBlend(pipeline.blend.dstFactor));
+                                    glBlendEquation(getBlendEquation(pipeline.blend.op));
+                                }
+                                else
+                                {
+                                    glDisable(GL_BLEND);
+                                }
 
                                 currentShader  = pipeline.shader;
                                 currentPage    = ResourceID.invalid;
