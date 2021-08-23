@@ -1,8 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.ogl3;
 
-import haxe.Exception;
 import opengl.OpenGL.GLint;
-import opengl.OpenGL.GLuint;
 
 class OGL3ShaderInformation
 {

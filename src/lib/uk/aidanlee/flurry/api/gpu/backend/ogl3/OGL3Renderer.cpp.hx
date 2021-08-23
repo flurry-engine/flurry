@@ -3,8 +3,6 @@ package uk.aidanlee.flurry.api.gpu.backend.ogl3;
 import uk.aidanlee.flurry.api.gpu.backend.ogl3.OGL3ShaderInformation.OGL3ShaderInputElement;
 import uk.aidanlee.flurry.api.gpu.pipeline.VertexElement.VertexType;
 import haxe.ds.Vector;
-import haxe.io.Bytes;
-import opengl.OpenGL.GLint;
 import opengl.OpenGL.GLuint;
 import uk.aidanlee.flurry.FlurryConfig.FlurryRendererOgl3Config;
 import uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig;
@@ -201,7 +199,17 @@ class OGL3Renderer extends Renderer
 
 	public function deleteSurface(_id : SurfaceID)
     {
-        //
+        switch surfaces[_id]
+        {
+            case null:
+                //
+            case surface:
+                glDeleteTextures(1, surface.texture);
+                glDeleteRenderbuffers(1, surface.renderBuffer);
+                glDeleteFramebuffers(1, surface.frameBuffer);
+
+                surfaces[_id] = null;
+        }
     }
 
 	public function updateTexture(_frame : PageFrameResource, _data : ArrayBufferView)
@@ -294,7 +302,15 @@ class OGL3Renderer extends Renderer
 
 	function deleteShader(_id : ResourceID)
     {
-        //
+        switch shaderResources.get(_id)
+        {
+            case null:
+                //
+            case shader:
+                glDeleteProgram(shader.program);
+
+                shaderResources.remove(_id);
+        }
     }
 
 	function createTexture(_resource : PageResource)
@@ -314,7 +330,15 @@ class OGL3Renderer extends Renderer
 
 	function deleteTexture(_id : ResourceID)
     {
-        //
+        switch textureResources.get(_id)
+        {
+            case null:
+                //
+            case glObject:
+                glDeleteTextures(1, glObject);
+
+                textureResources.remove(_id);
+        }
     }
 
     static function createBackBuffer(_width : Int, _height : Int)

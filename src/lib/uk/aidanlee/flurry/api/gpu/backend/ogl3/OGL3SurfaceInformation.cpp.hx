@@ -1,9 +1,5 @@
 package uk.aidanlee.flurry.api.gpu.backend.ogl3;
 
-import opengl.OpenGL.glDeleteTextures;
-import opengl.OpenGL.glDeleteRenderbuffers;
-import opengl.OpenGL.glDeleteFramebuffers;
-
 class OGL3SurfaceInformation
 {
     public final texture : Int;
@@ -23,12 +19,5 @@ class OGL3SurfaceInformation
         frameBuffer  = _frameBuffer;
         width        = _width;
         height       = _height;
-    }
-
-    public function dispose()
-    {
-        glDeleteTextures(1, texture);
-        glDeleteRenderbuffers(1, renderBuffer);
-        glDeleteFramebuffers(1, frameBuffer);
     }
 }
