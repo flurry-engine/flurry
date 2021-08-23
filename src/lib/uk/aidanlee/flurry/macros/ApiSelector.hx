@@ -31,7 +31,7 @@ macro function getGraphicsBackend(_resourceEvents : ExprOf<uk.aidanlee.flurry.ap
         return switch Context.definedValue('flurry-gpu-api')
         {
             case 'mock'  : macro new uk.aidanlee.flurry.api.gpu.backend.MockBackend($_resourceEvents);
-            case 'ogl3'  : macro new uk.aidanlee.flurry.api.gpu.backend.OGL3Backend($_resourceEvents, $_displayEvents, $_windowConfig, $_rendererConfig.ogl3);
+            case 'ogl3'  : macro new uk.aidanlee.flurry.api.gpu.backend.ogl3.OGL3Renderer($_resourceEvents, $_displayEvents, $_windowConfig, $_rendererConfig.ogl3);
             case 'd3d11' : macro new uk.aidanlee.flurry.api.gpu.backend.d3d11.D3D11Renderer($_resourceEvents, $_displayEvents, $_windowConfig, $_rendererConfig.dx11);
             case other   : Context.error('unknown value of $other for flurry-gpu-api', Context.currentPos());
         }
@@ -72,6 +72,23 @@ macro function buildGraphicsContextOutputs() : Array<Field>
                     meta   : [],
                     access : [ APublic, AFinal ],
                     kind   : FVar(macro : uk.aidanlee.flurry.api.gpu.backend.d3d11.output.IndexOutput),
+                    pos    : Context.currentPos()
+                });
+            case 'ogl3':
+                fields.push({
+                    name   : 'vtxOutput',
+                    doc    : null,
+                    meta   : [],
+                    access : [ APublic, AFinal ],
+                    kind   : FVar(macro : uk.aidanlee.flurry.api.gpu.backend.ogl3.output.VertexOutput),
+                    pos    : Context.currentPos()
+                });
+                fields.push({
+                    name   : 'idxOutput',
+                    doc    : null,
+                    meta   : [],
+                    access : [ APublic, AFinal ],
+                    kind   : FVar(macro : uk.aidanlee.flurry.api.gpu.backend.ogl3.output.IndexOutput),
                     pos    : Context.currentPos()
                 });
             case other:
