@@ -214,7 +214,26 @@ class OGL3Renderer extends Renderer
 
 	public function updateTexture(_frame : PageFrameResource, _data : ArrayBufferView)
     {
-        //
+        switch textureResources.get(_frame.page)
+        {
+            case null:
+                //
+            case glObject:
+                final src = cpp.Pointer.arrayElem(_data.buffer.getData(), _data.byteOffset);
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, glObject);
+                glTexSubImage2D(
+                    GL_TEXTURE_2D,
+                    0,
+                    _frame.x,
+                    _frame.y,
+                    _frame.width,
+                    _frame.height,
+                    GL_RGBA,
+                    GL_UNSIGNED_BYTE,
+                    cast src.ptr);
+        }
     }
 
 	function createShader(_resource : ShaderResource)
