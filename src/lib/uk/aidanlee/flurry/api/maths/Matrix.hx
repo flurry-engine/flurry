@@ -123,13 +123,17 @@ inline function makeCentredFrustumRH(_left : Float, _right : Float, _top : Float
 
 overload extern inline function makeFrustumOpenGL(_left : Float, _right : Float, _top : Float, _bottom : Float, _near : Float, _far : Float)
 {
-    final a = (2 * _near) / (_right - _left);
-    final b = (2 * _near) / (_top - _bottom);
-    final c = (_right + _left) / (_right - _left);
-    final d = (_top + _bottom) / (_top - _bottom);
-    final e = - (_far + _near) / (_far - _near);
-    final f = -1;
-    final g = - (2 * _far * _near) / (_far - _near);
+    final a =  2 / (_right - _left);
+    final b =  2 / (_top - _bottom);
+    final c = 2 / (_far - _near);
+    final x = - (_right + _left) / (_right - _left);
+    final y = - (_top + _bottom) / (_top - _bottom);
+    final z = - (_far + _near) / (_far - _near);
 
-    return mat4(1);
+    return mat4(
+        a, 0, 0, 0,
+        0, b, 0, 0,
+        0, 0, c, 0,
+        x, y, z, 1
+    );
 }
