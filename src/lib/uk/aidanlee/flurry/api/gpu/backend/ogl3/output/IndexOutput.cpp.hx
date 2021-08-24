@@ -24,22 +24,6 @@ import opengl.OpenGL.*;
      */
     var shortCursor : Int;
 
-    /**
-     * The total number of indices written into the mapped gpu buffer since the last map.
-     */
-    var shortsWritten : Int;
-
-    /**
-     * The number of indices written into the pointer during the last map.
-     * This is reset at a seek as the index buffer is rebound with an offset.
-     */
-    var baseIndex : Int;
-
-    /**
-     * If the next map should be a discard map.
-     */
-    var discard : Bool;
-
     public function new(_buffer, _length)
     {
         buffer        = _buffer;
@@ -47,9 +31,6 @@ import opengl.OpenGL.*;
         indexOffset   = 0;
         shortPointer  = null;
         shortCursor   = 0;
-        shortsWritten = 0;
-        baseIndex     = 0;
-        discard       = true;
     }
 
     /**
@@ -59,10 +40,7 @@ import opengl.OpenGL.*;
      */
     public function reset()
     {
-        shortsWritten = 0;
-        baseIndex     = 0;
-
-        return shortCursor;
+        shortCursor = 0;
     }
 
     /**
@@ -79,13 +57,10 @@ import opengl.OpenGL.*;
      */
     public function map()
     {
-        final flag = if (discard) GL_MAP_INVALIDATE_BUFFER_BIT else GL_MAP_UNSYNCHRONIZED_BIT;
-        final ptr  = glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, length, GL_MAP_WRITE_BIT | flag);
+        final ptr = glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, length, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-        baseIndex     = shortsWritten;
-        shortsWritten = 0;
+        shortCursor   = 0;
         shortPointer  = (cast ptr : cpp.RawPointer<cpp.UInt16>);
-        discard       = false;
     }
 
     /**
@@ -93,8 +68,6 @@ import opengl.OpenGL.*;
      */
     public function unmap()
     {
-        shortsWritten = 0;
-
         glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
     }
 
@@ -103,20 +76,12 @@ import opengl.OpenGL.*;
      */
     public function close()
     {
-        shortCursor   = 0;
-        shortsWritten = 0;
-        baseIndex     = 0;
-        discard       = true;
+        shortCursor = 0;
     }
 
     public function getIndicesWritten()
     {
-        return shortsWritten;
-    }
-
-    public function getBaseIndex()
-    {
-        return baseIndex;
+        return shortCursor;
     }
 
     public function write(_v : Int)
@@ -124,6 +89,5 @@ import opengl.OpenGL.*;
         shortPointer[shortCursor] = indexOffset + _v;
 
         shortCursor++;
-        shortsWritten++;
     }
 }

@@ -87,8 +87,8 @@ class OGL3GraphicsContext extends GraphicsContext
                                 flush();
                                 map();
 
-                                final vtxOffset = vtxOutput.seek(shader.byteStride);
-                                baseIdxOffset   = idxOutput.reset();
+                                vtxOutput.seek(shader.byteStride);
+                                idxOutput.reset();
 
                                 for (element in shader.elements)
                                 {
@@ -99,7 +99,7 @@ class OGL3GraphicsContext extends GraphicsContext
                                         GL_FLOAT,
                                         false,
                                         shader.byteStride,
-                                        (vtxOffset + element.byteOffset));
+                                        element.byteOffset);
                                 }
 
                                 glUseProgram(shader.program);
@@ -114,6 +114,17 @@ class OGL3GraphicsContext extends GraphicsContext
                                 else
                                 {
                                     glDisable(GL_BLEND);
+                                }
+
+                                if (pipeline.depth.enabled)
+                                {
+                                    glEnable(GL_DEPTH_TEST);
+                                    glDepthFunc(getDepthFunction(pipeline.depth.func));
+                                    glDepthMask(pipeline.depth.masking);
+                                }
+                                else
+                                {
+                                    glDisable(GL_DEPTH_TEST);
                                 }
 
                                 currentShader  = pipeline.shader;
@@ -142,7 +153,7 @@ class OGL3GraphicsContext extends GraphicsContext
 
                 if (shader.matrixLocation != -1)
                 {
-                    final proj     = makeCentredFrustumRH(0, _camera.size.x, _camera.size.y, 0, -100, 100);
+                    final proj     = makeFrustumOpenGL(0, _camera.size.x, _camera.size.y, 0, -100, 100);
                     final view     = make2D(_camera.pos, _camera.origin, _camera.scale, _camera.angle).inverse();
                     final combined = proj * view;
                     
@@ -247,7 +258,7 @@ class OGL3GraphicsContext extends GraphicsContext
 
 	public function prepare()
     {
-        idxOutput.offset(baseIdxOffset + vtxOutput.getVerticesWritten());
+        idxOutput.offset(vtxOutput.getVerticesWritten());
     }
 
 	public function flush()
@@ -260,10 +271,7 @@ class OGL3GraphicsContext extends GraphicsContext
 
             unmap();
 
-            final baseVtx = vtxOutput.getBaseVertex();
-            final baseIdx = idxOutput.getBaseIndex();
-
-            glDrawElementsBaseVertex(GL_TRIANGLES, idxCount, GL_UNSIGNED_SHORT, baseIdx, baseVtx);
+            glDrawElements(GL_TRIANGLES, idxCount, GL_UNSIGNED_SHORT, 0);
 
             prepare();
         }
@@ -277,6 +285,8 @@ class OGL3GraphicsContext extends GraphicsContext
         idxOutput.close();
         uniformOutput.close();
 
+        currentPage    = ResourceID.invalid;
+        currentShader  = ResourceID.invalid;
         currentSurface = SurfaceID.backbuffer;
         baseIdxOffset  = 0;
 

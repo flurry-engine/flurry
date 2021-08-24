@@ -108,6 +108,7 @@ class OGL3Renderer extends Renderer
         // Set some openGL state which will remain constant.
         glClearDepth(1);
         glClearStencil(0);
+        glBlendColor(1, 1, 1, 1);
 
         surfaces[SurfaceID.backbuffer] = createBackBuffer(_windowConfig.width, _windowConfig.height);
 
