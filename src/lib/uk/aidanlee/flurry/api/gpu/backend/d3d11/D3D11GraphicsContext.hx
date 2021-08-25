@@ -66,7 +66,7 @@ class D3D11GraphicsContext extends GraphicsContext
         shaders             = _shaders;
         textures            = _textures;
         unfOutput           = new UniformOutput(context, _unfBuffer);
-        unfCameraBlob       = new UniformBlob('flurry_matrices', new ArrayBufferView(192), []);
+        unfCameraBlob       = new UniformBlob('flurry_matrices', new ArrayBufferView(64), []);
         nativeView          = new D3d11Viewport();
         currentUniformBlobs = new Vector(15);
         currentShader       = ResourceID.invalid;
@@ -109,7 +109,7 @@ class D3D11GraphicsContext extends GraphicsContext
                                 context.psSetShader(shader.pixelShader, null);
 
                                 context.omSetDepthStencilState(pipeline.depthStencilState, 1);
-                                context.omSetBlendState(pipeline.blendState, [ 1, 1, 1, 1 ], 0xffffffff);
+                                context.omSetBlendState(pipeline.blendState, null, 0xffffffff);
                                 context.iaSetPrimitiveTopology(pipeline.primitive);
 
                                 currentShader  = pipeline.shader;
@@ -134,6 +134,8 @@ class D3D11GraphicsContext extends GraphicsContext
                 nativeView.topLeftY = _camera.viewport.y;
                 nativeView.width    = _camera.viewport.z;
                 nativeView.height   = _camera.viewport.w;
+                nativeView.minDepth = 0;
+                nativeView.maxDepth = 1;
                 context.rsSetViewport(nativeView);
 
                 switch shader.findVertexBlockLocation('flurry_matrices')
@@ -258,8 +260,6 @@ class D3D11GraphicsContext extends GraphicsContext
 
             // Ensure the buffers are unmapped and changes visible to the GPU.
             unmap();
-
-            // TODO : Attach all textures to their appropriate position.
 
             // Unindexed draws are not supported.
             final baseVtx = vtxOutput.getBaseVertex();

@@ -10,10 +10,19 @@ import haxe.ds.Vector;
  */
 class D3D11ShaderInformation
 {
+    /**
+     * Names of all cbuffers in the vertex stage.
+     */
     public final vertBlocks : Vector<String>;
 
+    /**
+     * Names of all cbuffers in the fragment stage.
+     */
     public final fragBlocks : Vector<String>;
 
+    /**
+     * Number of textures / samplers used in the fragment stage.
+     */
     public final textures : Int;
 
     /**
@@ -47,6 +56,11 @@ class D3D11ShaderInformation
         inputStride  = _inputStride;
     }
 
+    /**
+     * Find the location of a cbuffer in the vertex stage given its name.
+     * @param _name Name of the cbuffer.
+     * @returns Location of the cbuffer, or -1 if it was not found.
+     */
     public function findVertexBlockLocation(_name : String)
     {
         for (i in 0...vertBlocks.length)

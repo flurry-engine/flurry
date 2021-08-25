@@ -392,16 +392,21 @@ using cpp.NativeArray;
         createBackbufferSurface(_windowConfig.width, _windowConfig.height);
     }
 
+    /**
+     * Returns the D3D11 renderer context which allows setting the state of the ID3D11DeviceContext and uploading vertex and index data.
+     * Calling this function also clears all surfaces. The texture attachment gets set to white, the depth buffer gets 1 written,
+     * and the stencil gets 0 written. The backbuffer texture attachment is set to the clear colour instead.
+     */
     public function getGraphicsContext()
     {
         // Surface 0 is the backbuffer and should be cleared with a different colour.
-        for (i in 1...surfaces.length)
+        for (i in 0...surfaces.length)
         {
             switch surfaces[i]
             {
                 case null:
                     //
-                case surface:
+                case surface if (i != SurfaceID.backbuffer):
                     context.clearRenderTargetView(surface.surfaceRenderView, surfaceClearColour);
                     context.clearDepthStencilView(surface.depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
             }
@@ -422,6 +427,9 @@ using cpp.NativeArray;
         return graphicsContext;
     }
 
+    /**
+     * Present the swapchains texture. Do not attempt to do any vsync.
+     */
     public function present()
     {
         if (swapchain.present1(0, 0, presentParameters) != Ok)
@@ -430,6 +438,17 @@ using cpp.NativeArray;
         }
     }
 
+    /**
+	 * Given a pipeline state create ID3D11 objects which match the request.
+     * An ID representing the created state object is returned.
+     * 
+     * TODO :
+     * In the future a lot of the created ID3D11 objects should be cached and re-used between pipelines.
+     * The majority of pipelines are probably going to use the same blend and depth / stencil settings,
+     * we don't need to create new ID3D11 objects for all of them.
+     * 
+	 * @param _state Object holding the required state of the new pipeline.
+	 */
 	public function createPipeline(_state : PipelineState)
     {
         final id         = new PipelineID(getNextPipelineID());
@@ -490,12 +509,16 @@ using cpp.NativeArray;
 		return id;
 	}
 
+	/**
+	 * Delete a pipeline by releasing all native ID3D11 objects.
+	 * @param _id ID of the pipeline to delete.
+	 */
 	public function deletePipeline(_id : PipelineID)
     {
         switch pipelines[_id]
         {
             case null:
-                // Pipeline does not exist.
+                // Pipeline does not exist, should we throw instead?
             case pipeline:
                 pipeline.blendState.release();
                 pipeline.depthStencilState.release();
@@ -504,6 +527,13 @@ using cpp.NativeArray;
         }
     }
 
+    /**
+     * Create all the ID3D11 objects required for drawing to an off screen target.
+     * Surfaces are currently always created with a depth and stencil buffer and the texture
+     * is RGBA format.
+     * @param _width Width of the surface.
+     * @param _height Height of the surface.
+     */
     public function createSurface(_width : Int, _height : Int)
     {
         final id = getNextSurfaceID();
@@ -576,6 +606,10 @@ using cpp.NativeArray;
         return new SurfaceID(id);
     }
 
+    /**
+     * Delete a surface by releasing all native ID3D11 objects.
+     * @param _id ID of the surface to delete.
+     */
     public function deleteSurface(_id : SurfaceID)
     {
         switch surfaces[_id]

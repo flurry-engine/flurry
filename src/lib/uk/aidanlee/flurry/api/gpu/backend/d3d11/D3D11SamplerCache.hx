@@ -12,10 +12,20 @@ using Safety;
 
 class D3D11SamplerCache
 {
+    /**
+     * D3D11 device samplers will be created using.
+     */
     final device : D3d11Device1;
 
+    /**
+     * Reusable description object used for creating samplers.
+     * Allows samplers to be created without any gc allocations.
+     */
     final description : D3d11SamplerDescription;
 
+    /**
+     * All samplers currently created, keyed by their corresponding state.
+     */
     final samplers : Map<SamplerState, D3d11SamplerState>;
 
     public function new(_device)
@@ -31,7 +41,7 @@ class D3D11SamplerCache
      * @param _state State to get a sampler for
      * @throws Exception If creating the D3D11 sampler state fails.
      */
-    public function get(_state : SamplerState)
+    public function get(_state)
     {
         return switch samplers.get(_state)
         {
