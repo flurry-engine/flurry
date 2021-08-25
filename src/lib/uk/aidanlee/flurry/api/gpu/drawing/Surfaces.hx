@@ -1,6 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.drawing;
 
 import VectorMath;
+import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.maths.Matrix;
 

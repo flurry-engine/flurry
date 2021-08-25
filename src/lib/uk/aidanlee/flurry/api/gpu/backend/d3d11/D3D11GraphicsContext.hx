@@ -7,6 +7,7 @@ import haxe.ds.Vector;
 import haxe.io.ArrayBufferView;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
+import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.gpu.backend.d3d11.D3D11Conversions;
@@ -87,7 +88,7 @@ class D3D11GraphicsContext extends GraphicsContext
                 {
                     case null:
                         throw new Exception('No surface with an ID of ${ pipeline.surface } was found');
-                    case target:
+                    case surface:
                         switch shaders.get(pipeline.shader)
                         {
                             case null:
@@ -101,7 +102,7 @@ class D3D11GraphicsContext extends GraphicsContext
 
                                 // Set D3D state according to the pipeline.
                                 // TODO: We should do our own state tracking to avoid re-setting expensive state.
-                                context.omSetRenderTarget(target.surfaceRenderView, target.depthStencilView);
+                                context.omSetRenderTarget(surface.surfaceRenderView, surface.depthStencilView);
                                 context.iaSetVertexBuffer(0, vtxOutput.buffer, shader.inputStride, vtxOffset);
                                 context.iaSetIndexBuffer(idxOutput.buffer, R16UInt, idxOffset);
                                 context.iaSetInputLayout(shader.inputLayout);

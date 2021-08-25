@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend.ogl3;
 
+import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
+import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceState;
 import uk.aidanlee.flurry.api.gpu.backend.ogl3.OGL3ShaderInformation.OGL3ShaderInputElement;
 import uk.aidanlee.flurry.api.gpu.pipeline.VertexElement.VertexType;
 import haxe.ds.Vector;
@@ -110,7 +112,12 @@ class OGL3Renderer extends Renderer
         glClearStencil(0);
         glBlendColor(1, 1, 1, 1);
 
-        surfaces[SurfaceID.backbuffer] = createBackBuffer(_windowConfig.width, _windowConfig.height);
+        surfaces[SurfaceID.backbuffer] = createRenderTarget({
+            width              : _windowConfig.width,
+            height             : _windowConfig.height,
+            volatile           : true,
+            depthStencilBuffer : true
+        });
 
         graphicsContext = new OGL3GraphicsContext(
             new VertexOutput(glVertexBuffer, _rendererConfig.vertexBufferSize),
@@ -133,7 +140,7 @@ class OGL3Renderer extends Renderer
             {
                 case null:
                     //
-                case surface if (i != SurfaceID.backbuffer):
+                case surface if (i != SurfaceID.backbuffer && surface.volatile):
                     glBindFramebuffer(GL_FRAMEBUFFER, surface.frameBuffer);
                     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
             }
@@ -189,11 +196,11 @@ class OGL3Renderer extends Renderer
         pipelines[_id] = null;
     }
 
-	public function createSurface(_width : Int, _height : Int)
+	public function createSurface(_state : SurfaceState)
     {
         final id = getNextSurfaceID();
         
-        surfaces[id] = createBackBuffer(_width, _height);
+        surfaces[id] = createRenderTarget(_state);
 
 		return new SurfaceID(id);
 	}
@@ -361,7 +368,7 @@ class OGL3Renderer extends Renderer
         }
     }
 
-    static function createBackBuffer(_width : Int, _height : Int)
+    static function createRenderTarget(_state : SurfaceState)
     {
         // Create a texture for our backbuffer.
         final tex = 0;
@@ -369,13 +376,16 @@ class OGL3Renderer extends Renderer
         glBindTexture(GL_TEXTURE_2D, tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _width, _height, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _state.width, _state.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
 
         // Create a depth and stencil texture for our backbuffer.
         final rbo = 0;
-        glGenRenderbuffers(1, rbo);
-        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, _width, _height);
+        if (_state.depthStencilBuffer)
+        {
+            glGenRenderbuffers(1, rbo);
+            glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, _state.width, _state.height);
+        }
 
         // Create a framebuffer with the above colour, depth, and stencil texture attached.
         final fbo = 0;
@@ -389,7 +399,7 @@ class OGL3Renderer extends Renderer
             throw new Exception('Backbuffer framebuffer is not complete');
         }
 
-        return new OGL3SurfaceInformation(tex, rbo, fbo, _width, _height);
+        return new OGL3SurfaceInformation(tex, rbo, fbo, _state.volatile, _state.depthStencilBuffer, _state.width, _state.height);
     }
 
     function getNextPipelineID()

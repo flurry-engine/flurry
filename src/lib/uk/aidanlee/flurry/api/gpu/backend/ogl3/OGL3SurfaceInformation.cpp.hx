@@ -8,15 +8,21 @@ class OGL3SurfaceInformation
 
     public final frameBuffer : Int;
 
+    public final volatile : Bool;
+
+    public final depthStencil : Bool;
+
     public final width : Int;
 
     public final height : Int;
 
-    public function new(_texture, _renderBuffer, _frameBuffer, _width, _height)
+    public function new(_texture, _renderBuffer, _frameBuffer, _volatile, _depthStencil, _width, _height)
     {
         texture      = _texture;
         renderBuffer = _renderBuffer;
         frameBuffer  = _frameBuffer;
+        volatile     = _volatile;
+        depthStencil = _depthStencil;
         width        = _width;
         height       = _height;
     }

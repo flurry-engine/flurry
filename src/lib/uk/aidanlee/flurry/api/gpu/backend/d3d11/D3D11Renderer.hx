@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
+import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
+import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceState;
 import d3d11.constants.D3d11Error;
 import haxe.io.ArrayBufferView;
 import uk.aidanlee.flurry.api.resources.builtin.ShaderResource;
@@ -406,7 +408,7 @@ using cpp.NativeArray;
             {
                 case null:
                     //
-                case surface if (i != SurfaceID.backbuffer):
+                case surface if (i != SurfaceID.backbuffer && surface.volatile):
                     context.clearRenderTargetView(surface.surfaceRenderView, surfaceClearColour);
                     context.clearDepthStencilView(surface.depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
             }
@@ -531,17 +533,16 @@ using cpp.NativeArray;
      * Create all the ID3D11 objects required for drawing to an off screen target.
      * Surfaces are currently always created with a depth and stencil buffer and the texture
      * is RGBA format.
-     * @param _width Width of the surface.
-     * @param _height Height of the surface.
+     * @param _state 
      */
-    public function createSurface(_width : Int, _height : Int)
+    public function createSurface(_state : SurfaceState)
     {
         final id = getNextSurfaceID();
 
         // Create an empty texture and the structures needed to render to it.
         final imgDesc = new D3d11Texture2DDescription();
-        imgDesc.width              = _width;
-        imgDesc.height             = _height;
+        imgDesc.width              = _state.width;
+        imgDesc.height             = _state.height;
         imgDesc.mipLevels          = 1;
         imgDesc.arraySize          = 1;
         imgDesc.format             = R8G8B8A8UNorm;
@@ -570,38 +571,50 @@ using cpp.NativeArray;
             throw new Exception('ID3D11RenderTargetView');
         }
 
-        // Now create a depth texture for the target
-        final depthTextureDesc = new D3d11Texture2DDescription();
-        depthTextureDesc.width              = _width;
-        depthTextureDesc.height             = _height;
-        depthTextureDesc.mipLevels          = 1;
-        depthTextureDesc.arraySize          = 1;
-        depthTextureDesc.format             = D32FloatS8X24UInt;
-        depthTextureDesc.sampleDesc.count   = 1;
-        depthTextureDesc.sampleDesc.quality = 0;
-        depthTextureDesc.usage              = Default;
-        depthTextureDesc.bindFlags          = DepthStencil;
-        depthTextureDesc.cpuAccessFlags     = 0;
-        depthTextureDesc.miscFlags          = 0;
-
         final depthStencilTexture = new D3d11Texture2D();
-        if (device.createTexture2D(depthTextureDesc, null, depthStencilTexture) != 0)
+        final depthStencilView    = new D3d11DepthStencilView();
+
+        if (_state.depthStencilBuffer)
         {
-            throw new Exception('ID3D11Texture2D');
+            // Now create a depth texture for the target
+            final depthTextureDesc = new D3d11Texture2DDescription();
+            depthTextureDesc.width              = _state.width;
+            depthTextureDesc.height             = _state.height;
+            depthTextureDesc.mipLevels          = 1;
+            depthTextureDesc.arraySize          = 1;
+            depthTextureDesc.format             = D32FloatS8X24UInt;
+            depthTextureDesc.sampleDesc.count   = 1;
+            depthTextureDesc.sampleDesc.quality = 0;
+            depthTextureDesc.usage              = Default;
+            depthTextureDesc.bindFlags          = DepthStencil;
+            depthTextureDesc.cpuAccessFlags     = 0;
+            depthTextureDesc.miscFlags          = 0;
+           
+            if (device.createTexture2D(depthTextureDesc, null, depthStencilTexture) != 0)
+            {
+                throw new Exception('ID3D11Texture2D');
+            }
+    
+            final depthStencilViewDescription = new D3d11DepthStencilViewDescription();
+            depthStencilViewDescription.format             = D32FloatS8X24UInt;
+            depthStencilViewDescription.viewDimension      = Texture2D;
+            depthStencilViewDescription.texture2D.mipSlice = 0;
+    
+            if (device.createDepthStencilView(depthStencilTexture, depthStencilViewDescription, depthStencilView) != 0)
+            {
+                throw new Exception('ID3D11DepthStencilView');
+            }
         }
 
-        final depthStencilViewDescription = new D3d11DepthStencilViewDescription();
-        depthStencilViewDescription.format             = D32FloatS8X24UInt;
-        depthStencilViewDescription.viewDimension      = Texture2D;
-        depthStencilViewDescription.texture2D.mipSlice = 0;
-
-        final depthStencilView = new D3d11DepthStencilView();
-        if (device.createDepthStencilView(depthStencilTexture, depthStencilViewDescription, depthStencilView) != 0)
-        {
-            throw new Exception('ID3D11DepthStencilView');
-        }
-
-        surfaces[id] = new D3D11SurfaceInformation(texture, shaderView, targetView, depthStencilTexture, depthStencilView);
+        surfaces[id] =
+            new D3D11SurfaceInformation(
+                _state.volatile,
+                _state.depthStencilBuffer,
+                texture,
+                shaderView,
+                targetView,
+                depthStencilTexture,
+                depthStencilView);
 
         return new SurfaceID(id);
     }
@@ -845,7 +858,15 @@ using cpp.NativeArray;
             throw new Exception('ID3D11DepthStencilView');
         }
 
-        surfaces[SurfaceID.backbuffer] = new D3D11SurfaceInformation(swapchainTexture, null, backbufferRenderTargetView, depthStencilTexture, depthStencilView);
+        surfaces[SurfaceID.backbuffer] =
+            new D3D11SurfaceInformation(
+                true,
+                true,
+                swapchainTexture,
+                null,
+                backbufferRenderTargetView,
+                depthStencilTexture,
+                depthStencilView);
     }
 
     function getNextPipelineID()

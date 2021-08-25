@@ -7,9 +7,9 @@ import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.gpu.Colour;
 import uk.aidanlee.flurry.api.gpu.ShaderID;
-import uk.aidanlee.flurry.api.gpu.SurfaceID;
 import uk.aidanlee.flurry.api.gpu.GraphicsContext;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
+import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
 import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.input.Keycodes;
@@ -57,7 +57,7 @@ class Frames extends Flurry
 
     override function onReady()
     {
-        surface  = renderer.createSurface(128, 128);
+        surface  = renderer.createSurface({ width : 128, height : 128 });
         pipeline = renderer.createPipeline({ shader: new ShaderID(Shaders.textured) });
         colour   = renderer.createPipeline({ shader: new ShaderID(Shaders.colourise) });
         format   = renderer.createPipeline({ shader: new ShaderID(Shaders.format) });

@@ -3,6 +3,7 @@ package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 import d3d11.interfaces.D3d11BlendState;
 import d3d11.interfaces.D3d11DepthStencilState;
 import d3d11.enumerations.D3d11PrimitiveTopology;
+import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
 
 class D3D11PipelineState
 {

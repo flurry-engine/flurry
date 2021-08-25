@@ -1,4 +1,4 @@
-package uk.aidanlee.flurry.api.gpu;
+package uk.aidanlee.flurry.api.gpu.surfaces;
 
 abstract SurfaceID(Int) to Int
 {

@@ -7,6 +7,10 @@ import d3d11.interfaces.D3d11ShaderResourceView;
 
 class D3D11SurfaceInformation
 {
+    public final volatile : Bool;
+
+    public final depthStencilBuffer : Bool;
+
     public final surfaceTexture : D3d11Texture2D;
 
     public final surfaceView : D3d11ShaderResourceView;
@@ -17,8 +21,10 @@ class D3D11SurfaceInformation
 
     public final depthStencilView : D3d11DepthStencilView;
 
-    public function new(_surfaceTexture, _surfaceView, _surfaceRenderView, _depthStencilTexture, _depthStencilView)
+    public function new(_volatile, _depthStencilBuffer, _surfaceTexture, _surfaceView, _surfaceRenderView, _depthStencilTexture, _depthStencilView)
     {
+        volatile            = _volatile;
+        depthStencilBuffer  = _depthStencilBuffer;
         surfaceTexture      = _surfaceTexture;
         surfaceView         = _surfaceView;
         surfaceRenderView   = _surfaceRenderView;
