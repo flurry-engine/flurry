@@ -36,6 +36,8 @@ class OGL3GraphicsContext extends GraphicsContext
 
     final currentUniformBlobs : Vector<Null<UniformBlob>>;
 
+    final scissor : Vec4;
+
     var currentShader : ResourceID;
 
     var currentPage : ResourceID;
@@ -60,6 +62,7 @@ class OGL3GraphicsContext extends GraphicsContext
         textures       = _textures;
         samplers       = new OGL3SamplerCache();
         currentUniformBlobs = new Vector(16);
+        scissor        = vec4(0);
         currentShader  = ResourceID.invalid;
         currentPage    = ResourceID.invalid;
         currentSurface = SurfaceID.backbuffer;
@@ -79,7 +82,7 @@ class OGL3GraphicsContext extends GraphicsContext
                 {
                     case null:
                         throw new Exception('No shader with an ID of ${ pipeline.shader } was found');
-                    case target:
+                    case surface:
                         switch shaders.get(pipeline.shader)
                         {
                             case null:
@@ -104,7 +107,7 @@ class OGL3GraphicsContext extends GraphicsContext
                                 }
 
                                 glUseProgram(shader.program);
-                                glBindFramebuffer(GL_FRAMEBUFFER, target.frameBuffer);
+                                glBindFramebuffer(GL_FRAMEBUFFER, surface.frameBuffer);
 
                                 if (pipeline.blend.enabled)
                                 {
@@ -126,6 +129,18 @@ class OGL3GraphicsContext extends GraphicsContext
                                 else
                                 {
                                     glDisable(GL_DEPTH_TEST);
+                                }
+
+                                switch surfaces[SurfaceID.backbuffer]
+                                {
+                                    case null:
+                                        throw new Exception('backbuffer not found');
+                                    case backbuffer:
+                                        glScissor(0, 0, backbuffer.state.width, backbuffer.state.height);
+                                        scissor.x = 0;
+                                        scissor.y = 0;
+                                        scissor.z = backbuffer.state.width;
+                                        scissor.w = backbuffer.state.height;
                                 }
 
                                 currentShader  = pipeline.shader;
@@ -255,6 +270,20 @@ class OGL3GraphicsContext extends GraphicsContext
                         currentUniformBlobs[binding] = _blob;
                 }
         }
+    }
+
+    public function useScissorRegion(_x : Int, _y : Int, _width : Int, _height : Int)
+    {
+        if (vec4(_x, _y, _width, _height) == scissor)
+        {
+            return;
+        }
+
+        glScissor(_x, _y, _width, _height);
+        scissor.x = _x;
+        scissor.y = _y;
+        scissor.z = _width;
+        scissor.w = _height;
     }
 
 	public function prepare()

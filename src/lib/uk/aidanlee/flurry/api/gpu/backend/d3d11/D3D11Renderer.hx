@@ -321,7 +321,7 @@ using cpp.NativeArray;
         rasterDescription.depthBias             = 0;
         rasterDescription.slopeScaledDepthBias  = 0;
         rasterDescription.depthBiasClamp        = 0;
-        rasterDescription.scissorEnable         = false;
+        rasterDescription.scissorEnable         = true;
         rasterDescription.depthClipEnable       = false;
         rasterDescription.multisampleEnable     = false;
         rasterDescription.antialiasedLineEnable = false;
@@ -408,7 +408,7 @@ using cpp.NativeArray;
             {
                 case null:
                     //
-                case surface if (i != SurfaceID.backbuffer && surface.volatile):
+                case surface if (i != SurfaceID.backbuffer && surface.state.volatile):
                     context.clearRenderTargetView(surface.surfaceRenderView, surfaceClearColour);
                     context.clearDepthStencilView(surface.depthStencilView, D3d11ClearFlag.Depth | D3d11ClearFlag.Stencil, 1, 0);
             }
@@ -608,8 +608,7 @@ using cpp.NativeArray;
 
         surfaces[id] =
             new D3D11SurfaceInformation(
-                _state.volatile,
-                _state.depthStencilBuffer,
+                _state,
                 texture,
                 shaderView,
                 targetView,
@@ -860,8 +859,7 @@ using cpp.NativeArray;
 
         surfaces[SurfaceID.backbuffer] =
             new D3D11SurfaceInformation(
-                true,
-                true,
+                { width : _backbufferWidth, height : _backbufferHeight },
                 swapchainTexture,
                 null,
                 backbufferRenderTargetView,

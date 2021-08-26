@@ -26,6 +26,8 @@ abstract class GraphicsContext
 
     public abstract function useUniformBlob(_blob : UniformBlob) : Void;
 
+    public abstract function useScissorRegion(_x : Int, _y : Int, _width : Int, _height : Int) : Void;
+
     public abstract function prepare() : Void;
 
     public abstract function flush() : Void;

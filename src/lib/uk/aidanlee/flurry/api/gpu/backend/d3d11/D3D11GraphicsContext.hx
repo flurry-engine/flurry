@@ -1,7 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
 import Mat4;
-import VectorMath;
 import haxe.Exception;
 import haxe.ds.Vector;
 import haxe.io.ArrayBufferView;
@@ -16,8 +15,9 @@ import uk.aidanlee.flurry.api.gpu.backend.d3d11.output.VertexOutput;
 import uk.aidanlee.flurry.api.gpu.backend.d3d11.output.UniformOutput;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.resources.ResourceID;
-import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
+import d3d11.structures.D3d11Rect;
 import d3d11.structures.D3d11Viewport;
+import d3d11.interfaces.D3d11DeviceContext.D3d11DeviceContext1;
 
 using uk.aidanlee.flurry.api.utils.OutputUtils;
 
@@ -40,6 +40,8 @@ class D3D11GraphicsContext extends GraphicsContext
     final unfCameraBlob : UniformBlob;
 
     final nativeView : D3d11Viewport;
+
+    final nativeScissor : D3d11Rect;
 
     final currentUniformBlobs : Vector<Null<UniformBlob>>;
 
@@ -69,6 +71,7 @@ class D3D11GraphicsContext extends GraphicsContext
         unfOutput           = new UniformOutput(context, _unfBuffer);
         unfCameraBlob       = new UniformBlob('flurry_matrices', new ArrayBufferView(64), []);
         nativeView          = new D3d11Viewport();
+        nativeScissor       = new D3d11Rect();
         currentUniformBlobs = new Vector(15);
         currentShader       = ResourceID.invalid;
         currentPage         = ResourceID.invalid;
@@ -79,12 +82,12 @@ class D3D11GraphicsContext extends GraphicsContext
 
 	public function usePipeline(_id : PipelineID)
     {
-        switch pipelines.get(_id)
+        switch pipelines[_id]
         {
             case null:
                 throw new Exception('No pipeline with an ID of $_id was found.');
             case pipeline:
-                switch surfaces.get(pipeline.surface)
+                switch surfaces[pipeline.surface]
                 {
                     case null:
                         throw new Exception('No surface with an ID of ${ pipeline.surface } was found');
@@ -102,16 +105,32 @@ class D3D11GraphicsContext extends GraphicsContext
 
                                 // Set D3D state according to the pipeline.
                                 // TODO: We should do our own state tracking to avoid re-setting expensive state.
-                                context.omSetRenderTarget(surface.surfaceRenderView, surface.depthStencilView);
                                 context.iaSetVertexBuffer(0, vtxOutput.buffer, shader.inputStride, vtxOffset);
                                 context.iaSetIndexBuffer(idxOutput.buffer, R16UInt, idxOffset);
                                 context.iaSetInputLayout(shader.inputLayout);
+                                context.iaSetPrimitiveTopology(pipeline.primitive);
+
                                 context.vsSetShader(shader.vertexShader, null);
                                 context.psSetShader(shader.pixelShader, null);
 
+                                context.omSetRenderTarget(surface.surfaceRenderView, surface.depthStencilView);
                                 context.omSetDepthStencilState(pipeline.depthStencilState, 1);
                                 context.omSetBlendState(pipeline.blendState, null, 0xffffffff);
-                                context.iaSetPrimitiveTopology(pipeline.primitive);
+
+                                // Reset the clip state to fit the backbuffer
+                                switch surfaces[SurfaceID.backbuffer]
+                                {
+                                    case null:
+                                        throw new Exception('Backbuffer surface not found');
+                                    case backbuffer:
+                                        @:nullSafety(Off) {
+                                            nativeScissor.left   = 0;
+                                            nativeScissor.top    = 0;
+                                            nativeScissor.right  = backbuffer.state.width;
+                                            nativeScissor.bottom = backbuffer.state.height;
+                                            context.rsSetScissorRect(nativeScissor);
+                                        }
+                                }
 
                                 currentShader  = pipeline.shader;
                                 currentPage    = ResourceID.invalid;
@@ -243,6 +262,21 @@ class D3D11GraphicsContext extends GraphicsContext
                         currentUniformBlobs[location] = _blob;
                 }
         }
+    }
+
+    @:nullSafety(Off)
+    public function useScissorRegion(_x : Int, _y : Int, _width : Int, _height : Int)
+    {
+        if (nativeScissor.left == _x && nativeScissor.top == _y && nativeScissor.right == _width && nativeScissor.bottom == _height)
+        {
+            return;
+        }
+
+        nativeScissor.left = _x;
+        nativeScissor.top = _y;
+        nativeScissor.right = _width;
+        nativeScissor.bottom = _height;
+        context.rsSetScissorRect(nativeScissor);
     }
 
     public function prepare()

@@ -4,12 +4,11 @@ import d3d11.interfaces.D3d11Texture2D;
 import d3d11.interfaces.D3d11DepthStencilView;
 import d3d11.interfaces.D3d11RenderTargetView;
 import d3d11.interfaces.D3d11ShaderResourceView;
+import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceState;
 
 class D3D11SurfaceInformation
 {
-    public final volatile : Bool;
-
-    public final depthStencilBuffer : Bool;
+    public final state : SurfaceState;
 
     public final surfaceTexture : D3d11Texture2D;
 
@@ -21,14 +20,13 @@ class D3D11SurfaceInformation
 
     public final depthStencilView : D3d11DepthStencilView;
 
-    public function new(_volatile, _depthStencilBuffer, _surfaceTexture, _surfaceView, _surfaceRenderView, _depthStencilTexture, _depthStencilView)
+    public function new(_state, _texture, _resource, _target, _dsTexture, _dsView)
     {
-        volatile            = _volatile;
-        depthStencilBuffer  = _depthStencilBuffer;
-        surfaceTexture      = _surfaceTexture;
-        surfaceView         = _surfaceView;
-        surfaceRenderView   = _surfaceRenderView;
-        depthStencilTexture = _depthStencilTexture;
-        depthStencilView    = _depthStencilView;
+        state               = _state;
+        surfaceTexture      = _texture;
+        surfaceView         = _resource;
+        surfaceRenderView   = _target;
+        depthStencilTexture = _dsTexture;
+        depthStencilView    = _dsView;
     }
 }

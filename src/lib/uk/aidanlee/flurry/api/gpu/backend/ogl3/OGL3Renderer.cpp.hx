@@ -111,6 +111,7 @@ class OGL3Renderer extends Renderer
         glClearDepth(1);
         glClearStencil(0);
         glBlendColor(1, 1, 1, 1);
+        glEnable(GL_SCISSOR_TEST);
 
         surfaces[SurfaceID.backbuffer] = createRenderTarget({
             width              : _windowConfig.width,
@@ -140,7 +141,8 @@ class OGL3Renderer extends Renderer
             {
                 case null:
                     //
-                case surface if (i != SurfaceID.backbuffer && surface.volatile):
+                case surface if (i != SurfaceID.backbuffer && surface.state.volatile):
+                    glScissor(0, 0, surface.state.width, surface.state.height);
                     glBindFramebuffer(GL_FRAMEBUFFER, surface.frameBuffer);
                     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
             }
@@ -152,6 +154,7 @@ class OGL3Renderer extends Renderer
             case null:
                 throw new Exception('Backbuffer surface was null');
             case backbuffer:
+                glScissor(0, 0, backbuffer.state.width, backbuffer.state.height);
                 glClearColor(clearColour.x, clearColour.y, clearColour.z, clearColour.w);
                 glBindFramebuffer(GL_FRAMEBUFFER, backbuffer.frameBuffer);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -172,8 +175,8 @@ class OGL3Renderer extends Renderer
                 glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
                 glBindFramebuffer(GL_READ_FRAMEBUFFER, backbuffer.frameBuffer);
                 glBlitFramebuffer(
-                    0, 0, backbuffer.width, backbuffer.height,
-                    0, backbuffer.height, backbuffer.width, 0,
+                    0, 0, backbuffer.state.width, backbuffer.state.height,
+                    0, backbuffer.state.height, backbuffer.state.width, 0,
                     GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT,
                     GL_NEAREST
                 );
@@ -399,7 +402,7 @@ class OGL3Renderer extends Renderer
             throw new Exception('Backbuffer framebuffer is not complete');
         }
 
-        return new OGL3SurfaceInformation(tex, rbo, fbo, _state.volatile, _state.depthStencilBuffer, _state.width, _state.height);
+        return new OGL3SurfaceInformation(_state, tex, rbo, fbo);
     }
 
     function getNextPipelineID()
