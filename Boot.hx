@@ -76,7 +76,7 @@ class Flurry
             '-D', 'IGLOO_BUILTIN_SCRIPTS=$flurryDir/src/igloo/scripts',
             '-D', 'HAXE_OUTPUT_FILE=Igloo',
             '-m', 'igloo.Igloo',
-            '--macro', 'nullSafety(\\\"igloo\\\")',
+            '--no-traces',
             '--dce', 'no',
             '--cpp', buildDir
         ];
