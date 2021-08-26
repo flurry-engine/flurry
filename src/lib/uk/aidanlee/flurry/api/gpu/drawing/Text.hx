@@ -59,7 +59,7 @@ overload extern inline function drawText(_ctx : GraphicsContext, _font : FontRes
 
 overload extern inline function drawText(_ctx : GraphicsContext, _font : FontResource, _text : String, _pos : Vec2, _alignment : Vec2, _scale : Vec2, _angle : Float, _colour : Vec4)
 {
-    _ctx.usePage(_font.page, SamplerState.linear);
+    _ctx.usePage(0, _font.page, SamplerState.linear);
     _ctx.prepare();
 
     var x     = 0.0;

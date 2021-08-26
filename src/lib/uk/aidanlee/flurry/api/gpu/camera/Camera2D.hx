@@ -9,6 +9,7 @@ class Camera2D
     public final origin : Vec2;
 
     public final scale : Vec2;
+    
     public final size : Vec2;
 
     public final viewport : Vec4;

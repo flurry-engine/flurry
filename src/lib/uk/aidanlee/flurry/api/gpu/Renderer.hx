@@ -17,13 +17,10 @@ using hxrx.observables.Observables;
 
 abstract class Renderer
 {
-    public final api : RendererBackend;
-
     final resourceEvents : ResourceEvents;
 
     public function new(_resourceEvents)
     {
-        api            = getGraphicsApi();
         resourceEvents = _resourceEvents;
 
         resourceEvents

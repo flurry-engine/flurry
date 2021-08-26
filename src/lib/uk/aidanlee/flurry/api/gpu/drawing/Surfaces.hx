@@ -32,7 +32,7 @@ overload extern inline function drawSurface(_ctx : GraphicsContext, _surface : S
 
 overload extern inline function drawSurface(_ctx : GraphicsContext, _surface : SurfaceID, _pos : Vec2, _size : Vec2, _origin : Vec2, _scale : Vec2, _angle : Float, _colour : Vec4)
 {   
-    _ctx.useSurface(_surface, SamplerState.nearest);
+    _ctx.useSurface(0, _surface, SamplerState.nearest);
     _ctx.prepare();
 
     // Generate Transformation

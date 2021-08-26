@@ -46,7 +46,7 @@ overload extern inline function drawNineSlice(_ctx : GraphicsContext, _frame : P
 
 private inline function drawNineSliceTransformed(_ctx : GraphicsContext, _frame : PageFrameResource, _transform : Mat4, _size : Vec2, _slice : Vec4, _colour : Vec4)
 {
-    _ctx.usePage(_frame.page, SamplerState.nearest);
+    _ctx.usePage(0, _frame.page, SamplerState.nearest);
 
     final frameSize = vec2(_frame.width, _frame.height);
     final uvSize    = vec2(_frame.u2 - _frame.u1, _frame.v2 - _frame.v1);

@@ -40,15 +40,13 @@ class OGL3GraphicsContext extends GraphicsContext
 
     var currentShader : ResourceID;
 
-    var currentPage : ResourceID;
+    var currentPages : Vector<ResourceID>;
 
-    var currentSampler : SamplerState;
+    var currentSurfaces : Vector<SurfaceID>;
 
-    var currentSurface : SurfaceID;
+    var currentSamplers : Vector<SamplerState>;
 
     var mapped : Bool;
-
-    var baseIdxOffset : Int;
 
     public function new(_vtxOut, _idxOut, _unfOut, _pipelines, _surfaces, _shaders, _textures)
     {
@@ -62,13 +60,12 @@ class OGL3GraphicsContext extends GraphicsContext
         textures       = _textures;
         samplers       = new OGL3SamplerCache();
         currentUniformBlobs = new Vector(16);
-        scissor        = vec4(0);
-        currentShader  = ResourceID.invalid;
-        currentPage    = ResourceID.invalid;
-        currentSurface = SurfaceID.backbuffer;
-        currentSampler = SamplerState.nearest;
-        mapped         = false;
-        baseIdxOffset  = 0;
+        scissor         = vec4(0);
+        currentShader   = ResourceID.invalid;
+        currentPages    = new Vector(16);
+        currentSurfaces = new Vector(16);
+        currentSamplers = new Vector(16);
+        mapped          = false;
     }
 
 	public function usePipeline(_id : PipelineID)
@@ -143,9 +140,9 @@ class OGL3GraphicsContext extends GraphicsContext
                                         scissor.w = backbuffer.state.height;
                                 }
 
-                                currentShader  = pipeline.shader;
-                                currentPage    = ResourceID.invalid;
-                                currentSurface = SurfaceID.backbuffer;
+                                clearActiveSlots();
+
+                                currentShader = pipeline.shader;
                         }
                 }
         }
@@ -197,9 +194,9 @@ class OGL3GraphicsContext extends GraphicsContext
         }
     }
 
-	public function usePage(_id : ResourceID, _sampler : SamplerState)
+	public function usePage(_slot : Int, _id : ResourceID, _sampler : SamplerState)
     {
-        if (currentPage == _id && currentSampler == _sampler)
+        if (currentSurfaces[_slot] == SurfaceID.invalid && currentPages[_slot] == _id && currentSamplers[_slot] == _sampler)
         {
             return;
         }
@@ -212,19 +209,19 @@ class OGL3GraphicsContext extends GraphicsContext
                 flush();
                 map();
 
-                currentPage    = _id;
-                currentSampler = _sampler;
-                currentSurface = SurfaceID.backbuffer;
+                currentPages[_slot] = _id;
+                currentSamplers[_slot] = _sampler;
+                currentSurfaces[_slot] = SurfaceID.invalid;
 
-                glActiveTexture(GL_TEXTURE0);
+                glActiveTexture(GL_TEXTURE0 + _slot);
                 glBindTexture(GL_TEXTURE_2D, glTextureID);
-                glBindSampler(0, samplers.get(_sampler));
+                glBindSampler(_slot, samplers.get(_sampler));
         }
     }
 
-	public function useSurface(_id : SurfaceID, _sampler : SamplerState)
+	public function useSurface(_slot : Int, _id : SurfaceID, _sampler : SamplerState)
     {
-        if (currentSurface == _id && currentSampler == _sampler)
+        if (currentSurfaces[_slot] == _id && currentPages[_slot] == ResourceID.invalid && currentSamplers[_slot] == _sampler)
         {
             return;
         }
@@ -237,13 +234,13 @@ class OGL3GraphicsContext extends GraphicsContext
                 flush();
                 map();
 
-                currentPage    = ResourceID.invalid;
-                currentSampler = _sampler;
-                currentSurface = _id;
+                currentPages[_slot] = ResourceID.invalid;
+                currentSamplers[_slot] = _sampler;
+                currentSurfaces[_slot] = _id;
 
-                glActiveTexture(GL_TEXTURE0);
+                glActiveTexture(GL_TEXTURE0 + _slot);
                 glBindTexture(GL_TEXTURE_2D, surface.texture);
-                glBindSampler(0, samplers.get(_sampler));
+                glBindSampler(_slot, samplers.get(_sampler));
         }
     }
 
@@ -315,10 +312,7 @@ class OGL3GraphicsContext extends GraphicsContext
         idxOutput.close();
         uniformOutput.close();
 
-        currentPage    = ResourceID.invalid;
-        currentShader  = ResourceID.invalid;
-        currentSurface = SurfaceID.backbuffer;
-        baseIdxOffset  = 0;
+        clearActiveSlots();
 
         for (i in 0...currentUniformBlobs.length)
         {
@@ -368,5 +362,15 @@ class OGL3GraphicsContext extends GraphicsContext
         uniformOutput.unmap();
 
         mapped = false;
+    }
+
+    function clearActiveSlots()
+    {
+        for (i in 0...16)
+        {
+            currentPages[i] = ResourceID.invalid;
+            currentSurfaces[i] = SurfaceID.invalid;
+            currentSamplers[i] = cast -1;
+        }
     }
 }

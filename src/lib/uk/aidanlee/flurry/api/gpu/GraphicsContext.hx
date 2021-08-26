@@ -20,9 +20,9 @@ abstract class GraphicsContext
 
     public abstract function useCamera(_camera : Camera2D) : Void;
 
-    public abstract function usePage(_id : ResourceID, _sampler : SamplerState) : Void;
+    public abstract function usePage(_slot : Int, _id : ResourceID, _sampler : SamplerState) : Void;
 
-    public abstract function useSurface(_id : SurfaceID, _sampler : SamplerState) : Void;
+    public abstract function useSurface(_slot : Int, _id : SurfaceID, _sampler : SamplerState) : Void;
 
     public abstract function useUniformBlob(_blob : UniformBlob) : Void;
 

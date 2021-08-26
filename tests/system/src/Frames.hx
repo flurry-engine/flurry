@@ -128,7 +128,7 @@ class Frames extends Flurry
 
     function drawCustomFrame(_ctx : GraphicsContext, _frame : PageFrameResource, _x : Float, _y : Float)
     {
-        _ctx.usePage(_frame.page, SamplerState.nearest);
+        _ctx.usePage(0, _frame.page, SamplerState.nearest);
         _ctx.prepare();
     
         // v1

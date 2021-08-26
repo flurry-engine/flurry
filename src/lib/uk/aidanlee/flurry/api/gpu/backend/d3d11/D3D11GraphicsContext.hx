@@ -44,14 +44,14 @@ class D3D11GraphicsContext extends GraphicsContext
     final nativeScissor : D3d11Rect;
 
     final currentUniformBlobs : Vector<Null<UniformBlob>>;
+    
+    final currentPages : Vector<ResourceID>;
+
+    final currentSurfaces : Vector<SurfaceID>;
+
+    final currentSamplers : Vector<SamplerState>;
 
     var currentShader : ResourceID;
-
-    var currentPage : ResourceID;
-
-    var currentSampler : SamplerState;
-
-    var currentSurface : SurfaceID;
 
     var mapped : Bool;
 
@@ -72,12 +72,14 @@ class D3D11GraphicsContext extends GraphicsContext
         unfCameraBlob       = new UniformBlob('flurry_matrices', new ArrayBufferView(64), []);
         nativeView          = new D3d11Viewport();
         nativeScissor       = new D3d11Rect();
-        currentUniformBlobs = new Vector(15);
+        currentUniformBlobs = new Vector(16);
+        currentPages        = new Vector(16);
+        currentSurfaces     = new Vector(16);
+        currentSamplers     = new Vector(16);
         currentShader       = ResourceID.invalid;
-        currentPage         = ResourceID.invalid;
-        currentSurface      = SurfaceID.backbuffer;
-        currentSampler      = SamplerState.nearest;
         mapped              = false;
+
+        clearActiveSlots();
     }
 
 	public function usePipeline(_id : PipelineID)
@@ -133,8 +135,8 @@ class D3D11GraphicsContext extends GraphicsContext
                                 }
 
                                 currentShader  = pipeline.shader;
-                                currentPage    = ResourceID.invalid;
-                                currentSurface = SurfaceID.backbuffer;
+                                
+                                clearActiveSlots();
                         }
                 }
         }
@@ -191,9 +193,9 @@ class D3D11GraphicsContext extends GraphicsContext
         }
     }
 
-    public function usePage(_id : ResourceID, _sampler : SamplerState)
+    public function usePage(_slot : Int, _id : ResourceID, _sampler : SamplerState)
     {
-        if (currentPage == _id && currentSampler == _sampler)
+        if (currentSurfaces[_slot] == SurfaceID.invalid && currentPages[_slot] == _id && currentSamplers[_slot] == _sampler)
         {
             return;
         }
@@ -206,18 +208,18 @@ class D3D11GraphicsContext extends GraphicsContext
                 flush();
                 map();
 
-                currentPage    = _id;
-                currentSampler = _sampler;
-                currentSurface = SurfaceID.backbuffer;
+                currentPages[_slot] = _id;
+                currentSamplers[_slot] = _sampler;
+                currentSurfaces[_slot] = SurfaceID.invalid;
 
-                context.psSetShaderResource(0, texture.shaderResourceView);
-                context.psSetSampler(0, samplers.get(_sampler));
+                context.psSetShaderResource(_slot, texture.shaderResourceView);
+                context.psSetSampler(_slot, samplers.get(_sampler));
         }
     }
 
-    public function useSurface(_id : SurfaceID, _sampler : SamplerState)
+    public function useSurface(_slot : Int, _id : SurfaceID, _sampler : SamplerState)
     {
-        if (currentSurface == _id && currentSampler == _sampler)
+        if (currentSurfaces[_slot] == _id && currentPages[_slot] == ResourceID.invalid && currentSamplers[_slot] == _sampler)
         {
             return;
         }
@@ -230,12 +232,12 @@ class D3D11GraphicsContext extends GraphicsContext
                 flush();
                 map();
 
-                currentPage    = ResourceID.invalid;
-                currentSampler = _sampler;
-                currentSurface = _id;
+                currentPages[_slot] = ResourceID.invalid;
+                currentSamplers[_slot] = _sampler;
+                currentSurfaces[_slot] = _id;
 
-                context.psSetShaderResource(0, surface.surfaceView);
-                context.psSetSampler(0, samplers.get(_sampler));
+                context.psSetShaderResource(_slot, surface.surfaceView);
+                context.psSetSampler(_slot, samplers.get(_sampler));
         }
     }
 
@@ -316,9 +318,7 @@ class D3D11GraphicsContext extends GraphicsContext
 
         // Reset state trackers
 
-        currentPage    = ResourceID.invalid;
-        currentShader  = ResourceID.invalid;
-        currentSurface = SurfaceID.backbuffer;
+        clearActiveSlots();
 
         // Clear all uniform blobs.
 
@@ -372,5 +372,15 @@ class D3D11GraphicsContext extends GraphicsContext
         unfOutput.unmap();
 
         mapped = false;
+    }
+
+    function clearActiveSlots()
+    {
+        for (i in 0...16)
+        {
+            currentPages[i] = ResourceID.invalid;
+            currentSurfaces[i] = SurfaceID.invalid;
+            currentSamplers[i] = cast -1;
+        }
     }
 }
