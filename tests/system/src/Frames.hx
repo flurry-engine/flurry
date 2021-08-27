@@ -6,12 +6,12 @@ import haxe.io.ArrayBufferView;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
 import uk.aidanlee.flurry.api.gpu.Colour;
-import uk.aidanlee.flurry.api.gpu.ShaderID;
 import uk.aidanlee.flurry.api.gpu.GraphicsContext;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
+import uk.aidanlee.flurry.api.gpu.shaders.ShaderID;
+import uk.aidanlee.flurry.api.gpu.shaders.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
-import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
 import uk.aidanlee.flurry.api.input.Keycodes;
 import uk.aidanlee.flurry.api.resources.parcels.Preload;
 import uk.aidanlee.flurry.api.resources.parcels.Shaders;
@@ -40,9 +40,9 @@ class Frames extends Flurry
 
     var camera2 : Camera2D;
 
-    var uniform1 : uk.aidanlee.flurry.api.gpu.shaders.uniforms.Colours;
+    var uniform1 : uk.aidanlee.flurry.api.gpu.shaders.uniforms.Shaders.Colours;
 
-    var uniform2 : uk.aidanlee.flurry.api.gpu.shaders.uniforms.Colours;
+    var uniform2 : uk.aidanlee.flurry.api.gpu.shaders.uniforms.Shaders.Colours;
 
     override function onConfig(_config : FlurryConfig) : FlurryConfig
     {
@@ -65,8 +65,8 @@ class Frames extends Flurry
         target   = renderer.createPipeline({ shader: new ShaderID(Shaders.textured), surface: surface });
         camera   = new Camera2D(vec2(0, 0), vec2(display.width, display.height), vec4(0, 0, display.width, display.height));
         camera2  = new Camera2D(vec2(0, 0), vec2(128, 128), vec4(0, 0, 128, 128));
-        uniform1 = new uk.aidanlee.flurry.api.gpu.shaders.uniforms.Colours();
-        uniform2 = new uk.aidanlee.flurry.api.gpu.shaders.uniforms.Colours();
+        uniform1 = new uk.aidanlee.flurry.api.gpu.shaders.uniforms.Shaders.Colours();
+        uniform2 = new uk.aidanlee.flurry.api.gpu.shaders.uniforms.Shaders.Colours();
 
         uniform1.colour = vec4(1.0, 0.5, 0.5, 1.0);
         uniform2.colour = vec4(1.0, 0.5, 1.0, 1.0);

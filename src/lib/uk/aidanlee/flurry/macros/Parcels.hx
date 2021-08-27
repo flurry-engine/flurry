@@ -96,7 +96,8 @@ macro function loadParcelMeta(_name : String, _path : String)
 
     // See if there is any shader metadata we can read and generate abstracts for.
 
-    final shaders = path.parent.joinAll([ _name, 'shader_buffers' ]).toDir().findFiles('*.json');
+    final shaders  = path.parent.joinAll([ _name, 'shader_buffers' ]).toDir().findFiles('*.json');
+    final uboTypes = [];
 
     for (shader in shaders)
     {
@@ -105,10 +106,9 @@ macro function loadParcelMeta(_name : String, _path : String)
         for (buffer in data)
         {
             final name = buffer.name.toUpperCaseFirstChar();
-            final tstr = 'uk.aidanlee.flurry.api.gpu.shaders.uniforms.$name';
             final type : TypeDefinition = {
                 name   : name,
-                pack   : [ 'uk', 'aidanlee', 'flurry', 'api', 'gpu', 'shaders', 'uniforms' ],
+                pack   : [],
                 kind   : TDAbstract(macro : uk.aidanlee.flurry.api.gpu.shaders.UniformBlob, null, [macro : uk.aidanlee.flurry.api.gpu.shaders.UniformBlob]),
                 pos    : Context.currentPos(),
                 fields : [
@@ -139,13 +139,13 @@ macro function loadParcelMeta(_name : String, _path : String)
                                 type.fields.push({
                                     name   : element.name,
                                     pos    : Context.currentPos(),
-                                    access : [ APublic, AInline ],
+                                    access : [ APublic ],
                                     kind   : FProp('never', 'set', ct)
                                 });
                                 type.fields.push({
                                     name   : 'set_${ element.name }',
                                     pos    : Context.currentPos(),
-                                    access : [ APublic ],
+                                    access : [ APublic, AInline ],
                                     kind   : FFun({
                                         args : [ { name: '_v', type: ct } ],
                                         ret  : ct,
@@ -192,24 +192,11 @@ macro function loadParcelMeta(_name : String, _path : String)
                 }
             }
 
-            final printer = new Printer();
-
-            trace(printer.printTypeDefinition(type));
-
-            try
-            {
-                Context.getType(tstr);
-        
-                // What should we do if the type is already defined?!
-            }
-            catch (e)
-            {
-                // not defined, so do so now.
-        
-                Context.defineType(type);
-            }
+            uboTypes.push(type);
         }
     }
+
+    Context.defineModule('uk.aidanlee.flurry.api.gpu.shaders.uniforms.$clazz', uboTypes);
 
     return macro null;
 }
