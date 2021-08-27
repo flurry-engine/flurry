@@ -1,4 +1,4 @@
-package uk.aidanlee.flurry.api.gpu;
+package uk.aidanlee.flurry.api.gpu.shaders;
 
 import uk.aidanlee.flurry.api.resources.ResourceID;
 

@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.pipeline;
 
+import uk.aidanlee.flurry.api.gpu.shaders.ShaderID;
 import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
 
 @:publicFields @:structInit class PipelineState

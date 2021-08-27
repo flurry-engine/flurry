@@ -3,7 +3,7 @@ package uk.aidanlee.flurry.api.gpu;
 import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
-import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
+import uk.aidanlee.flurry.api.gpu.shaders.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.resources.ResourceID;
 

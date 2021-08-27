@@ -15,7 +15,7 @@ import opengl.OpenGL.*;
 import uk.aidanlee.flurry.api.maths.Matrix;
 import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
-import uk.aidanlee.flurry.api.gpu.geometry.UniformBlob;
+import uk.aidanlee.flurry.api.gpu.shaders.UniformBlob;
 import uk.aidanlee.flurry.api.resources.ResourceID;
 
 class OGL3GraphicsContext extends GraphicsContext
