@@ -170,24 +170,7 @@ class OGL3GraphicsContext extends GraphicsContext
                     final view     = make2D(_camera.pos, _camera.origin, _camera.scale, _camera.angle).inverse();
                     final combined = proj * view;
                     
-                    final bytes = unfCameraBlob.buffer.buffer.getData();
-                    final data  = (combined : Mat4Data);
-                    untyped __global__.__hxcpp_memory_set_float(bytes,  0, data.c0.x);
-                    untyped __global__.__hxcpp_memory_set_float(bytes,  4, data.c0.y);
-                    untyped __global__.__hxcpp_memory_set_float(bytes,  8, data.c0.z);
-                    untyped __global__.__hxcpp_memory_set_float(bytes, 12, data.c0.w);
-                    untyped __global__.__hxcpp_memory_set_float(bytes, 16, data.c1.x);
-                    untyped __global__.__hxcpp_memory_set_float(bytes, 20, data.c1.y);
-                    untyped __global__.__hxcpp_memory_set_float(bytes, 24, data.c1.z);
-                    untyped __global__.__hxcpp_memory_set_float(bytes, 28, data.c1.w);
-                    untyped __global__.__hxcpp_memory_set_float(bytes, 32, data.c2.x);
-                    untyped __global__.__hxcpp_memory_set_float(bytes, 36, data.c2.y);
-                    untyped __global__.__hxcpp_memory_set_float(bytes, 40, data.c2.z);
-                    untyped __global__.__hxcpp_memory_set_float(bytes, 44, data.c2.w);
-                    untyped __global__.__hxcpp_memory_set_float(bytes, 48, data.c3.x);
-                    untyped __global__.__hxcpp_memory_set_float(bytes, 52, data.c3.y);
-                    untyped __global__.__hxcpp_memory_set_float(bytes, 56, data.c3.z);
-                    untyped __global__.__hxcpp_memory_set_float(bytes, 60, data.c3.w);
+                    unfCameraBlob.write(0, combined);
 
                     currentUniformBlobs[shader.matrixLocation] = unfCameraBlob;
                 }

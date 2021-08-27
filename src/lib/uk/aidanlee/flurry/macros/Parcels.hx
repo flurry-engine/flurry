@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.macros;
 
+import haxe.macro.Expr.ComplexType;
 import haxe.Exception;
 import haxe.macro.Expr.TypeDefinition;
 import hx.files.Path;
@@ -9,26 +10,26 @@ import haxe.Json;
 
 using hx.strings.Strings;
 
-typedef PageMeta = {
+private typedef PageMeta = {
     final id : Int;
 }
 
-typedef AssetMeta = {
+private typedef AssetMeta = {
     final name : String;
     final produced : Array<ProducedMeta>;
 }
 
-typedef ProducedMeta = {
+private typedef ProducedMeta = {
     final name : String;
     final id : Int;
 }
 
-typedef ParcelMeta = {
+private typedef ParcelMeta = {
     final pages : Array<PageMeta>;
     final assets : Array<AssetMeta>;
 }
 
-typedef ShaderBufferElement = {
+private typedef ShaderBufferElement = {
     final size : Int;
     final stride : Int;
     final type : String;
@@ -36,7 +37,7 @@ typedef ShaderBufferElement = {
     final offset : Int;
 }
 
-typedef ShaderBuffer = {
+private typedef ShaderBuffer = {
     final name : String;
     final size : Int;
     final elements : Array<ShaderBufferElement>;
@@ -44,6 +45,11 @@ typedef ShaderBuffer = {
 
 private var totalParcels   = 0;
 private var totalResources = 0;
+
+macro function getTotalResourceCount()
+{
+    return macro $v{ totalResources };
+}
 
 macro function loadParcelMeta(_name : String, _path : String)
 {
@@ -120,91 +126,28 @@ macro function loadParcelMeta(_name : String, _path : String)
                 ]
             }
 
-            final getCt = function(_type : String) return switch _type
-            {
-                case 'bool'            : macro : Bool;
-                case 'int', 'uint'     : macro : Int;
-                case 'float', 'double' : macro : Float;
-                case 'vec2'            : macro : Vec2;
-                case 'vec3'            : macro : Vec3;
-                case 'vec4'            : macro : Vec4;
-                case 'mat2'            : macro : Mat2;
-                case 'mat3'            : macro : Mat3;
-                case 'mat4'            : macro : Mat4;
-                case other             : throw new Exception('Unsupported glsl type $other');
-            };
-            final getTypedArray = function(_type : String) return switch _type
-            {
-                case 'bool', 'int', 'uint': macro final writer = haxe.io.Int32Array.fromData(this.buffer.getData());
-                case 'double': macro final writer = haxe.io.Float64Array.fromData(this.buffer.getData());
-                case _: macro final writer = haxe.io.Float32Array.fromData(this.buffer.getData());
-            }
-            final getTypeWriter = function(_type : String, _offset : Int) return switch _type
-            {
-                case 'int', 'uint', 'float':
-                    macro writer[$v{ Std.int(_offset / 4) }] = _v;
-                case 'bool':
-                    macro writer[$v{ Std.int(_offset / 4) }] = if (_v) 1 else 0;
-                case 'double':
-                    macro writer[$v{ Std.int(_offset / 8) }] = _v;
-                case 'vec2':
-                    macro {
-                        final data = (_v : Vec2.Vec2Data);
-                        final base = $v{ Std.int(_offset / 4) };
-                        writer[base + 0] = data.x;
-                        writer[base + 1] = data.y;
-
-                        return _v;
-                    }
-                case 'vec3':
-                    macro {
-                        final data = (_v : Vec3.Vec3Data);
-                        final base = $v{ Std.int(_offset / 4) };
-                        writer[base + 0] = data.x;
-                        writer[base + 1] = data.y;
-                        writer[base + 2] = data.z;
-
-                        return _v;
-                    }
-                case 'vec4':
-                    macro {
-                        final data = (_v : Vec4.Vec4Data);
-                        final base = $v{ Std.int(_offset / 4) };
-                        writer[base + 0] = data.x;
-                        writer[base + 1] = data.y;
-                        writer[base + 2] = data.z;
-                        writer[base + 3] = data.w;
-
-                        return _v;
-                    }
-                case other:
-                    throw new Exception('unsupported glsl type $other');
-            }
-
             for (element in buffer.elements)
             {
                 switch element.size
                 {
                     case 0:
-                        final ct = getCt(element.type);
+                        final complexType   = glslTypeToComplexType(element.type);
+                        final alignedOffset = getAlignedOffset(element.type, element.offset);
 
                         type.fields.push({
                             name   : element.name,
                             pos    : Context.currentPos(),
                             access : [ APublic ],
-                            kind   : FProp('never', 'set', ct)
+                            kind   : FProp('never', 'set', complexType)
                         });
                         type.fields.push({
                             name   : 'set_${ element.name }',
                             pos    : Context.currentPos(),
                             access : [ APublic, AInline ],
                             kind   : FFun({
-                                args : [ { name: '_v', type: ct } ],
-                                ret  : ct,
-                                expr : macro {
-                                    $e{ getTypedArray(element.type) }
-                                    $e{ getTypeWriter(element.type, element.offset) }
-                                }
+                                args : [ { name: '_v', type: complexType } ],
+                                ret  : complexType,
+                                expr : macro return this.write($v{ alignedOffset }, _v)
                             })
                         });
                     case size:
@@ -230,7 +173,30 @@ macro function loadParcelMeta(_name : String, _path : String)
     return macro null;
 }
 
-macro function getTotalResourceCount()
+private function glslTypeToComplexType(_type)
 {
-    return macro $v{ totalResources };
+    return switch _type
+    {
+        case 'bool'            : macro : Bool;
+        case 'int', 'uint'     : macro : Int;
+        case 'float', 'double' : macro : Float;
+        case 'vec2'            : macro : Vec2;
+        case 'vec3'            : macro : Vec3;
+        case 'vec4'            : macro : Vec4;
+        case 'mat2'            : macro : Mat2;
+        case 'mat3'            : macro : Mat3;
+        case 'mat4'            : macro : Mat4;
+        case other             : throw new Exception('Unsupported glsl type $other');
+    }
+}
+
+private function getAlignedOffset(_type, _offset)
+{
+    return switch _type
+    {
+        case 'double':
+            Std.int(_offset / 8);
+        case _:
+            Std.int(_offset / 4);
+    }
 }
