@@ -148,8 +148,10 @@ class Build
                     parcel.cacheDir.toDir().create();
 
                     final ctx = new ParcelContext(
+                        parcel.name,
                         parcel.assetDir,
                         parcel.tempDir,
+                        parcel.cacheDir,
                         graphicsBackend,
                         tools,
                         executor);

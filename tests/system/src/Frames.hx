@@ -40,9 +40,9 @@ class Frames extends Flurry
 
     var camera2 : Camera2D;
 
-    var uniform1 : UniformBlob;
+    var uniform1 : uk.aidanlee.flurry.api.gpu.shaders.uniforms.Colours;
 
-    var uniform2 : UniformBlob;
+    var uniform2 : uk.aidanlee.flurry.api.gpu.shaders.uniforms.Colours;
 
     override function onConfig(_config : FlurryConfig) : FlurryConfig
     {
@@ -65,8 +65,24 @@ class Frames extends Flurry
         target   = renderer.createPipeline({ shader: new ShaderID(Shaders.textured), surface: surface });
         camera   = new Camera2D(vec2(0, 0), vec2(display.width, display.height), vec4(0, 0, display.width, display.height));
         camera2  = new Camera2D(vec2(0, 0), vec2(128, 128), vec4(0, 0, 128, 128));
-        uniform1 = new UniformBlobBuilder("colours").addVector4('colour', vec4(1.0, 0.5, 0.5, 1.0)).uniformBlob();
-        uniform2 = new UniformBlobBuilder("colours").addVector4('colour', vec4(1.0, 0.5, 1.0, 1.0)).uniformBlob();
+        uniform1 = new uk.aidanlee.flurry.api.gpu.shaders.uniforms.Colours();
+        uniform2 = new uk.aidanlee.flurry.api.gpu.shaders.uniforms.Colours();
+
+        uniform1.colour = vec4(1.0, 0.5, 0.5, 1.0);
+        uniform2.colour = vec4(1.0, 0.5, 1.0, 1.0);
+    }
+
+    override function onUpdate(_dt : Float)
+    {
+        if (input.wasKeyPressed(Keycodes.space))
+        {
+            final info = stb.Image.load('C:/Users/AidanLee/Downloads/small.png', 4);
+            final data = ArrayBufferView.fromBytes(Bytes.ofData(info.bytes));
+
+            renderer.updateTexture(
+                cast resources.get(Preload.blue_king),
+                data);
+        }
     }
 
     override function onRender(_ctx : GraphicsContext)

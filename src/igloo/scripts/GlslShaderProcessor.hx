@@ -24,6 +24,14 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 		return [ 'glsl' ];
 	}
 
+	override function isInvalid(_path : Path, _time : Float)
+	{
+		final vertPath = _path.parent.join(_path.filenameStem + '.vert.glsl');
+		final fragPath = _path.parent.join(_path.filenameStem + '.frag.glsl');
+
+		return vertPath.getModificationTime() >= _time || fragPath.getModificationTime() >= _time;
+	}
+
 	override public function pack(_ctx : ParcelContext, _asset : Asset)
 	{
 		// Transform our input asset path into vert and fragment versions.
@@ -118,7 +126,7 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 	{
 		switch _response
 		{
-			case NotPacked(_, _id):
+			case NotPacked(name, _id):
 				_writer.writeInt32(_id);
 				_writer.writePrefixedString(_ctx.gpuApi);
 
@@ -193,6 +201,27 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 
 				_writer.writeInt32(fragBlob.length);
 				_writer.write(fragBlob);
+
+				// Finally transform the original spirv reflection data and output some json on all uniform blocks.
+				// This data can be read by a macro function
+				final blocks = [];
+
+				for (block in _data.vertReflection.ubos.or([]))
+				{
+					generateBlockReflection(block, _data.vertReflection.types.sure(), blocks);
+				}
+				for (block in _data.fragReflection.ubos.or([]))
+				{
+					generateBlockReflection(block, _data.fragReflection.types.sure(), blocks);
+				}
+
+				if (blocks.length > 0)
+				{
+					final path = _ctx.cacheDirectory.joinAll([ _ctx.name, 'shader_buffers' ]);
+
+					path.toDir().create();
+					path.join('$name.json').toFile().writeString(Json.stringify(blocks));
+				}
 			case Packed(_):
 				//
 		}
@@ -223,30 +252,37 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 		return [ for (i in 0..._images.length) 'SPIRV_Cross_Combined${ _images[i].name }${ _samplers[i].name }' ];
 	}
 
-    /**
-     * Return an array of inputs for a block.
-     * Block needs to be searched for due to the reflection json format.
-     * @param _input Complete reflection structure.
-     * @param _name Name of the block to get members for.
-     */
-	function getMembers(_input : SpvcReflection, _name : String)
+	function generateBlockReflection(_block : SpvcUbo, _types : DynamicAccess<SpvcType>, _output : Array<ReflectedBuffer>)
 	{
-		if (_input.types != null)
+		if (_block.name == 'flurry_matrices' || Lambda.exists(_output, b -> b.name == _block.name))
 		{
-			for (type in _input.types)
+			return;
+		}
+
+		final els  = [];
+		
+		for (type in _types)
+		{
+			if (type.name == _block.name)
 			{
-				if (type.name == _name)
+				for (member in type.members)
 				{
-					return [ for (member in type.members) { name : member.name, type : member.type, offset : member.offset.or(0) } ];
+					els.push({
+						name   : member.name,
+						type   : member.type,
+						offset : member.offset,
+						stride : member.array_stride.or(0),
+						size   : if (member.array != null) member.array[0] else 0
+					});
 				}
 			}
+		}
 
-			throw new Exception('$_name not found');
-		}
-		else
-		{
-			throw new Exception('no types were defined in this shader');
-		}
+		_output.push({
+			name     : _block.name,
+			size     : _block.block_size,
+			elements : els
+		});
 	}
 
     /**
@@ -333,6 +369,9 @@ typedef SpvcTypeMember = {
     final name : String;
     final type : String;
     final ?offset : Int;
+	final ?array : Array<Int>;
+	final ?array_size_is_literal : Array<Bool>;
+	final ?array_stride : Int;
 }
 
 typedef SpvcSeparateImages = {
@@ -360,4 +399,18 @@ typedef SpvcReflection = {
     final ?types : DynamicAccess<SpvcType>;
     final ?separate_images : Array<SpvcSeparateImages>;
     final ?separate_samplers : Array<SpvcSeparateSamples>;
+}
+
+typedef ReflectedBuffer = {
+	final name : String;
+	final size : Int;
+	final elements : Array<ReflectedElement>;
+}
+
+typedef ReflectedElement = {
+	final name : String;
+	final size : Int;
+	final type : String;
+	final offset : Int;
+	final stride : Int;
 }

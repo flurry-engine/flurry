@@ -53,7 +53,7 @@ class OGL3GraphicsContext extends GraphicsContext
         super(_vtxOut, _idxOut);
 
         uniformOutput  = _unfOut;
-        unfCameraBlob  = new UniformBlob('flurry_matrices', new ArrayBufferView(64), []);
+        unfCameraBlob  = new UniformBlob('flurry_matrices', new ArrayBufferView(64));
         pipelines      = _pipelines;
         surfaces       = _surfaces;
         shaders        = _shaders;

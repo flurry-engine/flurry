@@ -69,7 +69,7 @@ class D3D11GraphicsContext extends GraphicsContext
         shaders             = _shaders;
         textures            = _textures;
         unfOutput           = new UniformOutput(context, _unfBuffer);
-        unfCameraBlob       = new UniformBlob('flurry_matrices', new ArrayBufferView(64), []);
+        unfCameraBlob       = new UniformBlob('flurry_matrices', new ArrayBufferView(64));
         nativeView          = new D3d11Viewport();
         nativeScissor       = new D3d11Rect();
         currentUniformBlobs = new Vector(16);
