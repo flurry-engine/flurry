@@ -1,12 +1,12 @@
 package uk.aidanlee.flurry.macros;
 
-import haxe.macro.Expr.ComplexType;
-import haxe.Exception;
-import haxe.macro.Expr.TypeDefinition;
-import hx.files.Path;
-import haxe.macro.Context;
-import sys.io.File;
+import haxe.macro.Printer;
 import haxe.Json;
+import haxe.Exception;
+import haxe.ds.Option;
+import haxe.macro.Expr.TypeDefinition;
+import haxe.macro.Context;
+import hx.files.Path;
 
 using hx.strings.Strings;
 
@@ -128,32 +128,73 @@ macro function loadParcelMeta(_name : String, _path : String)
 
             for (element in buffer.elements)
             {
-                switch element.size
+                switch glslTypeToComplexType(element.type)
                 {
-                    case 0:
-                        final complexType   = glslTypeToComplexType(element.type);
+                    case Some(ct):
                         final alignedOffset = getAlignedOffset(element.type, element.offset);
 
-                        type.fields.push({
-                            name   : element.name,
-                            pos    : Context.currentPos(),
-                            access : [ APublic ],
-                            kind   : FProp('never', 'set', complexType)
-                        });
-                        type.fields.push({
-                            name   : 'set_${ element.name }',
-                            pos    : Context.currentPos(),
-                            access : [ APublic, AInline ],
-                            kind   : FFun({
-                                args : [ { name: '_v', type: complexType } ],
-                                ret  : complexType,
-                                expr : macro return this.write($v{ alignedOffset }, _v)
-                            })
-                        });
-                    case size:
-                        //
+                        switch element.size
+                        {
+                            case 0:       
+                                type.fields.push({
+                                    name   : element.name,
+                                    pos    : Context.currentPos(),
+                                    access : [ APublic, AInline ],
+                                    kind   : FProp('never', 'set', ct)
+                                });
+                                type.fields.push({
+                                    name   : 'set_${ element.name }',
+                                    pos    : Context.currentPos(),
+                                    access : [ APublic ],
+                                    kind   : FFun({
+                                        args : [ { name: '_v', type: ct } ],
+                                        ret  : ct,
+                                        expr : macro return this.write($v{ alignedOffset }, _v)
+                                    })
+                                });
+                            case size:
+                                final arrayCt = macro : Array<$ct>;
+                                final chained = [ for (i in 0...size) {
+                                    final byteOffset    = element.offset + (i * element.stride);
+                                    final alignedOffset = getAlignedOffset(element.type, byteOffset);
+
+                                    macro this.write($v{ alignedOffset }, _v[$v{ i }]);
+                                } ];
+
+                                type.fields.push({
+                                    name   : element.name,
+                                    pos    : Context.currentPos(),
+                                    access : [ APublic ],
+                                    kind   : FProp('never', 'set', arrayCt)
+                                });
+                                type.fields.push({
+                                    name   : 'set_${ element.name }',
+                                    pos    : Context.currentPos(),
+                                    access : [ APublic, AInline ],
+                                    kind   : FFun({
+                                        args : [ { name: '_v', type: arrayCt } ],
+                                        ret  : arrayCt,
+                                        expr : macro {
+                                            if (_v.length != $v{ size })
+                                            {
+                                                throw new haxe.Exception('Haxe array does not match expected shader array size');
+                                            }
+
+                                            $b{ chained }
+
+                                            return _v;
+                                        }
+                                    })
+                                });
+                        }
+                    case None:
+                        Context.error('Unsupported glsl type ${ element.type }', Context.currentPos());
                 }
             }
+
+            final printer = new Printer();
+
+            trace(printer.printTypeDefinition(type));
 
             try
             {
@@ -177,16 +218,16 @@ private function glslTypeToComplexType(_type)
 {
     return switch _type
     {
-        case 'bool'            : macro : Bool;
-        case 'int', 'uint'     : macro : Int;
-        case 'float', 'double' : macro : Float;
-        case 'vec2'            : macro : Vec2;
-        case 'vec3'            : macro : Vec3;
-        case 'vec4'            : macro : Vec4;
-        case 'mat2'            : macro : Mat2;
-        case 'mat3'            : macro : Mat3;
-        case 'mat4'            : macro : Mat4;
-        case other             : throw new Exception('Unsupported glsl type $other');
+        case 'bool'            : Some(macro : Bool);
+        case 'int', 'uint'     : Some(macro : Int);
+        case 'float', 'double' : Some(macro : Float);
+        case 'vec2'            : Some(macro : Vec2);
+        case 'vec3'            : Some(macro : Vec3);
+        case 'vec4'            : Some(macro : Vec4);
+        case 'mat2'            : Some(macro : Mat2);
+        case 'mat3'            : Some(macro : Mat3);
+        case 'mat4'            : Some(macro : Mat4);
+        case _                 : None;
     }
 }
 
