@@ -379,7 +379,7 @@ using cpp.NativeArray;
             _rendererConfig.clearColour.z,
             _rendererConfig.clearColour.w
         ];
-        surfaceClearColour = [ 1, 1, 1, 0 ];
+        surfaceClearColour = [ 0, 0, 0, 0 ];
         graphicsContext = new D3D11GraphicsContext(
             context,
             samplers,

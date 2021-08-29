@@ -35,49 +35,88 @@ private function getDataForRequest(_request : RequestType)
     return switch _request
     {
         case PackImage(_, path):
-            final data = stb.Image.load(path.toString(), 4);
+            final data   = stb.Image.load(path.toString(), 4);
+            final stride = data.w * data.comp;
+
+            // Assume straight alpha, so pre-multiply.
+            for (row in 0...data.h)
+            {
+                for (col in 0...data.w)
+                {
+                    final base = col * data.comp + row * stride;
+                    final a    = data.bytes[base + 3];
+                    final r    = if (a == 0) 1 else data.bytes[base + 0];
+                    final g    = if (a == 0) 1 else data.bytes[base + 1];
+                    final b    = if (a == 0) 1 else data.bytes[base + 2];
+
+                    data.bytes[base + 0] = Std.int(r * a / 255 + 0.5);
+                    data.bytes[base + 1] = Std.int(g * a / 255 + 0.5);
+                    data.bytes[base + 2] = Std.int(b * a / 255 + 0.5);
+                }
+            }
 
             haxe.io.Bytes.ofData(data.bytes);
         case PackBytes(_, bytes, width, height, format):
+            final bpp    = 4;
+            final stride = width * bpp;
+
             switch format
             {
                 case RGBA:
-                    bytes;
-                case BGRA:
-                    // Swizzle to RGBA
+                    // pre-multiply.
                     for (row in 0...height)
                     {
                         for (col in 0...width)
                         {
-                            final base = row + col * 4;
-                            final b    = bytes.get(base + 0);
-                            final g    = bytes.get(base + 1);
-                            final r    = bytes.get(base + 2);
+                            final base = col * bpp + row * stride;
                             final a    = bytes.get(base + 3);
+                            final r    = if (a == 0) 1 else bytes.get(base + 0);
+                            final g    = if (a == 0) 1 else bytes.get(base + 1);
+                            final b    = if (a == 0) 1 else bytes.get(base + 2);
 
-                            bytes.set(base + 0, r);
-                            bytes.set(base + 1, g);
-                            bytes.set(base + 2, b);
+                            bytes.set(base + 0, Std.int(r * a / 255 + 0.5));
+                            bytes.set(base + 1, Std.int(g * a / 255 + 0.5));
+                            bytes.set(base + 2, Std.int(b * a / 255 + 0.5));
+                            bytes.set(base + 3, a);
+                        }
+                    }
+
+                    bytes;
+                case BGRA:
+                    // Swizzle to RGBA and pre-multiply.
+                    for (row in 0...height)
+                    {
+                        for (col in 0...width)
+                        {
+                            final base = col * bpp + row * stride;
+                            final a    = bytes.get(base + 3);
+                            final b    = if (a == 0) 1 else bytes.get(base + 0);
+                            final g    = if (a == 0) 1 else bytes.get(base + 1);
+                            final r    = if (a == 0) 1 else bytes.get(base + 2);
+
+                            bytes.set(base + 0, Std.int(r * a / 255 + 0.5));
+                            bytes.set(base + 1, Std.int(g * a / 255 + 0.5));
+                            bytes.set(base + 2, Std.int(b * a / 255 + 0.5));
                             bytes.set(base + 3, a);
                         }
                     }
 
                     bytes;
                 case ARGB:
-                        // Swizzle to RGBA
+                        // Swizzle to RGBA and pre-multiply.
                         for (row in 0...height)
                         {
                             for (col in 0...width)
                             {
-                                final base = row + col * 4;
+                                final base = col * bpp + row * stride;
                                 final a    = bytes.get(base + 0);
-                                final r    = bytes.get(base + 1);
-                                final g    = bytes.get(base + 2);
-                                final b    = bytes.get(base + 3);
+                                final r    = if (a == 0) 1 else bytes.get(base + 1);
+                                final g    = if (a == 0) 1 else bytes.get(base + 2);
+                                final b    = if (a == 0) 1 else bytes.get(base + 3);
     
-                                bytes.set(base + 0, r);
-                                bytes.set(base + 1, g);
-                                bytes.set(base + 2, b);
+                                bytes.set(base + 0, Std.int(r * a / 255 + 0.5));
+                                bytes.set(base + 1, Std.int(g * a / 255 + 0.5));
+                                bytes.set(base + 2, Std.int(b * a / 255 + 0.5));
                                 bytes.set(base + 3, a);
                             }
                         }

@@ -1,4 +1,3 @@
-import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import VectorMath;
 import haxe.io.Bytes;
 import haxe.ds.Vector;
@@ -12,6 +11,7 @@ import uk.aidanlee.flurry.api.gpu.shaders.ShaderID;
 import uk.aidanlee.flurry.api.gpu.shaders.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
+import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.input.Keycodes;
 import uk.aidanlee.flurry.api.resources.parcels.Preload;
 import uk.aidanlee.flurry.api.resources.parcels.Shaders;
@@ -68,8 +68,8 @@ class Frames extends Flurry
         uniform1 = new uk.aidanlee.flurry.api.gpu.shaders.uniforms.Shaders.Colours();
         uniform2 = new uk.aidanlee.flurry.api.gpu.shaders.uniforms.Shaders.Colours();
 
-        uniform1.colour = vec4(1.0, 0.5, 0.5, 1.0);
-        uniform2.colour = vec4(1.0, 0.5, 1.0, 1.0);
+        uniform1.colour = vec3(1.0, 0.5, 0.5);
+        uniform2.colour = vec3(1.0, 0.5, 1.0);
     }
 
     override function onUpdate(_dt : Float)

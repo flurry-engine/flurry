@@ -133,7 +133,7 @@ class OGL3Renderer extends Renderer
 	public function getGraphicsContext() : GraphicsContext
     {
         // Clear all non backbuffer surfaces with transparent white.
-        glClearColor(1, 1, 1, 0);
+        glClearColor(0, 0, 0, 0);
 
         for (i in 0...surfaces.length)
         {

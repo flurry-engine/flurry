@@ -11,7 +11,7 @@ layout(std140, binding = 0) uniform flurry_matrices
 
 layout(std140, binding = 1) uniform colours
 {
-    vec4 colour;
+    vec3 colour;
 };
 
 layout(location = 0) out vec4 Color;

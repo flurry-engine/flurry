@@ -12,5 +12,5 @@ void main()
 {
     vec4 col = texture(sampler2D(defaultTexture, defaultSampler), TexCoord);
 
-    FragColor = vec4(1, 0, 0.75, col.a);
+    FragColor = vec4(1 * col.a, 0 * col.a, 0.75 * col.a, col.a);
 }

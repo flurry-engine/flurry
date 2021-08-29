@@ -4,7 +4,7 @@ import uk.aidanlee.flurry.api.maths.Maths;
 
 abstract BlendState(Int)
 {
-    public static final none = new BlendState(true, SrcAlpha, OneMinusSrcAlpha, Add);
+    public static final none = new BlendState(true, One, OneMinusSrcAlpha, Add);
 
     public var enabled (get, never) : Bool;
 
