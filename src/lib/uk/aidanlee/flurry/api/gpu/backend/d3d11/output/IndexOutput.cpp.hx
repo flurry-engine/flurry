@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11.output;
 
+import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
 import haxe.Exception;
 import d3d11.constants.D3d11Error;
 import d3d11.interfaces.D3d11Buffer;
@@ -130,11 +131,19 @@ import uk.aidanlee.flurry.api.maths.Maths;
         return baseIndex;
     }
 
-    public function write(_v : Int)
+    public overload inline extern function write(_v : Int)
     {
         shortPointer[shortCursor] = indexOffset + _v;
 
         shortCursor++;
         shortsWritten++;
+    }
+
+    public overload inline extern function write(_v : IndexBlob)
+    {
+        for (idx in _v.buffer)
+        {
+            write(idx);
+        }
     }
 }

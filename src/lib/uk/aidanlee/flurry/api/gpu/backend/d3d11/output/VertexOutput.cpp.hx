@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11.output;
 
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import haxe.Exception;
 import d3d11.constants.D3d11Error;
 import d3d11.interfaces.D3d11Buffer;
@@ -165,5 +166,18 @@ import uk.aidanlee.flurry.api.maths.Maths;
 
         floatCursor += 4;
         floatsWritten += 4;
+    }
+
+    public overload inline extern function write(_v : VertexBlob)
+    {
+        final floatSize = _v.buffer.length;
+        final buffer    = _v.buffer.getData();
+        final dstPtr    = cpp.Pointer.fromRaw(floatPointer).add(floatCursor);
+        final srcPtr    = cpp.Pointer.arrayElem(buffer.bytes.getData(), buffer.byteOffset);
+
+        cpp.Native.memcpy(dstPtr, srcPtr, buffer.byteLength);
+
+        floatCursor   += floatSize;
+        floatsWritten += floatSize;
     }
 }

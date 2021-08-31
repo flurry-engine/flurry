@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.ogl3.output;
 
+import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
 import opengl.OpenGL.*;
 
 @:nullSafety(Off) class IndexOutput
@@ -84,10 +85,18 @@ import opengl.OpenGL.*;
         return shortCursor;
     }
 
-    public function write(_v : Int)
+    public overload inline extern function write(_v : Int)
     {
         shortPointer[shortCursor] = indexOffset + _v;
 
         shortCursor++;
+    }
+
+    public overload inline extern function write(_v : IndexBlob)
+    {
+        for (idx in _v.buffer)
+        {
+            write(idx);
+        }
     }
 }

@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.ogl3.output;
 
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
 import opengl.OpenGL.*;
 import uk.aidanlee.flurry.api.maths.Maths.nextMultipleOff;
 
@@ -86,5 +87,17 @@ import uk.aidanlee.flurry.api.maths.Maths.nextMultipleOff;
         floatPointer[floatCursor + 3] = _v.w;
 
         floatCursor += 4;
+    }
+
+    public overload inline extern function write(_v : VertexBlob)
+    {
+        final floatSize = _v.buffer.length;
+        final buffer    = _v.buffer.getData();
+        final dstPtr    = cpp.Pointer.fromRaw(floatPointer).add(floatCursor);
+        final srcPtr    = cpp.Pointer.arrayElem(buffer.bytes.getData(), buffer.byteOffset);
+
+        cpp.Native.memcpy(dstPtr, srcPtr, buffer.byteLength);
+
+        floatCursor += floatSize;
     }
 }
