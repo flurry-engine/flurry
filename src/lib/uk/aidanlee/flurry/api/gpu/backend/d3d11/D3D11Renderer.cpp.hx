@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.gpu.backend.d3d11;
 
+import uk.aidanlee.flurry.api.resources.builtin.DataBlobResource;
 import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
 import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceState;
 import d3d11.constants.D3d11Error;
@@ -663,15 +664,15 @@ using cpp.NativeArray;
         }
     }
 
-	function createShader(_resource : ShaderResource)
+	function createShader(_blob : DataBlobResource)
     {
-        final shader = switch Std.downcast(_resource, D3d11Shader)
+        final shader = switch Std.downcast(_blob.resource, D3d11Shader)
         {
             case null: throw new Exception('Shader resource is not D3d11Shader');
             case v: v;
         }
 
-        if (shaderResources.exists(_resource.id))
+        if (shaderResources.exists(shader.id))
         {
             throw new NotImplementedException('shader patching not yet implemented');
         }
@@ -680,17 +681,17 @@ using cpp.NativeArray;
             final vertexBytecode = new D3dBlob();
             final pixelBytecode  = new D3dBlob();
     
-            if (D3dCompiler.createBlob(shader.vertCode.length, vertexBytecode) != 0)
+            if (D3dCompiler.createBlob(shader.vertCodeLength, vertexBytecode) != 0)
             {
                 throw new Exception('ID3DBlob');
             }
-            if (D3dCompiler.createBlob(shader.fragCode.length, pixelBytecode) != 0)
+            if (D3dCompiler.createBlob(shader.fragCodeLength, pixelBytecode) != 0)
             {
                 throw new Exception('ID3DBlob');
             }
     
-            memcpy(vertexBytecode.getBufferPointer(), shader.vertCode.getData().address(0), shader.vertCode.length);
-            memcpy(pixelBytecode.getBufferPointer(), shader.fragCode.getData().address(0), shader.fragCode.length);
+            memcpy(vertexBytecode.getBufferPointer(), _blob.data.getData().address(shader.vertCodeOffset()), shader.vertCodeLength);
+            memcpy(pixelBytecode.getBufferPointer(), _blob.data.getData().address(shader.fragCodeOffset()), shader.fragCodeLength);
     
             // Create the vertex shader
             final vertexShader = new D3d11VertexShader();
@@ -736,7 +737,7 @@ using cpp.NativeArray;
             }
     
             // Create our shader and a class to store its resources.
-            shaderResources.set(_resource.id, new D3D11ShaderInformation(shader.vertBlocks, shader.fragBlocks, shader.textureCount, vertexShader, pixelShader, inputLayout, offset));
+            shaderResources.set(shader.id, new D3D11ShaderInformation(shader.vertBlocks, shader.fragBlocks, shader.textureCount, vertexShader, pixelShader, inputLayout, offset));
         }
     }
 
@@ -755,8 +756,10 @@ using cpp.NativeArray;
         }
     }
 
-    function createTexture(_resource : PageResource)
+    function createTexture(_resource : DataBlobResource)
     {
+        final page = (cast _resource.resource : PageResource);
+
         if (textureResources.exists(_resource.id))
         {
             throw new NotImplementedException('Texture updating not implemented');
@@ -765,14 +768,14 @@ using cpp.NativeArray;
         {
             // Sub resource struct to hold the raw image bytes.
             final imgData = new D3d11SubResourceData();
-            imgData.systemMemory           = _resource.pixels.getData();
-            imgData.systemMemoryPitch      = 4 * _resource.width;
+            imgData.systemMemory           = _resource.data.getData();
+            imgData.systemMemoryPitch      = 4 * page.width;
             imgData.systemMemorySlicePatch = 0;
     
             // Texture description struct. Describes how our raw image data is formated and usage of the texture.
             final imgDesc = new D3d11Texture2DDescription();
-            imgDesc.width              = _resource.width;
-            imgDesc.height             = _resource.height;
+            imgDesc.width              = page.width;
+            imgDesc.height             = page.height;
             imgDesc.mipLevels          = 1;
             imgDesc.arraySize          = 1;
             imgDesc.format             = R8G8B8A8UNorm;
@@ -795,7 +798,7 @@ using cpp.NativeArray;
                 throw new Exception('ID3D11ShaderResourceView');
             }
     
-            textureResources.set(_resource.id, new D3D11TextureInformation(texture, shaderView));
+            textureResources.set(page.id, new D3D11TextureInformation(texture, shaderView));
         }
     }
 

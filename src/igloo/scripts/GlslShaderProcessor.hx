@@ -197,9 +197,9 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 				final fragBlob = _data.fragPath.toFile().readAsBytes();
 
 				_writer.writeInt32(vertBlob.length);
-				_writer.write(vertBlob);
-
 				_writer.writeInt32(fragBlob.length);
+
+				_writer.write(vertBlob);
 				_writer.write(fragBlob);
 
 				// Finally transform the original spirv reflection data and output some json on all uniform blocks.

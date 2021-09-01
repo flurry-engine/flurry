@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.backend.ogl3;
 
+import haxe.io.Bytes;
+import uk.aidanlee.flurry.api.resources.builtin.DataBlobResource;
 import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
 import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceState;
 import uk.aidanlee.flurry.api.gpu.backend.ogl3.OGL3ShaderInformation.OGL3ShaderInputElement;
@@ -247,18 +249,15 @@ class OGL3Renderer extends Renderer
         }
     }
 
-	function createShader(_resource : ShaderResource)
+	function createShader(_resource : DataBlobResource)
     {
         final result = 0;
-        final shader = switch Std.downcast(_resource, Ogl3Shader)
-        {
-            case null: throw new Exception('Shader resource is not Ogl3Shader');
-            case v: v;
-        }
+        final shader = (cast _resource.resource : Ogl3Shader);
         
         // Compile the vertex shader.
+        final data   = ArrayBufferView.fromBytes(_resource.data, shader.vertCodeOffset(), shader.vertCodeLength);
         final vertex = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertex, 1, shader.vertCode, shader.vertCode.length);
+        glShaderSource(vertex, 1, data, shader.vertCodeLength);
         glCompileShader(vertex);
 
         glGetShaderiv(vertex, GL_COMPILE_STATUS, result);
@@ -268,8 +267,9 @@ class OGL3Renderer extends Renderer
         }
 
         // Compile the fragment shader.
+        final data     = ArrayBufferView.fromBytes(_resource.data, shader.fragCodeOffset(), shader.fragCodeLength);
         final fragment = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragment, 1, shader.fragCode, shader.fragCode.length);
+        glShaderSource(fragment, 1, data, shader.fragCodeLength);
         glCompileShader(fragment);
 
         glGetShaderiv(fragment, GL_COMPILE_STATUS, result);
@@ -343,9 +343,10 @@ class OGL3Renderer extends Renderer
         }
     }
 
-	function createTexture(_resource : PageResource)
+	function createTexture(_resource : DataBlobResource)
     {
-        final id = 0;
+        final page = (cast _resource.resource : PageResource);
+        final id   = 0;
         glGenTextures(1, id);
         glBindTexture(GL_TEXTURE_2D, id);
 
@@ -353,9 +354,9 @@ class OGL3Renderer extends Renderer
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _resource.width, _resource.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _resource.pixels);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, page.width, page.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _resource.data);
 
-        textureResources.set(_resource.id, id);
+        textureResources.set(page.id, id);
     }
 
 	function deleteTexture(_id : ResourceID)

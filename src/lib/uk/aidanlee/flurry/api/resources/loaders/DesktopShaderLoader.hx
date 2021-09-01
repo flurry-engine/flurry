@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.resources.loaders;
 
+import uk.aidanlee.flurry.api.resources.builtin.DataBlobResource;
 import uk.aidanlee.flurry.api.resources.builtin.ShaderResource;
 import haxe.Exception;
 import haxe.io.Bytes;
@@ -64,13 +65,17 @@ class DesktopShaderLoader extends ResourceReader
                     samplers[i] = _input.readPrefixedString();
                 }
 
+                // Pack both of the shader data into a single bytes object preceeded by its length.
                 final vertCodeLen = _input.readInt32();
-                final vertCode    = _input.read(vertCodeLen);
-
                 final fragCodeLen = _input.readInt32();
-                final fragCode    = _input.read(fragCodeLen);
+                final codeBlob    = Bytes.alloc(vertCodeLen + fragCodeLen);
 
-                new Ogl3Shader(new ResourceID(id), vertexFormat, blocks, samplers, vertCode, fragCode);
+                _input.readBytes(codeBlob, 0, vertCodeLen);
+                _input.readBytes(codeBlob, vertCodeLen, fragCodeLen);
+
+                new DataBlobResource(
+                    new Ogl3Shader(new ResourceID(id), vertexFormat, blocks, samplers, vertCodeLen, fragCodeLen),
+                    codeBlob);
             case 'd3d11':
                 final vertBlockCount = _input.readInt32();
                 final vertBlocks     = new Vector(vertBlockCount);
@@ -90,13 +95,17 @@ class DesktopShaderLoader extends ResourceReader
 
                 final textureCount = _input.readInt32();
 
+                // Pack both of the shader data into a single bytes object preceeded by its length.
                 final vertCodeLen = _input.readInt32();
-                final vertCode    = _input.read(vertCodeLen);
-
                 final fragCodeLen = _input.readInt32();
-                final fragCode    = _input.read(fragCodeLen);
+                final codeBlob    = Bytes.alloc(vertCodeLen + fragCodeLen);
 
-                new D3d11Shader(new ResourceID(id), vertexFormat, vertBlocks, fragBlocks, textureCount, vertCode, fragCode);
+                _input.readBytes(codeBlob, 0, vertCodeLen);
+                _input.readBytes(codeBlob, vertCodeLen, fragCodeLen);
+
+                new DataBlobResource(
+                    new D3d11Shader(new ResourceID(id), vertexFormat, vertBlocks, fragBlocks, textureCount, vertCodeLen, fragCodeLen),
+                    codeBlob);
             case other:
                 throw new Exception('DesktopShaderLoader cannot produced shaders of type $other');
         }
@@ -121,21 +130,31 @@ class D3d11Shader extends ShaderResource
 
     public final textureCount : Int;
 
-    public final vertCode : Bytes;
+    public final vertCodeLength : Int;
 
-    public final fragCode : Bytes;
+    public final fragCodeLength : Int;
 
-	public function new(_name, _format, _vertBlocks, _fragBlocks, _textureCount, _vertCode, _fragCode)
+	public function new(_name, _format, _vertBlocks, _fragBlocks, _textureCount, _vertCodeLength, _fragCodeLength)
     {
         super(_name);
 
-        format       = _format;
-        vertBlocks   = _vertBlocks;
-		fragBlocks   = _fragBlocks;
-		textureCount = _textureCount;
-		vertCode     = _vertCode;
-		fragCode     = _fragCode;
+        format         = _format;
+        vertBlocks     = _vertBlocks;
+		fragBlocks     = _fragBlocks;
+		textureCount   = _textureCount;
+        vertCodeLength = _vertCodeLength;
+        fragCodeLength = _fragCodeLength;
 	}
+
+    public function vertCodeOffset()
+    {
+        return 0;
+    }
+
+    public function fragCodeOffset()
+    {
+        return vertCodeLength;
+    }
 }
 
 class Ogl3Shader extends ShaderResource
@@ -146,20 +165,30 @@ class Ogl3Shader extends ShaderResource
 
     public final samplers : Vector<String>;
 
-    public final vertCode : Bytes;
+    public final vertCodeLength : Int;
 
-    public final fragCode : Bytes;
+    public final fragCodeLength : Int;
 
-	public function new(_name, _format, _blocks, _samplers, _vertCode, _fragCode)
+	public function new(_name, _format, _blocks, _samplers, _vertCodeLength, _fragCodeLength)
     {
         super(_name);
 
-        format   = _format;
-		blocks   = _blocks;
-		samplers = _samplers;
-        vertCode = _vertCode;
-		fragCode = _fragCode;
+        format         = _format;
+		blocks         = _blocks;
+		samplers       = _samplers;
+        vertCodeLength = _vertCodeLength;
+        fragCodeLength = _fragCodeLength;
 	}
+
+    public function vertCodeOffset()
+    {
+        return 0;
+    }
+
+    public function fragCodeOffset()
+    {
+        return vertCodeLength;
+    }
 }
 
 class Ogl3ShaderBlock

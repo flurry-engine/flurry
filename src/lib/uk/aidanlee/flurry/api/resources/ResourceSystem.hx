@@ -9,6 +9,7 @@ import hxrx.observables.Observables;
 import hxrx.subscriptions.Empty;
 import uk.aidanlee.flurry.api.resources.Resource;
 import uk.aidanlee.flurry.api.resources.builtin.PageResource;
+import uk.aidanlee.flurry.api.resources.builtin.DataBlobResource;
 import uk.aidanlee.flurry.api.resources.loaders.MsdfFontLoader;
 import uk.aidanlee.flurry.api.resources.loaders.PageFrameLoader;
 import uk.aidanlee.flurry.api.resources.loaders.DesktopShaderLoader;
@@ -121,7 +122,7 @@ class ResourceSystem
                                 final bytesLen = input.readInt32();
                                 final bytes    = input.read(bytesLen);
                                 final image    = stb.Image.load_from_memory(bytes.getData(), bytesLen, 4);
-                                final page     = new PageResource(new ResourceID(id), image.w, image.h, Bytes.ofData(image.bytes));
+                                final page     = new DataBlobResource(new PageResource(new ResourceID(id), image.w, image.h), Bytes.ofData(image.bytes));
     
                                 resourceIDs.set(index++, page.id);
 
@@ -199,15 +200,21 @@ class ResourceSystem
      */
     public function addResource(_resource : Resource)
     {
-        switch resources[_resource.id]
+        final toAdd = switch Std.downcast(_resource, DataBlobResource)
+        {
+            case null: _resource;
+            case blob: blob.resource;
+        }
+
+        switch resources[toAdd.id]
         {
             case null:
-                resources[_resource.id] = _resource;
-                references[_resource.id] = 1;
+                resources[toAdd.id] = toAdd;
+                references[toAdd.id] = 1;
 
                 events.created.onNext(_resource);
             case _:
-                references[_resource.id]++;
+                references[toAdd.id]++;
         }
     }
 
@@ -221,6 +228,8 @@ class ResourceSystem
     {
         if (references[_resource.id] <= 1)
         {
+            events.removed.onNext(_resource);
+
             references[_resource.id] = 0;
             resources[_resource.id] = null;
         }

@@ -10,8 +10,8 @@ import uk.aidanlee.flurry.api.resources.ResourceID;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.resources.builtin.PageResource;
 import uk.aidanlee.flurry.api.resources.builtin.ShaderResource;
+import uk.aidanlee.flurry.api.resources.builtin.DataBlobResource;
 import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
-import uk.aidanlee.flurry.macros.ApiSelector;
 
 using hxrx.observables.Observables;
 
@@ -62,32 +62,40 @@ abstract class Renderer
 
     public abstract function updateTexture(_frame : PageFrameResource, _data : ArrayBufferView) : Void;
 
-    abstract function createShader(_resource : ShaderResource) : Void;
+    abstract function createShader(_resource : DataBlobResource) : Void;
 
     abstract function deleteShader(_id : ResourceID) : Void;
 
-    abstract function createTexture(_resource : PageResource) : Void;
+    abstract function createTexture(_resource : DataBlobResource) : Void;
 
     abstract function deleteTexture(_id : ResourceID) : Void;
 
     function isPageResource(_resource : Resource)
     {
-        return _resource is PageResource;
+        return switch Std.downcast(_resource, DataBlobResource)
+        {
+            case null: false;
+            case blob: blob.resource is PageResource;
+        }
     }
 
     function isShaderResource(_resource : Resource)
     {
-        return _resource is ShaderResource;
+        return switch Std.downcast(_resource, DataBlobResource)
+        {
+            case null: false;
+            case blob: blob.resource is ShaderResource;
+        }
     }
 
     function toPageResource(_resource : Resource)
     {
-        return Std.downcast(_resource, PageResource);
+        return (cast _resource : DataBlobResource);
     }
 
     function toShaderResource(_resource : Resource)
     {
-        return Std.downcast(_resource, ShaderResource);
+        return (cast _resource : DataBlobResource);
     }
 
     function toResourceID(_resource : Resource)
