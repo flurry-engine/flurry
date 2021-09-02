@@ -540,6 +540,20 @@ using cpp.NativeArray;
     {
         final id = getNextSurfaceID();
 
+        final imgData = if (_state.initial != null)
+        {
+            final sub = new D3d11SubResourceData();
+            sub.systemMemory           = _state.initial.bytes.getData();
+            sub.systemMemoryPitch      = 4 * _state.initial.width;
+            sub.systemMemorySlicePatch = 0;
+
+            sub;
+        }
+        else
+        {
+            null;
+        }
+
         // Create an empty texture and the structures needed to render to it.
         final imgDesc = new D3d11Texture2DDescription();
         imgDesc.width              = _state.width;
@@ -555,7 +569,7 @@ using cpp.NativeArray;
         imgDesc.miscFlags          = 0;
 
         final texture = new D3d11Texture2D();   
-        if (device.createTexture2D(imgDesc, null, texture) != Ok)
+        if (device.createTexture2D(imgDesc, imgData, texture) != Ok)
         {
             throw new Exception('ID3D11Texture2D');
         }

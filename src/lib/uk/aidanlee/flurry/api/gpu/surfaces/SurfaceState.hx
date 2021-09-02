@@ -1,5 +1,7 @@
 package uk.aidanlee.flurry.api.gpu.surfaces;
 
+import haxe.io.Bytes;
+
 @:publicFields @:structInit class SurfaceState
 {
     /**
@@ -21,4 +23,18 @@ package uk.aidanlee.flurry.api.gpu.surfaces;
      * If the surface should be created with a depth and stencil buffer.
      */
     final depthStencilBuffer = false;
+
+    /**
+     * Initial data to be uploaded to the surface.
+     */
+    final initial : Null<InitialSurfaceState> = null;
+}
+
+@:publicFields @:structInit class InitialSurfaceState
+{
+    final bytes : Bytes;
+
+    final width : Int;
+
+    final height : Int;
 }
