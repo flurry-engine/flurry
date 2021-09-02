@@ -121,12 +121,6 @@ class FlurryRendererOgl3Config
     public var indexBufferSize : Int;
 
     /**
-     * Size in bytes of the matrix buffer.
-     * Default size is enough to store 100,000 mvp matrices (assuming 256 byte ubo alignment).
-     */
-    public var matrixBufferSize : Int;
-
-    /**
      * Size in bytes of the uniform buffer.
      * Default size is 10Mb.
      */
@@ -139,9 +133,8 @@ class FlurryRendererOgl3Config
 
     public function new()
     {
-        vertexBufferSize  = 14400000;
-        indexBufferSize   = 1200000;
-        matrixBufferSize  = 25600000;
+        vertexBufferSize  = 10000000;
+        indexBufferSize   = 10000000;
         uniformBufferSize = 10000000;
         clearColour       = vec4(0.2, 0.2, 0.2, 1.0);
     }

@@ -109,16 +109,16 @@ macro function loadParcelMeta(_name : String, _path : String)
             final type : TypeDefinition = {
                 name   : name,
                 pack   : [],
-                kind   : TDAbstract(macro : uk.aidanlee.flurry.api.gpu.shaders.UniformBlob, null, [macro : uk.aidanlee.flurry.api.gpu.shaders.UniformBlob]),
+                kind   : TDAbstract(macro : uk.aidanlee.flurry.api.gpu.shaders.UniformBlob, null, [ macro : uk.aidanlee.flurry.api.gpu.shaders.UniformBlob ]),
                 pos    : Context.currentPos(),
                 fields : [
                     {
-                        name: 'new',
-                        pos: Context.currentPos(),
-                        access: [ APublic, AInline ],
-                        kind: FFun({
-                            args: [],
-                            expr: macro {
+                        name   : 'new',
+                        pos    : Context.currentPos(),
+                        access : [ APublic, AInline ],
+                        kind   : FFun({
+                            args : [],
+                            expr : macro {
                                 this = new uk.aidanlee.flurry.api.gpu.shaders.UniformBlob($v{ buffer.name }, new haxe.io.ArrayBufferView($v{ buffer.size }));
                             }
                         })

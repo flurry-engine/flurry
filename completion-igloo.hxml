@@ -1,0 +1,21 @@
+-cpp out/
+
+-p src/igloo/src
+-p src/igloo/scripts
+
+-L hxcpp
+-L linc_stb
+-L haxe-concurrent
+-L haxe-files
+-L safety
+-L tink_cli
+-L json2object
+-L console.hx
+-L hxrx
+-L bin-packing
+-L format
+
+-D IGLOO_BUILTIN_SCRIPTS=""
+-D IGLOO_SRC_CODEPATH=""
+-D IGLOO_DLL_EXPORT=""
+-D IGLOO_DLL_IMPORT=""
