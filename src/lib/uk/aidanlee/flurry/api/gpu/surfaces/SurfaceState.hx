@@ -27,14 +27,5 @@ import haxe.io.Bytes;
     /**
      * Initial data to be uploaded to the surface.
      */
-    final initial : Null<InitialSurfaceState> = null;
-}
-
-@:publicFields @:structInit class InitialSurfaceState
-{
-    final bytes : Bytes;
-
-    final width : Int;
-
-    final height : Int;
+    final initial : Null<Bytes> = null;
 }

@@ -542,8 +542,8 @@ using cpp.NativeArray;
         final imgData = if (_state.initial != null)
         {
             final sub = new D3d11SubResourceData();
-            sub.systemMemory           = _state.initial.bytes.getData();
-            sub.systemMemoryPitch      = 4 * _state.initial.width;
+            sub.systemMemory           = _state.initial.getData();
+            sub.systemMemoryPitch      = 4 * _state.width;
             sub.systemMemorySlicePatch = 0;
 
             sub;
