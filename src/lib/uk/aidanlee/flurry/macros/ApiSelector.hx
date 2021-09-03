@@ -5,13 +5,13 @@ import haxe.macro.Context;
 
 macro function getGraphicsBackend(_resourceEvents : ExprOf<uk.aidanlee.flurry.api.resources.ResourceEvents>, _displayEvents : ExprOf<uk.aidanlee.flurry.api.display.DisplayEvents>, _windowConfig : ExprOf<uk.aidanlee.flurry.FlurryConfig.FlurryWindowConfig>, _rendererConfig : ExprOf<uk.aidanlee.flurry.FlurryConfig.FlurryRendererConfig>) : ExprOf<uk.aidanlee.flurry.api.gpu.Renderer>
 {
-    if (Context.defined('flurry-gpu-api'))
+    return if (Context.defined('flurry-gpu-api'))
     {
-        return switch Context.definedValue('flurry-gpu-api')
+        switch Context.definedValue('flurry-gpu-api')
         {
-            case 'mock'  : macro new uk.aidanlee.flurry.api.gpu.backend.MockBackend($_resourceEvents);
-            case 'ogl3'  : macro new uk.aidanlee.flurry.api.gpu.backend.ogl3.OGL3Renderer($_resourceEvents, $_displayEvents, $_windowConfig, $_rendererConfig.ogl3);
             case 'd3d11' : macro new uk.aidanlee.flurry.api.gpu.backend.d3d11.D3D11Renderer($_resourceEvents, $_displayEvents, $_windowConfig, $_rendererConfig.dx11);
+            case 'ogl3'  : macro new uk.aidanlee.flurry.api.gpu.backend.ogl3.OGL3Renderer($_resourceEvents, $_displayEvents, $_windowConfig, $_rendererConfig.ogl3);
+            case 'mock'  : macro new uk.aidanlee.flurry.api.gpu.backend.mock.MockRenderer($_resourceEvents);
             case other   : Context.error('unknown value of $other for flurry-gpu-api', Context.currentPos());
         }
     }
@@ -19,8 +19,6 @@ macro function getGraphicsBackend(_resourceEvents : ExprOf<uk.aidanlee.flurry.ap
     {
         Context.error('flurry-gpu-api not defined', Context.currentPos());
     }
-
-    return macro new uk.aidanlee.flurry.api.gpu.backend.MockBackend($_resourceEvents);
 }
 
 /**
@@ -68,6 +66,23 @@ macro function buildGraphicsContextOutputs() : Array<Field>
                     meta   : [],
                     access : [ APublic, AFinal ],
                     kind   : FVar(macro : uk.aidanlee.flurry.api.gpu.backend.ogl3.output.IndexOutput),
+                    pos    : Context.currentPos()
+                });
+            case 'mock':
+                fields.push({
+                    name   : 'vtxOutput',
+                    doc    : null,
+                    meta   : [],
+                    access : [ APublic, AFinal ],
+                    kind   : FVar(macro : uk.aidanlee.flurry.api.gpu.backend.mock.VertexOutput),
+                    pos    : Context.currentPos()
+                });
+                fields.push({
+                    name   : 'idxOutput',
+                    doc    : null,
+                    meta   : [],
+                    access : [ APublic, AFinal ],
+                    kind   : FVar(macro : uk.aidanlee.flurry.api.gpu.backend.mock.IndexOutput),
                     pos    : Context.currentPos()
                 });
             case other:
