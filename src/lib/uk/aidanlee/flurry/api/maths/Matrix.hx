@@ -1,6 +1,5 @@
 package uk.aidanlee.flurry.api.maths;
 
-import Mat3;
 import VectorMath;
 
 overload extern inline function identity()

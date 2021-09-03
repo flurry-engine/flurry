@@ -93,7 +93,6 @@ import uk.aidanlee.flurry.api.resources.ResourceEvents;
 import uk.aidanlee.flurry.api.resources.builtin.PageResource;
 import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 import uk.aidanlee.flurry.api.maths.Maths;
-import uk.aidanlee.flurry.api.maths.Rectangle;
 
 using hxrx.observables.Observables;
 

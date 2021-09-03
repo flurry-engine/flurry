@@ -53,10 +53,15 @@ class MainThreadScheduler implements IScheduler
 
     public function dispatch()
     {
-        var task = null;
-        while (null != (task = tasks.pop(false)))
+        while (true)
         {
-            @:nullSafety(Off) task(this);
+            switch tasks.pop(false)
+            {
+                case null:
+                    return;
+                case task:
+                    task(this).unsubscribe();
+            }
         }
     }
 
