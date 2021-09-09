@@ -64,6 +64,7 @@ macro function loadParcelMeta(_name : String, _path : String)
 
     totalResources += meta.pages.length;
 
+    // Add a field for each resource in the parcel.
     for (asset in meta.assets)
     {
         totalResources += asset.produced.length;
@@ -71,15 +72,58 @@ macro function loadParcelMeta(_name : String, _path : String)
         for (produced in asset.produced)
         {
             built.fields.push({
-                name: produced.name,
-                pos : Context.currentPos(),
-                kind: FVar(macro : uk.aidanlee.flurry.api.resources.ResourceID, macro new uk.aidanlee.flurry.api.resources.ResourceID($v{ produced.id })),
-                access: [ APublic, AStatic, AFinal ]
+                name   : produced.name,
+                pos    : Context.currentPos(),
+                access : [ APublic, AStatic, AFinal ],
+                kind   : FVar(macro : uk.aidanlee.flurry.api.resources.ResourceID, macro new uk.aidanlee.flurry.api.resources.ResourceID($v{ produced.id }))
             });
         }
     }
 
+    // Add a field for a map for string based parcel lookup
+    built.fields.push({
+        name   : 'resources',
+        pos    : Context.currentPos(),
+        access : [ APrivate, AStatic, AFinal ],
+        kind   : FVar(
+            macro : Map<String, uk.aidanlee.flurry.api.resources.ResourceID>,
+            {
+                pos  : Context.currentPos(),
+                expr : EArrayDecl([
+                    for (asset in meta.assets)
+                    {
+                        for (produced in asset.produced)
+                        {
+                            macro $v{ produced.name } => new uk.aidanlee.flurry.api.resources.ResourceID($v{ produced.id });
+                        }
+                    }
+                ])
+            }
+        )
+    });
+
+    // Add a static function to get the ID when given a string
+    built.fields.push({
+        name   : 'getResourceID',
+        pos    : Context.currentPos(),
+        access : [ APublic, AStatic ],
+        kind   : FFun({
+            args : [ { name: '_name', type : macro : String } ],
+            ret  : macro : uk.aidanlee.flurry.api.resources.ResourceID,
+            expr : macro return switch resources.get(_name) {
+                case null:
+                    throw new haxe.Exception('No resource with the name $_name was found in this parcel');
+                case id:
+                    (id : uk.aidanlee.flurry.api.resources.ResourceID);
+            }
+        })
+    });
+
+    // Set the package to be in the flurry resource package, should we allow the user to define the package?
     built.pack = [ 'uk', 'aidanlee', 'flurry', 'api', 'resources', 'parcels' ];
+    built.meta = [
+        { name : ':unreflective', pos : Context.currentPos() }
+    ];
 
     try
     {
