@@ -35,27 +35,57 @@ private function getDataForRequest(_request : RequestType)
     return switch _request
     {
         case PackImage(_, path):
-            final data   = stb.Image.load(path.toString(), 4);
+            final data   = stb.Image.load(path.toString());
             final stride = data.w * data.comp;
 
-            // Assume straight alpha, so pre-multiply.
-            for (row in 0...data.h)
+            switch data.comp
             {
-                for (col in 0...data.w)
-                {
-                    final base = col * data.comp + row * stride;
-                    final a    = data.bytes[base + 3];
-                    final r    = if (a == 0) 1 else data.bytes[base + 0];
-                    final g    = if (a == 0) 1 else data.bytes[base + 1];
-                    final b    = if (a == 0) 1 else data.bytes[base + 2];
+                case 3:
+                    final outBpp    = 4;
+                    final outStride = data.w * outBpp;
+                    final outBytes  = haxe.io.Bytes.alloc(data.w * data.h * outBpp);
 
-                    data.bytes[base + 0] = Std.int(r * a / 255 + 0.5);
-                    data.bytes[base + 1] = Std.int(g * a / 255 + 0.5);
-                    data.bytes[base + 2] = Std.int(b * a / 255 + 0.5);
-                }
+                    // three channels, no existing alpha so just set to 255.
+                    for (row in 0...data.h)
+                    {
+                        for (col in 0...data.w)
+                        {
+                            final base = col * data.comp + row * stride;
+                            final r    = data.bytes[base + 0];
+                            final g    = data.bytes[base + 1];
+                            final b    = data.bytes[base + 2];
+        
+                            final base = col * outBpp + row * outStride;
+                            outBytes.set(base + 0, r);
+                            outBytes.set(base + 1, g);
+                            outBytes.set(base + 2, b);
+                            outBytes.set(base + 3, 255);
+                        }
+                    }
+
+                    outBytes;
+                case 4:
+                    // Assume straight alpha, so pre-multiply.
+                    for (row in 0...data.h)
+                    {
+                        for (col in 0...data.w)
+                        {
+                            final base = col * data.comp + row * stride;
+                            final a    = data.bytes[base + 3];
+                            final r    = if (a == 0) 1 else data.bytes[base + 0];
+                            final g    = if (a == 0) 1 else data.bytes[base + 1];
+                            final b    = if (a == 0) 1 else data.bytes[base + 2];
+        
+                            data.bytes[base + 0] = Std.int(r * a / 255 + 0.5);
+                            data.bytes[base + 1] = Std.int(g * a / 255 + 0.5);
+                            data.bytes[base + 2] = Std.int(b * a / 255 + 0.5);
+                        }
+                    }
+
+                    haxe.io.Bytes.ofData(data.bytes);
+                case other:
+                    throw new Exception('Image with $other channels is not supported');
             }
-
-            haxe.io.Bytes.ofData(data.bytes);
         case PackBytes(_, bytes, width, height, format):
             final bpp    = 4;
             final stride = width * bpp;
