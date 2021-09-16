@@ -21,6 +21,12 @@ class ParcelMeta
     public var timeGenerated : Float;
 
     /**
+     * The unique ID of the igloo compilation which produced this parcel.
+     * If igloo was re-compiled then cached parcels are invalid.
+     */
+    public var id : Int;
+
+    /**
      * The graphics api that was set when the cached parcel was created.
      * If this differs from the current one the parcel will be invalid.
      */
@@ -42,10 +48,11 @@ class ParcelMeta
 
     public var assets : Array<AssetMeta>;
 
-    public function new(_timeGenerated, _gpuApi, _release, _processorsInvolved, _pages, _assets)
+    public function new(_timeGenerated, _id, _gpuApi, _release, _processorsInvolved, _pages, _assets)
     {
         flurryVersion      = '';
         timeGenerated      = _timeGenerated;
+        id                 = _id;
         gpuApi             = _gpuApi;
         release            = _release;
         processorsInvolved = _processorsInvolved;

@@ -3,6 +3,7 @@ package igloo;
 import hx.concurrent.event.AsyncEventDispatcher;
 import hx.concurrent.executor.Executor;
 import tink.Cli;
+import igloo.ID;
 import igloo.logger.Log;
 import igloo.commands.Build;
 
@@ -11,10 +12,11 @@ function main()
     final logExecutor   = Executor.create();
     final logDispatcher = new AsyncEventDispatcher<String>(logExecutor);
     final logger        = new Log(logDispatcher);
+    final id            = generateID();
 
     try
     {
-        Cli.process(Sys.args(), new Igloo(logger)).handle(Cli.exit);
+        Cli.process(Sys.args(), new Igloo(id, logger)).handle(Cli.exit);
     }
     catch (e)
     {
@@ -30,9 +32,9 @@ class Igloo
     @:command
     public final build : Build;
 
-    public function new(_logger)
+    public function new(_id, _logger)
     {
-        build = new Build(_logger);
+        build = new Build(_id, _logger);
     }
 
     @:defaultCommand

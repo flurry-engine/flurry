@@ -23,12 +23,12 @@ using Lambda;
 using Safety;
 using igloo.parcels.ParcelWriter;
 
-function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : ProcessorLoadResult, _id : IDProvider)
+function build(_ctx : ParcelContext, _id : Int, _parcel : LoadedParcel, _processors : ProcessorLoadResult, _provider : IDProvider)
 {
     Console.log('Cached parcel is invalid');
 
     final packed = new Map<String, Array<ProcessedResource<Any>>>();
-    final atlas  = new Atlas(_parcel.settings.xPad, _parcel.settings.yPad, _parcel.settings.maxWidth, _parcel.settings.maxHeight, _id);
+    final atlas  = new Atlas(_parcel.settings.xPad, _parcel.settings.yPad, _parcel.settings.maxWidth, _parcel.settings.maxHeight, _provider);
 
     // Each source asset produces 1-n resource requests. Each request has a type, packed or unpacked.
     // These requests are then resolved by packing them into the atlas if needed.
@@ -46,7 +46,7 @@ function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : Proce
         }
         
         final request   = proc.pack(_ctx, asset);
-        final processed = processRequest(asset.id, request, atlas, _id);
+        final processed = processRequest(asset.id, request, atlas, _provider);
         final existing  = packed.get(ext);
 
         switch processed.response
@@ -165,7 +165,7 @@ function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : Proce
     output.writeParcelFooter();
     output.close();
 
-    writeMetaFile(_parcel.parcelMeta, _ctx.gpuApi, _ctx.release, _processors.names, writtenPages, writtenAssets);
+    writeMetaFile(_parcel.parcelMeta, _id, _ctx.gpuApi, _ctx.release, _processors.names, writtenPages, writtenAssets);
 }
 
 /**
@@ -194,16 +194,17 @@ private function writeProcessedResource(_output : FileOutput, _proc, _ctx, _data
 /**
  * Write a metadata json file for a parcel.
  * @param _file Location to write the json file.
+ * @param _id Unique ID of this igloo compilation.
  * @param _gpuApi The graphics API used for packaging this parcel.
  * @param _release If release mode is enabled when building this parcel.
  * @param _processorNames List of all processor names used in packaging this parcel.
  * @param _pages All pages packaged in this parcel.
  * @param _resources All resources packaged in this parcel.
  */
-private function writeMetaFile(_file : Path, _gpuApi, _release, _processorNames, _pages, _resources)
+private function writeMetaFile(_file : Path, _id, _gpuApi, _release, _processorNames, _pages, _resources)
 {
     final writer   = new JsonWriter<ParcelMeta>();
-    final metaFile = new ParcelMeta(Date.now().getTime(), _gpuApi, _release, _processorNames, _pages, _resources);
+    final metaFile = new ParcelMeta(Date.now().getTime(), _id, _gpuApi, _release, _processorNames, _pages, _resources);
     final json     = writer.write(metaFile);
     
     _file.toFile().writeString(json);

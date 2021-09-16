@@ -26,6 +26,8 @@ class Build
 {
     final projectParser : JsonParser<Project>;
 
+    final id : Int;
+
     final logger : Log;
 
     /**
@@ -100,9 +102,10 @@ class Build
     @:alias('y')
     public var rebuildHost = false;
 
-    public function new(_logger)
+    public function new(_id, _logger)
     {
         projectParser = new JsonParser<Project>();
+        id            = _id;
         logger        = _logger;
     }
 
@@ -134,7 +137,7 @@ class Build
 
         // Building Assets
 
-        final parcels    = resolveParcels(projectPath, project.parcels, outputDir, graphicsBackend, release, processors);
+        final parcels    = resolveParcels(projectPath, project.parcels, outputDir, id, graphicsBackend, release, processors);
         final idProvider = createIDProvider(parcels);
 
         var someParcelsPackage = false;
@@ -157,7 +160,7 @@ class Build
                         tools,
                         executor);
     
-                    build(ctx, parcel, processors, idProvider);
+                    build(ctx, id, parcel, processors, idProvider);
 
                     someParcelsPackage = true;
                 }
