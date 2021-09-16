@@ -103,12 +103,23 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 					case Some(fxc):
 						final vertDxbcPath = _ctx.tempDirectory.join(_asset.id + '.vert.dxbc');
 						final fragDxbcPath = _ctx.tempDirectory.join(_asset.id + '.frag.dxbc');
+						final fragArgs     = [ '/T', 'vs_5_0', '/E', 'main', '/Fo', vertDxbcPath.toString(), vertHlslPath.toString() ];
+						final vertArgs     = [ '/T', 'ps_5_0', '/E', 'main', '/Fo', fragDxbcPath.toString(), fragHlslPath.toString() ];
+
+						if (!_ctx.release)
+						{
+							vertArgs.push('/Zi');
+							vertArgs.push('/Od');
+							
+							fragArgs.push('/Zi');
+							fragArgs.push('/Od');
+						}
 						
-						if (Sys.command(fxc.toString(), [ '/T', 'vs_5_0', '/E', 'main', '/Fo', vertDxbcPath.toString(), vertHlslPath.toString() ]) != 0)
+						if (Sys.command(fxc.toString(), fragArgs) != 0)
 						{
 							throw new Exception('Failed to generate vertex dxbc');
 						}
-						if (Sys.command(fxc.toString(), [ '/T', 'ps_5_0', '/E', 'main', '/Fo', fragDxbcPath.toString(), fragHlslPath.toString() ]) != 0)
+						if (Sys.command(fxc.toString(), vertArgs) != 0)
 						{
 							throw new Exception('Failed to generate fragment dxbc');
 						}

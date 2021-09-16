@@ -27,6 +27,12 @@ class ParcelMeta
     public var gpuApi : GraphicsApi;
 
     /**
+     * If the cached parcel was built in release mode.
+     * Processors could output different data (e.g. include debugging info) in non-release parcels.
+     */
+    public var release : Bool;
+
+    /**
      * List of all processors which were used when building the cached parcel.
      * If any processor in this list was re-compiled for this build the parcel will be invalid.
      */
@@ -36,11 +42,12 @@ class ParcelMeta
 
     public var assets : Array<AssetMeta>;
 
-    public function new(_timeGenerated, _gpuApi, _processorsInvolved, _pages, _assets)
+    public function new(_timeGenerated, _gpuApi, _release, _processorsInvolved, _pages, _assets)
     {
         flurryVersion      = '';
         timeGenerated      = _timeGenerated;
         gpuApi             = _gpuApi;
+        release            = _release;
         processorsInvolved = _processorsInvolved;
         pages              = _pages;
         assets             = _assets;

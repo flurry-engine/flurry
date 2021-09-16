@@ -134,7 +134,7 @@ class Build
 
         // Building Assets
 
-        final parcels    = resolveParcels(projectPath, project.parcels, outputDir, graphicsBackend, processors);
+        final parcels    = resolveParcels(projectPath, project.parcels, outputDir, graphicsBackend, release, processors);
         final idProvider = createIDProvider(parcels);
 
         var someParcelsPackage = false;
@@ -153,6 +153,7 @@ class Build
                         parcel.tempDir,
                         parcel.cacheDir,
                         graphicsBackend,
+                        release,
                         tools,
                         executor);
     
@@ -167,6 +168,9 @@ class Build
 
                     parcel.cacheDir.toDir().delete(true);
                     parcel.tempDir.toDir().delete(true);
+
+                    Sys.println('Failed to package ${ parcel.name }');
+                    Sys.println(e.details());
 
                     throw new Exception('Failed to package ${ parcel.name }', e);
                 }

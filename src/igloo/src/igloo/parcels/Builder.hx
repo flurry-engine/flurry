@@ -165,7 +165,7 @@ function build(_ctx : ParcelContext, _parcel : LoadedParcel, _processors : Proce
     output.writeParcelFooter();
     output.close();
 
-    writeMetaFile(_parcel.parcelMeta, _ctx.gpuApi, _processors.names, writtenPages, writtenAssets);
+    writeMetaFile(_parcel.parcelMeta, _ctx.gpuApi, _ctx.release, _processors.names, writtenPages, writtenAssets);
 }
 
 /**
@@ -195,14 +195,15 @@ private function writeProcessedResource(_output : FileOutput, _proc, _ctx, _data
  * Write a metadata json file for a parcel.
  * @param _file Location to write the json file.
  * @param _gpuApi The graphics API used for packaging this parcel.
+ * @param _release If release mode is enabled when building this parcel.
  * @param _processorNames List of all processor names used in packaging this parcel.
  * @param _pages All pages packaged in this parcel.
  * @param _resources All resources packaged in this parcel.
  */
-private function writeMetaFile(_file : Path, _gpuApi, _processorNames, _pages, _resources)
+private function writeMetaFile(_file : Path, _gpuApi, _release, _processorNames, _pages, _resources)
 {
     final writer   = new JsonWriter<ParcelMeta>();
-    final metaFile = new ParcelMeta(Date.now().getTime(), _gpuApi, _processorNames, _pages, _resources);
+    final metaFile = new ParcelMeta(Date.now().getTime(), _gpuApi, _release, _processorNames, _pages, _resources);
     final json     = writer.write(metaFile);
     
     _file.toFile().writeString(json);

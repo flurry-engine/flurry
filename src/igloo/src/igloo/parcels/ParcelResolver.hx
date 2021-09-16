@@ -20,7 +20,7 @@ using Lambda;
  * @param _gpuApi Graphics backend in use.
  * @param _processors Object holding all loaded processors and load information.
  */
-function resolveParcels(_projectPath : Path, _bundles : Array<String>, _outputDir : Path, _gpuApi, _processors)
+function resolveParcels(_projectPath : Path, _bundles : Array<String>, _outputDir : Path, _gpuApi, _release, _processors)
 {
     final parser = new JsonParser<Package>();
     final loaded = [];
@@ -33,10 +33,9 @@ function resolveParcels(_projectPath : Path, _bundles : Array<String>, _outputDi
 
         if (parser.errors.length > 0)
         {
-            Console.error('Failed to parse package file ${ bundlePath.toString() }');
-            Console.error(ErrorUtils.convertErrorArray(parser.errors));
+            Console.error('Failed to parse package file ${ bundlePath.toString() } : ${ ErrorUtils.convertErrorArray(parser.errors) }');
 
-            throw new Exception('Failed to parse package file');
+            throw new Exception('Failed to parse package file : ${ ErrorUtils.convertErrorArray(parser.errors) }');
         }
 
         for (parcel in bundle.parcels)
@@ -48,7 +47,7 @@ function resolveParcels(_projectPath : Path, _bundles : Array<String>, _outputDi
 
             final assets   = resolveAssets(parcel.assets, bundle.assets);
             final metadata = loadCacheData(parcelFile, parcelMeta);
-            final isValid  = validateMetaData(metadata, _gpuApi, _processors, assets, baseAssetDir);
+            final isValid  = validateMetaData(metadata, _gpuApi, _release, _processors, assets, baseAssetDir);
             final data     = new LoadedParcel(
                 parcelFile,
                 parcelMeta,
@@ -213,7 +212,7 @@ private function loadCacheData(_parcelFile : Path, _parcelMeta : Path) : Option<
  * @param _assets All assets for this parcel in the curent bundle.
  * @param _assetDir Base asset directory for this parcels asset paths.
  */
-private function validateMetaData(_meta : Option<ParcelMeta>, _gpuApi : GraphicsApi, _processors : ProcessorLoadResult, _assets : Vector<Asset>, _assetDir : Path)
+private function validateMetaData(_meta : Option<ParcelMeta>, _gpuApi : GraphicsApi, _release : Bool, _processors : ProcessorLoadResult, _assets : Vector<Asset>, _assetDir : Path)
 {
     switch _meta
     {
@@ -224,6 +223,13 @@ private function validateMetaData(_meta : Option<ParcelMeta>, _gpuApi : Graphics
             {
                 Console.log('Parcel was generated with a different graphics api');
         
+                return false;
+            }
+
+            if (v.release != _release)
+            {
+                Console.log('Parcel was generated with a different release mode state');
+
                 return false;
             }
         
