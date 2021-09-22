@@ -96,7 +96,7 @@ import uk.aidanlee.flurry.api.maths.Maths;
             throw new Exception('Failed to map D3D11 index buffer : HRESULT $result');
         }
 
-        baseIndex     = shortsWritten;
+        baseIndex    += shortsWritten;
         shortsWritten = 0;
         shortPointer  = cast mapped.data.raw;
         discard       = false;

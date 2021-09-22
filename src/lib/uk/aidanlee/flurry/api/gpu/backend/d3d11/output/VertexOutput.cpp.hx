@@ -94,7 +94,7 @@ import uk.aidanlee.flurry.api.maths.Maths;
             throw new Exception('Failed to map D3D11 vertex buffer : HRESULT $result');
         }
 
-        baseVertex    = cpp.NativeMath.idiv(floatsWritten, floatStride);
+        baseVertex   += cpp.NativeMath.idiv(floatsWritten, floatStride);
         floatsWritten = 0;
         floatPointer  = cast mapped.data.raw;
         discard       = false;
@@ -116,8 +116,8 @@ import uk.aidanlee.flurry.api.maths.Maths;
         floatCursor   = 0;
         floatsWritten = 0;
         baseVertex    = 0;
-        discard       = true;
         floatStride   = -1;
+        discard       = true;
     }
 
     public function getVerticesWritten()
