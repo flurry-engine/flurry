@@ -259,6 +259,9 @@ class OGL3GraphicsContext extends GraphicsContext
             return;
         }
 
+        flush();
+        map();
+
         glScissor(_x, _y, _width, _height);
         scissor.x = _x;
         scissor.y = _y;
