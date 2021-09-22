@@ -86,6 +86,32 @@ overload extern inline function makeTranslation(_v : Vec3)
    );
 }
 
+inline function makeRotationX(_angle : Float)
+{
+    final c = Math.cos(_angle);
+    final s = Math.sin(_angle);
+
+    return mat4(
+        1, 0,  0, 0,
+        0, c, -s, 0,
+        0, s,  c, 0,
+        0, 0,  0, 1
+    );
+}
+
+inline function makeRotationY(_angle : Float)
+{
+    final c = Math.cos(_angle);
+    final s = Math.sin(_angle);
+
+    return mat4(
+         c, 0, s, 0,
+         0, 1, 0, 0,
+        -s, s, c, 0,
+         0, 0, 0, 1
+    );
+}
+
 inline function makeRotationZ(_angle : Float)
 {
     final c = Math.cos(_angle);
@@ -120,7 +146,7 @@ inline function makeCentredFrustumRH(_left : Float, _right : Float, _top : Float
     );
 }
 
-overload extern inline function makeFrustumOpenGL(_left : Float, _right : Float, _top : Float, _bottom : Float, _near : Float, _far : Float)
+inline function makeFrustumOpenGL(_left : Float, _right : Float, _top : Float, _bottom : Float, _near : Float, _far : Float)
 {
     final a =  2 / (_right - _left);
     final b =  2 / (_top - _bottom);
