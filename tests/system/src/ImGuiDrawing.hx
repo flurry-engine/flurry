@@ -1,14 +1,24 @@
 package;
 
-import uk.aidanlee.flurry.api.resources.Resource.ShaderResource;
+import uk.aidanlee.flurry.api.gpu.GraphicsContext;
+import VectorMath;
+import uk.aidanlee.flurry.api.gpu.shaders.ShaderID;
+import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
+import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
+import uk.aidanlee.flurry.api.resources.parcels.Preload;
+import uk.aidanlee.flurry.api.resources.parcels.Shaders;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
-import uk.aidanlee.flurry.modules.imgui.ImGuiImpl;
+import uk.aidanlee.flurry.modules.imgui.DearImGui;
 import imgui.ImGui;
 
 class ImGuiDrawing extends Flurry
 {
-    var imgui : ImGuiImpl;
+    var pipeline : PipelineID;
+
+    var camera : Camera2D;
+
+    var imgui : DearImGui;
 
     override function onConfig(_config : FlurryConfig) : FlurryConfig
     {
@@ -23,26 +33,23 @@ class ImGuiDrawing extends Flurry
 
     override function onReady()
     {
-        imgui = new ImGuiImpl(events, display, resources, input, renderer, resources.getByName('textured', ShaderResource).id);
-    }
-
-    override function onPreUpdate()
-    {
-        imgui.newFrame();
-    }
-
-    override function onPreRender()
-    {
-        imgui.render();
+        pipeline = renderer.createPipeline({ shader : new ShaderID(Shaders.textured) });
+        camera   = new Camera2D(vec2(0), vec2(display.width, display.height), vec4(0, 0, display.width, display.height));
+        imgui    = new DearImGui(renderer, display, input);
     }
 
     override function onUpdate(_dt : Float)
     {
-        ImGui.showAboutWindow();
+        imgui.newFrame();
+
+        ImGui.showDemoWindow();
     }
 
-    override function onShutdown()
+    override function onRender(_ctx : GraphicsContext)
     {
-        imgui.dispose();
+        _ctx.usePipeline(pipeline);
+        _ctx.useCamera(camera);
+
+        imgui.draw(_ctx);
     }
 }
