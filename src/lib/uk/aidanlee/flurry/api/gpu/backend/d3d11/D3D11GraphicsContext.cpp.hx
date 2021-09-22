@@ -252,15 +252,18 @@ class D3D11GraphicsContext extends GraphicsContext
     @:nullSafety(Off)
     public function useScissorRegion(_x : Int, _y : Int, _width : Int, _height : Int)
     {
-        if (nativeScissor.left == _x && nativeScissor.top == _y && nativeScissor.right == _width && nativeScissor.bottom == _height)
+        if (nativeScissor.left == _x && nativeScissor.top == _y && nativeScissor.right == (_x + _width) && nativeScissor.bottom == (_y + _height))
         {
             return;
         }
 
-        nativeScissor.left = _x;
-        nativeScissor.top = _y;
-        nativeScissor.right = _width;
-        nativeScissor.bottom = _height;
+        flush();
+        map();
+
+        nativeScissor.left   = _x;
+        nativeScissor.top    = _y;
+        nativeScissor.right  = _x + _width;
+        nativeScissor.bottom = _y + _height;
         context.rsSetScissorRect(nativeScissor);
     }
 
