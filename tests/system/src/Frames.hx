@@ -10,6 +10,9 @@ import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
 import uk.aidanlee.flurry.api.gpu.shaders.ShaderID;
 import uk.aidanlee.flurry.api.gpu.shaders.UniformBlob;
 import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
+import uk.aidanlee.flurry.api.gpu.geometry.Geometry;
+import uk.aidanlee.flurry.api.gpu.geometry.VertexBlob;
+import uk.aidanlee.flurry.api.gpu.geometry.IndexBlob;
 import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
 import uk.aidanlee.flurry.api.gpu.textures.SamplerState;
 import uk.aidanlee.flurry.api.input.Keycodes;
@@ -20,6 +23,7 @@ import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 
 using uk.aidanlee.flurry.api.gpu.drawing.Frames;
 using uk.aidanlee.flurry.api.gpu.drawing.Surfaces;
+using uk.aidanlee.flurry.api.gpu.drawing.Geometry;
 using hxrx.schedulers.IScheduler;
 
 class Frames extends Flurry
@@ -44,6 +48,8 @@ class Frames extends Flurry
 
     var uniform2 : uk.aidanlee.flurry.api.gpu.shaders.uniforms.Shaders.Colours;
 
+    var geometry : Geometry;
+
     override function onConfig(_config : FlurryConfig) : FlurryConfig
     {
         _config.window.title  = 'System Tests';
@@ -67,6 +73,7 @@ class Frames extends Flurry
         camera2  = new Camera2D(vec2(0, 0), vec2(128, 128), vec4(0, 0, 128, 128));
         uniform1 = new uk.aidanlee.flurry.api.gpu.shaders.uniforms.Shaders.Colours();
         uniform2 = new uk.aidanlee.flurry.api.gpu.shaders.uniforms.Shaders.Colours();
+        geometry = buildCustomQuad();
 
         uniform1.colour = vec3(1.0, 0.5, 0.5);
         uniform2.colour = vec3(1.0, 0.5, 1.0);
@@ -140,6 +147,8 @@ class Frames extends Flurry
         _ctx.useCamera(camera);
 
         _ctx.drawSurface(surface, vec2(640, 128), vec2(128, 128));
+
+        _ctx.drawGeometry(geometry);
     }
 
     function drawCustomFrame(_ctx : GraphicsContext, _frame : PageFrameResource, _x : Float, _y : Float)
@@ -171,5 +180,44 @@ class Frames extends Flurry
         _ctx.idxOutput.write(0);
         _ctx.idxOutput.write(2);
         _ctx.idxOutput.write(3);
+    }
+
+    function buildCustomQuad()
+    {
+        final frame = resources.getAs(Preload.blue_worker, PageFrameResource);
+
+        final vtxBlob =
+            new VertexBlobBuilder()
+                .addFloat3(0, 384, 0)
+                .addFloat4(1, 1, 1, 1)
+                .addFloat2(frame.u1, frame.v2)
+
+                .addFloat3(0, 256, 0)
+                .addFloat4(1, 1, 1, 1)
+                .addFloat2(frame.u1, frame.v1)
+
+                .addFloat3(128, 256, 0)
+                .addFloat4(1, 1, 1, 1)
+                .addFloat2(frame.u2, frame.v1)
+
+                .addFloat3(128, 384, 0)
+                .addFloat4(1, 1, 1, 1)
+                .addFloat2(frame.u2, frame.v2)
+
+                .vertexBlob();
+
+        final idxBlob =
+            new IndexBlobBuilder()
+                .addInt(0)
+                .addInt(1)
+                .addInt(2)
+
+                .addInt(0)
+                .addInt(2)
+                .addInt(3)
+
+                .indexBlob();
+
+        return new Geometry(vtxBlob, idxBlob, [ new GeometryInput(Left(frame.page), SamplerState.nearest) ], []);
     }
 }
