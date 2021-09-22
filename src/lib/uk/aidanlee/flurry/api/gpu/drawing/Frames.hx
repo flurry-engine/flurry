@@ -407,7 +407,7 @@ overload extern inline function drawFrameDistorted(_ctx : GraphicsContext, _fram
  * @param _transform Transformation matrix to apply to each vertex.
  * @param _colour Colour of each vertex.
  */
-private inline function drawFrameTransformed(_ctx : GraphicsContext, _frame : PageFrameResource, _transform : Mat4, _colour : Vec4)
+inline function drawFrameTransformed(_ctx : GraphicsContext, _frame : PageFrameResource, _transform : Mat4, _colour : Vec4)
 {
     _ctx.usePage(0, _frame.page, SamplerState.nearest);
     
@@ -444,7 +444,7 @@ private inline function drawFrameTransformed(_ctx : GraphicsContext, _frame : Pa
  * @param _t3 UV texture coordinate of the bottom right vertex of the quad.
  * @param _t4 UV texture coordinate of the bottom left vertex of the quad.
  */
-private inline function drawQuad(
+inline function drawQuad(
     _ctx : GraphicsContext,
 
     _p1 : Vec3,
