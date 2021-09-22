@@ -172,6 +172,8 @@ class OGL3Renderer extends Renderer
             case null:
                 throw new Exception('Backbuffer surface was null');
             case backbuffer:
+                glDisable(GL_SCISSOR_TEST);
+
                 // OpenGL treats origins at the bottom left of the window.
                 // We want things to be the top left for consistency, so blit to the backbuffer flipping on the vertical axis.
                 glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -182,6 +184,8 @@ class OGL3Renderer extends Renderer
                     GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT,
                     GL_NEAREST
                 );
+
+                glEnable(GL_SCISSOR_TEST);
 
                 SDL.GL_SwapWindow(window);
         }
