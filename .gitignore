@@ -2,4 +2,5 @@ bin/
 test-*.xml
 node_modules
 .pytest_cache
+.flurry
 __pycache__
