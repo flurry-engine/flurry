@@ -1,7 +1,5 @@
 package uk.aidanlee.flurry.api.resources.builtin;
 
-import haxe.io.Bytes;
-
 class PageResource extends Resource
 {
     public final width : Int;
