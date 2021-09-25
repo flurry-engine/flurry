@@ -29,6 +29,9 @@ function main()
 @:alias(false)
 class Igloo
 {
+    /**
+     * Build the projects parcels and code.
+     */
     @:command
     public final build : Build;
 
@@ -40,6 +43,6 @@ class Igloo
     @:defaultCommand
     public function help()
     {
-        Sys.println('help');
+        Sys.println(Cli.getDoc(this));
     }
 }

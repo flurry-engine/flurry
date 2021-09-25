@@ -109,6 +109,12 @@ class Build
         logger        = _logger;
     }
 
+    @:command
+    public function help()
+    {
+        Sys.println(tink.Cli.getDoc(this));
+    }
+
     @:defaultCommand
     public function execute()
     {

@@ -54,8 +54,7 @@ class Cache
 
         logger.info('Loading script $_path');
 
-        var wasRecompiled = false;
-        if (precompiledScript.exists() && scriptHashPath.exists())
+        final wasRecompiled = if (precompiledScript.exists() && scriptHashPath.exists())
         {
             logger.info('Cached script found');
 
@@ -73,7 +72,11 @@ class Cache
                 compileScript(logger, _path, precompiledScript, _flags);
                 outputCacheHash(scriptHashPath, sourceLastModified, sourceFlagsHash);
 
-                wasRecompiled = true;
+                true;
+            }
+            else
+            {
+                false;
             }
         }
         else
@@ -82,7 +85,7 @@ class Cache
             compileScript(logger, _path, precompiledScript, _flags);
             outputCacheHash(scriptHashPath, sourceLastModified, sourceFlagsHash);
 
-            wasRecompiled = true;
+            true;
         }
 
         return new CacheLoadResult(_path, loadCompiledScript(precompiledScript), wasRecompiled);
