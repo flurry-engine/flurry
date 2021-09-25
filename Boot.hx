@@ -76,7 +76,6 @@ class Flurry
             '-D', 'IGLOO_BUILTIN_SCRIPTS=$flurryDir/src/igloo/scripts',
             '-D', 'HAXE_OUTPUT_FILE=Igloo',
             '-m', 'igloo.Igloo',
-            '--no-traces',
             '--dce', 'no',
             '--cpp', buildDir
         ];
@@ -84,6 +83,10 @@ class Flurry
         if (debug)
         {
             haxeArgs.push('--debug');
+        }
+        else
+        {
+            haxeArgs.push('--no-traces');
         }
         if (clean)
         {
