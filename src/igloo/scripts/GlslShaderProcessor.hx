@@ -1,3 +1,5 @@
+import igloo.processors.ProcessedResource;
+import igloo.utils.OneOf;
 import sys.io.Process;
 import haxe.Json;
 import haxe.Exception;
@@ -7,10 +9,8 @@ import haxe.ds.Option;
 import hx.files.Path;
 import igloo.parcels.Asset;
 import igloo.parcels.ParcelContext;
-import igloo.processors.RequestType;
 import igloo.processors.AssetProcessor;
 import igloo.processors.ResourceRequest;
-import igloo.processors.ResourceResponse;
 
 using Lambda;
 using Safety;
@@ -32,7 +32,7 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 		return vertPath.getModificationTime() >= _time || fragPath.getModificationTime() >= _time;
 	}
 
-	override public function pack(_ctx : ParcelContext, _asset : Asset)
+	override public function pack(_ctx : ParcelContext, _asset : Asset) : OneOf<ResourceRequest<ProducedShader>, Array<ResourceRequest<ProducedShader>>>
 	{
 		// Transform our input asset path into vert and fragment versions.
 		final source      = Path.of(_asset.path);
@@ -84,7 +84,7 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 					throw new Exception('Failed to generate core 3.3 glsl fragment shader');
 				}
 
-				new ResourceRequest(new ProducedShader(vertReflection, fragReflection, vertGlslPath, fragGlslPath), UnPacked(_asset.id));
+				new ResourceRequest(_asset.id, new ProducedShader(vertReflection, fragReflection, vertGlslPath, fragGlslPath), None);
 			case 'd3d11':
 				final vertHlslPath = _ctx.tempDirectory.join(_asset.id + '.vert.hlsl');
 				final fragHlslPath = _ctx.tempDirectory.join(_asset.id + '.frag.hlsl');
@@ -124,7 +124,7 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 							throw new Exception('Failed to generate fragment dxbc');
 						}
 
-						new ResourceRequest(new ProducedShader(vertReflection, fragReflection, vertDxbcPath, fragDxbcPath), UnPacked(_asset.id));
+						new ResourceRequest(_asset.id, new ProducedShader(vertReflection, fragReflection, vertDxbcPath, fragDxbcPath), None);
 					case None:
 						throw new Exception('Unable to find fxc.exe path');
 				}
@@ -133,108 +133,102 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 		}
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _data : ProducedShader, _response : ResourceResponse)
+	override public function write(_ctx : ParcelContext, _writer : Output, _resource : ProcessedResource<ProducedShader>)
 	{
-		switch _response
+		_writer.writeInt32(_resource.id);
+		_writer.writePrefixedString(_ctx.gpuApi);
+
+		_writer.writeByte(_resource.data.vertReflection.inputs.length);
+		for (element in _resource.data.vertReflection.inputs)
 		{
-			case NotPacked(name, _id):
-				_writer.writeInt32(_id);
-				_writer.writePrefixedString(_ctx.gpuApi);
+			_writer.writeByte(element.location);
+			_writer.writeByte(inputTypeToByte(element.type));
+		}
 
-				_writer.writeByte(_data.vertReflection.inputs.length);
-				for (element in _data.vertReflection.inputs)
+		switch _ctx.gpuApi
+		{
+			case 'ogl3', 'mock':
+				// OpenGL doesn't really distinguish between vertex and fragment stages when binding.
+				// So we can filter to what we actually want.
+				final blocks = getDistinctBlocks(
+					_resource.data.vertReflection.ubos.or([]),
+					_resource.data.fragReflection.ubos.or([]));
+		
+				final combined = generateCombinedSamplers(
+					_resource.data.fragReflection.separate_images.or([]),
+					_resource.data.fragReflection.separate_samplers.or([]));
+		
+				_writer.writeInt32(blocks.length);
+				for (block in blocks)
 				{
-					_writer.writeByte(element.location);
-					_writer.writeByte(inputTypeToByte(element.type));
+					_writer.writePrefixedString(block.name);
+					_writer.writePrefixedString(block.type);
+					_writer.writeInt32(block.binding);
+				}
+		
+				_writer.writeInt32(combined.length);
+				for (sampler in combined)
+				{
+					_writer.writePrefixedString(sampler);
+				}
+			case 'd3d11':
+				// D3D11 does care about the blocks in each stage, so include the full info.
+				final vertBlocks = _resource.data.vertReflection.ubos.or([]);
+				final fragBlocks = _resource.data.fragReflection.ubos.or([]);
+
+				_writer.writeInt32(vertBlocks.length);
+				for (block in vertBlocks)
+				{
+					_writer.writePrefixedString(block.name);
 				}
 
-				switch _ctx.gpuApi
+				_writer.writeInt32(fragBlocks.length);
+				for (block in fragBlocks)
 				{
-					case 'ogl3', 'mock':
-						// OpenGL doesn't really distinguish between vertex and fragment stages when binding.
-						// So we can filter to what we actually want.
-						final blocks = getDistinctBlocks(
-							_data.vertReflection.ubos.or([]),
-							_data.fragReflection.ubos.or([]));
-				
-						final combined = generateCombinedSamplers(
-							_data.fragReflection.separate_images.or([]),
-							_data.fragReflection.separate_samplers.or([]));
-				
-						_writer.writeInt32(blocks.length);
-						for (block in blocks)
-						{
-							_writer.writePrefixedString(block.name);
-							_writer.writePrefixedString(block.type);
-							_writer.writeInt32(block.binding);
-						}
-				
-						_writer.writeInt32(combined.length);
-						for (sampler in combined)
-						{
-							_writer.writePrefixedString(sampler);
-						}
-					case 'd3d11':
-						// D3D11 does care about the blocks in each stage, so include the full info.
-						final vertBlocks = _data.vertReflection.ubos.or([]);
-						final fragBlocks = _data.fragReflection.ubos.or([]);
-
-						_writer.writeInt32(vertBlocks.length);
-						for (block in vertBlocks)
-						{
-							_writer.writePrefixedString(block.name);
-						}
-
-						_writer.writeInt32(fragBlocks.length);
-						for (block in fragBlocks)
-						{
-							_writer.writePrefixedString(block.name);
-						}
-
-						final images   = _data.fragReflection.separate_images.or([]);
-						final samplers = _data.fragReflection.separate_samplers.or([]);
-
-						if (images.length != samplers.length)
-						{
-							throw new Exception('Number of samplers and textures do not match');		
-						}
-
-						_writer.writeInt32(images.length);
-					case other:
-						throw new Exception('GlslShaderProcessor cannot write shaders for $other');
+					_writer.writePrefixedString(block.name);
 				}
 
-				final vertBlob = _data.vertPath.toFile().readAsBytes();
-				final fragBlob = _data.fragPath.toFile().readAsBytes();
+				final images   = _resource.data.fragReflection.separate_images.or([]);
+				final samplers = _resource.data.fragReflection.separate_samplers.or([]);
 
-				_writer.writeInt32(vertBlob.length);
-				_writer.writeInt32(fragBlob.length);
-
-				_writer.write(vertBlob);
-				_writer.write(fragBlob);
-
-				// Finally transform the original spirv reflection data and output some json on all uniform blocks.
-				// This data can be read by a macro function
-				final blocks = [];
-
-				for (block in _data.vertReflection.ubos.or([]))
+				if (images.length != samplers.length)
 				{
-					generateBlockReflection(block, _data.vertReflection.types.sure(), blocks);
-				}
-				for (block in _data.fragReflection.ubos.or([]))
-				{
-					generateBlockReflection(block, _data.fragReflection.types.sure(), blocks);
+					throw new Exception('Number of samplers and textures do not match');		
 				}
 
-				if (blocks.length > 0)
-				{
-					final path = _ctx.cacheDirectory.joinAll([ _ctx.name, 'shader_buffers' ]);
+				_writer.writeInt32(images.length);
+			case other:
+				throw new Exception('GlslShaderProcessor cannot write shaders for $other');
+		}
 
-					path.toDir().create();
-					path.join('$name.json').toFile().writeString(Json.stringify(blocks));
-				}
-			case Packed(_):
-				//
+		final vertBlob = _resource.data.vertPath.toFile().readAsBytes();
+		final fragBlob = _resource.data.fragPath.toFile().readAsBytes();
+
+		_writer.writeInt32(vertBlob.length);
+		_writer.writeInt32(fragBlob.length);
+
+		_writer.write(vertBlob);
+		_writer.write(fragBlob);
+
+		// Finally transform the original spirv reflection data and output some json on all uniform blocks.
+		// This data can be read by a macro function
+		final blocks = [];
+
+		for (block in _resource.data.vertReflection.ubos.or([]))
+		{
+			generateBlockReflection(block, _resource.data.vertReflection.types.sure(), blocks);
+		}
+		for (block in _resource.data.fragReflection.ubos.or([]))
+		{
+			generateBlockReflection(block, _resource.data.fragReflection.types.sure(), blocks);
+		}
+
+		if (blocks.length > 0)
+		{
+			final path = _ctx.cacheDirectory.joinAll([ _ctx.name, 'shader_buffers' ]);
+
+			path.toDir().create();
+			path.join('${ _resource.source }.json').toFile().writeString(Json.stringify(blocks));
 		}
 	}
 

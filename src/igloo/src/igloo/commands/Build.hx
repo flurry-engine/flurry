@@ -175,11 +175,8 @@ class Build
                     // TODO : Cleanup tmp and cache then rethrow
                     // This ensure we cleanup any in-process packing.
 
-                    parcel.cacheDir.toDir().delete(true);
-                    parcel.tempDir.toDir().delete(true);
-
-                    Sys.println('Failed to package ${ parcel.name }');
-                    Sys.println(e.details());
+                    // parcel.cacheDir.toDir().delete(true);
+                    // parcel.tempDir.toDir().delete(true);
 
                     throw new Exception('Failed to package ${ parcel.name }', e);
                 }

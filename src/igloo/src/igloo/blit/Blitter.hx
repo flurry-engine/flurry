@@ -34,7 +34,7 @@ private function getDataForRequest(_request : RequestType)
 {
     return switch _request
     {
-        case PackImage(_, path):
+        case PackImage(path):
             final data   = stb.Image.load(path.toString());
             final stride = data.w * data.comp;
 
@@ -86,7 +86,7 @@ private function getDataForRequest(_request : RequestType)
                 case other:
                     throw new Exception('Image with $other channels is not supported');
             }
-        case PackBytes(_, bytes, width, height, format):
+        case PackBytes(bytes, width, height, format):
             final bpp    = 4;
             final stride = width * bpp;
 

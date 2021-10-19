@@ -1,13 +1,12 @@
-import igloo.processors.ResourceResponse;
 import igloo.processors.RequestType;
-import igloo.processors.PackedResource;
-import haxe.ds.Option;
+import igloo.processors.ProcessedResource;
 import igloo.processors.ResourceRequest;
 import igloo.utils.OneOf;
 import haxe.Exception;
 import haxe.io.Input;
 import haxe.io.Output;
 import haxe.ds.ReadOnlyArray;
+import haxe.ds.Either;
 import hx.files.Path;
 import igloo.processors.AssetProcessor;
 import igloo.parcels.Asset;
@@ -16,7 +15,7 @@ import igloo.parcels.ParcelContext;
 using Lambda;
 using igloo.utils.OutputUtils;
 
-class GdxSpriteSheetProcessor extends AssetProcessor<Array<GdxPage>>
+class GdxSpriteSheetProcessor extends AssetProcessor<Int>
 {
 	override public function ids()
     {
@@ -43,7 +42,7 @@ class GdxSpriteSheetProcessor extends AssetProcessor<Array<GdxPage>>
         return false;
     }
 
-	override public function pack(_ctx : ParcelContext, _asset : Asset)
+	override public function pack(_ctx : ParcelContext, _asset : Asset) : OneOf<ResourceRequest<Int>, Array<ResourceRequest<Int>>>
     {
 		final absPath = _ctx.assetDirectory.join(_asset.path);
         final pages   = parse(absPath);
@@ -72,20 +71,20 @@ class GdxSpriteSheetProcessor extends AssetProcessor<Array<GdxPage>>
                     buffer.blit(dstAddr, source, srcAddr, section.width * bpp);
                 }
 
-                images.push(RequestType.PackBytes(section.name, buffer, section.width, section.height, BGRA));
+                images.push(new ResourceRequest(section.name, 0, Some(RequestType.PackBytes(buffer, section.width, section.height, BGRA))));
             }
         }
 
-        return new ResourceRequest(pages, images);
+        return images;
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _data : Array<GdxPage>, _response : ResourceResponse)
+	override public function write(_ctx : ParcelContext, _writer : Output, _resource : ProcessedResource<Int>)
     {
-        switch _response
+        switch _resource.response
         {
-            case Packed(frame):
+            case Some(Left(frame)):
                 // Writes the resources ID.
-                _writer.writeInt32(frame.id);
+                _writer.writeInt32(_resource.id);
                 _writer.writeInt32(frame.pageID);
 
                 // Write UV information for the packed frame.
@@ -98,8 +97,8 @@ class GdxSpriteSheetProcessor extends AssetProcessor<Array<GdxPage>>
                 _writer.writeFloat(frame.v1);
                 _writer.writeFloat(frame.u2);
                 _writer.writeFloat(frame.v2);
-            case NotPacked(_, _):
-                //
+            case _:
+                throw new Exception('Expected a single image');
         }
     }
 

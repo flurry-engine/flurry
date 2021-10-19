@@ -28,15 +28,13 @@ class Atlas
         pages         = [];
     }
 
-    public function pack(_request, _name, _width, _height)
+    public function pack(_request, _width, _height)
     {
-        final id = provider.id();
-
         // Try to pack the image into one of the existing pages.
         var frame = null;
         for (page in pages)
         {
-            if (null != (frame = page.pack(id, _name, _request, _width, _height)))
+            if (null != (frame = page.pack(_request, _width, _height)))
             {
                 return frame.unsafe();
             }
@@ -44,7 +42,7 @@ class Atlas
 
         // If it could not be fit into any of the existing pages, create a new one.
         final page   = new Page(provider.id(), xPad, yPad, maxPageWidth, maxPageHeight);
-        final packed = page.pack(id, _name, _request, _width, _height);
+        final packed = page.pack(_request, _width, _height);
 
         pages.push(page);
 

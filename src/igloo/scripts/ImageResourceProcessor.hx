@@ -1,11 +1,13 @@
+import igloo.utils.OneOf;
 import haxe.Exception;
+import haxe.ds.Either;
 import haxe.io.Output;
 import igloo.parcels.Asset;
 import igloo.parcels.ParcelContext;
 import igloo.processors.RequestType;
 import igloo.processors.AssetProcessor;
 import igloo.processors.ResourceRequest;
-import igloo.processors.ResourceResponse;
+import igloo.processors.ProcessedResource;
 
 class ImageResourceProcessor extends AssetProcessor<Int>
 {
@@ -14,19 +16,19 @@ class ImageResourceProcessor extends AssetProcessor<Int>
 		return [ 'png', 'jpg', 'jpeg', 'tga', 'bmp' ];
 	}
 
-	override public function pack(_ctx : ParcelContext, _asset : Asset)
+	override public function pack(_ctx : ParcelContext, _asset : Asset) : OneOf<ResourceRequest<Int>, Array<ResourceRequest<Int>>>
 	{
 		final absPath = _ctx.assetDirectory.join(_asset.path);
 		
-		return new ResourceRequest(0, PackImage(_asset.id, absPath));
+		return new ResourceRequest(_asset.id, 0, Some(PackImage(absPath)));
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _data : Int, _response : ResourceResponse)
+	override public function write(_ctx : ParcelContext, _writer : Output, _resource : ProcessedResource<Int>)
 	{
-		switch _response
+		switch _resource.response
 		{
-			case Packed(frame):
-				_writer.writeInt32(frame.id);
+			case Some(Left(frame)):
+				_writer.writeInt32(_resource.id);
 				_writer.writeInt32(frame.pageID);
 		
 				// Write UV information for the packed frame.
@@ -39,7 +41,7 @@ class ImageResourceProcessor extends AssetProcessor<Int>
 				_writer.writeFloat(frame.v1);
 				_writer.writeFloat(frame.u2);
 				_writer.writeFloat(frame.v2);
-			case NotPacked(_, _):
+			case _:
 				throw new Exception('ImageResourceProcessor can only operate on packed responses');
 		}
 	}

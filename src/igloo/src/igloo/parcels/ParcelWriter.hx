@@ -32,10 +32,10 @@ function writeParcelProcessor(_output : Output, _proc : String)
     _output.writePrefixedString(_proc);
 }
 
-function writeParcelResource(_output : Output, _proc : AssetProcessor<Any>, _ctx, _data, _resource)
+function writeParcelResource(_output : Output, _proc : AssetProcessor<Any>, _ctx, _resource)
 {
     _output.writeString('RESR');
-    _proc.write(_ctx, _output, _data, _resource);
+    _proc.write(_ctx, _output, _resource);
 }
 
 function writeParcelFooter(_output : Output)

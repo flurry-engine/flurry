@@ -46,9 +46,9 @@ class ParcelMeta
     
     public var pages : Array<PageMeta>;
 
-    public var assets : Array<AssetMeta>;
+    public var resources : Map<String, Array<ResourceMeta>>;
 
-    public function new(_timeGenerated, _id, _gpuApi, _release, _processorsInvolved, _pages, _assets)
+    public function new(_timeGenerated, _id, _gpuApi, _release, _processorsInvolved, _pages, _resources)
     {
         flurryVersion      = '';
         timeGenerated      = _timeGenerated;
@@ -57,7 +57,7 @@ class ParcelMeta
         release            = _release;
         processorsInvolved = _processorsInvolved;
         pages              = _pages;
-        assets             = _assets;
+        resources          = _resources;
     }
 }
 
@@ -86,25 +86,6 @@ class PageMeta
         length = _length;
         width  = _width;
         height = _height;
-    }
-}
-
-class AssetMeta
-{
-    /**
-     * ID of the source asset which produced the resources.
-     */
-    public final name : String;
-
-    /**
-     * All resources produced by this asset.
-     */
-    public final produced : Array<ResourceMeta>;
-
-    public function new(_name, _produced)
-    {
-        name     = _name;
-        produced = _produced;
     }
 }
 

@@ -1,19 +1,18 @@
 package igloo.parcels;
 
-import igloo.processors.ResourceResponse;
-import igloo.processors.RequestType;
-import sys.io.FileOutput;
 import haxe.Exception;
+import haxe.ds.Option;
 import haxe.ds.Vector;
 import haxe.ds.Either;
 import haxe.io.Output;
 import haxe.io.BytesOutput;
 import hx.files.Path;
 import igloo.blit.Blitter;
+import igloo.utils.OneOf;
 import igloo.atlas.Atlas;
 import igloo.parcels.ParcelMeta.PageMeta;
-import igloo.parcels.ParcelMeta.AssetMeta;
 import igloo.parcels.ParcelMeta.ResourceMeta;
+import igloo.processors.RequestType;
 import igloo.processors.ResourceRequest;
 import igloo.processors.ProcessedResource;
 import igloo.processors.ProcessorLoadResults;
@@ -37,39 +36,36 @@ function build(_ctx : ParcelContext, _id : Int, _parcel : LoadedParcel, _process
 
     for (asset in _parcel.assets)
     {
-        final ext  = haxe.io.Path.extension(asset.path);
-        final proc = _processors.loaded.get(ext);
+        final ext = haxe.io.Path.extension(asset.path);
 
-        if (proc == null)
+        switch _processors.loaded.get(ext)
         {
-            throw new Exception('Processor was not found for extension $ext');
-        }
-        
-        final request   = proc.pack(_ctx, asset);
-        final processed = processRequest(asset.id, request, atlas, _provider);
-        final existing  = packed.get(ext);
+            case null:
+                throw new Exception('Processor was not found for extension $ext');
+            case proc:
+                final request   = proc.pack(_ctx, asset);
+                final processed = processRequest(asset.id, request, atlas, _provider);
 
-        switch processed.response
-        {
-            case Left(_): totalResponses++;
-            case Right(v): totalResponses += v.length;
-        }
+                totalResponses += processed.length;
 
-        if (existing == null)
-        {
-            packed.set(ext, [ processed ]);
-        }
-        else
-        {
-            existing.push(processed);
+                switch packed.get(ext)
+                {
+                    case null:
+                        packed.set(ext, processed);
+                    case existing:
+                        for (v in processed)
+                        {
+                            existing.push(v);
+                        }
+                }
         }
     }
 
-    final totalResources = atlas.pages.length + totalResponses;
-    final blitTasks     = new Vector(atlas.pages.length);
-    final output        = _parcel.parcelFile.toFile().openOutput(REPLACE);
-    final writtenPages  = [];
-    final writtenAssets = [];
+    final totalResources   = atlas.pages.length + totalResponses;
+    final blitTasks        = new Vector(atlas.pages.length);
+    final output           = _parcel.parcelFile.toFile().openOutput(REPLACE);
+    final writtenResources = new Map<String, Array<ResourceMeta>>();
+    final writtenPages     = [];
 
     output.writeParcelHeader(totalResources, getPageFormatID(_parcel.settings.format));
 
@@ -128,67 +124,40 @@ function build(_ctx : ParcelContext, _id : Int, _parcel : LoadedParcel, _process
     // Finally call the write function of processors passing in the appropriate asset data.
     // Grouping by the ID used to pack the source assets should allow reads to not have to constantly look
     // in some sort of string map for every single resource.
-    for (ext => assets in packed)
+    for (ext => resources in packed)
     {
-        final proc = _processors.loaded.get(ext);
-
-        if (proc == null)
+        switch _processors.loaded.get(ext)
         {
-            throw new Exception('Processor was not found for extension $ext');
-        }
+            case null:
+                throw new Exception('Processor was not found for extension $ext');
+            case proc:
+                output.writeParcelProcessor(ext);
 
-        output.writeParcelProcessor(ext);
+                for (resource in resources)
+                {
+                    final tellStart = output.tell();
 
-        // Each source asset can produce multiple resource requests.
-        // For all resources a source asset produced write it into the parcel stream.
-        // Store the position in the output stream before and after writing so we know where it is in the file.
-        // This info is only stored in the meta file for now and is unused.
-        for (asset in assets)
-        {
-            final produced = [];
+                    output.writeParcelResource(proc, _ctx, resource);
 
-            switch asset.response
-            {
-                case Left(v):
-                    writeProcessedResource(output, proc, _ctx, asset.data, v, produced);
-                case Right(vs):
-                    for (v in vs)
+                    final tellEnd = output.tell();
+                    final length  = tellEnd - tellStart;
+                    final meta    = new ResourceMeta(resource.id, resource.name, tellStart, length);
+
+                    switch writtenResources.get(resource.source)
                     {
-                        writeProcessedResource(output, proc, _ctx, asset.data, v, produced);
+                        case null:
+                            writtenResources.set(resource.source, [ meta ]);
+                        case existing:
+                            existing.push(meta);
                     }
-            }
-
-            writtenAssets.push(new AssetMeta(asset.source, produced));
+                }
         }
     }
 
     output.writeParcelFooter();
     output.close();
 
-    writeMetaFile(_parcel.parcelMeta, _id, _ctx.gpuApi, _ctx.release, _processors.names, writtenPages, writtenAssets);
-}
-
-/**
- * Writes a resource into the parcel stream by invoking the `write` function of the processor which produced the request.
- * The position and length of the asset written into the stream is calculated and stored in the parcels meta file.
- */
-private function writeProcessedResource(_output : FileOutput, _proc, _ctx, _data, _resource : ResourceResponse, _meta : Array<ResourceMeta>)
-{
-    final tellStart = _output.tell();
-
-    _output.writeParcelResource(_proc, _ctx, _data, _resource);
-
-    final tellEnd = _output.tell();
-    final length  = tellEnd - tellStart;
-
-    // Extract the id and name from the resource as we need it for the parcel meta.
-    switch _resource
-    {
-        case Packed(_packed):
-            _meta.push(new ResourceMeta(_packed.id, _packed.name, tellStart, length));
-        case NotPacked(_name, _id):
-            _meta.push(new ResourceMeta(_id, _name, tellStart, length));
-    }
+    writeMetaFile(_parcel.parcelMeta, _id, _ctx.gpuApi, _ctx.release, _processors.names, writtenPages, writtenResources);
 }
 
 /**
@@ -213,31 +182,48 @@ private function writeMetaFile(_file : Path, _id, _gpuApi, _release, _processorN
 /**
  * Process a request, packing any resources into the atlas.
  * @param _source Source asset name.
- * @param _request Resource request object.
+ * @param _request Resource request generated from an asset.
  * @param _atlas Atlas to pack requests into.
  * @param _provider Object which will provide IDs for non packed resources.
  */
-private function processRequest(_source : String, _request : ResourceRequest<Any>, _atlas : Atlas, _provider : IDProvider)
+private function processRequest(_source, _requests : OneOf<ResourceRequest<Any>, Array<ResourceRequest<Any>>>, _atlas, _provider : IDProvider)
 {
-    return new ProcessedResource(_source, _request.data, switch _request.type
+    return switch _requests
     {
-        case Left(v): generateResponse(v, _atlas, _provider);
-        case Right(vs): [ for (v in vs) generateResponse(v, _atlas, _provider) ];
-    });
+        case Left(single):
+            [ new ProcessedResource(_source, single.name, _provider.id(), single.data, expandImagePackRequests(single.packs, _atlas)) ];
+        case Right(many):
+            [ for (v in many) new ProcessedResource(_source, v.name, _provider.id(), v.data, expandImagePackRequests(v.packs, _atlas)) ];
+    }
 }
 
-private function generateResponse(_type : RequestType, _atlas : Atlas, _provider : IDProvider)
+private function expandImagePackRequests(_requests : Option<OneOf<RequestType, Array<RequestType>>>, _atlas)
+{
+    return switch _requests
+    {
+        case Some(packs):
+            switch packs
+            {
+                case Left(single):
+                    Some(Left(packImageRequest(single, _atlas)));
+                case Right(many):
+                    Some(Right([ for (single in many) packImageRequest(single, _atlas) ]));
+            }
+        case None:
+            None;
+    }
+}
+
+private function packImageRequest(_type : RequestType, _atlas : Atlas)
 {
     return switch _type
     {
-        case PackImage(id, path):
+        case PackImage(path):
             final info = stb.Image.info(path.toString());
 
-            Packed(_atlas.pack(_type, id, info.w, info.h));
-        case PackBytes(id, _, width, height, _):
-            Packed(_atlas.pack(_type, id, width, height));
-        case UnPacked(_name):
-            NotPacked(_name, _provider.id());
+            _atlas.pack(_type, info.w, info.h);
+        case PackBytes(_, width, height, _):
+            _atlas.pack(_type, width, height);
     }
 }
 

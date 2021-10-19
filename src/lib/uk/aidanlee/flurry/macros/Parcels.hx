@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.macros;
 
+import haxe.DynamicAccess;
 import haxe.macro.Printer;
 import haxe.Json;
 import haxe.Exception;
@@ -14,11 +15,6 @@ private typedef PageMeta = {
     final id : Int;
 }
 
-private typedef AssetMeta = {
-    final name : String;
-    final produced : Array<ProducedMeta>;
-}
-
 private typedef ProducedMeta = {
     final name : String;
     final id : Int;
@@ -26,7 +22,7 @@ private typedef ProducedMeta = {
 
 private typedef ParcelMeta = {
     final pages : Array<PageMeta>;
-    final assets : Array<AssetMeta>;
+    final resources : DynamicAccess<Array<ProducedMeta>>;
 }
 
 private typedef ShaderBufferElement = {
@@ -65,17 +61,17 @@ macro function loadParcelMeta(_name : String, _path : String)
     totalResources += meta.pages.length;
 
     // Add a field for each resource in the parcel.
-    for (asset in meta.assets)
+    for (_ => resources in meta.resources)
     {
-        totalResources += asset.produced.length;
+        totalResources += resources.length;
 
-        for (produced in asset.produced)
+        for (resource in resources)
         {
             built.fields.push({
-                name   : produced.name,
+                name   : resource.name,
                 pos    : Context.currentPos(),
                 access : [ APublic, AStatic, AFinal ],
-                kind   : FVar(macro : uk.aidanlee.flurry.api.resources.ResourceID, macro new uk.aidanlee.flurry.api.resources.ResourceID($v{ produced.id }))
+                kind   : FVar(macro : uk.aidanlee.flurry.api.resources.ResourceID, macro new uk.aidanlee.flurry.api.resources.ResourceID($v{ resource.id }))
             });
         }
     }
@@ -90,11 +86,11 @@ macro function loadParcelMeta(_name : String, _path : String)
             {
                 pos  : Context.currentPos(),
                 expr : EArrayDecl([
-                    for (asset in meta.assets)
+                    for (_ => resources in meta.resources)
                     {
-                        for (produced in asset.produced)
+                        for (resource in resources)
                         {
-                            macro $v{ produced.name } => new uk.aidanlee.flurry.api.resources.ResourceID($v{ produced.id });
+                            macro $v{ resource.name } => new uk.aidanlee.flurry.api.resources.ResourceID($v{ resource.id });
                         }
                     }
                 ])

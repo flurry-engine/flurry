@@ -17,10 +17,6 @@ class PackedResource
 	 */
 	public final pageHeight : Int;
 
-	public final name : String;
-
-	public final id : Int;
-
     public final x : Int;
 
     public final y : Int;
@@ -37,13 +33,11 @@ class PackedResource
 
 	public final v2 : Float;
 
-	public function new(_pageID, _pageWidth, _pageHeight, _name, _id, _x, _y, _w, _h, _u1, _v1, _u2, _v2)
+	public function new(_pageID, _pageWidth, _pageHeight, _x, _y, _w, _h, _u1, _v1, _u2, _v2)
 	{
 		pageID     = _pageID;
 		pageWidth  = _pageWidth;
 		pageHeight = _pageHeight;
-		name       = _name;
-		id         = _id;
 		x          = _x;
 		y          = _y;
 		w          = _w;

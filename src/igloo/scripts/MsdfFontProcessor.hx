@@ -1,7 +1,7 @@
-import igloo.processors.ResourceResponse;
+import igloo.utils.OneOf;
 import igloo.processors.RequestType;
-import igloo.processors.PackedResource;
-import haxe.ds.Option;
+import igloo.processors.ProcessedResource;
+import haxe.ds.Either;
 import haxe.Json;
 import haxe.Exception;
 import haxe.io.Output;
@@ -19,7 +19,7 @@ class MsdfFontProcessor extends AssetProcessor<FontDefinition>
 		return [ 'ttf', 'otf' ];
 	}
 
-	override public function pack(_ctx : ParcelContext, _asset : Asset)
+	override public function pack(_ctx : ParcelContext, _asset : Asset) : OneOf<ResourceRequest<FontDefinition>, Array<ResourceRequest<FontDefinition>>>
     {
         final absPath  = _ctx.assetDirectory.join(_asset.path);
         final imageOut = _ctx.tempDirectory.join(_asset.id + '.png');
@@ -45,20 +45,20 @@ class MsdfFontProcessor extends AssetProcessor<FontDefinition>
             throw new Exception('Unable to parse font json');
         }
 
-        return new ResourceRequest(font, PackImage(_asset.id, imageOut));
+        return new ResourceRequest(_asset.id, font, Some(PackImage(imageOut)));
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _data : FontDefinition, _response : ResourceResponse)
+	override public function write(_ctx : ParcelContext, _writer : Output, _resource : ProcessedResource<FontDefinition>)
     {
-        switch _response
+        switch _resource.response
         {
-            case Packed(frame):
-                _writer.writeInt32(frame.id);
+            case Some(Left(frame)):
+                _writer.writeInt32(_resource.id);
                 _writer.writeInt32(frame.pageID);
-                _writer.writeFloat(_data.metrics.lineHeight);
-                _writer.writeInt32(_data.glyphs.length);
+                _writer.writeFloat(_resource.data.metrics.lineHeight);
+                _writer.writeInt32(_resource.data.glyphs.length);
         
-                for (char in _data.glyphs)
+                for (char in _resource.data.glyphs)
                 {
                     _writer.writeInt32(char.unicode);
                     _writer.writeFloat(char.advance);
@@ -67,9 +67,9 @@ class MsdfFontProcessor extends AssetProcessor<FontDefinition>
                     {
                         // glyph atlas coords are packed bottom left origin so we transform to top left origin
                         final ax = char.atlasBounds.left;
-                        final ay = (_data.atlas.height - char.atlasBounds.top);
+                        final ay = (_resource.data.atlas.height - char.atlasBounds.top);
                         final aw = char.atlasBounds.right - char.atlasBounds.left;
-                        final ah = (_data.atlas.height - char.atlasBounds.bottom) - (_data.atlas.height - char.atlasBounds.top);
+                        final ah = (_resource.data.atlas.height - char.atlasBounds.bottom) - (_resource.data.atlas.height - char.atlasBounds.top);
         
                         final pLeft   = char.planeBounds.left;
                         final pTop    = 1 - char.planeBounds.top;

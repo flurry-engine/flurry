@@ -31,7 +31,7 @@ class Page
         packer = new MaxRectsPacker(_width, _height, false);
     }
 
-    public function pack(_resourceID, _resourceName, _request, _width, _height)
+    public function pack(_request, _width, _height)
     {
         final paddedWidth  = _width + (xPad * 2);
         final paddedHeight = _height + (yPad * 2);
@@ -58,7 +58,7 @@ class Page
 
             frames.push(frame);
 
-            new PackedResource(id, width, height, _resourceName, _resourceID, xSrc, ySrc, _width, _height, u1, v1, u2, v2);
+            new PackedResource(id, width, height, xSrc, ySrc, _width, _height, u1, v1, u2, v2);
         }
     }
 }

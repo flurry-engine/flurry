@@ -89,13 +89,13 @@ function createIDProvider(_parcels : Array<LoadedParcel>)
                         maxID = page.id;
                     }
                 }
-                for (asset in v.assets)
+                for (_ => resources in v.resources)
                 {
-                    for (produced in asset.produced)
+                    for (resource in resources)
                     {
-                        if (produced.id > maxID)
+                        if (resource.id > maxID)
                         {
-                            maxID = produced.id;
+                            maxID = resource.id;
                         }
                     }
                 }
@@ -131,13 +131,13 @@ function createIDProvider(_parcels : Array<LoadedParcel>)
 
                     provider.reclaim(page.id);
                 }
-                for (asset in v.assets)
+                for (_ => resources in v.resources)
                 {
-                    for (produced in asset.produced)
+                    for (resource in resources)
                     {
-                        Console.log('reclaiming ${ produced.id }');
+                        Console.log('reclaiming ${ resource.id }');
 
-                        provider.reclaim(produced.id);
+                        provider.reclaim(resource.id);
                     }
                 }
             case None:
@@ -257,30 +257,28 @@ private function validateMetaData(_meta : Option<ParcelMeta>, _id : Int, _gpuApi
             // If it is check its modification date against the cached parcels.
             for (asset in _assets)
             {
-                if (v.assets.find(item -> item.name == asset.id) == null)
+                if (v.resources.exists(asset.id))
+                {
+                    final abs = _assetDir.join(asset.path);
+
+                    switch _processors.loaded.get(abs.filenameExt)
+                    {
+                        case null:
+                            throw new Exception('No processor found for asset ${ asset.id }');
+                        case proc:
+                            if (proc.isInvalid(abs, v.timeGenerated))
+                            {
+                                Console.log('asset ${ asset.id } is invalid according to processor ${ abs.filenameExt }');
+            
+                                return false;
+                            }
+                    }
+                }
+                else
                 {
                     Console.log('asset ${ asset.id } not found in the parcel metadata');
         
                     return false;
-                }
-                else
-                {
-                    final abs  = _assetDir.join(asset.path);
-                    final proc = _processors.loaded.get(abs.filenameExt);
-        
-                    if (proc != null)
-                    {
-                        if (proc.isInvalid(abs, v.timeGenerated))
-                        {
-                            Console.log('asset ${ asset.id } is invalid according to processor ${ abs.filenameExt }');
-        
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception('No processor found for asset ${ asset.id }');
-                    }
                 }
             }
         
