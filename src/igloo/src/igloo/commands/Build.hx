@@ -5,7 +5,9 @@ import igloo.haxe.Haxe;
 import igloo.utils.Concurrency;
 import igloo.utils.GraphicsApi;
 import igloo.tools.ToolsFetcher;
-import igloo.logger.Log.Log;
+import igloo.logger.Log;
+import igloo.logger.LogLevel;
+import igloo.logger.LogConfig;
 import igloo.macros.Platform;
 import igloo.macros.BuildPaths;
 import igloo.parcels.Builder;
@@ -28,7 +30,7 @@ class Build
 
     final id : Int;
 
-    final logger : Log;
+    final root : Log;
 
     /**
      * If set the output executable will be launched after building.
@@ -78,6 +80,10 @@ class Build
     @:alias('g')
     public var graphicsBackend : GraphicsApi = 'auto';
 
+    @:flag('log')
+    @:alias('l')
+    public var log : LogLevel = 'INF';
+
     /**
      * Target to build the project to.
      * Can be any of the following.
@@ -102,11 +108,11 @@ class Build
     @:alias('y')
     public var rebuildHost = false;
 
-    public function new(_id, _logger)
+    public function new(_id, _log)
     {
-        projectParser = new JsonParser<Project>();
         id            = _id;
-        logger        = _logger;
+        root          = _log;
+        projectParser = new JsonParser<Project>();
     }
 
     @:command
@@ -118,6 +124,13 @@ class Build
     @:defaultCommand
     public function execute()
     {
+        final logger =
+            new LogConfig()
+                .setMinimumLevel(log)
+                .writeTo(root)
+                .enrichWith('command', 'build')
+                .create();
+
         logger.info('Igloo v0.1');
 
         final projectPath = getBuildFilePath();
@@ -130,7 +143,7 @@ class Build
 
         final outputDir  = projectPath.parent.join(project.app.output);
         final executor   = Executor.create(Concurrency.hardwareConcurrency());
-        final tools      = fetchTools(outputDir);
+        final tools      = fetchTools(outputDir, logger);
         final processors = loadProjectProcessors(logger, executor, projectPath.parent, project);
 
         // The .build directory will contain all the generated sources and intermediate cpp objects.
@@ -143,8 +156,8 @@ class Build
 
         // Building Assets
 
-        final parcels    = resolveParcels(projectPath, project.parcels, outputDir, id, graphicsBackend, release, processors);
-        final idProvider = createIDProvider(parcels);
+        final parcels    = resolveParcels(projectPath, logger, project.parcels, outputDir, id, graphicsBackend, release, processors);
+        final idProvider = createIDProvider(logger, parcels);
 
         var someParcelsPackage = false;
         for (parcel in parcels)
@@ -166,7 +179,7 @@ class Build
                         tools,
                         executor);
     
-                    build(ctx, id, parcel, processors, idProvider);
+                    build(ctx, logger, id, parcel, processors, idProvider);
 
                     someParcelsPackage = true;
                 }
@@ -361,7 +374,7 @@ class Build
 
                     task.cancel();
                 case FAILURE(ex, _, _):
-                    _log.error('failed to compile script', new Exception(ex.toString()));
+                    _log.error('failed to compile script ${ exception }', ex.toString());
 
                     failureCount++;
                 case NONE(_):

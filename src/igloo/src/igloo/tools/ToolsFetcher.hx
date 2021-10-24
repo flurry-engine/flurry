@@ -7,6 +7,8 @@ import haxe.io.BytesInput;
 import haxe.Exception;
 import haxe.Http;
 import hx.files.Path;
+import igloo.logger.Log;
+import igloo.logger.LogConfig;
 import igloo.macros.ToolPaths;
 import igloo.macros.Platform;
 import igloo.macros.Urls;
@@ -19,30 +21,39 @@ using Lambda;
  * If any tool is not found in the projects `tools/platform` folder it will be downloaded.
  * @param _output Output path of the project.
  */
-function fetchTools(_output : Path)
+function fetchTools(_output : Path, _log : Log)
 {
-    final toolsDir     = _output.joinAll([ 'tools', getHostPlatformName() ]);
-    final msdfAtlasGen = getMsdfAtlasGenPath(toolsDir);
-    final glslang      = getGlslangPath(toolsDir);
-    final spirvcross   = getSprivCrossPath(toolsDir);
+    final logger =
+        new LogConfig()
+            .writeTo(_log)
+            .enrichWith('stage', 'tools')
+            .setMinimumLevel(_log.getLevel())
+            .create();
+    final toolsDir = _output.joinAll([ 'tools', getHostPlatformName() ]);
+    final tools    = [
+        { path : getMsdfAtlasGenPath(toolsDir), exe : getMsdfAtlasGenFileEntry(), url : getMsdfAtlasGenUrl(), type : ArchiveType.Tgz },
+        { path : getGlslangPath(toolsDir), exe : getGlslangFileEntry(), url : getGlslangUrl(), type : ArchiveType.Zip },
+        { path : getSprivCrossPath(toolsDir), exe : getSpirvCrossFileEntry(), url : getSpirvCrossUrl(), type : ArchiveType.Tgz }
+    ];
 
     // Ensure the directory exists before we copy any files else exceptions will occur.
     toolsDir.toDir().create();
-    
-    if (!msdfAtlasGen.exists())
+
+    for (tool in tools)
     {
-        restore(msdfAtlasGen, getMsdfAtlasGenUrl(), Tgz, getMsdfAtlasGenFileEntry());
-    }
-    if (!glslang.exists())
-    {
-        restore(glslang, getGlslangUrl(), Zip, getGlslangFileEntry());
-    }
-    if (!spirvcross.exists())
-    {
-        restore(spirvcross, getSpirvCrossUrl(), Tgz, getSpirvCrossFileEntry());
+        if (!tool.path.exists())
+        {
+            logger.verbose('downloading $tool');
+
+            restore(logger, tool.path, tool.url, tool.type, tool.exe);
+        }
+        else
+        {
+            logger.verbose('tool ${ tool } is already downloaded', tool.exe);
+        }
     }
 
-    return new Tools(msdfAtlasGen, glslang, spirvcross);
+    return new Tools(tools[0].path, tools[1].path, tools[2].path);
 }
 
 /**
@@ -52,9 +63,9 @@ function fetchTools(_output : Path)
  * @param _archive The type of archive contained at the URL.
  * @param _target name of the file entry within the archive to extract to the destination.
  */
-private function restore(_destination : Path, _url : String, _archive : ArchiveType, _target : String)
+private function restore(_log : Log, _destination : Path, _url : String, _archive : ArchiveType, _target : String)
 {
-    final source  = download(_url);
+    final source  = download(_log, _url);
     final input   = new BytesInput(source);
     final entries = switch _archive {
         case Zip: new format.zip.Reader(input).read();
@@ -64,7 +75,7 @@ private function restore(_destination : Path, _url : String, _archive : ArchiveT
     entries
         .find(e -> e.fileName == _target)
         .run(e -> {
-            Sys.println('Extracting $_target');
+            _log.verbose('Extracting $_target');
 
             if (e.compressed)
             {
@@ -90,9 +101,9 @@ private function restore(_destination : Path, _url : String, _archive : ArchiveT
  * It will follow github url redirects as needed.
  * @param _url Url to download.
  */
-private function download(_url : String) : Bytes
+private function download(_log : Log, _url : String) : Bytes
 {
-    Sys.println('Downloading ${ _url }');
+    _log.verbose('Downloading ${ url }', _url);
 
     var code  = 0;
     var bytes : Null<Bytes> = null;
@@ -110,7 +121,7 @@ private function download(_url : String) : Bytes
                 final access = new haxe.xml.Access(Xml.parse(data.toString()).firstElement());
                 final redir  = access.node.body.node.a.att.href;
 
-                bytes = download(redir);
+                bytes = download(_log, redir);
             case other:
                 throw new Exception('Unexpected http status $other');
         }

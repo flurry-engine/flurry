@@ -5,7 +5,8 @@ import cpp.cppia.Module;
 import haxe.Exception;
 import haxe.crypto.Md5;
 import hx.files.Path;
-import igloo.logger.Log.ScriptLogger;
+import igloo.logger.Log;
+import igloo.logger.LogConfig;
 import igloo.macros.BuildPaths;
 
 /**
@@ -46,7 +47,11 @@ class Cache
      */
     public function load(_log, _path : Path, _flags : String)
     {
-        final logger             = new ScriptLogger(_log, _path.filenameStem);
+        final logger =
+            new LogConfig()
+                .writeTo(_log)
+                .enrichWith('processor', _path.filenameStem)
+                .create();
         final precompiledScript  = directory.join('${ _path.filenameStem }.cppia');
         final scriptHashPath     = directory.join('${ _path.filenameStem }.cppia.hash');
         final sourceLastModified = _path.getModificationTime();
@@ -99,15 +104,17 @@ class Cache
      * @param _output Absolute path of the generated cppia file.
      * @param _flags Haxe cli command line flags to provide.
      */
-    function compileScript(_logger : ScriptLogger, _path : Path, _output : Path, _flags : String)
+    function compileScript(_logger : Log, _path : Path, _output : Path, _flags : String)
     {
         final proc = new Process('npx haxe -p $iglooCodePath -p ${ _path.parent } -L haxe-files -D dll_import=$iglooDllExportFile ${ _path.filenameStem } $_flags --cppia $_output');
         final exit = proc.exitCode();
         
         if (exit == 0)
         {
-            _logger.success('Compiled $_path');
-            _logger.debug(proc.stdout.readAll().toString());
+            final stdout = proc.stdout.readAll().toString();
+
+            _logger.info('Compiled ${ script }', _path);
+            _logger.debug('$stdout');
 
             proc.close();
         }

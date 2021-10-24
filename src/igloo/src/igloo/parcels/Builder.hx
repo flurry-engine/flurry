@@ -10,6 +10,7 @@ import hx.files.Path;
 import igloo.blit.Blitter;
 import igloo.utils.OneOf;
 import igloo.atlas.Atlas;
+import igloo.logger.Log;
 import igloo.parcels.ParcelMeta.PageMeta;
 import igloo.parcels.ParcelMeta.ResourceMeta;
 import igloo.processors.RequestType;
@@ -22,9 +23,9 @@ using Lambda;
 using Safety;
 using igloo.parcels.ParcelWriter;
 
-function build(_ctx : ParcelContext, _id : Int, _parcel : LoadedParcel, _processors : ProcessorLoadResult, _provider : IDProvider)
+function build(_ctx : ParcelContext, _log : Log, _id : Int, _parcel : LoadedParcel, _processors : ProcessorLoadResult, _provider : IDProvider)
 {
-    Console.log('Cached parcel is invalid');
+    _log.debug('Cached parcel is invalid');
 
     final packed = new Map<String, Array<ProcessedResource<Any>>>();
     final atlas  = new Atlas(_parcel.settings.xPad, _parcel.settings.yPad, _parcel.settings.maxWidth, _parcel.settings.maxHeight, _provider);

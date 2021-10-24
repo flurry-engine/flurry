@@ -7,6 +7,7 @@ import hx.files.Path;
 import json2object.ErrorUtils;
 import json2object.JsonParser;
 import igloo.utils.GraphicsApi;
+import igloo.logger.Log;
 import igloo.processors.ProcessorLoadResults;
 
 using Lambda;
@@ -20,7 +21,7 @@ using Lambda;
  * @param _gpuApi Graphics backend in use.
  * @param _processors Object holding all loaded processors and load information.
  */
-function resolveParcels(_projectPath : Path, _bundles : Array<String>, _outputDir : Path, _id, _gpuApi, _release, _processors)
+function resolveParcels(_projectPath : Path, _log : Log, _bundles : Array<String>, _outputDir : Path, _id, _gpuApi, _release, _processors)
 {
     final parser = new JsonParser<Package>();
     final loaded = [];
@@ -33,9 +34,12 @@ function resolveParcels(_projectPath : Path, _bundles : Array<String>, _outputDi
 
         if (parser.errors.length > 0)
         {
-            Console.error('Failed to parse package file ${ bundlePath.toString() } : ${ ErrorUtils.convertErrorArray(parser.errors) }');
+            final parcelPath = bundlePath.toString();
+            final parseError = ErrorUtils.convertErrorArray(parser.errors);
 
-            throw new Exception('Failed to parse package file : ${ ErrorUtils.convertErrorArray(parser.errors) }');
+            _log.error('Failed to parse package file $parcelPath : $parseError');
+
+            throw new Exception('Failed to parse package file : $parseError');
         }
 
         for (parcel in bundle.parcels)
@@ -46,8 +50,8 @@ function resolveParcels(_projectPath : Path, _bundles : Array<String>, _outputDi
             final parcelMeta  = parcelCache.join('${ parcel.name }.parcel.meta');
 
             final assets   = resolveAssets(parcel.assets, bundle.assets);
-            final metadata = loadCacheData(parcelFile, parcelMeta);
-            final isValid  = validateMetaData(metadata, _id, _gpuApi, _release, _processors, assets, baseAssetDir);
+            final metadata = loadCacheData(_log, parcelFile, parcelMeta);
+            final isValid  = validateMetaData(_log, metadata, _id, _gpuApi, _release, _processors, assets, baseAssetDir);
             final data     = new LoadedParcel(
                 parcelFile,
                 parcelMeta,
@@ -72,7 +76,7 @@ function resolveParcels(_projectPath : Path, _bundles : Array<String>, _outputDi
  * and reclaim IDs of all assets in invalid cached parcels.
  * @param _parcels Parcels to search.
  */
-function createIDProvider(_parcels : Array<LoadedParcel>)
+function createIDProvider(_log : Log, _parcels : Array<LoadedParcel>)
 {
     // Find the initial cached ID.
     // We want to look through all parcel metas (both valid and invalid).
@@ -111,7 +115,7 @@ function createIDProvider(_parcels : Array<LoadedParcel>)
         maxID++;
     }
 
-    Console.log('ID provider will have an initial value of $maxID');
+    _log.debug('ID provider will have an initial value of $maxID');
 
     final provider = new IDProvider(maxID);
     
@@ -127,7 +131,7 @@ function createIDProvider(_parcels : Array<LoadedParcel>)
             case Some(v):
                 for (page in v.pages)
                 {
-                    Console.log('reclaiming ${ page.id }');
+                    _log.verbose('reclaiming ${ id }', page.id);
 
                     provider.reclaim(page.id);
                 }
@@ -135,7 +139,7 @@ function createIDProvider(_parcels : Array<LoadedParcel>)
                 {
                     for (resource in resources)
                     {
-                        Console.log('reclaiming ${ resource.id }');
+                        _log.verbose('reclaiming ${ id }', resource.id);
 
                         provider.reclaim(resource.id);
                     }
@@ -179,7 +183,7 @@ private function findAsset(_id : String, _all : Array<Asset>)
     throw new Exception('Could not find an asset with ID $_id');
 }
 
-private function loadCacheData(_parcelFile : Path, _parcelMeta : Path) : Option<ParcelMeta>
+private function loadCacheData(_log : Log, _parcelFile : Path, _parcelMeta : Path) : Option<ParcelMeta>
 {
     return if (_parcelFile.exists() && _parcelMeta.exists())
     {
@@ -188,8 +192,10 @@ private function loadCacheData(_parcelFile : Path, _parcelMeta : Path) : Option<
 
         if (metaParser.errors.length > 0)
         {
-            Console.log('Unable to parse parcel meta file');
-            Console.log(ErrorUtils.convertErrorArray(metaParser.errors));
+            final metaPath = _parcelMeta.toString();
+            final metaErrors = ErrorUtils.convertErrorArray(metaParser.errors);
+
+            _log.error('Unable to parse parcel meta file $metaPath : $metaErrors');
 
             None;
         }
@@ -214,14 +220,14 @@ private function loadCacheData(_parcelFile : Path, _parcelMeta : Path) : Option<
  * @param _assets All assets for this parcel in the curent bundle.
  * @param _assetDir Base asset directory for this parcels asset paths.
  */
-private function validateMetaData(_meta : Option<ParcelMeta>, _id : Int, _gpuApi : GraphicsApi, _release : Bool, _processors : ProcessorLoadResult, _assets : Vector<Asset>, _assetDir : Path)
+private function validateMetaData(_log : Log, _meta : Option<ParcelMeta>, _id : Int, _gpuApi : GraphicsApi, _release : Bool, _processors : ProcessorLoadResult, _assets : Vector<Asset>, _assetDir : Path)
 {
     switch _meta
     {
         case Some(v):
             if (v.id != _id)
             {
-                Console.log('Igloo has been recompiled');
+                _log.debug('Igloo has been recompiled');
 
                 return false;
             }
@@ -230,14 +236,14 @@ private function validateMetaData(_meta : Option<ParcelMeta>, _id : Int, _gpuApi
             // If the cached parcel was built with a different api to the current it is invalid.
             if (v.gpuApi != _gpuApi)
             {
-                Console.log('Parcel was generated with a different graphics api');
+                _log.debug('Parcel was generated with a different graphics api');
         
                 return false;
             }
 
             if (v.release != _release)
             {
-                Console.log('Parcel was generated with a different release mode state');
+                _log.debug('Parcel was generated with a different release mode state');
 
                 return false;
             }
@@ -247,7 +253,7 @@ private function validateMetaData(_meta : Option<ParcelMeta>, _id : Int, _gpuApi
             {
                 if (v.processorsInvolved.contains(processor))
                 {
-                    Console.log('processor $processor was recompiled and has invalidated the parcel');
+                    _log.debug('processor $processor was recompiled and has invalidated the parcel');
         
                     return false;
                 }
@@ -268,7 +274,7 @@ private function validateMetaData(_meta : Option<ParcelMeta>, _id : Int, _gpuApi
                         case proc:
                             if (proc.isInvalid(abs, v.timeGenerated))
                             {
-                                Console.log('asset ${ asset.id } is invalid according to processor ${ abs.filenameExt }');
+                                _log.debug('asset ${ asset.id } is invalid according to processor ${ abs.filenameExt }');
             
                                 return false;
                             }
@@ -276,7 +282,7 @@ private function validateMetaData(_meta : Option<ParcelMeta>, _id : Int, _gpuApi
                 }
                 else
                 {
-                    Console.log('asset ${ asset.id } not found in the parcel metadata');
+                    _log.debug('asset ${ asset.id } not found in the parcel metadata');
         
                     return false;
                 }

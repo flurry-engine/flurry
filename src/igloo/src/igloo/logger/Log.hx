@@ -1,80 +1,150 @@
 package igloo.logger;
 
-import hx.concurrent.event.AsyncEventDispatcher;
-import hx.concurrent.executor.ThreadPoolExecutor;
-import haxe.Exception;
+import haxe.macro.Expr;
+import haxe.macro.Context;
+import haxe.macro.ExprTools;
+import haxe.macro.MacroStringTools;
+import igloo.logger.LogLevel;
 
-class Log
+class Log implements ISink
 {
-    final dispatcher : AsyncEventDispatcher<String>;
+    final enrichers : Array<Enrichment>;
 
-    public function new(_dispatcher)
+    final sinks : Array<ISink>;
+
+    final level : LogLevel;
+
+    public function new(_enrichers, _sinks, _level)
     {
-        dispatcher = _dispatcher;
-        dispatcher.subscribe(log);
+        enrichers = _enrichers;
+        sinks     = _sinks;
+        level     = _level;
     }
 
-    public function info(_message : String)
+    public macro function verbose(_this : Expr, _template : ExprOf<String>, _args : Array<Expr>)
     {
-        dispatcher.fire(_message);
+        return switch _template.expr
+        {
+            case EConst(CString(s, _)):
+                final expanded = MacroStringTools.formatString(s, _template.pos);
+                final level    = macro igloo.logger.LogLevel.Verbose;
+
+                switch _args.length
+                {
+                    case 0:
+                        LogTools.makeLogLiteralMessage(_this, level, _template, expanded);
+                    case _:
+                        LogTools.makeLogRestMessage(_this, level, expanded, _args);
+                }
+            case _:
+                Context.error('Log template must be a string literal', Context.currentPos());
+        }
     }
 
-    public function success(_message : String)
+    public macro function debug(_this : Expr, _template : ExprOf<String>, _args : Array<Expr>)
     {
-        dispatcher.fire(_message);
+        return switch _template.expr
+        {
+            case EConst(CString(s, _)):
+                final expanded = MacroStringTools.formatString(s, _template.pos);
+                final level    = macro igloo.logger.LogLevel.Debug;
+
+                switch _args.length
+                {
+                    case 0:
+                        LogTools.makeLogLiteralMessage(_this, level, _template, expanded);
+                    case _:
+                        LogTools.makeLogRestMessage(_this, level, expanded, _args);
+                }
+            case _:
+                Context.error('Log template must be a string literal', Context.currentPos());
+        }
     }
 
-    public function error(_message : String, _exception : Exception)
+    public macro function info(_this : Expr, _template : ExprOf<String>, _args : Array<Expr>)
     {
-        dispatcher.fire('$_message\n${ _exception.details() }');
+        return switch _template.expr
+        {
+            case EConst(CString(s, _)):
+                final expanded = MacroStringTools.formatString(s, _template.pos);
+                final level    = macro igloo.logger.LogLevel.Information;
+
+                switch _args.length
+                {
+                    case 0:
+                        LogTools.makeLogLiteralMessage(_this, level, _template, expanded);
+                    case _:
+                        LogTools.makeLogRestMessage(_this, level, expanded, _args);
+                }
+            case _:
+                Context.error('Log template must be a string literal', Context.currentPos());
+        }
     }
 
-    public function debug(_message : String)
+    public macro function warning(_this : Expr, _template : ExprOf<String>, _args : Array<Expr>)
     {
-        dispatcher.fire(_message);
+        return switch _template.expr
+        {
+            case EConst(CString(s, _)):
+                final expanded = MacroStringTools.formatString(s, _template.pos);
+                final level    = macro igloo.logger.LogLevel.Warning;
+
+                switch _args.length
+                {
+                    case 0:
+                        LogTools.makeLogLiteralMessage(_this, level, _template, expanded);
+                    case _:
+                        LogTools.makeLogRestMessage(_this, level, expanded, _args);
+                }
+            case _:
+                Context.error('Log template must be a string literal', Context.currentPos());
+        }
     }
 
-    public function flush()
+    public macro function error(_this : Expr, _template : ExprOf<String>, _args : Array<Expr>)
     {
-        @:privateAccess (cast dispatcher._executor : ThreadPoolExecutor)._threadPool.awaitCompletion(-1);
-        @:privateAccess (cast dispatcher._executor : ThreadPoolExecutor).stop();
+        return switch _template.expr
+        {
+            case EConst(CString(s, _)):
+                final expanded = MacroStringTools.formatString(s, _template.pos);
+                final level    = macro igloo.logger.LogLevel.Error;
+
+                switch _args.length
+                {
+                    case 0:
+                        LogTools.makeLogLiteralMessage(_this, level, _template, expanded);
+                    case _:
+                        LogTools.makeLogRestMessage(_this, level, expanded, _args);
+                }
+            case _:
+                Context.error('Log template must be a string literal', Context.currentPos());
+        }
     }
 
-    function log(_message)
+    public function onMessage(_message : Message.Message)
     {
-        Console.printlnFormatted(_message);
-    }
-}
+        if (_message.level < getLevel())
+        {
+            return;
+        }
 
-class ScriptLogger
-{
-    final log : Log;
+        for (enricher in enrichers)
+        {
+            _message.setField(enricher.field, enricher.value);
+        }
 
-    final scriptName : String;
+        for (sink in sinks)
+        {
+            if (_message.level < sink.getLevel())
+            {
+                continue;
+            }
 
-    public function new(_log, _scriptName)
-    {
-        log        = _log;
-        scriptName = _scriptName;
-    }
-
-    public function error(_message : String, _exception : Exception)
-    {
-        log.error('<#ea8220>[Processor]</><red>[ERR]</>[$scriptName] $_message', _exception);
-    }
-
-    public function info(_message : String)
-    {
-        log.info('<#ea8220>[Processor]</>[INF][$scriptName] $_message');
+            sink.onMessage(_message);
+        }
     }
 
-    public function success(_message : String)
-    {
-        log.success('<#ea8220>[Processor]</><green>[SUC]</>[$scriptName] $_message');
-    }
-
-    public function debug(_message : String)
-    {
-        log.debug('<#ea8220>[Processor]</>[DBG][$scriptName] $_message');
+    public function getLevel() {
+        return level;
     }
 }
