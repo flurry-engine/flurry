@@ -73,7 +73,8 @@ overload extern inline function drawSegment(_ctx : GraphicsContext, _centre : Ve
     final threshold = 3;
     final segments  = Std.int((_angle / 360 * Math.PI * (_radius * 2)) / threshold);
     final increment = _angle / segments;
-    final vtxCount  = 1;
+
+    var vtxCount = 1;
 
     _ctx.prepare();
 
@@ -162,8 +163,9 @@ overload extern inline function drawPolygon(_ctx : GraphicsContext, _centre : Ve
 
 overload extern inline function drawPolygon(_ctx : GraphicsContext, _centre : Vec2, _radius : Float, _sides : Int, _colour : Vec4)
 {
-    final theta    = 360 / _sides;
-    final vtxCount = 1;
+    final theta = 360 / _sides;
+    
+    var vtxCount = 1;
 
     _ctx.prepare();
 
