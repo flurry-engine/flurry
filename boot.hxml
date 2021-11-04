@@ -1,5 +1,6 @@
 -m Boot
 -D analyzer-optimize
 -L tink_cli
+-L format
 --dce full
 --neko run.n

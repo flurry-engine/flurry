@@ -8,16 +8,21 @@
     "releasenote": "initial release",
     "classPath": "src/lib",
     "dependencies": {
-        "haxe-concurrent"     : "3.0.0",
-        "format"              : "3.5.0",
-        "safety"              : "1.1.2",
-        "hxbit"               : "1.5.0",
-        "sys.io.abstractions" : "gh:aidan63/sys.io.abstractions#6ed1fad",
-        "hxrx"                : "gh:aidan63/hxrx#bf80c70",
-        "linc_opengl"         : "gh:aidan63/linc_opengl#08e333c",
-        "linc_directx"        : "gh:aidan63/linc_directx#652d107",
-        "linc_imgui"          : "git:https://github.com/Aidan63/linc_imgui#eab47ed as linc_imgui#1.0.0",
-        "linc_stb"            : "git:https://github.com/Aidan63/linc_stb#68c8d3e as linc_stb#1.0.0",
-        "linc_sdl"            : "git:https://github.com/Aidan63/linc_sdl#c0b677e as linc_sdl#1.0.0"
+        "haxe-files" : "",
+        "safety" : "",
+        "format" : "",
+        "linc_stb" : "",
+
+        "json2object" : "",
+        "tink_cli" : "",
+        "bin-packing" : "",
+        "console.hx" : "",
+
+        "haxe-concurrent" : "",
+        "linc_sdl" : "",
+        "linc_directx" : "",
+        "linc_opengl" : "",
+        "linc_imgui" : "",
+        "vector-math" : ""
     }
 }
