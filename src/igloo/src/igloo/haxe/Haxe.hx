@@ -10,21 +10,6 @@ import igloo.parcels.LoadedParcel;
 using hx.strings.Strings;
 
 /**
- * Writes a json file describing the built host executable.
- * @param _buildPath Directory to store the file in.
- * @param _graphicsBackend The graphics backend the host uses.
- * @param _main The entry point the host uses.
- */
-function writeHostMeta(_buildPath : Path, _graphicsBackend : GraphicsApi, _main : String)
-{
-    final writer   = new JsonWriter<BuiltHost>();
-    final host     = new BuiltHost(_graphicsBackend, _main);
-    final hostPath = _buildPath.join('host.json');
-
-    hostPath.toFile().writeString(writer.write(host));
-}
-
-/**
  * Generate a hxml file for a flurry host.
  * @param _project Project to generate a hxml file.
  * @param _parcels All parcels packaged for this project.
