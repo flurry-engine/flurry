@@ -1,5 +1,6 @@
 package igloo.commands;
 
+import sys.io.Process;
 import haxe.Exception;
 import igloo.haxe.Haxe;
 import igloo.utils.Concurrency;
@@ -92,14 +93,6 @@ class Build
     @:flag('target')
     @:alias('t')
     public var target = 'desktop';
-
-    /**
-     * Build and run the project with cppia.
-     * Offers much faster build times at the cost of performance than standard desktop compilation.
-     */
-    @:flag('cppia')
-    @:alias('s')
-    public var cppia = false;
 
     /**
      * Forces the cppia host to be rebuilt. This will only do something if `--cppia` is also use.
@@ -208,103 +201,103 @@ class Build
 
         // Building Code
 
-        if (someParcelsPackage || hostNeedsGenerating(buildDir, graphicsBackend, project.app.main, cppia, rebuildHost))
+        final hxmlPath = buildDir.parent.join('build-host.hxml');
+        final hxmlData = generateHostHxml(project, parcels, release, graphicsBackend, projectPath, buildDir);
+
+        hxmlPath.toFile().writeString(hxmlData);
+
+        final haxeProc = new Process('npx haxe D:/projects/flurry/flurry/tests/system/bin/windows.build/build-host.hxml');
+        final haxeLog  = new LogConfig()
+            .setMinimumLevel(log)
+            .writeTo(logger)
+            .enrichWith('stage', 'haxe')
+            .create();
+
+        var code : Null<Int> = null;
+        while (null == (code = haxeProc.exitCode(false)))
         {
-            final hxmlPath = buildDir.parent.join('build-host.hxml');
-            final hxmlData = generateHostHxml(project, parcels, cppia, release, graphicsBackend, projectPath, buildDir);
-
-            hxmlPath.toFile().writeString(hxmlData);
-
-            if (Sys.command('npx', [ 'haxe', hxmlPath.toString() ]) != 0)
+            try
             {
-                throw new Exception('haxe returned a non zero exit code');
+                haxeLog.info('${ stdout }', haxeProc.stdout.readLine());
             }
-
-            if (cppia)
+            catch (e)
             {
-                writeHostMeta(buildDir, graphicsBackend, project.app.main);
-            }
-            else
-            {
-                buildDir.join('host.json').toFile().delete();
+                // potential EoF exception from stdout
             }
         }
 
-        if (cppia)
+        switch code
         {
-            final hxmlPath = buildDir.parent.join('build-client.hxml');
-            final hxmlData = generateClientHxml(project, projectPath, release, buildDir);
+            case 0:
+                haxeLog.info('haxe compilation succeeded');
 
-            hxmlPath.toFile().writeString(hxmlData);
+                // Copy over the executable
 
-            if (Sys.command('npx', [ 'haxe', hxmlPath.toString() ]) != 0)
-            {
-                throw new Exception('haxe returned a non zero exit code');
-            }
-
-            final script      = buildDir.join('client.cppia').toFile();
-            final buildScript = buildDir.joinAll([ 'assets', 'client.cppia' ]);
-            final finalScript = finalDir.joinAll([ 'assets', 'client.cppia' ]);
-
-            buildScript.parent.toDir().create();
-            finalScript.parent.toDir().create();
-
-            script.copyTo(buildScript, [ FileCopyOption.OVERWRITE ]);
-            script.copyTo(finalScript, [ FileCopyOption.OVERWRITE ]);
-        }
-
-        // Copy over the executable
-
-        switch getHostPlatformName()
-        {
-            case 'windows':
-                final src = buildDir.join('${ project.app.name }.exe');
-                final dst = finalDir.join('${ project.app.name }.exe');
-
-                src.toFile().copyTo(dst, [ FileCopyOption.OVERWRITE ]);
-            default:
-                final src = buildDir.join(project.app.name);
-                final dst = finalDir.join(project.app.name);
-
-                src.toFile().copyTo(dst, [ FileCopyOption.OVERWRITE ]);
-
-                if (Sys.command('chmod', [ 'a+x', src.toString() ]) != 0)
+                switch getHostPlatformName()
                 {
-                    throw new Exception('Failed to set the project output as executable');
+                    case 'windows':
+                        final src = buildDir.join('${ project.app.name }.exe');
+                        final dst = finalDir.join('${ project.app.name }.exe');
+
+                        haxeLog.verbose('copying exe from $src to $dst');
+
+                        src.toFile().copyTo(dst, [ FileCopyOption.OVERWRITE ]);
+                    default:
+                        final src = buildDir.join(project.app.name);
+                        final dst = finalDir.join(project.app.name);
+
+                        haxeLog.verbose('copying exe from $src to $dst');
+
+                        src.toFile().copyTo(dst, [ FileCopyOption.OVERWRITE ]);
+
+                        switch Sys.command('chmod', [ 'a+x', src.toString() ])
+                        {
+                            case code if (code != 0):
+                                haxeLog.error('Failed to set the executable bit of $src, chmod returned $code');
+                            case _:
+                                haxeLog.verbose('Set the executable bit of $src');
+                        }
+                        switch Sys.command('chmod', [ 'a+x', dst.toString() ])
+                        {
+                            case code if (code != 0):
+                                haxeLog.error('Failed to set the executable bit of $dst, chmod returned $code');
+                            case _:
+                                haxeLog.verbose('Set the executable bit of $dst');
+                        }
                 }
-                if (Sys.command('chmod', [ 'a+x', dst.toString() ]) != 0)
+
+                // Copy over file globs.
+
+                for (glob => dst in project.build.files)
                 {
-                    throw new Exception('Failed to set the project output as executable');
+                    final path = Path.of(glob);
+
+                    if (path.exists())
+                    {
+                        // Not a glob file, just copy it over.
+                        // If the dst if an empty string re-use the source file name.
+                        // destination paths are relative to the produced exe.
+                        final output = if (dst == '') path.filename else dst;
+
+                        path.toFile().copyTo(buildDir.join(output), [ FileCopyOption.OVERWRITE ]);
+                        path.toFile().copyTo(finalDir.join(output), [ FileCopyOption.OVERWRITE ]);
+                    }
+                    else
+                    {
+                        haxeLog.info('Glob copying is not yet implemented');
+                    }
                 }
-        }
 
-        // Copy over file globs.
+                // Potentially run the built project.
 
-        for (glob => dst in project.build.files)
-        {
-            final path = Path.of(glob);
+                if (run)
+                {
+                    Sys.command(finalDir.join(project.app.name).toString());
+                }
+            case _:
+                final stderr = try haxeProc.stderr.readAll().toString() catch (_) '';
 
-            if (path.exists())
-            {
-                // Not a glob file, just copy it over.
-                // If the dst if an empty string re-use the source file name.
-                // destination paths are relative to the produced exe.
-                final output = if (dst == '') path.filename else dst;
-
-                path.toFile().copyTo(buildDir.join(output), [ FileCopyOption.OVERWRITE ]);
-                path.toFile().copyTo(finalDir.join(output), [ FileCopyOption.OVERWRITE ]);
-            }
-            else
-            {
-                logger.info('Glob copying is not yet implemented');
-            }
-        }
-
-        // Potentially run the built project.
-
-        if (run)
-        {
-            Sys.command(finalDir.join(project.app.name).toString());
+                haxeLog.error('haxe compilation failed $stderr');
         }
     }
 
