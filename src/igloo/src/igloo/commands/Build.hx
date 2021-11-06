@@ -1,5 +1,7 @@
 package igloo.commands;
 
+import haxe.io.Input;
+import haxe.io.BytesBuffer;
 import haxe.io.Bytes;
 import sys.io.Process;
 import haxe.Exception;
@@ -293,7 +295,46 @@ class Build
 
                 if (run)
                 {
-                    Sys.command(finalDir.join(project.app.name).toString());
+                    final gameProc = new Process(finalDir.join(project.app.name).toString());
+                    final gameLog  = new LogConfig()
+                        .setMinimumLevel(log)
+                        .writeTo(logger)
+                        .enrichWith('stage', 'game')
+                        .create();
+
+                    var code : Null<Int> = null;
+                    while (null == (code = gameProc.exitCode(false)))
+                    {
+                        try
+                        {
+                            final buffer = new StringBuf();
+                            final string = try
+                            {
+                                var last = 0;
+                                while ((last = gameProc.stdout.readByte()) != '\n'.code)
+                                {
+                                    buffer.addChar(last);
+                                }
+
+                                buffer.toString();
+                            }
+                            catch (e)
+                            {
+                                buffer.toString();
+                            }
+                            
+                            gameLog.info('${ stdout }', string);
+                        }
+                        catch (e)
+                        {
+                            // potential EoF exception from stdout
+                        }
+                    }
+
+                    if (code != 0)
+                    {
+                        gameLog.error('${ stderr }', try gameProc.stderr.readAll().toString() catch (_) '');
+                    }
                 }
             case _:
                 final stderr = try haxeProc.stderr.readAll().toString() catch (_) '';
