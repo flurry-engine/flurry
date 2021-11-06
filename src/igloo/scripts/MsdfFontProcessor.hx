@@ -5,7 +5,7 @@ import haxe.ds.Either;
 import haxe.Json;
 import haxe.Exception;
 import haxe.io.Output;
-import igloo.parcels.Asset;
+import igloo.parcels.Parcel.Asset;
 import igloo.parcels.ParcelContext;
 import igloo.processors.ResourceRequest;
 import igloo.processors.AssetProcessor;

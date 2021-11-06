@@ -4,7 +4,7 @@ import haxe.Exception;
 import haxe.io.Output;
 import hx.files.Path;
 import igloo.utils.OneOf;
-import igloo.parcels.Asset;
+import igloo.parcels.Parcel.Asset;
 import igloo.parcels.ParcelContext;
 import igloo.project.ProjectContext;
 

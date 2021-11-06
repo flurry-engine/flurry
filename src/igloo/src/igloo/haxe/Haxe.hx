@@ -56,7 +56,7 @@ function generateHostHxml(_project : Project, _parcels : Array<LoadedParcel>, _r
 
     for (parcel in _parcels)
     {
-        hxml.addMacro('uk.aidanlee.flurry.macros.Parcels.loadParcelMeta("${ parcel.name }", "${ haxe.io.Path.normalize(parcel.parcelMeta.toString()) }")');
+        hxml.addMacro('uk.aidanlee.flurry.macros.Parcels.loadParcelMeta("${ parcel.parcel.name }", "${ haxe.io.Path.normalize(parcel.parcelMeta.toString()) }")');
     }
 
     for (p in _project.app.codepaths)

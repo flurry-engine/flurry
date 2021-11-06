@@ -23,19 +23,19 @@ using Lambda;
 using Safety;
 using igloo.parcels.ParcelWriter;
 
-function build(_ctx : ParcelContext, _log : Log, _id : Int, _parcel : LoadedParcel, _processors : ProcessorLoadResult, _provider : IDProvider)
+function build(_ctx : ParcelContext, _log : Log, _id : Int, _loaded : LoadedParcel, _processors : ProcessorLoadResult, _provider : IDProvider)
 {
     _log.debug('Cached parcel is invalid');
 
     final packed = new Map<String, Array<ProcessedResource<Any>>>();
-    final atlas  = new Atlas(_parcel.settings.xPad, _parcel.settings.yPad, _parcel.settings.maxWidth, _parcel.settings.maxHeight, _provider);
+    final atlas  = new Atlas(_loaded.parcel.settings.xPad, _loaded.parcel.settings.yPad, _loaded.parcel.settings.maxWidth, _loaded.parcel.settings.maxHeight, _provider);
 
     // Each source asset produces 1-n resource requests. Each request has a type, packed or unpacked.
     // These requests are then resolved by packing them into the atlas if needed.
     // The request and all resolved resources are then stored for blitting and writing.
     var totalResponses = 0;
 
-    for (asset in _parcel.assets)
+    for (asset in _loaded.parcel.assets)
     {
         final ext = haxe.io.Path.extension(asset.path);
 
@@ -64,11 +64,11 @@ function build(_ctx : ParcelContext, _log : Log, _id : Int, _parcel : LoadedParc
 
     final totalResources   = atlas.pages.length + totalResponses;
     final blitTasks        = new Vector(atlas.pages.length);
-    final output           = _parcel.parcelFile.toFile().openOutput(REPLACE);
+    final output           = _loaded.parcelFile.toFile().openOutput(REPLACE);
     final writtenResources = new Map<String, Array<ResourceMeta>>();
     final writtenPages     = [];
 
-    output.writeParcelHeader(totalResources, getPageFormatID(_parcel.settings.format));
+    output.writeParcelHeader(totalResources, getPageFormatID(_loaded.parcel.settings.format));
 
     // At this stage all assets have been packed into atlas pages if they requested it.
     // We can now blit all the images into the final pages.
@@ -81,7 +81,7 @@ function build(_ctx : ParcelContext, _log : Log, _id : Int, _parcel : LoadedParc
             final rgbaBytes = blit(page);
             final staging   = new BytesOutput();
     
-            switch _parcel.settings.format
+            switch _loaded.parcel.settings.format
             {
                 case 'jpg', 'jpeg':
                     if (stb.ImageWrite.write_jpg_func(cpp.Callable.fromStaticFunction(writeCallback), staging, page.width, page.height, 4, rgbaBytes, 90) == 0)
@@ -158,7 +158,7 @@ function build(_ctx : ParcelContext, _log : Log, _id : Int, _parcel : LoadedParc
     output.writeParcelFooter();
     output.close();
 
-    writeMetaFile(_parcel.parcelMeta, _id, _ctx.gpuApi, _ctx.release, _processors.names, writtenPages, writtenResources);
+    writeMetaFile(_loaded.parcelMeta, _id, _ctx.gpuApi, _ctx.release, _processors.names, writtenPages, writtenResources);
 }
 
 /**

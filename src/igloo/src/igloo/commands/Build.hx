@@ -1,5 +1,6 @@
 package igloo.commands;
 
+import haxe.io.Bytes;
 import sys.io.Process;
 import haxe.Exception;
 import igloo.haxe.Haxe;
@@ -153,26 +154,26 @@ class Build
         final idProvider = createIDProvider(logger, parcels);
 
         var someParcelsPackage = false;
-        for (parcel in parcels)
+        for (loaded in parcels)
         {
-            if (!parcel.validCache)
+            if (!loaded.validCache)
             {
                 try
                 {
-                    parcel.tempDir.toDir().create();
-                    parcel.cacheDir.toDir().create();
+                    loaded.tempDir.toDir().create();
+                    loaded.cacheDir.toDir().create();
 
                     final ctx = new ParcelContext(
-                        parcel.name,
-                        parcel.assetDir,
-                        parcel.tempDir,
-                        parcel.cacheDir,
+                        loaded.parcel.name,
+                        loaded.assetDir,
+                        loaded.tempDir,
+                        loaded.cacheDir,
                         graphicsBackend,
                         release,
                         tools,
                         executor);
     
-                    build(ctx, logger, id, parcel, processors, idProvider);
+                    build(ctx, logger, id, loaded, processors, idProvider);
 
                     someParcelsPackage = true;
                 }
@@ -184,19 +185,19 @@ class Build
                     // parcel.cacheDir.toDir().delete(true);
                     // parcel.tempDir.toDir().delete(true);
 
-                    throw new Exception('Failed to package ${ parcel.name }', e);
+                    throw new Exception('Failed to package ${ loaded.parcel.name }', e);
                 }
             }
 
-            final parcelBuildPath = buildDir.joinAll([ 'assets', parcel.parcelFile.filename ]);
-            final parcelFinalPath = finalDir.joinAll([ 'assets', parcel.parcelFile.filename ]);
+            final parcelBuildPath = buildDir.joinAll([ 'assets', loaded.parcelFile.filename ]);
+            final parcelFinalPath = finalDir.joinAll([ 'assets', loaded.parcelFile.filename ]);
 
             parcelBuildPath.parent.toDir().create();
             parcelFinalPath.parent.toDir().create();
 
-            parcel.parcelFile.toFile().copyTo(parcelBuildPath, [ FileCopyOption.OVERWRITE ]);
-            parcel.parcelFile.toFile().copyTo(parcelFinalPath, [ FileCopyOption.OVERWRITE ]);
-            parcel.tempDir.toDir().delete(true);
+            loaded.parcelFile.toFile().copyTo(parcelBuildPath, [ FileCopyOption.OVERWRITE ]);
+            loaded.parcelFile.toFile().copyTo(parcelFinalPath, [ FileCopyOption.OVERWRITE ]);
+            loaded.tempDir.toDir().delete(true);
         }
 
         // Building Code

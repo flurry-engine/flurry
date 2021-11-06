@@ -9,7 +9,7 @@ import haxe.ds.ReadOnlyArray;
 import haxe.ds.Either;
 import hx.files.Path;
 import igloo.processors.AssetProcessor;
-import igloo.parcels.Asset;
+import igloo.parcels.Parcel.Asset;
 import igloo.parcels.ParcelContext;
 
 using Lambda;

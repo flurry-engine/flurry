@@ -2,7 +2,7 @@ import igloo.utils.OneOf;
 import haxe.Exception;
 import haxe.ds.Either;
 import haxe.io.Output;
-import igloo.parcels.Asset;
+import igloo.parcels.Parcel.Asset;
 import igloo.parcels.ParcelContext;
 import igloo.processors.RequestType;
 import igloo.processors.AssetProcessor;

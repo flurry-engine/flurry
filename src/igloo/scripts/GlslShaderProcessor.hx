@@ -7,7 +7,7 @@ import haxe.DynamicAccess;
 import haxe.io.Output;
 import haxe.ds.Option;
 import hx.files.Path;
-import igloo.parcels.Asset;
+import igloo.parcels.Parcel.Asset;
 import igloo.parcels.ParcelContext;
 import igloo.processors.AssetProcessor;
 import igloo.processors.ResourceRequest;

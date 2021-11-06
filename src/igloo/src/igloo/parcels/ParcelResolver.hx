@@ -2,12 +2,12 @@ package igloo.parcels;
 
 import haxe.Exception;
 import haxe.ds.Option;
-import haxe.ds.Vector;
 import hx.files.Path;
 import json2object.ErrorUtils;
 import json2object.JsonParser;
 import igloo.utils.GraphicsApi;
 import igloo.logger.Log;
+import igloo.parcels.Parcel.Asset;
 import igloo.processors.ProcessorLoadResults;
 
 using Lambda;
@@ -23,18 +23,17 @@ using Lambda;
  */
 function resolveParcels(_projectPath : Path, _log : Log, _bundles : Array<String>, _outputDir : Path, _id, _gpuApi, _release, _processors)
 {
-    final parser = new JsonParser<Package>();
+    final parser = new JsonParser<Parcel>();
     final loaded = [];
 
     for (path in _bundles)
     {
-        final bundlePath   = _projectPath.parent.join(path);
-        final baseAssetDir = bundlePath.parent;
-        final bundle       = parser.fromJson(bundlePath.toFile().readAsString());
+        final parcelPath   = _projectPath.parent.join(path);
+        final baseAssetDir = parcelPath.parent;
+        final parcel       = parser.fromJson(parcelPath.toFile().readAsString());
 
         if (parser.errors.length > 0)
         {
-            final parcelPath = bundlePath.toString();
             final parseError = ErrorUtils.convertErrorArray(parser.errors);
 
             _log.error('Failed to parse package file $parcelPath : $parseError');
@@ -42,30 +41,24 @@ function resolveParcels(_projectPath : Path, _log : Log, _bundles : Array<String
             throw new Exception('Failed to parse package file : $parseError');
         }
 
-        for (parcel in bundle.parcels)
-        {
-            final tempOutput  = _outputDir.joinAll([ 'tmp', parcel.name ]);
-            final parcelCache = _outputDir.joinAll([ 'cache', 'parcels' ]);
-            final parcelFile  = parcelCache.join('${ parcel.name }.parcel');
-            final parcelMeta  = parcelCache.join('${ parcel.name }.parcel.meta');
+        final tempOutput  = _outputDir.joinAll([ 'tmp', parcel.name ]);
+        final parcelCache = _outputDir.joinAll([ 'cache', 'parcels' ]);
+        final parcelFile  = parcelCache.join('${ parcel.name }.parcel');
+        final parcelMeta  = parcelCache.join('${ parcel.name }.parcel.meta');
 
-            final assets   = resolveAssets(parcel.assets, bundle.assets);
-            final metadata = loadCacheData(_log, parcelFile, parcelMeta);
-            final isValid  = validateMetaData(_log, metadata, _id, _gpuApi, _release, _processors, assets, baseAssetDir);
-            final data     = new LoadedParcel(
-                parcelFile,
-                parcelMeta,
-                baseAssetDir,
-                tempOutput,
-                parcelCache,
-                parcel.name,
-                parcel.settings,
-                assets,
-                metadata,
-                isValid);
+        final metadata = loadCacheData(_log, parcelFile, parcelMeta);
+        final isValid  = validateMetaData(_log, metadata, _id, _gpuApi, _release, _processors, parcel.assets, baseAssetDir);
+        final data     = new LoadedParcel(
+            parcelFile,
+            parcelMeta,
+            baseAssetDir,
+            tempOutput,
+            parcelCache,
+            parcel,
+            metadata,
+            isValid);
 
-            loaded.push(data);
-        }
+        loaded.push(data);
     }
 
     return loaded;
@@ -152,37 +145,6 @@ function createIDProvider(_log : Log, _parcels : Array<LoadedParcel>)
     return provider;
 }
 
-/**
- * Given an array of asset names fetch all asset objects which match.
- * @param _wanted Array of name strings to find assets for.
- * @param _all Array of asset objects from a bundle.
- * @throws Exception If an asset object could not be found for a asset name.
- */
-private function resolveAssets(_wanted : Array<String>, _all : Array<Asset>)
-{
-    final assets = new Vector(_wanted.length);
-
-    for (idx => id in _wanted)
-    {
-        assets[idx] = findAsset(id, _all);
-    }
-
-    return assets;
-}
-
-private function findAsset(_id : String, _all : Array<Asset>)
-{
-    for (asset in _all)
-    {
-        if (asset.id == _id)
-        {
-            return asset;
-        }
-    }
-
-    throw new Exception('Could not find an asset with ID $_id');
-}
-
 private function loadCacheData(_log : Log, _parcelFile : Path, _parcelMeta : Path) : Option<ParcelMeta>
 {
     return if (_parcelFile.exists() && _parcelMeta.exists())
@@ -220,7 +182,7 @@ private function loadCacheData(_log : Log, _parcelFile : Path, _parcelMeta : Pat
  * @param _assets All assets for this parcel in the curent bundle.
  * @param _assetDir Base asset directory for this parcels asset paths.
  */
-private function validateMetaData(_log : Log, _meta : Option<ParcelMeta>, _id : Int, _gpuApi : GraphicsApi, _release : Bool, _processors : ProcessorLoadResult, _assets : Vector<Asset>, _assetDir : Path)
+private function validateMetaData(_log : Log, _meta : Option<ParcelMeta>, _id : Int, _gpuApi : GraphicsApi, _release : Bool, _processors : ProcessorLoadResult, _assets : Array<Asset>, _assetDir : Path)
 {
     switch _meta
     {
