@@ -209,7 +209,7 @@ class Build
 
         hxmlPath.toFile().writeString(hxmlData);
 
-        final haxeProc = new Process('npx haxe D:/projects/flurry/flurry/tests/system/bin/windows.build/build-host.hxml');
+        final haxeProc = new Process('npx haxe $hxmlPath');
         final haxeLog  = new LogConfig()
             .setMinimumLevel(log)
             .writeTo(logger)
