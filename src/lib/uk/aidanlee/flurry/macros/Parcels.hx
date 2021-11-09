@@ -1,11 +1,10 @@
 package uk.aidanlee.flurry.macros;
 
 import haxe.DynamicAccess;
-import haxe.macro.Printer;
 import haxe.Json;
 import haxe.Exception;
 import haxe.ds.Option;
-import haxe.macro.Expr.TypeDefinition;
+import haxe.macro.Expr;
 import haxe.macro.Context;
 import hx.files.Path;
 
@@ -39,7 +38,8 @@ private typedef ShaderBuffer = {
     final elements : Array<ShaderBufferElement>;
 }
 
-private var totalParcels   = 0;
+private var parcels = new Array<Path>();
+
 private var totalResources = 0;
 
 macro function getTotalResourceCount()
@@ -50,6 +50,8 @@ macro function getTotalResourceCount()
 macro function loadParcelMeta(_name : String, _path : String)
 {
     final path = Path.of(_path);
+
+    parcels.push(path);
 
     // Create a class with static inline fields for all resources contained within the parcel.
     // Pages are not included in the fields.
@@ -239,6 +241,48 @@ macro function loadParcelMeta(_name : String, _path : String)
     Context.defineModule('uk.aidanlee.flurry.api.gpu.shaders.uniforms.$clazz', uboTypes);
 
     return macro null;
+}
+
+macro function createLookupTable() : Array<Field> {
+    final fields = Context.getBuildFields();
+    final cases  = new Array<Case>();
+
+    for (path in parcels)
+    {
+        final meta  = (Json.parse(path.toFile().readAsString()) : ParcelMeta);
+
+        for (_ => produced in meta.resources)
+        {
+            for (resource in produced)
+            {
+                cases.push({
+                    expr   : macro $v{ resource.id },
+                    values : [
+                        macro $v{ resource.name }
+                    ]
+                });
+            }
+        }
+    }
+
+    fields.push({
+        access: [ APublic ],
+        pos : Context.currentPos(),
+        name: 'lookup',
+        kind: FFun({
+            args : [ { name: '_name', type: macro : String } ],
+            ret  : macro : Int,
+            expr : macro return $e{ {
+                pos  : Context.currentPos(),
+                expr : ESwitch(
+                    macro _name,
+                    cases,
+                    macro throw new haxe.Exception('Unknown name $_name'))
+            } }
+        })
+    });
+
+    return fields;
 }
 
 private function glslTypeToComplexType(_type)

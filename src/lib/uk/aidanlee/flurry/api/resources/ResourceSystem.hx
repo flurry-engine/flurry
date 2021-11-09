@@ -18,6 +18,7 @@ using hxrx.schedulers.IScheduler;
 using hxrx.observables.Observables;
 using Safety;
 
+@:build(uk.aidanlee.flurry.macros.Parcels.createLookupTable())
 class ResourceSystem
 {
     static final assetsPath = hx.files.Path.of('assets');
