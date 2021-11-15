@@ -19,11 +19,6 @@ using igloo.utils.OutputUtils;
 
 class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 {
-	override public function ids()
-    {
-		return [ 'glsl' ];
-	}
-
 	override function isInvalid(_path : Path, _time : Float)
 	{
 		final vertPath = _path.parent.join(_path.filenameStem + '.vert.glsl');
@@ -32,7 +27,12 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 		return vertPath.getModificationTime() >= _time || fragPath.getModificationTime() >= _time;
 	}
 
-	override public function pack(_ctx : ParcelContext, _asset : Asset) : OneOf<ResourceRequest<ProducedShader>, Array<ResourceRequest<ProducedShader>>>
+	public function ids()
+	{
+		return [ 'glsl' ];
+	}
+
+	public function pack(_ctx : ParcelContext, _asset : Asset) : OneOf<ResourceRequest<ProducedShader>, Array<ResourceRequest<ProducedShader>>>
 	{
 		// Transform our input asset path into vert and fragment versions.
 		final source      = Path.of(_asset.path);
@@ -133,7 +133,7 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 		}
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _resource : ProcessedResource<ProducedShader>)
+	public function write(_ctx : ParcelContext, _writer : Output, _resource : ProcessedResource<ProducedShader>)
 	{
 		_writer.writeInt32(_resource.id);
 		_writer.writePrefixedString(_ctx.gpuApi);

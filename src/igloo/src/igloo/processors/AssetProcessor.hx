@@ -1,6 +1,5 @@
 package igloo.processors;
 
-import haxe.Exception;
 import haxe.io.Output;
 import hx.files.Path;
 import igloo.utils.OneOf;
@@ -11,7 +10,7 @@ import igloo.project.ProjectContext;
 /**
  * Abstract class all asset processors must extend.
  */
-class AssetProcessor<T>
+abstract class AssetProcessor<T>
 {
     /**
      * The project context is an immutable object which contains various bits of information about the project.
@@ -44,18 +43,9 @@ class AssetProcessor<T>
      * All IDs this asset processor can operate on.
      * These can either be file extensions or manually specified strings.
      */
-    public function ids() : Array<String>
-    {
-        throw new Exception('Not implemented');
-    }
+    public abstract function ids() : Array<String>;
 
-    public function pack(_ctx : ParcelContext, _asset : Asset) : OneOf<ResourceRequest<T>, Array<ResourceRequest<T>>>
-    {
-        throw new Exception('Not implemented');
-    }
+    public abstract function pack(_ctx : ParcelContext, _asset : Asset) : OneOf<ResourceRequest<T>, Array<ResourceRequest<T>>>;
 
-    public function write(_ctx : ParcelContext, _writer : Output, _resource : ProcessedResource<T>) : Void
-    {
-        throw new Exception('Not implemented');
-    }
+    public abstract function write(_ctx : ParcelContext, _writer : Output, _resource : ProcessedResource<T>) : Void;
 }

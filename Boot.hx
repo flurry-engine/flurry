@@ -109,11 +109,11 @@ class Flurry
 
             final url = switch platform {
                 case 'Windows':
-                    'https://github.com/flurry-engine/haxe/releases/download/4.2.4-flurry.1/windows.tar.gz';
+                    'https://github.com/flurry-engine/haxe/releases/download/4.2.4-flurry.2/windows.tar.gz';
                 case 'Mac':
-                    'https://github.com/flurry-engine/haxe/releases/download/4.2.4-flurry.1/mac.tar.gz';
+                    'https://github.com/flurry-engine/haxe/releases/download/4.2.4-flurry.2/mac.tar.gz';
                 case 'Linux':
-                    'https://github.com/flurry-engine/haxe/releases/download/4.2.4-flurry.1/linux.tar.gz';
+                    'https://github.com/flurry-engine/haxe/releases/download/4.2.4-flurry.2/linux.tar.gz';
                 case other:
                     Sys.println('platform $other is not supported');
                     Sys.exit(1);

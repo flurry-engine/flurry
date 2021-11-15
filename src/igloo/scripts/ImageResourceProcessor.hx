@@ -11,19 +11,19 @@ import igloo.processors.ProcessedResource;
 
 class ImageResourceProcessor extends AssetProcessor<Int>
 {
-	override public function ids()
+	public function ids()
 	{
 		return [ 'png', 'jpg', 'jpeg', 'tga', 'bmp' ];
 	}
 
-	override public function pack(_ctx : ParcelContext, _asset : Asset) : OneOf<ResourceRequest<Int>, Array<ResourceRequest<Int>>>
+	public function pack(_ctx : ParcelContext, _asset : Asset) : OneOf<ResourceRequest<Int>, Array<ResourceRequest<Int>>>
 	{
 		final absPath = _ctx.assetDirectory.join(_asset.path);
 		
 		return new ResourceRequest(_asset.id, 0, Some(PackImage(absPath)));
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _resource : ProcessedResource<Int>)
+	public function write(_ctx : ParcelContext, _writer : Output, _resource : ProcessedResource<Int>)
 	{
 		switch _resource.response
 		{

@@ -14,12 +14,12 @@ using igloo.utils.OutputUtils;
 
 class MsdfFontProcessor extends AssetProcessor<FontDefinition>
 {
-	override public function ids()
+	public function ids()
     {
 		return [ 'ttf', 'otf' ];
 	}
 
-	override public function pack(_ctx : ParcelContext, _asset : Asset) : OneOf<ResourceRequest<FontDefinition>, Array<ResourceRequest<FontDefinition>>>
+	public function pack(_ctx : ParcelContext, _asset : Asset) : OneOf<ResourceRequest<FontDefinition>, Array<ResourceRequest<FontDefinition>>>
     {
         final absPath  = _ctx.assetDirectory.join(_asset.path);
         final imageOut = _ctx.tempDirectory.join(_asset.id + '.png');
@@ -48,7 +48,7 @@ class MsdfFontProcessor extends AssetProcessor<FontDefinition>
         return new ResourceRequest(_asset.id, font, Some(PackImage(imageOut)));
 	}
 
-	override public function write(_ctx : ParcelContext, _writer : Output, _resource : ProcessedResource<FontDefinition>)
+	public function write(_ctx : ParcelContext, _writer : Output, _resource : ProcessedResource<FontDefinition>)
     {
         switch _resource.response
         {
