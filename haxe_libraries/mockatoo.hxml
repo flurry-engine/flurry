@@ -1,5 +1,0 @@
--D mockatoo=3.2.4
-# @install: lix --silent download "gh://github.com/codescapade/mockatoo#c48ef317349cc55f7ffe384fde0fc96dd595b8c1" into mockatoo/3.2.4/github/c48ef317349cc55f7ffe384fde0fc96dd595b8c1
--lib mconsole
--lib tink_macro
--cp ${HAXE_LIBCACHE}/mockatoo/3.2.4/github/c48ef317349cc55f7ffe384fde0fc96dd595b8c1/src

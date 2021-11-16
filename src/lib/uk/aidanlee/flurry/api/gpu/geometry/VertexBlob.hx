@@ -66,43 +66,6 @@ class VertexBlobBuilder
         return this;
     }
 
-    // public function addVector2(_vec : Vector2) : VertexBlobBuilder
-    // {
-    //     builder.addFloat(_vec.x);
-    //     builder.addFloat(_vec.y);
-
-    //     return this;
-    // }
-
-    // public function addVector3(_vec : Vector3) : VertexBlobBuilder
-    // {
-    //     builder.addFloat(_vec.x);
-    //     builder.addFloat(_vec.y);
-    //     builder.addFloat(_vec.z);
-
-    //     return this;
-    // }
-
-    // public function addVector4(_vec : Vector4) : VertexBlobBuilder
-    // {
-    //     builder.addFloat(_vec.x);
-    //     builder.addFloat(_vec.y);
-    //     builder.addFloat(_vec.z);
-    //     builder.addFloat(_vec.w);
-
-    //     return this;
-    // }
-
-    // public function addFloats(_array : Array<Float>) : VertexBlobBuilder
-    // {
-    //     for (v in _array)
-    //     {
-    //         builder.addFloat(v);
-    //     }
-
-    //     return this;
-    // }
-
     public function vertexBlob()
     {
         return new VertexBlob(Float32Array.fromBytes(builder.getBytes()));

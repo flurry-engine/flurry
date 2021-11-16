@@ -12,7 +12,7 @@ function intToBool(_i)
     return if (_i == 0) false else true;
 }
 
-inline function polarToCartesian(_length : Float, _direction : Float)
+function polarToCartesian(_length : Float, _direction : Float)
 {
     return vec2(
          Math.cos(radians(_direction)) * _length,
@@ -20,12 +20,12 @@ inline function polarToCartesian(_length : Float, _direction : Float)
     );
 }
 
-inline function distanceBetween(_p1 : Vec2, _p2 : Vec2)
+function distanceBetween(_p1 : Vec2, _p2 : Vec2)
 {
     return Math.sqrt(Math.pow(_p2.x - _p1.x, 2) + Math.pow(_p2.y - _p1.y, 2));
 }
 
-inline function angleBetween(_p1 : Vec2, _p2 : Vec2)
+function angleBetween(_p1 : Vec2, _p2 : Vec2)
 {
     return degrees(Math.atan2(_p1.y - _p2.y, _p2.x - _p1.x));
 }

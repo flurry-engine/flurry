@@ -1,7 +1,7 @@
 -cpp out/
 
 -p src/lib
--p tests/system/src
+-p tests/lib/unit/src
 
 -D flurry-entry-point=uk.aidanlee.flurry.Flurry
 -D flurry-gpu-api=ogl3
@@ -20,5 +20,6 @@
 -L safety
 -L sys.io.abstractions
 -L vector-math
+-L buddy
 
 --macro Safety.safeNavigation('', true)

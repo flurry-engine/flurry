@@ -2,6 +2,7 @@
 
 -p src/igloo/src
 -p src/igloo/scripts
+-p tests/igloo/unit/src
 
 -L hxcpp
 -L linc_stb
@@ -14,6 +15,7 @@
 -L hxrx
 -L bin-packing
 -L format
+-L buddy
 
 -D IGLOO_BUILTIN_SCRIPTS=""
 -D IGLOO_SRC_CODEPATH=""
