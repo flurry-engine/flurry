@@ -1,6 +1,5 @@
 package igloo.parcels;
 
-import hx.concurrent.executor.Executor;
 import igloo.tools.Tools;
 import hx.files.Path;
 
@@ -20,9 +19,7 @@ class ParcelContext
 
     public final tools : Tools;
 
-    public final executor : Executor;
-
-    public function new(_name, _assetDirectory, _tempDirectory, _cacheDirectory, _graphicsApi, _release, _tools, _executor)
+    public function new(_name, _assetDirectory, _tempDirectory, _cacheDirectory, _graphicsApi, _release, _tools)
     {
         name           = _name;
         assetDirectory = _assetDirectory;
@@ -31,6 +28,5 @@ class ParcelContext
         gpuApi         = _graphicsApi;
         release        = _release;
         tools          = _tools;
-        executor       = _executor;
     }
 }

@@ -225,10 +225,10 @@ class GlslShaderProcessor extends AssetProcessor<ProducedShader>
 
 		if (blocks.length > 0)
 		{
-			final path = _ctx.cacheDirectory.joinAll([ _ctx.name, 'shader_buffers' ]);
+			final dir = _ctx.cacheDirectory.join('shader_buffers');
 
-			path.toDir().create();
-			path.join('${ _resource.source }.json').toFile().writeString(Json.stringify(blocks));
+			dir.toDir().create();
+			dir.join('${ _resource.source }.json').toFile().writeString(Json.stringify(blocks));
 		}
 	}
 

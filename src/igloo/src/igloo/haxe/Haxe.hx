@@ -1,6 +1,5 @@
 package igloo.haxe;
 
-import json2object.JsonWriter;
 import hx.files.Path;
 import igloo.utils.GraphicsApi;
 import igloo.macros.Platform;

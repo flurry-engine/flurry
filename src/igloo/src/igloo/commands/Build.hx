@@ -172,10 +172,9 @@ class Build
                         loaded.cacheDir,
                         graphicsBackend,
                         release,
-                        tools,
-                        executor);
+                        tools);
     
-                    build(ctx, logger, id, loaded, processors, idProvider);
+                    build(executor, ctx, logger, id, loaded, processors, idProvider);
 
                     someParcelsPackage = true;
                 }

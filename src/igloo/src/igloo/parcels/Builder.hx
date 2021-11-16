@@ -1,5 +1,6 @@
 package igloo.parcels;
 
+import hx.concurrent.executor.Executor;
 import haxe.Exception;
 import haxe.ds.Option;
 import haxe.ds.Vector;
@@ -23,7 +24,7 @@ using Lambda;
 using Safety;
 using igloo.parcels.ParcelWriter;
 
-function build(_ctx : ParcelContext, _log : Log, _id : Int, _loaded : LoadedParcel, _processors : ProcessorLoadResult, _provider : IDProvider)
+function build(_executor : Executor, _ctx : ParcelContext, _log : Log, _id : Int, _loaded : LoadedParcel, _processors : ProcessorLoadResult, _provider : IDProvider)
 {
     _log.debug('Cached parcel is invalid');
 
@@ -77,7 +78,7 @@ function build(_ctx : ParcelContext, _log : Log, _id : Int, _loaded : LoadedParc
     {
         final page = atlas.pages[i];
 
-        blitTasks[i] = _ctx.executor.submit(() -> {
+        blitTasks[i] = _executor.submit(() -> {
             final rgbaBytes = blit(page);
             final staging   = new BytesOutput();
     

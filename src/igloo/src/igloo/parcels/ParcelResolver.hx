@@ -42,7 +42,7 @@ function resolveParcels(_projectPath : Path, _log : Log, _bundles : Array<String
         }
 
         final tempOutput  = _outputDir.joinAll([ 'tmp', parcel.name ]);
-        final parcelCache = _outputDir.joinAll([ 'cache', 'parcels' ]);
+        final parcelCache = _outputDir.joinAll([ 'cache', 'parcels', parcel.name ]);
         final parcelFile  = parcelCache.join('${ parcel.name }.parcel');
         final parcelMeta  = parcelCache.join('${ parcel.name }.parcel.meta');
 
