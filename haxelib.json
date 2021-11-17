@@ -8,6 +8,7 @@
     "releasenote": "initial release",
     "classPath": "src/lib",
     "dependencies": {
+        "hxcpp" : "",
         "haxe-files" : "",
         "safety" : "",
         "format" : "",
