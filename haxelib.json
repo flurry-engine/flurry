@@ -1,6 +1,6 @@
 {
     "name"      : "flurry",
-    "license"   : "MIT",
+    "license"   : "",
     "version"   : "0.0.1",
     "contributors": [
         "Aidan"
@@ -13,6 +13,7 @@
         "safety" : "",
         "format" : "",
         "linc_stb" : "",
+        "hxrx" : "",
 
         "json2object" : "",
         "tink_cli" : "",
