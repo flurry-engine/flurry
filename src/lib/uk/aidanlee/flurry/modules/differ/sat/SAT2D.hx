@@ -1,685 +1,494 @@
+/**
+ * MIT License
+ * 
+ * Copyright (c) 2017 Sven Bergström
+ * Copyright (c) 2017 differ contributors
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package uk.aidanlee.flurry.modules.differ.sat;
 
-import uk.aidanlee.flurry.api.maths.Vector2;
-import uk.aidanlee.flurry.modules.differ.data.RayCollision;
-import uk.aidanlee.flurry.modules.differ.data.RayIntersection;
-import uk.aidanlee.flurry.modules.differ.data.ShapeCollision;
+import VectorMath;
+import uk.aidanlee.flurry.api.maths.Matrix;
+import uk.aidanlee.flurry.modules.differ.shapes.Ray;
 import uk.aidanlee.flurry.modules.differ.shapes.Circle;
 import uk.aidanlee.flurry.modules.differ.shapes.Polygon;
-import uk.aidanlee.flurry.modules.differ.shapes.Ray;
 
-/**
- * Implementation details for the 2D SAT collision queries.
- * Used by the various shapes, and Collision API, mostly internally.
- */
-class SAT2D
+class TestResult
 {
-    static final tmp1 = new PolygonCollisionData(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    static final tmp2 = new PolygonCollisionData(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    public final overlap : Float;
+    public final separation : Vec2;
+    public final unitVector : Vec2;
 
-    /**
-     * Test for a collision between a circle and a polygon.
-     * 
-     * If no collision has occured `null` is returned.
-     * @param _circle  The circle to test.
-     * @param _polygon The polygon to test.
-     * @param _into    An existing collision result instance to place the result into.
-     * @param _flip    If the polygon is to be treated as the first shape.
-     * @return Null<ShapeCollision>
-     */
-    public static function testCircleVsPolygon(_circle : Circle, _polygon : Polygon, _into : ShapeCollision = null, _flip : Bool = false) : Bool
+	public inline function new(_overlap, _separation, _unitVector)
     {
-        var verts = _polygon.transformedVertices;
+		overlap    = _overlap;
+		separation = _separation;
+		unitVector = _unitVector;
+	}
+}
 
-        var circleX = _circle.x;
-        var circleY = _circle.y;
+class PolygonCollisionResult
+{
+    public final result : TestResult;
 
-        var testDistance : Float = 0x3FFFFFFF;
-        var distance = 0.0;
-        var closestX = 0.0;
-        var closestY = 0.0;
+    public final other : TestResult;
 
-        for (i in 0...verts.length)
+    public inline function new(_result, _other)
+    {
+        result = _result;
+        other  = _other;
+    }
+}
+
+class RayCollisionResult
+{
+    public final start : Float;
+
+    public final end : Float;
+
+    public inline function new(_start, _end)
+    {
+        start = _start;
+        end   = _end;
+    }
+
+    public inline function hitStart(_ray : Ray)
+    {
+        return _ray.start + (_ray.direction() * start);
+    }
+
+    public inline function hitEnd(_ray : Ray)
+    {
+        return _ray.start + (_ray.direction() * end);
+    }
+}
+
+function testCircleVsCircle(_a : Circle, _b : Circle, _flip = false) : Null<TestResult>
+{
+    final circle1 = if (_flip) _b else _a;
+    final circle2 = if (_flip) _a else _b;
+
+    // add both radii together to get the colliding distance
+    final totalRadius = (circle1.radius * circle1.scale) + (circle2.radius * circle2.scale);
+
+    // find the distance between the two circles.
+    final distance = (circle1.pos - circle2.pos).length();
+
+    // if your distance is less than the totalRadius square(because distance is squared)
+    return if (distance < totalRadius)
+    {
+        final difference = totalRadius - distance;
+        final unitVector = (circle1.pos - circle2.pos).normalize();
+
+        new TestResult(difference, unitVector * difference, unitVector);
+    }
+    else
+    {
+        null;
+    }
+}
+
+function testCircleVsPolygon(_circle : Circle, _polygon : Polygon, _flip = false) : Null<TestResult>
+{
+    final matrix  = make2D(_polygon.pos, _polygon.origin, _polygon.scale, radians(_polygon.angle));
+    final closest = {
+        var point        = vec2(0);
+        var testDistance = (0x3FFFFFFF : Float);
+
+        for (i in 0..._polygon.vertices.length)
         {
-            distance = vecLengthsq(circleX - verts[i].x, circleY - verts[i].y);
-
+            final transformed = vec2(matrix * vec4(_polygon.vertices[i], 0, 1));
+            final distance    = transformed.distance(_circle.pos);
+    
             if (distance < testDistance)
             {
                 testDistance = distance;
-                closestX = verts[i].x;
-                closestY = verts[i].y;
+                point        = transformed;
             }
         }
 
-        var normalAxisX = closestX - circleX;
-        var normalAxisY = closestY - circleY;
-        var normAxisLen = vecLength(normalAxisX, normalAxisY);
+        point;
+    }
+    
+    // Project all its points, 0 outside the loop
+    final normalAxis = (closest - _circle.pos).normalize();
+    final firstPoint = vec2(matrix * vec4(_polygon.vertices[0], 0, 1));
 
-        normalAxisX = vecNormalize(normAxisLen, normalAxisX);
-        normalAxisY = vecNormalize(normAxisLen, normalAxisY);
+    var min1 = dot(normalAxis, firstPoint);
+    var max1 = min1;
 
-        // project all its points, 0 outside the loop
-        var test = 0.0;
-        var min1 = vecDot(normalAxisX, normalAxisY, verts[0].x, verts[0].y);
+    for (i in 1..._polygon.vertices.length)
+    {
+        final transformed = vec2(matrix * vec4(_polygon.vertices[i], 0, 1));
+        final dotProduct  = dot(normalAxis, transformed);
+
+        if (dotProduct < min1)
+        {
+            min1 = dotProduct;
+        }
+        if (dotProduct > max1)
+        {
+            max1 = dotProduct;
+        }
+    }
+
+    // project the circle
+    final offset = dot(normalAxis, -_circle.pos);
+    final max2   =  (_circle.radius * _circle.scale);
+    final min2   = -(_circle.radius * _circle.scale);
+
+    min1 += offset;
+    max1 += offset;
+
+    // if either test is greater than 0, there is a gap so we can exit early.
+    final test1 = min1 - max2;
+    final test2 = min2 - max1;
+
+    if (test1 > 0 || test2 > 0)
+    {
+        return null;
+    }
+
+    // circle distance check
+    final baseMin    = -(max2 - min1) * if (_flip) -1 else 1;
+    final unitVector = vec2(normalAxis);
+
+    var overlap = baseMin;
+    var closest = Math.abs(baseMin);
+
+    // find the normal axis for each point and project
+    for (i in 0..._polygon.vertices.length)
+    {
+        normalAxis.copyFrom(findNormalAxis(matrix, _polygon.vertices, i).normalize());
+
+        // project the polygon(again? yes, circles vs. polygon require more testing...)
+
+        var min1 = dot(normalAxis, vec2(matrix * vec4(_polygon.vertices[0], 0, 1)));
         var max1 = min1;
 
-        for (j in 1...verts.length)
+        // project all the other points(see, cirlces v. polygons use lots of this...)
+        for (j in 1..._polygon.vertices.length)
         {
-            test = vecDot(normalAxisX, normalAxisY, verts[j].x, verts[j].y);
-            if (test < min1) min1 = test;
-            if (test > max1) max1 = test;
+            final dotProduct = dot(normalAxis, vec2(matrix * vec4(_polygon.vertices[j], 0, 1)));
+
+            if (dotProduct < min1)
+            {
+                min1 = dotProduct;
+            }
+            if (dotProduct > max1)
+            {
+                max1 = dotProduct;
+            }
         }
 
-        // project the circle
-        var max2 =  _circle.transformedRadius;
-        var min2 = -_circle.transformedRadius;
-        var offset = vecDot(normalAxisX, normalAxisY, -circleX, -circleY);
+        // project the circle(again)
+        var max2 =   _circle.radius * _circle.scale;
+        var min2 = -(_circle.radius * _circle.scale);
 
+        // offset points
+        final offset = dot(normalAxis, -_circle.pos);
         min1 += offset;
         max1 += offset;
 
-        var test1 = min1 - max2;
-        var test2 = min2 - max1;
+        // do the test, again
+        final test1 = min1 - max2;
+        final test2 = min2 - max1;
 
-        // if either test is greater than 0, there is a gap, we can give up now.
-        if (test1 > 0 || test2 > 0) return false;
+        // failed.. quit now
+        if (test1 > 0 || test2 > 0)
+        {
+            return null;
+        }
 
-        // circle distance check
         var distMin = -(max2 - min1);
-        if (_flip) distMin *= -1;
-
-        var overlap     = distMin;
-        var unitVectorX = normalAxisX;
-        var unitVectorY = normalAxisY;
-        var closest = Math.abs(distMin);
-
-        // find the normal axis for each point and project
-        for (i in 0...verts.length)
+        if (_flip)
         {
-            normalAxisX = findNormalAxisX(verts, i);
-            normalAxisY = findNormalAxisY(verts, i);
-
-            var aLen = vecLength(normalAxisX, normalAxisY);
-
-            normalAxisX = vecNormalize(aLen, normalAxisX);
-            normalAxisY = vecNormalize(aLen, normalAxisY);
-
-            // project the polygon(again? yes, circles vs. polygon require more testing...)
-            min1 = vecDot(normalAxisX, normalAxisY, verts[0].x, verts[0].y);
-            max1 = min1; //set max and min
-
-            // project all the other points(see, cirlces v. polygons use lots of this...)
-            for (j in 1 ... verts.length)
-            {
-                test = vecDot(normalAxisX, normalAxisY, verts[j].x, verts[j].y);
-                if (test < min1) min1 = test;
-                if (test > max1) max1 = test;
-            }
-
-            // project the circle(again)
-            max2 =  _circle.transformedRadius; //max is radius
-            min2 = -_circle.transformedRadius; //min is negative radius
-
-            // offset points
-            offset = vecDot(normalAxisX, normalAxisY, -circleX, -circleY);
-            min1 += offset;
-            max1 += offset;
-
-            // do the test, again
-            test1 = min1 - max2;
-            test2 = min2 - max1;
-
-            // failed.. quit now
-            if (test1 > 0 || test2 > 0) return false;
-
-            distMin = -(max2 - min1);
-            if (_flip) distMin *= -1;
-
-            if (Math.abs(distMin) < closest)
-            {
-                unitVectorX = normalAxisX;
-                unitVectorY = normalAxisY;
-                overlap = distMin;
-                closest = Math.abs(distMin);
-            }
+            distMin *= -1;
         }
 
-        if (_into != null)
+        if (Math.abs(distMin) < closest)
         {
-            _into.set(
-                _circle,
-                _polygon,
-                overlap,
-                unitVectorX * overlap,
-                unitVectorY * overlap,
-                _flip ? unitVectorX : -unitVectorX,
-                _flip ? unitVectorY : -unitVectorY,
-                0, 0, 0, 0, 0
-            );
+            unitVector.copyFrom(normalAxis);
+            overlap = distMin;
+            closest = Math.abs(distMin);
         }
-
-        return true;
     }
 
-    /**
-     * Test for a collision between two circles.
-     * 
-     * If no collision has occured `null` is returned.
-     * @param _circleA The first circle to test.
-     * @param _circleB The second circle to test.
-     * @param _into    An existing collision result instance to place the result into.
-     * @param _flip    If circle B is to be treated as the first circle.
-     * @return Null<ShapeCollision>
-     */
-    public static function testCircleVsCircle(_circleA : Circle, _circleB : Circle, _into : ShapeCollision = null, _flip :  Bool = false) : Bool
+    return new TestResult(overlap, unitVector * overlap, if (_flip) unitVector else -unitVector);
+}
+
+function testPolygonVsPolygon(_polygon1 : Polygon, _polygon2 : Polygon, _flip = false) : Null<PolygonCollisionResult>
+{
+    return switch checkPolygons(_polygon1, _polygon2, _flip)
     {
-        var circle1 = _flip ? _circleB : _circleA;
-        var circle2 = _flip ? _circleA : _circleB;
-
-        // add both radii together to get the colliding distance
-        var totalRadius = circle1.transformedRadius + circle2.transformedRadius;
-
-        // find the distance between the two circles using Pythagorean theorem. No square roots for optimization
-        var distancesq = vecLengthsq(circle1.x - circle2.x, circle1.y - circle2.y);
-
-        // if your distance is less than the totalRadius square(because distance is squared)
-        // if distancesq < r^2
-        if (distancesq < totalRadius * totalRadius)
-        {
-            // find the difference. Square roots are needed here.
-            var difference = totalRadius - Math.sqrt(distancesq);
-
-            var unitVecX = circle1.x - circle2.x;
-            var unitVecY = circle1.y - circle2.y;
-            var unitVecLen = vecLength(unitVecX, unitVecY);
-
-            unitVecX = vecNormalize(unitVecLen, unitVecX);
-            unitVecY = vecNormalize(unitVecLen, unitVecY);
-
-            if (_into != null)
+        case null: null;
+        case hit1:
+            switch checkPolygons(_polygon2, _polygon1, !_flip)
             {
-                _into.set(
-                    _circleA,
-                    _circleB,
-                    difference,
-                    unitVecX * difference,
-                    unitVecY * difference,
-                    unitVecX,
-                    unitVecY,
-                    0, 0, 0, 0, 0
-                );
+                case null: null;
+                case hit2:
+                    var result = hit2;
+                    var other  = hit1;
+
+                    if (Math.abs(other.overlap) < Math.abs(result.overlap))
+                    {
+                        result = hit1;
+                        other  = hit2;
+                    }
+
+                    new PolygonCollisionResult(result, other);
             }
-
-            return true;
-        }
-
-        return false;
     }
+}
 
-    /**
-     * Test for a collision between two polygons.
-     * 
-     * If no collision has occured `null` is returned.
-     * @param _polygon1 The first polygon to test.
-     * @param _polygon2 The second polygon to test.
-     * @param _into     An existing collision result instance to place the result into.
-     * @param _flip     If polygon2 is to be treated as the first polygon.
-     * @return Null<ShapeCollision>
-     */
-    public static function testPolygonVsPolygon(_polygon1 : Polygon, _polygon2 : Polygon, _into : ShapeCollision = null, _flip : Bool = false) : Bool
+function testRayVsCircle(_ray : Ray, _circle : Circle) : Null<RayCollisionResult>
+{
+    final delta      = _ray.end - _ray.start;
+    final ray2circle = _ray.start - _circle.pos;
+
+    final r = _circle.radius * _circle.scale;
+    final a = delta.x * delta.x + delta.y * delta.y;
+    final b = 2 * dot(delta, ray2circle);
+    final c = dot(ray2circle, ray2circle) - (r * r);
+    final d = b * b - 4 * a * c;
+
+    return if (d >= 0)
     {
-        if (!checkPolygons(_polygon1, _polygon2, tmp1, _flip))
+        final d     = Math.sqrt(d);
+        final t1    = (-b - d) / (2 * a);
+        final t2    = (-b + d) / (2 * a);
+        final valid = switch _ray.mode
         {
-            return false;
-        }
-
-        if (!checkPolygons(_polygon2, _polygon1, tmp2, !_flip))
-        {
-            return false;
-        }
-
-        var result = tmp2;
-        var other  = tmp1;
-
-        if (Math.abs(tmp1.overlap) < Math.abs(tmp2.overlap))
-        {
-            result = tmp1;
-            other  = tmp2;
-        }
-
-        if (_into != null)
-        {
-            _into.set(
-                _flip ? _polygon2 : _polygon1,
-                _flip ? _polygon1 : _polygon2,
-                result.overlap,
-                result.separationX,
-                result.separationY,
-                result.unitVectorX,
-                result.unitVectorY,
-                other.overlap,
-                other.separationX,
-                other.separationY,
-                other.unitVectorX,
-                other.unitVectorY
-            );
-        }
-
-        return true;
-    }
-
-    /**
-     * Test for a collision between a ray and a circle.
-     * 
-     * If no collision has occured `null` is returned.
-     * @param _ray    The ray to test.
-     * @param _circle The circle to test.
-     * @param _into   An existing collision result instance to place the result into.
-     * @return Null<RayCollision>
-     */
-    public static function testRayVsCircle(_ray : Ray, _circle : Circle, _into : RayCollision = null) : Bool
-    {
-        var deltaX = _ray.end.x - _ray.start.x;
-        var deltaY = _ray.end.y - _ray.start.y;
-        var ray2circleX = _ray.start.x - _circle.x;
-        var ray2circleY = _ray.start.y - _circle.y;
-
-        var a = vecLengthsq(deltaX, deltaY);
-        var b = 2 * vecDot(deltaX, deltaY, ray2circleX, ray2circleY);
-        var c = vecDot(ray2circleX, ray2circleY, ray2circleX, ray2circleY) - (_circle.radius * _circle.radius);
-        var d = b * b - 4 * a * c;
-
-        if (d >= 0) {
-
-            d = Math.sqrt(d);
-
-            var t1 = (-b - d) / (2 * a);
-            var t2 = (-b + d) / (2 * a);
-
-            var valid = switch (_ray.infinite)
-            {
-                case NotInfinite: t1 >= 0.0 && t1 <= 1.0;
-                case InfiniteFromStart: t1 >= 0.0;
-                case Infinite: true;
-            }
-
-            if (valid)
-            {
-                if (_into != null)
-                {
-                    _into.set(_circle, _ray, t1, t2);
-                }
-
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Test for a collision between a ray and a polygon.
-     * 
-     * If no collision has occured `null` is returned.
-     * @param _ray     The ray to test.
-     * @param _polygon The polygon to test.
-     * @param _into    An existing collision result instance to place the result into.
-     * @return Null<RayCollision>
-     */
-    public static function testRayVsPolygon(_ray : Ray, _polygon : Polygon, _into : RayCollision = null) : Bool
-    {
-        var min_u = Math.POSITIVE_INFINITY;
-        var max_u = Math.NEGATIVE_INFINITY;
-
-        var startX = _ray.start.x;
-        var startY = _ray.start.y;
-        var deltaX = _ray.end.x - startX;
-        var deltaY = _ray.end.y - startY;
-
-        var verts = _polygon.transformedVertices;
-        var v1 = verts[verts.length - 1];
-        var v2 = verts[0];
-
-        var ud = (v2.y - v1.y) * deltaX - (v2.x - v1.x) * deltaY;
-        var ua = rayU(ud, startX, startY, v1.x, v1.y, v2.x - v1.x, v2.y - v1.y);
-        var ub = rayU(ud, startX, startY, v1.x, v1.y, deltaX, deltaY);
-
-        if (ud != 0.0 && ub >= 0.0 && ub <= 1.0)
-        {
-            if (ua < min_u) min_u = ua;
-            if (ua > max_u) max_u = ua;
-        }
-
-        for (i in 1...verts.length)
-        {
-            v1 = verts[i - 1];
-            v2 = verts[i];
-
-            ud = (v2.y - v1.y) * deltaX - (v2.x - v1.x) * deltaY;
-            ua = rayU(ud, startX, startY, v1.x, v1.y, v2.x - v1.x, v2.y - v1.y);
-            ub = rayU(ud, startX, startY, v1.x, v1.y, deltaX, deltaY);
-
-            if (ud != 0.0 && ub >= 0.0 && ub <= 1.0)
-            {
-                if (ua < min_u) min_u = ua;
-                if (ua > max_u) max_u = ua;
-            }
-        }
-
-        var valid = switch (_ray.infinite)
-        {
-            case NotInfinite: min_u >= 0.0 && min_u <= 1.0;
-            case InfiniteFromStart: min_u != Math.POSITIVE_INFINITY && min_u >= 0.0;
-            case Infinite: (min_u != Math.POSITIVE_INFINITY);
+            case NotInfinite:
+                t1 >= 0.0 && t1 <= 1.0;
+            case InfiniteFromStart:
+                t1 >= 0.0;
+            case Infinite:
+                true;
         }
 
         if (valid)
         {
-            if (_into != null)
-            {
-                _into.set(_polygon, _ray, min_u, max_u);
-            }
-
-            return true;
+            new RayCollisionResult(t1, t2);
         }
-
-        return false;
-    }
-
-    /**
-     * Test for a collision between two rays.
-     * 
-     * If no collision has occured `null` is returned.
-     * @param _ray1 The first ray to test.
-     * @param _ray2 The second ray to test.
-     * @param _into An existing collision result instance to place the result into.
-     * @return Null<RayIntersection>
-     */
-    public static function testRayVsRay(_ray1 : Ray, _ray2 : Ray, _into : RayIntersection = null) : Bool
-    {
-        var delta1X = _ray1.end.x - _ray1.start.x;
-        var delta1Y = _ray1.end.y - _ray1.start.y;
-        var delta2X = _ray2.end.x - _ray2.start.x;
-        var delta2Y = _ray2.end.y - _ray2.start.y;
-        var diffX = _ray1.start.x - _ray2.start.x;
-        var diffY = _ray1.start.y - _ray2.start.y;
-        var ud = delta2Y * delta1X - delta2X * delta1Y;
-
-        if (ud == 0) return false;
-
-        var u1 = (delta2X * diffY - delta2Y * diffX) / ud;
-        var u2 = (delta1X * diffY - delta1Y * diffX) / ud;
-
-        // TODO : ask if ray hit condition difference is intentional (> 0 and not >= 0 like other checks)
-        var valid1 = switch _ray1.infinite
+        else
         {
-            case NotInfinite: (u1 > 0 && u1 <= 1);
-            case InfiniteFromStart: u1 > 0;
-            case Infinite: true;
+            null;
         }
-
-        var valid2 = switch _ray2.infinite
-        {
-            case NotInfinite: (u2 > 0 && u2 <= 1);
-            case InfiniteFromStart: u2 > 0;
-            case Infinite: true;
-        }
-
-        if (valid1 && valid2)
-        {
-            if (_into != null)
-            {
-                _into.set(_ray1, _ray2, u1, u2);
-            }
-
-            return true;
-        }
-
-        return false;
     }
-
-    /**
-     * Internal api - implementation details for testPolygonVsPolygon
-     */
-
-    /**
-     * Calculate the collision between two polygons.
-     * @param _polygon1 The first polygon.
-     * @param _polygon2 The second polygon.
-     * @param _into     Where the collision result will be placed.
-     * @param _flip     If polygon 2 is to be treated as the first polygon.
-     * @return ShapeCollision
-     */
-    static function checkPolygons(_polygon1 : Polygon, _polygon2 : Polygon, _into : PolygonCollisionData = null, _flip : Bool = false) : Bool
+    else
     {
-        var test1   = 0.0;
-        var test2   = 0.0;
-        var testNum = 0.0;
-        var min1    = 0.0;
-        var max1    = 0.0;
-        var min2    = 0.0;
-        var max2    = 0.0;
-        var closest : Float = 0x3FFFFFFF;
-
-        var axisX   = 0.0;
-        var axisY   = 0.0;
-        var verts1  = _polygon1.transformedVertices;
-        var verts2  = _polygon2.transformedVertices;
-
-        var overlap  = 0.0;
-        var unitVecX = 0.0;
-        var unitVecY = 0.0;
-
-        // loop to begin projection
-        for (i in 0...verts1.length)
-        {
-            axisX = findNormalAxisX(verts1, i);
-            axisY = findNormalAxisY(verts1, i);
-            var aLen = vecLength(axisX, axisY);
-            axisX = vecNormalize(aLen, axisX);
-            axisY = vecNormalize(aLen, axisY);
-
-            // project polygon1
-            min1 = vecDot(axisX, axisY, verts1[0].x, verts1[0].y);
-            max1 = min1;
-
-            for (j in 1...verts1.length)
-            {
-                testNum = vecDot(axisX, axisY, verts1[j].x, verts1[j].y);
-                if (testNum < min1) min1 = testNum;
-                if (testNum > max1) max1 = testNum;
-            }
-
-            // project polygon2
-            min2 = vecDot(axisX, axisY, verts2[0].x, verts2[0].y);
-            max2 = min2;
-
-            for (j in 1 ... verts2.length)
-            {
-                testNum = vecDot(axisX, axisY, verts2[j].x, verts2[j].y);
-                if (testNum < min2) min2 = testNum;
-                if (testNum > max2) max2 = testNum;
-            }
-
-            test1 = min1 - max2;
-            test2 = min2 - max1;
-
-            if (test1 > 0 || test2 > 0) return false;
-
-            var distMin = -(max2 - min1);
-            if (_flip) distMin *= -1;
-
-            if (Math.abs(distMin) < closest)
-            {
-                unitVecX = axisX;
-                unitVecY = axisY;
-                overlap  = distMin;
-                closest  = Math.abs(distMin);
-            }
-        }
-
-        if (_into != null)
-        {
-            _into.set(
-                overlap,
-                -unitVecX * overlap,
-                -unitVecY * overlap,
-                _flip ? -unitVecX : unitVecX,
-                _flip ? -unitVecY : unitVecY,
-                0, 0, 0, 0, 0
-            );
-        }
-
-        return true;
-    }
-
-    /**
-     * Internal helper for ray overlaps
-     */
-
-    static function rayU(_uDelta : Float, _aX : Float, _aY : Float, _bX : Float, _bY : Float, _dX : Float, _dY : Float) : Float
-    {
-        return (_dX * (_aY - _bY) - _dY * (_aX - _bX)) / _uDelta;
-    }
-
-    static function findNormalAxisX(_verts : Array<Vector2>, _index : Int) : Float
-    {
-        var v2 = (_index >= _verts.length - 1) ? _verts[0] : _verts[_index + 1];
-
-        return -(v2.y - _verts[_index].y);
-    }
-
-    static function findNormalAxisY(_verts : Array<Vector2>, _index : Int) : Float
-    {
-        var v2 = (_index >= _verts.length - 1) ? _verts[0] : _verts[_index + 1];
-
-        return (v2.x - _verts[_index].x);
-    }
-
-    static function vecLengthsq(_x : Float, _y : Float) : Float
-    {
-        return _x * _x + _y * _y;
-    }
-
-    static function vecLength(_x : Float, _y : Float) : Float
-    {
-        return Math.sqrt(vecLengthsq(_x, _y));
-    }
-
-    static function vecNormalize(_length : Float, _component : Float) : Float
-    {
-        return _length == 0 ? 0 : _component / _length;
-    }
-
-    static function vecDot(_x1 : Float, _y1 : Float, _x2 : Float, _y2 : Float) : Float
-    {
-        return _x1 * _x2 + _y1 * _y2;
+        null;
     }
 }
 
-/**
- * Class mirrors `ShapeCollision` except it doesn't carry the two colliding shapes.
- */
-private class PolygonCollisionData
+function testRayVsPolygon(_ray : Ray, _polygon : Polygon) : Null<RayCollisionResult>
 {
-    public var overlap (default, null) : Float;
+    var minU = Math.POSITIVE_INFINITY;
+    var maxU = Math.NEGATIVE_INFINITY;
 
-    public var separationX (default, null) : Float;
+    final delta  = _ray.end - _ray.start;
+    final matrix = make2D(_polygon.pos, _polygon.origin, _polygon.scale, radians(_polygon.angle));
 
-    public var separationY (default, null) : Float;
+    final v1 = vec2(matrix * vec4(_polygon.vertices[_polygon.vertices.length - 1], 0, 1));
+    final v2 = vec2(matrix * vec4(_polygon.vertices[0], 0, 1));
 
-    public var unitVectorX (default, null) : Float;
+    final ud = (v2.y - v1.y) * delta.x - (v2.x - v1.x) * delta.y;
+    final ua = rayU(ud, _ray.start.x, _ray.start.y, v1.x, v1.y, v2.x - v1.x, v2.y - v1.y);
+    final ub = rayU(ud, _ray.start.x, _ray.start.y, v1.x, v1.y, delta.x, delta.y);
 
-    public var unitVectorY (default, null) : Float;
-
-    public var otherOverlap (default, null) : Float;
-
-    public var otherSeparationX (default, null) : Float;
-
-    public var otherSeparationY (default, null) : Float;
-
-    public var otherUnitVectorX (default, null) : Float;
-
-    public var otherUnitVectorY (default, null) : Float;
-
-    public function new(
-        _overlap : Float,
-        _separationX : Float,
-        _separationY : Float,
-        _unitVectorX : Float,
-        _unitVectorY : Float,
-        _otherOverlap : Float,
-        _otherSeparationX : Float,
-        _otherSeparationY : Float,
-        _otherUnitVectorX : Float,
-        _otherUnitVectorY : Float
-    )
+    if (ud != 0.0 && ub >= 0.0 && ub <= 1.0)
     {
-        overlap          = _overlap;
-        separationX      = _separationX;
-        separationY      = _separationY;
-        unitVectorX      = _unitVectorX;
-        unitVectorY      = _unitVectorY;
-        otherOverlap     = _otherOverlap;
-        otherSeparationX = _otherSeparationX;
-        otherSeparationY = _otherSeparationY;
-        otherUnitVectorX = _otherUnitVectorX;
-        otherUnitVectorY = _otherUnitVectorY;
+        if (ua < minU) minU = ua;
+        if (ua > maxU) maxU = ua;
     }
 
-    public function set(
-        _overlap : Float,
-        _separationX : Float,
-        _separationY : Float,
-        _unitVectorX : Float,
-        _unitVectorY : Float,
-        _otherOverlap : Float,
-        _otherSeparationX : Float,
-        _otherSeparationY : Float,
-        _otherUnitVectorX : Float,
-        _otherUnitVectorY : Float
-    ) : PolygonCollisionData
+    for (i in 1..._polygon.vertices.length)
     {
-        overlap          = _overlap;
-        separationX      = _separationX;
-        separationY      = _separationY;
-        unitVectorX      = _unitVectorX;
-        unitVectorY      = _unitVectorY;
-        otherOverlap     = _otherOverlap;
-        otherSeparationX = _otherSeparationX;
-        otherSeparationY = _otherSeparationY;
-        otherUnitVectorX = _otherUnitVectorX;
-        otherUnitVectorY = _otherUnitVectorY;
+        final v1 = vec2(matrix * vec4(_polygon.vertices[i - 1], 0, 1));
+        final v2 = vec2(matrix * vec4(_polygon.vertices[i], 0, 1));
 
-        return this;
+        final ud = (v2.y - v1.y) * delta.x - (v2.x - v1.x) * delta.y;
+        final ua = rayU(ud, _ray.start.x, _ray.start.y, v1.x, v1.y, v2.x - v1.x, v2.y - v1.y);
+        final ub = rayU(ud, _ray.start.x, _ray.start.y, v1.x, v1.y, delta.x, delta.y);
+
+        if (ud != 0.0 && ub >= 0.0 && ub <= 1.0)
+        {
+            if (ua < minU) minU = ua;
+            if (ua > maxU) maxU = ua;
+        }
     }
 
-    public function clone() : PolygonCollisionData
+    final valid = switch (_ray.mode)
     {
-        return new PolygonCollisionData(
-            overlap,
-            separationX,
-            separationY,
-            unitVectorX,
-            unitVectorY,
-            otherOverlap,
-            otherSeparationX,
-            otherSeparationY,
-            otherUnitVectorX,
-            otherUnitVectorY);
+        case NotInfinite:
+            minU >= 0.0 && minU <= 1.0;
+        case InfiniteFromStart:
+            minU != Math.POSITIVE_INFINITY && minU >= 0.0;
+        case Infinite:
+            minU != Math.POSITIVE_INFINITY;
     }
 
-    public function copyFrom(_other : PolygonCollisionData)
+    if (valid)
     {
-        overlap          = _other.overlap;
-        separationX      = _other.separationX;
-        separationY      = _other.separationY;
-        unitVectorX      = _other.unitVectorX;
-        unitVectorY      = _other.unitVectorY;
-        otherOverlap     = _other.otherOverlap;
-        otherSeparationX = _other.otherSeparationX;
-        otherSeparationY = _other.otherSeparationY;
-        otherUnitVectorX = _other.otherUnitVectorX;
-        otherUnitVectorY = _other.otherUnitVectorY;
+        return new RayCollisionResult(minU, maxU);
     }
+
+    return null;
+}
+
+function testRayVsRay(_ray1 : Ray, _ray2 : Ray) : Null<RayCollisionResult>
+{
+    final delta1 = _ray1.end - _ray1.start;
+    final delta2 = _ray2.end - _ray2.start;
+    final diff   = _ray1.start - _ray2.start;
+    final ud     = delta2.y * delta1.x - delta2.x * delta1.y;
+
+    if (ud == 0)
+    {
+        return null;
+    }
+
+    final u1 = (delta2.x * diff.y - delta2.y * diff.x) / ud;
+    final u2 = (delta1.x * diff.y - delta1.y * diff.x) / ud;
+
+    // TODO : ask if ray hit condition difference is intentional (> 0 and not >= 0 like other checks)
+    final valid1 = switch _ray1.mode
+    {
+        case NotInfinite:
+            u1 > 0 && u1 <= 1;
+        case InfiniteFromStart:
+            u1 > 0;
+        case Infinite:
+            true;
+    }
+
+    final valid2 = switch _ray2.mode
+    {
+        case NotInfinite:
+            u2 > 0 && u2 <= 1;
+        case InfiniteFromStart:
+            u2 > 0;
+        case Infinite:
+            true;
+    }
+
+    if (valid1 && valid2)
+    {
+        return new RayCollisionResult(u1, u2);
+    }
+
+    return null;
+}
+
+private function checkPolygons(_polygon1 : Polygon, _polygon2 : Polygon, _flip = false) : Null<TestResult>
+{
+    var closest = (0x3FFFFFFF : Float);
+    var overlap = 0.0;
+    
+    final unitVec     = vec2(0);
+    final poly1Matrix = make2D(_polygon1.pos, _polygon1.origin, _polygon1.scale, radians(_polygon1.angle));
+    final poly2Matrix = make2D(_polygon2.pos, _polygon2.origin, _polygon2.scale, radians(_polygon2.angle));
+
+    // loop to begin projection
+    for (i in 0..._polygon1.vertices.length)
+    {
+        final axis = findNormalAxis(poly1Matrix, _polygon1.vertices, i).normalize();
+
+        // project polygon1
+        var min1 = dot(axis, vec2(poly1Matrix * vec4(_polygon1.vertices[0], 0, 1)));
+        var max1 = min1;
+
+        for (j in 1..._polygon1.vertices.length)
+        {
+            final transformed = poly1Matrix * vec4(_polygon1.vertices[j], 0, 1);
+            final testNum     = dot(axis, vec2(transformed));
+
+            if (testNum < min1)
+            {
+                min1 = testNum;
+            }
+            if (testNum > max1)
+            {
+                max1 = testNum;
+            }
+        }
+
+        // project polygon2
+        var min2 = dot(axis, vec2(poly2Matrix * vec4(_polygon2.vertices[0], 0, 1)));
+        var max2 = min2;
+
+        for (j in 1..._polygon2.vertices.length)
+        {
+            final transformed = poly2Matrix * vec4(_polygon2.vertices[j], 0, 1);
+            final testNum     = dot(axis, vec2(transformed));
+
+            if (testNum < min2)
+            {
+                min2 = testNum;
+            }
+            if (testNum > max2)
+            {
+                max2 = testNum;
+            }
+        }
+
+        final test1 = min1 - max2;
+        final test2 = min2 - max1;
+
+        if (test1 > 0 || test2 > 0)
+        {
+            return null;
+        }
+
+        var distMin = -(max2 - min1);
+        if (_flip)
+        {
+            distMin *= -1;
+        }
+
+        if (Math.abs(distMin) < closest)
+        {
+            unitVec.copyFrom(axis);
+            overlap = distMin;
+            closest = Math.abs(distMin);
+        }
+    }
+
+    return new TestResult(overlap, unitVec * overlap, if (_flip) -unitVec else unitVec);
+}
+
+private function rayU(_uDelta : Float, _aX : Float, _aY : Float, _bX : Float, _bY : Float, _dX : Float, _dY : Float)
+{
+    return (_dX * (_aY - _bY) - _dY * (_aX - _bX)) / _uDelta;
+}
+
+private inline function findNormalAxis(_matrix : Mat4, _vertices : Array<Vec2>, _index : Int)
+{
+    final nextVertex  = if (_index >= _vertices.length - 1) _vertices[0] else _vertices[_index + 1];
+    final current     = _matrix * vec4(_vertices[_index], 0, 1);
+    final transformed = _matrix * vec4(nextVertex, 0, 1);
+
+    return vec2(
+        -(transformed.y - current.y),
+         (transformed.x - current.x)
+    );
 }

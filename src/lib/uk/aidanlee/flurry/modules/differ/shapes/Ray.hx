@@ -1,82 +1,36 @@
 package uk.aidanlee.flurry.modules.differ.shapes;
 
-import uk.aidanlee.flurry.api.maths.Maths;
-import uk.aidanlee.flurry.api.maths.Vector2;
+import VectorMath;
 
-/**
- * A ray with a start, end, direction, and infinite state for collision queries.
- */
-class Ray
+enum abstract RayMode(Int)
 {
-    /**
-     * The start point of the ray.
-     */
-    public var start : Vector2;
-
-    /**
-     * The end point of the ray.
-     */
-    public var end : Vector2;
-
-    /**
-     * The direction of the ray.
-     * Returns a cached vector, so modifying it will affect this instance.
-     * Updates only when the dir value is accessed.
-     */
-    public var dir (get, never) : Vector2;
-
-    inline function get_dir() {
-        dirCache.x = end.x - start.x;
-        dirCache.y = end.y - start.y;
-        
-        return dirCache;
-    }
-
-    /**
-     * The angle in degrees this ray is pointing in.
-     */
-    public var angle (get, never) : Float;
-
-    inline function get_angle() {
-        return Maths.toDegrees(Maths.atan2(end.y - start.y, end.x - start.x));
-    }
-
-    /**
-     * Whether or not the ray is infinite.
-     */
-    public var infinite : InfiniteState;
-
-    final dirCache : Vector2;
-
-    /**
-     * Create a new ray with the start and end point, which determine the direction of the ray, and optionally specifying that this ray is infinite in some way.
-     */
-    public function new(_start : Vector2, _end : Vector2, ?_infinite : InfiniteState)
-    {
-        start    = _start;
-        end      = _end;
-        infinite = _infinite == null ? NotInfinite : _infinite;
-        dirCache = new Vector2(end.x - start.x, end.y - start.y);
-    }
+    var NotInfinite;
+    var InfiniteFromStart;
+    var Infinite;
 }
 
-/**
- * A flag for the infinite state of a Ray.
- */
-enum InfiniteState
+class Ray
 {
-    /**
-     * The line is a fixed length between the start and end points.
-     */
-    NotInfinite;
+    public final start : Vec2;
 
-    /**
-     * The line is infinite from it's starting point.
-     */
-    InfiniteFromStart;
+    public final end : Vec2;
 
-    /**
-     * The line is infinite in both directions from it's starting point.
-     */
-    Infinite;
+    public final mode : RayMode;
+
+    public inline function new(_start, _end, _mode)
+    {
+        start = _start;
+        end   = _end;
+        mode  = _mode;
+    }
+
+    public inline function angle()
+    {
+        return degrees(Math.atan2(end.y - start.y, end.x - start.x));
+    }
+
+    public inline function direction()
+    {
+        return vec2(end.x - start.x, end.y - start.y);
+    }
 }

@@ -1,154 +1,89 @@
 package uk.aidanlee.flurry.modules.differ.shapes;
 
-import uk.aidanlee.flurry.api.maths.Vector2;
-import uk.aidanlee.flurry.modules.differ.data.*;
-import uk.aidanlee.flurry.modules.differ.sat.SAT2D;
+import uk.aidanlee.flurry.api.maths.Matrix.make2D;
+import uk.aidanlee.flurry.api.gpu.GraphicsContext;
+import uk.aidanlee.flurry.api.gpu.drawing.Shapes;
+import VectorMath;
 
-/**
- * A polygonal collision shape
- */
-class Polygon extends Shape
+class Polygon
 {
-    /**
-     * The transformed (scaled and rotated) vertices.
-     */
-    public var transformedVertices (get, null) : Array<Vector2>;
+    public final pos : Vec2;
 
-    inline function get_transformedVertices() : Array<Vector2>
+    public final origin : Vec2;
+
+    public final scale : Vec2;
+
+    public var angle : Float;
+
+    public final vertices : Array<Vec2>;
+
+    public function new(_pos, _origin, _scale, _angle, _vertices)
     {
-        if (!transformed || vertices.length != transformedVertices.length)
+        pos       = _pos;
+        origin    = _origin;
+        scale     = _scale;
+        angle     = _angle;
+        origin    = _origin;
+        vertices  = _vertices;
+    }
+
+    public inline function draw(_ctx : GraphicsContext, _colour : Vec4)
+    {
+        final matrix = make2D(pos, origin, scale, radians(angle));
+
+        var previous : Null<Vec2> = null;
+        for (i in 0...vertices.length)
         {
-            transformed = true;
+            final transformed = vec2(matrix * vec4(vertices[i], 0, 1));
 
-            transformedVertices.resize(vertices.length);
-
-            for (i in 0...vertices.length)
+            if (previous != null)
             {
-                if (transformedVertices[i] == null)
-                {
-                    transformedVertices[i] = vertices[i].clone().transform(transformMatrix);
-                }
-                else
-                {
-                    transformedVertices[i].copyFrom(vertices[i]).transform(transformMatrix);
-                }
+                drawLine(_ctx, previous, transformed, 2, _colour);
             }
+
+            previous = transformed;
         }
 
-        return transformedVertices;
-    }
-
-    /**
-     * The vertices of this shape.
-     */
-    public final vertices : Array<Vector2>;
-
-    /**
-     * Create a new polygon with a given set of vertices at position x,y
-     */
-    public function new(_x : Float, _y : Float, _vertices : Array<Vector2>)
-    {
-        super(_x, _y, 'polygon(sides:${_vertices.length})');
-
-        vertices            = _vertices;
-        transformedVertices = [ for (v in vertices) v.clone() ];
-    }
-
-    /**
-     * Test for a collision with a shape.
-     */
-    override public function test(_shape : Shape, _into : ShapeCollision = null) : Bool
-    {
-        return _shape.testPolygon(this, _into);
-    }
-
-    /**
-     * Test for a collision with a circle.
-     */
-    override public function testCircle(_circle : Circle, _into : ShapeCollision = null) : Bool
-    {
-        return SAT2D.testCircleVsPolygon(_circle, this, _into, true);
-    }
-
-    /**
-     * Test for a collision with a polygon.
-     */
-    override public function testPolygon(_polygon : Polygon, _into : ShapeCollision = null) : Bool
-    {
-        return SAT2D.testPolygonVsPolygon(this, _polygon, _into, false);
-    }
-
-    /**
-     * Test for a collision with a ray.
-     */
-    override public function testRay(_ray : Ray, _into : RayCollision = null) : Bool
-    {
-        return SAT2D.testRayVsPolygon(_ray, this, _into);
-    }
-
-    /**
-     * Helper to create an Ngon at x,y with given number of sides, and radius. A default radius of 100 if unspecified.
-     * 
-     * Returns a ready made `Polygon` collision `Shape`
-     */
-    public static function create(_x : Float, _y : Float, _sides : Int, _radius : Float = 100) : Polygon
-    {
-        if (_sides < 3)
+        if (previous != null)
         {
-            throw 'Polygon - Needs at least 3 sides';
+            drawLine(_ctx, previous, vec2(matrix * vec4(vertices[0], 0, 1)), 2, _colour);
         }
+    }
 
-        var rotation = (Math.PI * 2) / _sides;
-        var angle    = 0.0;
-        var verts    = [];
+    public static function ngon(_pos : Vec2, _sides : Int, _radius : Float)
+    {
+        final rotation = (Math.PI * 2) / _sides;
+        final verts    = [];
+        var angle = 0.0;
 
         for (i in 0..._sides)
         {
             angle = (i * rotation) + ((Math.PI - rotation) * 0.5);
 
-            verts.push(new Vector2(Math.cos(angle) * _radius, Math.sin(angle) * _radius));
+            verts.push(vec2(Math.cos(angle) * _radius, Math.sin(angle) * _radius));
         }
 
-        return new Polygon(_x, _y, verts);
+        return new Polygon(_pos, vec2(0), vec2(1), 0, verts);
     }
 
-    /**
-     * Helper generate a rectangle at x, y with a given width, height, and centered state.
-     * 
-     * Centered by default. Returns a ready made `Polygon` collision `Shape`
-     */
-    public static function rectangle(_x : Float, _y : Float, _width : Float, _height : Float, _centered : Bool = true) : Polygon
+    public static function rectangle(_pos : Vec2, _size : Vec2, _centred = false)
     {
-        return new Polygon(_x, _y, _centered ? [
-            new Vector2(-_width / 2, -_height / 2),
-            new Vector2( _width / 2, -_height / 2),
-            new Vector2( _width / 2,  _height / 2),
-            new Vector2(-_width / 2,  _height / 2)
-        ] : [
-            new Vector2(     0,       0),
-            new Vector2(_width,       0),
-            new Vector2(_width, _height),
-            new Vector2(     0, _height)
-        ]);
+        return
+            new Polygon(
+                _pos,
+                if (_centred) _size * 0.5 else vec2(0),
+                vec2(1),
+                0,
+                [
+                    vec2(0, 0),
+                    vec2(_size.x, 0),
+                    _size,
+                    vec2(0, _size.y)
+                ]);
     }
 
-    /**
-     * Helper generate a square at x,y with a given width/height with given centered state. Centered by default.
-     * 
-     * Returns a ready made `Polygon` collision `Shape`
-     */
-    public static function square(_x : Float, _y : Float, _width : Float, _centered : Bool = true) : Polygon
+    public static function square(_pos : Vec2, _size : Float, _centred = false)
     {
-        return rectangle(_x, _y, _width, _width, _centered);
-    }
-
-    /**
-     * Helper generate a triangle at x,y with a given radius.
-     * 
-     * Returns a ready made `Polygon` collision `Shape`
-     */
-    public static function triangle(_x : Float, _y : Float, _radius : Float) : Polygon
-    {
-        return create(_x, _y, 3, _radius);
+        rectangle(_pos, vec2(_size), _centred);
     }
 }
