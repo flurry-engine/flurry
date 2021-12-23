@@ -119,8 +119,6 @@ class Flurry
 
             onPostUpdate();
 
-            input.update();
-
             onPreRender();
 
             final ctx = renderer.getGraphicsContext();
@@ -132,6 +130,8 @@ class Flurry
             onPostRender();
 
             renderer.present();
+
+            input.update();
         }
     }
 
