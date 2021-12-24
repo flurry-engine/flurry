@@ -138,7 +138,7 @@ macro function loadParcelMeta(_name : String, _path : String)
 
     // See if there is any shader metadata we can read and generate abstracts for.
 
-    final shaders  = path.parent.joinAll([ _name, 'shader_buffers' ]).toDir().findFiles('*.json');
+    final shaders  = path.parent.join('shader_buffers').toDir().findFiles('*.json');
     final uboTypes = [];
 
     for (shader in shaders)
