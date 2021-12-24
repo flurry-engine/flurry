@@ -160,7 +160,6 @@ class Flurry
             '-L', 'linc_stb',
             '-L', 'safety',
             '-L', 'format',
-            '-L', 'console.hx',
             '-D', 'scriptable',
             '-D', 'analyzer-optimize',
             '-D', 'dll_export=$buildDir/export_classes.info',

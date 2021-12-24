@@ -66,17 +66,7 @@ class AsyncConsoleSink implements ISink
 
     function printMessage(_message : Message)
     {
-        switch _message.level
-        {
-            case Verbose, Information:
-                Console.log(_message);
-            case Debug:
-                Console.debug(_message);
-            case Warning:
-                Console.warn(_message);
-            case Error:
-                Console.error(_message);
-        }
+        Sys.println(_message.toString());
     }
 }
 

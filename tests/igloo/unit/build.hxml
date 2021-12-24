@@ -7,7 +7,6 @@
 -L linc_stb
 -L safety
 -L format
--L console.hx
 -L buddy
 -D analyzer-optimize
 -m Test
