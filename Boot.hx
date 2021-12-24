@@ -169,7 +169,7 @@ class Flurry
             '-D', 'FLURRY_LIB_SRC=$flurryDir/src/lib',
             '-D', 'HAXE_OUTPUT_FILE=Igloo',
             '-D', 'HXCPP_M64',
-            '-m', 'igloo.Igloo',
+            '-m', 'igloo.Main',
             '--dce', 'no',
             '--cpp', buildDir
         ];
