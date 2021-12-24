@@ -28,3 +28,12 @@ macro function getIglooBuiltInScriptsDir()
         case path: macro hx.files.Path.of($v{ path });
     }
 }
+
+macro function getFlurryLibSrcPath()
+{
+    return switch Context.definedValue('FLURRY_LIB_SRC')
+    {
+        case null: Context.error('FLURRY_LIB_SRC was not defined', Context.currentPos());
+        case path: macro hx.files.Path.of($v{ path });
+    }
+}

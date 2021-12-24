@@ -1,5 +1,6 @@
 package igloo.haxe;
 
+import igloo.macros.BuildPaths;
 import hx.files.Path;
 import igloo.utils.GraphicsApi;
 import igloo.macros.Platform;
@@ -28,19 +29,19 @@ function generateHostHxml(_project : Project, _parcels : Array<LoadedParcel>, _r
         case Cli: 'uk.aidanlee.flurry.hosts.CLIHost';
     }
 
-    // For cppia disable all dce to prevent classes getting removed which scripts depend on.
-    hxml.dce = if (_release) full else std;
-
     // Remove traces and strip hxcpp debug output from generated sources in release mode.
     if (_release)
     {
         hxml.noTraces();
         hxml.addDefine('no-debug');
+        hxml.dce = full;
     }
     else
     {
         hxml.debug();
     }
+
+    // Default Settings.
 
     hxml.addDefine(getHostPlatformName());
     hxml.addDefine('HXCPP_M64');
@@ -52,6 +53,29 @@ function generateHostHxml(_project : Project, _parcels : Array<LoadedParcel>, _r
     hxml.addMacro('Safety.safeNavigation("uk.aidanlee.flurry")');
     hxml.addMacro('nullSafety("uk.aidanlee.flurry.modules", Strict)');
     hxml.addMacro('nullSafety("uk.aidanlee.flurry.api", Strict)');
+
+    hxml.addLibrary('haxe-files');
+    hxml.addLibrary('haxe-concurrent');
+    hxml.addLibrary('hxrx');
+    hxml.addLibrary('safety');
+    hxml.addLibrary('vector-math');
+    hxml.addLibrary('linc_sdl');
+    hxml.addLibrary('linc_stb');
+    hxml.addLibrary('linc_imgui');
+
+    switch _graphicsBackend
+    {
+        case Mock:
+            //
+        case Ogl3:
+            hxml.addLibrary('linc_opengl');
+        case D3d11:
+            hxml.addLibrary('linc_directx');
+    }
+
+    hxml.addClassPath(getFlurryLibSrcPath().toString());
+
+    // Project Settings.
 
     for (parcel in _parcels)
     {

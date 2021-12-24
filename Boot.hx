@@ -167,6 +167,7 @@ class Flurry
             '-D', 'IGLOO_DLL_EXPORT=$buildDir/export_classes.info',
             '-D', 'IGLOO_SRC_CODEPATH=$flurryDir/src/igloo/src',
             '-D', 'IGLOO_BUILTIN_SCRIPTS=$flurryDir/src/igloo/scripts',
+            '-D', 'FLURRY_LIB_SRC=$flurryDir/src/lib',
             '-D', 'HAXE_OUTPUT_FILE=Igloo',
             '-D', 'HXCPP_M64',
             '-m', 'igloo.Igloo',
