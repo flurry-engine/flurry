@@ -198,6 +198,11 @@ class Build
 
         hxmlPath.toFile().writeString(hxmlData);
 
+        final procPath = buildDir.parent.join('build-procs.hxml');
+        final procData = generateScriptsHxml(project, projectPath);
+
+        procPath.toFile().writeString(procData);
+
         final haxeProc = new Process('npx haxe $hxmlPath');
         final haxeLog  = new LogConfig()
             .setMinimumLevel(log)

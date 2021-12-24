@@ -104,3 +104,35 @@ function generateHostHxml(_project : Project, _parcels : Array<LoadedParcel>, _r
 
     return hxml.toString();
 }
+
+function generateScriptsHxml(_project : Project, _projectPath : Path)
+{
+    final paths = [ getIglooCodePath().toString() ];
+    final flags = [];
+    final hxml  = new Hxml();
+
+    for (proc in _project.build.processors)
+    {
+        final path = _projectPath.join(proc.source);
+
+        if (!Lambda.exists(paths, p -> path.toString() == p))
+        {
+            paths.push(path.toString());
+            flags.push(proc.flags);
+        }
+    }
+
+    for (p in paths)
+    {
+        hxml.addClassPath(p);
+    }
+
+    for (f in flags)
+    {
+        hxml.append(f);
+    }
+
+    hxml.cppia = 'dummy.cppia';
+
+    return hxml.toString();
+}

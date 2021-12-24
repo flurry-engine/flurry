@@ -73,7 +73,7 @@ abstract Hxml(StringBuf)
 
     public function toString() return this.toString();
 
-    inline function append(_line : String) : String
+    public function append(_line : String) : String
     {
         this.add('$_line\n');
 
