@@ -11,21 +11,12 @@ class SystemTests(unittest.TestCase):
     def test_system_programs(self):
         xvfb_proc  = subprocess.Popen([ "Xvfb", ":99", "-screen", "0", "768x512x24", "-nolisten", "tcp", "-nolisten", "unix" ])
         test_cases = [
-            "Colourised",
-            "DepthTesting",
-            "BatcherDepth",
-            "GeometryDepth",
-            "RenderTarget",
-            "ShaderUniforms",
             "ClearColour",
-            "BatchingGeometry",
+            "Frames",
+            "Shapes",
             "StencilTesting",
-            "Text",
-            "Sprites",
-            "Transformations",
-            "TransformationTree",
             "ImGuiDrawing",
-            "Painting"
+            "Text"
         ]
 
         myEnv = os.environ.copy()

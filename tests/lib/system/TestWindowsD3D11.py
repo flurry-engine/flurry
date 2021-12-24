@@ -23,21 +23,12 @@ def enumHandler(hwnd, lParam):
 class SystemTests(unittest.TestCase):
     def test_system_programs(self):
         test_cases = [
-            "Colourised",
-            "DepthTesting",
-            "BatcherDepth",
-            "GeometryDepth",
-            "RenderTarget",
-            "ShaderUniforms",
             "ClearColour",
-            "BatchingGeometry",
+            "Frames",
+            "Shapes",
             "StencilTesting",
-            "Text",
-            "Sprites",
-            "Transformations",
-            "TransformationTree",
             "ImGuiDrawing",
-            "Painting"
+            "Text"
         ]
 
         myEnv = os.environ.copy()

@@ -1,6 +1,4 @@
-import uk.aidanlee.flurry.modules.differ.shapes.Ray;
 import haxe.Timer;
-import uk.aidanlee.flurry.modules.differ.shapes.Polygon;
 import VectorMath;
 import uk.aidanlee.flurry.Flurry;
 import uk.aidanlee.flurry.FlurryConfig;
@@ -13,7 +11,9 @@ import uk.aidanlee.flurry.api.resources.parcels.Shaders;
 import uk.aidanlee.flurry.api.gpu.drawing.Frames;
 import uk.aidanlee.flurry.api.gpu.drawing.Shapes;
 import uk.aidanlee.flurry.modules.differ.sat.SAT2D;
+import uk.aidanlee.flurry.modules.differ.shapes.Ray;
 import uk.aidanlee.flurry.modules.differ.shapes.Circle;
+import uk.aidanlee.flurry.modules.differ.shapes.Polygon;
 
 class Differ extends Flurry
 {
@@ -44,11 +44,6 @@ class Differ extends Flurry
         shapes   = renderer.createPipeline({ shader: new ShaderID(Shaders.shapes) });
         camera   = new Camera2D(vec2(0, 0), vec2(display.width, display.height), vec4(0, 0, display.width, display.height));
 
-        trace('HELLO');
-        trace('WORLD');
-        trace('TEST1');
-        trace('TEST2');
-
         p0 = vec2( 64,  64);
         p1 = vec2(256, 256);
     }
@@ -64,6 +59,7 @@ class Differ extends Flurry
         _ctx.usePipeline(shapes);
         _ctx.useCamera(camera);
 
+        // TEST CIRCLE VS CIRCLE
         // final circle1 = new Circle(vec2(128, 128), 1, 32);
         // final circle2 = new Circle(vec2(display.mouseX, display.mouseY), 1.5, 32);
 
@@ -78,6 +74,7 @@ class Differ extends Flurry
         //         drawCircleOutline(_ctx, vec2(128, 128), 32, 2, vec4(1, 0, 0, 1));
         // }
 
+        // TEST POLYGON VS POLYGON
         // final polygon1 = Polygon.ngon(vec2(256, 256), 8, 32);
         // final polygon2 = Polygon.rectangle(vec2(display.mouseX, display.mouseY), vec2(16), true);
         // polygon2.angle = degrees(Math.abs(Math.sin(Timer.stamp())));
@@ -95,6 +92,7 @@ class Differ extends Flurry
         //         polygon2.draw(_ctx, vec4(1, 0, 0, 1));
         // }
 
+        // TEST CIRCLE VS POLYGON
         // final polygon = Polygon.ngon(vec2(256, 256), 8, 32);
         // final circle  = new Circle(vec2(display.mouseX, display.mouseY), 1.5, 32);
 
@@ -111,31 +109,86 @@ class Differ extends Flurry
         //         drawCircleOutline(_ctx, circle.pos, circle.radius * circle.scale, 2, vec4(1, 0, 0, 1));
         // }
 
-        final cursor = vec2(display.mouseX, display.mouseY);
-        final ray    = new Ray(p0, p1, Infinite);
-        final circle = new Circle(vec2(128, 384), 1, 64);
+        // TEST RAY VS CIRCLE
+        // final cursor = vec2(display.mouseX, display.mouseY);
+        // final ray    = new Ray(p0, p1, Infinite);
+        // final circle = new Circle(vec2(128, 384), 1, 64);
 
-        if (cursor.distance(p0) < 8 && input.isMouseDown(1))
-        {
-            p0 = cursor;
-        }
-        if (cursor.distance(p1) < 8 && input.isMouseDown(1))
-        {
-            p1 = cursor;
-        }
+        // if (cursor.distance(p0) < 8 && input.isMouseDown(1))
+        // {
+        //     p0 = cursor;
+        // }
+        // if (cursor.distance(p1) < 8 && input.isMouseDown(1))
+        // {
+        //     p1 = cursor;
+        // }
 
-        drawLine(_ctx, p0, p1, 2);
-        drawCircleOutline(_ctx, p0, 8, 2);
-        drawCircleOutline(_ctx, p1, 8, 2);
+        // drawLine(_ctx, p0, p1, 2);
+        // drawCircleOutline(_ctx, p0, 8, 2);
+        // drawCircleOutline(_ctx, p1, 8, 2);
 
-        switch testRayVsCircle(ray, circle)
-        {
-            case null:
-                drawCircle(_ctx, circle.pos, circle.radius);
-            case result:
-                drawCircleOutline(_ctx, circle.pos, circle.radius, vec4(0.5));
-                drawCircle(_ctx, result.hitStart(ray), 4);
-                drawCircle(_ctx, result.hitEnd(ray), 4);
-        }
+        // switch testRayVsCircle(ray, circle)
+        // {
+        //     case null:
+        //         drawCircle(_ctx, circle.pos, circle.radius);
+        //     case result:
+        //         drawCircleOutline(_ctx, circle.pos, circle.radius, vec4(0.5));
+        //         drawCircle(_ctx, result.hitStart(ray), 4);
+        //         drawCircle(_ctx, result.hitEnd(ray), 4);
+        // }
+
+        // TEST RAY VS POLYGON
+        // final cursor  = vec2(display.mouseX, display.mouseY);
+        // final ray     = new Ray(p0, p1, NotInfinite);
+        // final polygon = Polygon.ngon(vec2(256, 256), 8, 32);
+
+        // if (cursor.distance(p0) < 8 && input.isMouseDown(1))
+        // {
+        //     p0 = cursor;
+        // }
+        // if (cursor.distance(p1) < 8 && input.isMouseDown(1))
+        // {
+        //     p1 = cursor;
+        // }
+
+        // drawLine(_ctx, p0, p1, 2);
+        // drawCircleOutline(_ctx, p0, 8, 2);
+        // drawCircleOutline(_ctx, p1, 8, 2);
+
+        // switch testRayVsPolygon(ray, polygon)
+        // {
+        //     case null:
+        //         polygon.draw(_ctx, vec4(1));
+        //     case result:
+        //         polygon.draw(_ctx, vec4(0.5));
+        //         drawCircle(_ctx, result.hitStart(ray), 4);
+        // }
+
+        // TEST RAY VS RAY
+        // final cursor  = vec2(display.mouseX, display.mouseY);
+        // final ray1    = new Ray(p0, p1, NotInfinite);
+        // final ray2    = new Ray(vec2(256, 32), vec2(32, 256), NotInfinite);
+
+        // if (cursor.distance(p0) < 8 && input.isMouseDown(1))
+        // {
+        //     p0 = cursor;
+        // }
+        // if (cursor.distance(p1) < 8 && input.isMouseDown(1))
+        // {
+        //     p1 = cursor;
+        // }
+
+        // drawLine(_ctx, p0, p1, 2);
+        // drawCircleOutline(_ctx, p0, 8, 2);
+        // drawCircleOutline(_ctx, p1, 8, 2);
+
+        // switch testRayVsRay(ray1, ray2)
+        // {
+        //     case null:
+        //         drawLine(_ctx, ray2.start, ray2.end, 2);
+        //     case result:
+        //         drawLine(_ctx, ray2.start, ray2.end, 2, vec4(0.5));
+        //         drawCircle(_ctx, result.hitStart(ray1), 4);
+        // }
     }
 }

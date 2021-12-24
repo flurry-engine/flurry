@@ -3,4 +3,7 @@ test-*.xml
 node_modules
 .pytest_cache
 .flurry
+.vs
+.vscode
+.ionide
 __pycache__

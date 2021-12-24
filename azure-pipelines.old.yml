@@ -68,30 +68,30 @@ jobs:
         buildPlatform: Js
         failTaskOnFailedTests: true
 
-  # - job: HashlinkUnitTests
-  #   displayName: Hashlink Unit Tests
-  #   pool:
-  #     vmImage: 'windows-latest'
-  #   steps:
-  #   - bash: npm ci
-  #     displayName: Install Dependencies
-  #   - bash: |
-  #       curl https://github.com/HaxeFoundation/hashlink/releases/download/1.11/hl-1.11.0-win.zip -O -J -L -o hl-1.11.0-win.zip
-  #       unzip hl-1.11.0-win.zip
-  #       export PATH=$PWD/hl-1.11.0-win:$PATH
-  #       npx haxe build-hl.hxml -D reporter=buddy.reporting.XUnit2Reporter -D report-name=Engine-Tests-Hashlink --debug --no-traces
-  #       hl bin/hl/main.hl
-  #     displayName: Engine Tests Hashlink
-  #     workingDirectory: $(Build.SourcesDirectory)/tests/unit
-  #   - task: PublishTestResults@2
-  #     condition: succeededOrFailed()
-  #     inputs:
-  #       testResultsFormat: xUnit
-  #       testResultsFiles: Engine-Tests-Hashlink.xml
-  #       searchFolder: $(Build.SourcesDirectory)/tests/unit
-  #       testRunTitle: Engine Tests Hashlink
-  #       buildPlatform: Hashlink
-  #       failTaskOnFailedTests: true
+  - job: HashlinkUnitTests
+    displayName: Hashlink Unit Tests
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - bash: npm ci
+      displayName: Install Dependencies
+    - bash: |
+        curl https://github.com/HaxeFoundation/hashlink/releases/download/1.11/hl-1.11.0-win.zip -O -J -L -o hl-1.11.0-win.zip
+        unzip hl-1.11.0-win.zip
+        export PATH=$PWD/hl-1.11.0-win:$PATH
+        npx haxe build-hl.hxml -D reporter=buddy.reporting.XUnit2Reporter -D report-name=Engine-Tests-Hashlink --debug --no-traces
+        hl bin/hl/main.hl
+      displayName: Engine Tests Hashlink
+      workingDirectory: $(Build.SourcesDirectory)/tests/unit
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: xUnit
+        testResultsFiles: Engine-Tests-Hashlink.xml
+        searchFolder: $(Build.SourcesDirectory)/tests/unit
+        testRunTitle: Engine Tests Hashlink
+        buildPlatform: Hashlink
+        failTaskOnFailedTests: true
 
   - job: ToolUnitTests
     displayName: Tool Unit Tests

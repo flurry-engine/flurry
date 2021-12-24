@@ -2,6 +2,7 @@
 
 -p src/lib
 -p tests/lib/unit/src
+-p tests/lib/system/src
 
 -D flurry-entry-point=uk.aidanlee.flurry.Flurry
 -D flurry-gpu-api=mock
@@ -18,7 +19,6 @@
 -L linc_stb
 -L linc_sdl
 -L safety
--L sys.io.abstractions
 -L vector-math
 -L buddy
 
