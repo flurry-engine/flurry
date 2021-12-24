@@ -1,8 +1,5 @@
 package igloo.commands;
 
-import haxe.io.Input;
-import haxe.io.BytesBuffer;
-import haxe.io.Bytes;
 import sys.io.Process;
 import haxe.Exception;
 import igloo.haxe.Haxe;
@@ -96,13 +93,6 @@ class Build
     @:flag('target')
     @:alias('t')
     public var target = 'desktop';
-
-    /**
-     * Forces the cppia host to be rebuilt. This will only do something if `--cppia` is also use.
-     */
-    @:flag('rebuild-host')
-    @:alias('y')
-    public var rebuildHost = false;
 
     public function new(_id, _log)
     {

@@ -4,13 +4,13 @@ import hx.concurrent.event.AsyncEventDispatcher;
 import hx.concurrent.executor.Executor;
 import hx.concurrent.executor.ThreadPoolExecutor;
 import tink.Cli;
-import tink.cli.Result;
 import igloo.ID;
 import igloo.logger.LogLevel;
 import igloo.logger.LogConfig;
 import igloo.logger.ISink;
 import igloo.logger.Message;
 import igloo.commands.Build;
+import igloo.commands.Restore;
 
 function main()
 {
@@ -89,9 +89,16 @@ class Igloo
     @:command
     public final build : Build;
 
+    /**
+     * Download all external dependencies for the project.
+     */
+    @:command
+    public final restore : Restore;
+
     public function new(_id, _logger)
     {
-        build = new Build(_id, _logger);
+        build   = new Build(_id, _logger);
+        restore = new Restore(_logger);
     }
 
     @:defaultCommand
