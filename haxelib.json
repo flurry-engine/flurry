@@ -17,7 +17,7 @@
 
         "json2object" : "",
         "tink_cli" : "",
-        "bin-packing" : ""
+        "bin-packing" : "",
 
         "haxe-concurrent" : "",
         "linc_sdl" : "",
