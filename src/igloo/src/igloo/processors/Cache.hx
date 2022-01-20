@@ -1,5 +1,6 @@
 package igloo.processors;
 
+import haxe.io.Eof;
 import sys.io.Process;
 import cpp.cppia.Module;
 import haxe.Exception;
@@ -112,19 +113,22 @@ class Cache
         if (exit == 0)
         {
             final stdout = proc.stdout.readAll().toString();
+            final stderr = proc.stderr.readAll().toString();
 
             _logger.info('Compiled ${ script }', _path);
-            _logger.debug('$stdout');
+            _logger.info('$stdout');
+            _logger.warning('$stderr');
 
             proc.close();
         }
         else
         {
+            final stdout = proc.stdout.readAll().toString();
             final stderr = proc.stderr.readAll().toString();
 
             proc.close();
 
-            throw new Exception(stderr);
+            throw new Exception(stdout, new Exception(stderr));
         }
     }
 

@@ -1,5 +1,6 @@
 package igloo.commands;
 
+import haxe.io.Eof;
 import sys.io.Process;
 import haxe.Exception;
 import igloo.haxe.Haxe;
@@ -203,27 +204,13 @@ class Build
 
         procPath.toFile().writeString(procData);
 
-        final haxeProc = new Process('npx haxe $hxmlPath');
-        final haxeLog  = new LogConfig()
+        final haxeLog = new LogConfig()
             .setMinimumLevel(log)
             .writeTo(logger)
             .enrichWith('stage', 'haxe')
             .create();
 
-        var code : Null<Int> = null;
-        while (null == (code = haxeProc.exitCode(false)))
-        {
-            try
-            {
-                haxeLog.info('${ stdout }', haxeProc.stdout.readLine());
-            }
-            catch (e)
-            {
-                // potential EoF exception from stdout
-            }
-        }
-
-        switch code
+        switch Sys.command('npx haxe $hxmlPath')
         {
             case 0:
                 haxeLog.info('haxe compilation succeeded');
@@ -331,9 +318,7 @@ class Build
                     }
                 }
             case _:
-                final stderr = try haxeProc.stderr.readAll().toString() catch (_) '';
-
-                haxeLog.error('haxe compilation failed $stderr');
+                haxeLog.error('haxe compilation failed');
         }
     }
 
