@@ -1,5 +1,3 @@
-package uk.aidanlee.flurry.api.maths;
-
 /**
  * Copyright (c) 2017 the Kha Development Team
  * 
@@ -28,6 +26,9 @@ package uk.aidanlee.flurry.api.maths;
  * 
  * Mersenne twister.
  */
+
+package uk.aidanlee.flurry.api.maths;
+
 class Random
 {
     final mt : Array<Int>;

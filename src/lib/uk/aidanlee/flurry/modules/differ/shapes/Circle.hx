@@ -1,63 +1,17 @@
 package uk.aidanlee.flurry.modules.differ.shapes;
 
-import uk.aidanlee.flurry.modules.differ.data.*;
-import uk.aidanlee.flurry.modules.differ.sat.SAT2D;
-
-/**
- * A circle collision shape
- */
-class Circle extends Shape
+class Circle
 {
-    /**
-     * The radius of this circle. Set on construction.
-     */
-    public final radius : Float;
+    public var pos : Vec2;
 
-    /**
-     * The transformed radius of this circle, based on the scale/rotation
-     */
-    public var transformedRadius (get, never) : Float;
+    public var scale : Float;
+    
+    public var radius : Float;
 
-    inline function get_transformedRadius() : Float {
-        return radius * scaleX;
-    }
-
-    public function new(_x : Float, _y : Float, _radius : Float)
+    public inline function new(_pos, _scale, _radius)
     {
-        super(_x, _y, 'circle $_radius');
-
+        pos    = _pos;
+        scale  = _scale;
         radius = _radius;
-    }
-
-    /**
-     * Test for collision against a shape.
-     */
-    override public function test(_shape : Shape, _into : ShapeCollision = null) : Bool
-    {
-        return _shape.testCircle(this, _into);
-    }
-
-    /**
-     * Test for collision against a circle.
-     */
-    override public function testCircle(_circle : Circle, _into : ShapeCollision = null) : Bool
-    {
-        return SAT2D.testCircleVsCircle(this, _circle, _into, false);
-    }
-
-    /**
-     * Test for collision against a polygon.
-     */
-    override public function testPolygon(_polygon : Polygon, _into : ShapeCollision = null) : Bool
-    {
-        return SAT2D.testCircleVsPolygon(this, _polygon, _into, false);
-    }
-
-    /**
-     * Test for collision against a ray.
-     */
-    override public function testRay(_ray : Ray, _into : RayCollision = null) : Bool
-    {
-        return SAT2D.testRayVsCircle(_ray, this, _into);
     }
 }

@@ -1,0 +1,21 @@
+{
+    "name" : "preload",
+    "assets" : [
+        { "id" : "tank1", "path" : "images/tank1.png" },
+        { "id" : "tank2", "path" : "images/tank2.png" },
+        { "id" : "tank3", "path" : "images/tank3.png" },
+        { "id" : "wood" , "path" : "images/wood.png" },
+        { "id" : "background" , "path" : "images/background.png" },
+        { "id" : "blue_worker" , "path" : "images/frames/blue_worker.png" },
+        { "id" : "blue_shield" , "path" : "images/frames/blue_shield.png" },
+        { "id" : "blue_spear" , "path" : "images/frames/blue_spear.png" },
+        { "id" : "blue_king" , "path" : "images/frames/blue_king.png" },
+        { "id" : "blue_wizard" , "path" : "images/frames/blue_wizard.png" },
+        { "id" : "emote_angry" , "path" : "images/frames/emote_angry.png" },
+        { "id" : "die" , "path" : "images/frames/die.png" },
+        { "id" : "ui_frame" , "path" : "images/ui_frame.png"  },
+        { "id" : "ui_button", "path" : "images/ui_button.png"  },
+        { "id" : "roboto", "path" : "fonts/Roboto-Regular.ttf" },
+        { "id" : "unnamed", "path" : "sheets/unnamed.atlas" }
+    ]
+}

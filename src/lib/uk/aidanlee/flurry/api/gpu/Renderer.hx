@@ -1,202 +1,105 @@
 package uk.aidanlee.flurry.api.gpu;
 
-import uk.aidanlee.flurry.api.resources.Resource.ImageResource;
-import haxe.Exception;
-import uk.aidanlee.flurry.api.buffers.BufferData;
-import haxe.io.Bytes;
-import uk.aidanlee.flurry.api.resources.Resource.ImageFrameResource;
-import haxe.ds.ArraySort;
-import uk.aidanlee.flurry.FlurryConfig;
-import uk.aidanlee.flurry.macros.ApiSelector;
-import uk.aidanlee.flurry.api.gpu.camera.Camera.CameraOrigin;
-import uk.aidanlee.flurry.api.gpu.camera.Camera.CameraNdcRange;
-import uk.aidanlee.flurry.api.gpu.camera.Camera3D;
-import uk.aidanlee.flurry.api.gpu.camera.Camera2D;
-import uk.aidanlee.flurry.api.gpu.batcher.DrawCommand;
-import uk.aidanlee.flurry.api.gpu.batcher.Batcher;
-import uk.aidanlee.flurry.api.gpu.batcher.Painter;
-import uk.aidanlee.flurry.api.gpu.batcher.IBatchable;
-import uk.aidanlee.flurry.api.gpu.backend.IRendererBackend;
+import haxe.io.ArrayBufferView;
+import uk.aidanlee.flurry.api.gpu.pipeline.PipelineID;
+import uk.aidanlee.flurry.api.gpu.pipeline.PipelineState;
+import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceID;
+import uk.aidanlee.flurry.api.gpu.surfaces.SurfaceState;
+import uk.aidanlee.flurry.api.resources.Resource;
+import uk.aidanlee.flurry.api.resources.ResourceID;
 import uk.aidanlee.flurry.api.resources.ResourceEvents;
-import uk.aidanlee.flurry.api.display.DisplayEvents;
+import uk.aidanlee.flurry.api.resources.builtin.PageResource;
+import uk.aidanlee.flurry.api.resources.builtin.ShaderResource;
+import uk.aidanlee.flurry.api.resources.builtin.DataBlobResource;
+import uk.aidanlee.flurry.api.resources.builtin.PageFrameResource;
 
-class Renderer
+using hxrx.observables.Observables;
+
+abstract class Renderer
 {
-    /**
-     * Holds the global render state.
-     */
-    public var backend : IRendererBackend;
+    final resourceEvents : ResourceEvents;
 
-    /**
-     * API backend used by the renderer.
-     */
-    public var api : RendererBackend;
-
-    /**
-     * Batcher manager, responsible for creating, deleteing, and sorting batchers.
-     */
-    final batchers : Array<IBatchable>;
-
-    /**
-     * Queue of all draw commands for this frame.
-     */
-    final queuedCommands : Array<DrawCommand>;
-
-    public function new(_resourceEvents : ResourceEvents, _displayEvents : DisplayEvents, _windowConfig : FlurryWindowConfig, _rendererConfig : FlurryRendererConfig)
+    public function new(_resourceEvents)
     {
-        queuedCommands = [];
-        batchers       = [];
-        backend        = ApiSelector.getGraphicsBackend(_resourceEvents, _displayEvents, _windowConfig, _rendererConfig);
-        api            = ApiSelector.getGraphicsApi();
+        resourceEvents = _resourceEvents;
+
+        resourceEvents
+            .created
+            .filter(isPageResource)
+            .map(toPageResource)
+            .subscribeFunction(createTexture);
+
+        resourceEvents
+            .removed
+            .filter(isPageResource)
+            .map(toResourceID)
+            .subscribeFunction(deleteTexture);
+
+        resourceEvents
+            .created
+            .filter(isShaderResource)
+            .map(toShaderResource)
+            .subscribeFunction(createShader);
+
+        resourceEvents
+            .removed
+            .filter(isShaderResource)
+            .map(toResourceID)
+            .subscribeFunction(deleteShader);
     }
 
-    public function queue()
-    {
-        if (batchers.length > 0)
-        {
-            ArraySort.sort(batchers, sortBatchers);
+    public abstract function getGraphicsContext() : GraphicsContext;
 
-            for (batcher in batchers)
-            {
-                batcher.batch(backend.queue);
-            }
+    public abstract function present() : Void;
+
+    public abstract function createPipeline(_state : PipelineState) : PipelineID;
+
+    public abstract function deletePipeline(_pipeline : PipelineID) : Void;
+
+    public abstract function createSurface(_state : SurfaceState) : SurfaceID;
+
+    public abstract function deleteSurface(_id : SurfaceID) : Void;
+
+    public abstract function updateTexture(_frame : PageFrameResource, _data : ArrayBufferView) : Void;
+
+    abstract function createShader(_resource : DataBlobResource) : Void;
+
+    abstract function deleteShader(_id : ResourceID) : Void;
+
+    abstract function createTexture(_resource : DataBlobResource) : Void;
+
+    abstract function deleteTexture(_id : ResourceID) : Void;
+
+    function isPageResource(_resource : Resource)
+    {
+        return switch Std.downcast(_resource, DataBlobResource)
+        {
+            case null: false;
+            case blob: blob.resource is PageResource;
         }
     }
 
-    public function submit()
+    function isShaderResource(_resource : Resource)
     {
-        backend.submit();
-    }
-
-    /**
-     * Create and return a batcher. The returned batcher is automatically added to the renderer.
-     * @param _options Batcher options.
-     * @return Batcher
-     */
-    public function createBatcher(_options : BatcherOptions) : Batcher
-    {
-        final batcher = new Batcher(_options);
-
-        batchers.push(batcher);
-
-        return batcher;
-    }
-
-    public function createPainter(_options : BatcherOptions) : Painter
-    {
-        final painter = new Painter(_options);
-
-        batchers.push(painter);
-
-        return painter;
-    }
-
-    /**
-     * Easily create a 2D camera with the correct backend options.
-     * @param _width Width of the camera.
-     * @param _height Height of the camera.
-     * @return Camera2D
-     */
-    public function createCamera2D(_width : Int, _height : Int) : Camera2D
-    {
-        return new Camera2D(_width, _height, getOrigin(), getNdcRange());
-    }
-
-    /**
-     * Easily create a 3D camera with the correct backend options.
-     * @param _fov Vertical field of view.
-     * @param _aspect Aspect ratio.
-     * @param _near Near clipping.
-     * @param _far Far clipping.
-     * @return Camera3D
-     */
-    public function createCamera3D(_fov : Float, _aspect : Float, _near : Float, _far : Float) : Camera3D
-    {
-        return new Camera3D(_fov, _aspect, _near, _far, getOrigin(), getNdcRange());
-    }
-
-    /**
-     * Add several pre-existing batchers to the renderer.
-     * @param _batchers Array of batchers to add.
-     */
-    public function addBatcher(_batchers : Array<Batcher>)
-    {
-        for (batcher in _batchers)
+        return switch Std.downcast(_resource, DataBlobResource)
         {
-            batchers.push(batcher);
+            case null: false;
+            case blob: blob.resource is ShaderResource;
         }
     }
 
-    /**
-     * Remove several batchers from the renderer.
-     * @param _batchers Array of batchers to remove.
-     */
-    public function removeBatcher(_batchers : Array<Batcher>)
+    function toPageResource(_resource : Resource)
     {
-        for (batcher in _batchers)
-        {
-            batcher.drop();
-            batchers.remove(batcher);
-        }
+        return (cast _resource : DataBlobResource);
     }
 
-    /**
-     * Update the contents of an image frame.
-     * @param _frame Frame to update.
-     * @param _bytes bytes to replace it with.
-     */
-    public function updateImageFrame(_frame : ImageFrameResource, _buffer : BufferData)
+    function toShaderResource(_resource : Resource)
     {
-        backend.uploadTexture(_frame, _buffer.bytes.getData());
+        return (cast _resource : DataBlobResource);
     }
 
-    /**
-     * Sort the batchers in depth order.
-     * @param _a Batcher a
-     * @param _b Batcher b
-     * @return Int
-     */
-    function sortBatchers(_a : IBatchable, _b : IBatchable) : Int
+    function toResourceID(_resource : Resource)
     {
-        // Sort by depth
-        if (_a.getDepth() < _b.getDepth()) return -1;
-        if (_a.getDepth() > _b.getDepth()) return  1;
-
-        // Then target
-        switch _a.getTarget()
-        {
-            case Backbuffer:
-                switch _b.getTarget()
-                {
-                    case Backbuffer: // no op
-                    case Texture(_): return 1;
-                }
-            case Texture(_imageA):
-                switch _b.getTarget()
-                {
-                    case Backbuffer: return -1;
-                    case Texture(_imageB):
-                        if (_imageA < _imageB) return -1;
-                        if (_imageA > _imageB) return  1;
-                }
-        }
-
-        // Lastly shader
-        if (_a.getShader() < _b.getShader()) return -1;
-        if (_a.getShader() > _b.getShader()) return  1;
-
-        return 0;
-    }
-
-    function getOrigin() return switch api
-    {
-        case Ogl3 : BottomLeft;
-        case Dx11, Mock : TopLeft;
-    }
-
-    function getNdcRange() return switch api
-    {
-        case Ogl3 : NegativeOneToNegativeOne;
-        case Dx11, Mock : ZeroToNegativeOne;
+        return _resource.id;
     }
 }

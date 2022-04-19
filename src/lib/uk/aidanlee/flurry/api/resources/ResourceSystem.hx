@@ -1,33 +1,32 @@
 package uk.aidanlee.flurry.api.resources;
 
 import haxe.Exception;
-import haxe.io.Path;
+import haxe.io.Bytes;
+import haxe.ds.Vector;
 import haxe.ds.ReadOnlyArray;
-import sys.io.abstractions.IFileSystem;
-import hxrx.IObserver;
 import hxrx.IObservable;
-import hxrx.ISubscription;
-import hxrx.schedulers.IScheduler;
 import hxrx.observables.Observables;
 import hxrx.subscriptions.Empty;
-import hxrx.subscriptions.Single;
-import uk.aidanlee.flurry.api.stream.ParcelInput;
 import uk.aidanlee.flurry.api.resources.Resource;
+import uk.aidanlee.flurry.api.resources.builtin.PageResource;
+import uk.aidanlee.flurry.api.resources.builtin.DataBlobResource;
+import uk.aidanlee.flurry.api.resources.loaders.MsdfFontLoader;
+import uk.aidanlee.flurry.api.resources.loaders.PageFrameLoader;
+import uk.aidanlee.flurry.api.resources.loaders.DesktopShaderLoader;
 
+using hxrx.schedulers.IScheduler;
 using hxrx.observables.Observables;
 using Safety;
 
+@:build(uk.aidanlee.flurry.macros.Parcels.createLookupTable())
 class ResourceSystem
 {
+    static final assetsPath = hx.files.Path.of('assets');
+
     /**
      * Event bus the resource system can fire events into as and when resources and created and removed.
      */
     final events : ResourceEvents;
-
-    /**
-     * Access to the engines filesystem.
-     */
-    final fileSystem : IFileSystem;
 
     /**
      * The scheduler that will load the parcels.
@@ -40,70 +39,136 @@ class ResourceSystem
      */
     final syncScheduler : IScheduler;
 
-    /**
-     * Map of a parcels ID to all the resources IDs contained within it.
-     * Stored since the parcel could be modified by the user and theres no way to know whats inside a pre-packed parcel until its unpacked.
-     */
-    final parcelResources : Map<String, Array<ResourceID>>;
+    final resourceReaders : Map<String, ResourceReader>;
 
-    /**
-     * Map of all resources in this system keyed by their unique ID.
-     */
-    final resourceIDCache : Map<Int, Resource>;
+    final loadedParcels : Map<String, LoadedParcel>;
 
-    /**
-     * Map of all resources in this system keyed by their unique name.
-     */
-    final resourceNameCache : Map<String, Resource>;
+    final resources : Vector<Null<Resource>>;
 
-    /**
-     * How many parcels reference each resource.
-     * Prevents storing multiple of the same resource and ensures they aren't removed when still in use.
-     */
-    final resourceReferences : Map<Int, Int>;
+    final references : Vector<Int>;
 
     /**
      * Creates a new resources system.
      * Allows the creation and loading of parcels and caching their resources.
      */
-    public function new(_events : ResourceEvents, _fileSystem : IFileSystem, _workScheduler : IScheduler, _syncScheduler : IScheduler)
+    public function new(_events : ResourceEvents, _loaders : Null<Array<ResourceReader>>, _workScheduler : IScheduler, _syncScheduler : IScheduler)
     {
         events             = _events;
-        fileSystem         = _fileSystem;
         workScheduler      = _workScheduler;
         syncScheduler      = _syncScheduler;
-        parcelResources    = [];
-        resourceIDCache    = [];
-        resourceNameCache  = [];
-        resourceReferences = [];
+        resourceReaders    = [];
+        loadedParcels      = [];
+        resources          = new Vector(uk.aidanlee.flurry.macros.Parcels.getTotalResourceCount());
+        references         = new Vector(uk.aidanlee.flurry.macros.Parcels.getTotalResourceCount());
+
+        for (loader in [ new DesktopShaderLoader(), new MsdfFontLoader(), new PageFrameLoader() ])
+        {
+            for (id in loader.ids())
+            {
+                resourceReaders[id] = loader;
+            }
+        }
+
+        if (_loaders != null)
+        {
+            for (loader in _loaders)
+            {
+                for (id in loader.ids())
+                {
+                    resourceReaders[id] = loader;
+                }
+            }
+        }
     }
 
     /**
-     * Loads the provided parcels resources into the system.
-     * If a parcel in the list has already been added its resources will not be added again.
-     * @param _parcels List parcel files to load.
-     * @return Observable of loading progress (normalised 0 - 1)
+     * Loads the provided parcels into the resource system.
+     * Parcels will not start to be loaded until the returned observable is subscribed to.
+     * 
+     * Loading occurs on the task pool and progress, completion, and error notifications arrive on the main thread.
+     * @param _parcels Array of parcels to load.
+     * @return Observable which provides a normalised loading count.
      */
     public function load(_parcels : ReadOnlyArray<String>) : IObservable<Float>
     {
         return _parcels
             .fromIterable()
-            .flatMap(file -> create(obs -> loadParcel(file, obs)))
+            .flatMap(parcel ->
+                create(obs -> {
+                    final parcelPath = assetsPath.join('$parcel.parcel');
+                    final input      = parcelPath.toFile().openInput();
+    
+                    // Parcel should start with PRCL
+                    if (input.readString(4) != 'PRCL')
+                    {
+                        obs.onError(new Exception('stream does not contain the PRCL magic bytes'));
+
+                        return new Empty();
+                    }
+    
+                    final resources   = input.readInt32();
+                    final pageFormat  = input.readByte();
+                    final resourceIDs = new Vector(resources);
+                    final tickValue   = 1 / resources;
+    
+                    var index = 0;
+                    var magic = '';
+                    var proc  = null;
+                    while ('STOP' != (magic = input.readString(4)))
+                    {
+                        switch magic
+                        {
+                            case 'PAGE':
+                                final id       = input.readInt32();
+                                final bytesLen = input.readInt32();
+                                final bytes    = input.read(bytesLen);
+                                final image    = stb.Image.load_from_memory(bytes.getData(), bytesLen, 4);
+                                final page     = new DataBlobResource(new PageResource(new ResourceID(id), image.w, image.h), Bytes.ofData(image.bytes));
+    
+                                resourceIDs.set(index++, page.id);
+
+                                obs.onNext(tickValue);
+
+                                syncScheduler.scheduleFunction(addResource.bind(page));
+                            case 'PROC':
+                                final procNameLen = input.readInt32();
+                                final procName    = input.readString(procNameLen);
+    
+                                proc = switch resourceReaders[procName]
+                                {
+                                    case null:
+                                        obs.onError(new Exception('No resource reader found for resources produced with processor $procName'));
+
+                                        return new Empty();
+                                    case reader:
+                                        reader;
+                                }
+                            case 'RESR':
+                                final resource = proc.unsafe().read(input);
+
+                                resourceIDs.set(index++, resource.id);
+
+                                obs.onNext(tickValue);
+
+                                syncScheduler.scheduleFunction(addResource.bind(resource));
+                            case other:
+                                obs.onError(new Exception('Unkown magic bytes of $other'));
+
+                                return new Empty();
+                        }
+                    }
+    
+                    input.close();
+    
+                    syncScheduler.scheduleFunction(() -> loadedParcels[parcel] = new LoadedParcel(parcel, resourceIDs));
+
+                    obs.onCompleted();
+
+                    return new Empty();
+                }))
+            .scan(0.0, (acc, next) -> acc + (next / _parcels.length))
             .subscribeOn(workScheduler)
             .observeOn(syncScheduler)
-            .map(v -> {
-                if (!parcelResources.exists(v.parcel))
-                {
-                    parcelResources[v.parcel] = [];
-                }
-
-                addResource(v.resource);
-
-                parcelResources[v.parcel].unsafe().push(v.resource.id);
-
-                v.progress;
-            })
-            .scan(0.0, (acc, next) -> acc + (next / _parcels.length))
             .publish()
             .refCount();
     }
@@ -111,42 +176,46 @@ class ResourceSystem
     /**
      * Free a parcel and its resources from the system.
      * @param _name Parcel name.
+     * @throws ParcelNotLoadedException if the parcel to free is not actually loaded.
+     * @throws ResourceNotFoundException if one of the resources in the parcel to free is not currently in the system.
      */
     public function free(_name : String)
     {
-        if (parcelResources.exists(_name))
+        switch loadedParcels[_name]
         {
-            for (res in parcelResources[_name].unsafe())
-            {
-                if (resourceIDCache.exists(res))
+            case null:
+                throw new ParcelNotLoadedException(_name);
+            case loaded:
+                for (id in loaded.resources)
                 {
-                    removeResource(resourceIDCache[res].unsafe());
+                    removeResource(get(id));
                 }
-            }
-
-            parcelResources.remove(_name);
         }
     }
 
     /**
      * Add a resource to this system.
+     * The resource is passed into the created resource event if it has not yet been added to the system.
      * If the resource has already been added to this system the reference count is increased by one.
      * @param _resource The resource to add.
      */
     public function addResource(_resource : Resource)
     {
-        if (resourceReferences.exists(_resource.id))
+        final toAdd = switch Std.downcast(_resource, DataBlobResource)
         {
-            resourceReferences[_resource.id] = resourceReferences[_resource.id].unsafe() + 1;
+            case null: _resource;
+            case blob: blob.resource;
         }
-        else
+
+        switch resources[toAdd.id]
         {
-            resourceReferences[_resource.id] = 1;
+            case null:
+                resources[toAdd.id] = toAdd;
+                references[toAdd.id] = 1;
 
-            resourceIDCache[_resource.id] = _resource;
-            resourceNameCache[_resource.name] = _resource;
-
-            events.created.onNext(_resource);
+                events.created.onNext(_resource);
+            case _:
+                references[toAdd.id]++;
         }
     }
 
@@ -158,144 +227,63 @@ class ResourceSystem
      */
     public function removeResource(_resource : Resource)
     {
-        if (resourceReferences.exists(_resource.id))
+        if (references[_resource.id] <= 1)
         {
-            final referenceCount = resourceReferences[_resource.id].unsafe();
-            if (referenceCount == 1)
-            {
-                if (resourceIDCache.exists(_resource.id))
+            events.removed.onNext(_resource);
+
+            references[_resource.id] = 0;
+            resources[_resource.id] = null;
+        }
+        else
+        {
+            references[_resource.id]--;
+        }
+    }
+
+    /**
+     * Return the resource object for the provided ID.
+     * @param _id ID of the resource to return.
+     * @throws ResourceNotFoundException if the resource is not currently loaded.
+     */
+    public function get(_id : Int)
+    {
+        return switch resources[_id]
+        {
+            case null:
+                throw new ResourceNotFoundException(_id);
+            case loaded:
+                loaded.unsafe();
+        }
+    }
+
+    /**
+     * Return the resource object for the provided ID casted to a specific type.
+     * @param _id ID of the resource to return.
+     * @param _as Resource class to cast the resource object to.
+     * @throws ResourceNotFoundException if the resource is not currently loaded.
+     * @throws InvalidResourceTypeException if the resource cannot be casted to the provided type.
+     */
+    public function getAs<T : Resource>(_id : Int, _as : Class<T>)
+    {
+        return switch resources[_id]
+        {
+            case null:
+                throw new ResourceNotFoundException(_id);
+            case loaded:
+                switch Std.downcast(loaded, _as)
                 {
-                    final toRemove = resourceIDCache[_resource.id].unsafe();
-
-                    resourceIDCache.remove(_resource.id);
-                    resourceNameCache.remove(_resource.name);
-
-                    events.removed.onNext(toRemove);
+                    case null:
+                        throw new InvalidResourceTypeException(_id, Type.getClassName(_as));
+                    case typed:
+                        typed;
                 }
-
-                resourceReferences.remove(_resource.id);
-            }
-            else
-            {
-                resourceReferences[_resource.id] = (referenceCount - 1);
-            }
         }
-    }
-
-    /**
-     * Retrieve a resource from the system based on its unique string name.
-     * @param _name Name of the resource.
-     * @param _type Class type of the resource.
-     * @return Resource object.
-     * @throws InvalidResourceTypeException If the resource cannot be cast to the specified resource class.
-     * @throws ResourceNotFoundException If a resource with the provided name is not in the system.
-     */
-    public function getByName<T : Resource>(_name : String, _type : Class<T>) : T
-    {
-        if (resourceNameCache.exists(_name))
-        {
-            final res = resourceNameCache[_name].unsafe();
-            final obj = Std.downcast(res, _type);
-            
-            if (obj != null)
-            {
-                return obj;
-            }
-
-            throw new InvalidResourceTypeException(_name, Type.getClassName(_type));
-        }
-        
-        throw new ResourceNotFoundException(_name);
-    }
-
-    /**
-     * Retrieve a resource from the system based on its unique ID.
-     * @param _id ID of the resource.
-     * @param _type Class type of the resource.
-     * @return Resource object.
-     * @throws InvalidResourceTypeException If the resource cannot be cast to the specified resource class.
-     * @throws ResourceNotFoundException If a resource with the provided ID is not in the system.
-     */
-    public function getByID<T : Resource>(_id : ResourceID, _type : Class<T>) : T
-    {
-        if (resourceIDCache.exists(_id))
-        {
-            final res = resourceIDCache[_id].unsafe();
-            final obj = Std.downcast(res, _type);
-            
-            if (obj != null)
-            {
-                return obj;
-            }
-
-            throw new InvalidResourceTypeException(Std.string(_id), Type.getClassName(_type));
-        }
-        
-        throw new ResourceNotFoundException(Std.string(_id));
-    }
-
-    /**
-     * Loads a parcel and passes events into the observer.
-     * @param _file Parcel file to open. Should be relative to the projects parcel directory (`assets/parcels`).
-     * @param _observer Observer to pump events into.
-     * @return If the parcel was successfully loaded.
-     */
-    function loadParcel(_file : String, _observer : IObserver<ParcelLoadingEvent>) : ISubscription
-    {
-        final path = Path.join([ 'assets', 'parcels', _file ]);
-
-        if (!fileSystem.file.exists(path))
-        {
-            _observer.onError(new Exception('failed to load "${_file}", "${path}" does not exist'));
-
-            return new Empty();
-        }
-
-        // TODO : Should probably progress by 1 as overall load tracking will be off.
-        if (parcelResources.exists(_file))
-        {
-            _observer.onCompleted();
-
-            return new Empty();
-        }
-
-        final reader       = new ParcelInput(fileSystem.file.read(path));
-        final subscription = new Single(() -> reader.close());
-        
-        switch reader.readHeader()
-        {
-            case Success(header):
-                for (_ in 0...header.assets)
-                {
-                    switch reader.readAsset()
-                    {
-                        case Success(asset):
-                            _observer.onNext({
-                                parcel   : _file,
-                                resource : asset,
-                                progress : 1 / header.assets
-                            });
-                        case Failure(reason):
-                            _observer.onError(new Exception(reason));
-        
-                            return subscription;
-                    }
-                }
-            case Failure(reason):
-                _observer.onError(new Exception(reason));
-
-                return subscription;
-        }
-
-        _observer.onCompleted();
-
-        return subscription;
     }
 }
 
 class InvalidResourceTypeException extends Exception
 {
-    public function new(_resource : String, _type : String)
+    public function new(_resource : Int, _type : String)
     {
         super('resource $_resource is not a $_type');
     }
@@ -303,17 +291,29 @@ class InvalidResourceTypeException extends Exception
 
 class ResourceNotFoundException extends Exception
 {
-    public function new(_resource : String)
+    public function new(_resource : Int)
     {
         super('failed to load "$_resource", it does not exist in the system');
     }
 }
 
-@:structInit @:publicFields class ParcelLoadingEvent
+class ParcelNotLoadedException extends Exception
 {
-    final parcel : String;
+    public function new(_parcel : String)
+    {
+        super('parcel $_parcel is not currently loaded');
+    }
+}
 
-    final resource : Resource;
+private class LoadedParcel
+{
+    public final name : String;
 
-    final progress : Float;
+    public final resources : Vector<ResourceID>;
+
+	public function new(_name, _resources)
+    {
+		name      = _name;
+		resources = _resources;
+	}
 }

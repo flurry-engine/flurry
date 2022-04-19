@@ -1,0 +1,4 @@
+# @install: lix --silent download "haxelib:/bin-packing#1.0.2" into bin-packing/1.0.2/haxelib
+-lib sure
+-cp ${HAXE_LIBCACHE}/bin-packing/1.0.2/haxelib/
+-D bin-packing=1.0.2

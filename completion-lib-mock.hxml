@@ -1,0 +1,26 @@
+-cpp out/
+
+-p src/lib
+-p tests/lib/unit/src
+-p tests/lib/system/src
+
+-D flurry-entry-point=uk.aidanlee.flurry.Flurry
+-D flurry-gpu-api=mock
+
+-D IGLOO_SRC_CODEPATH=''
+-D IGLOO_DLL_EXPORT=''
+-D IGLOO_BUILTIN_SCRIPTS=''
+-D FLURRY_LIB_SRC=''
+
+-L hxrx
+-L haxe-concurrent
+-L linc_opengl
+-L linc_imgui
+-L haxe-files
+-L linc_stb
+-L linc_sdl
+-L safety
+-L vector-math
+-L buddy
+
+--macro Safety.safeNavigation('', true)

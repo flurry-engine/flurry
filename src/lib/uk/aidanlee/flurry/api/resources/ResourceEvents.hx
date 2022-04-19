@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry.api.resources;
 
+import uk.aidanlee.flurry.api.resources.Resource;
 import hxrx.subjects.PublishSubject;
 
 class ResourceEvents

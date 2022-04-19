@@ -1,3 +1,3 @@
--D linc_stb=0.0.0
-# @install: lix --silent download "gh://github.com/aidan63/linc_stb#68c8d3e3ecfca9f773a2a87e77fb965709ce664b" into linc_stb/0.0.0/github/68c8d3e3ecfca9f773a2a87e77fb965709ce664b
--cp ${HAXE_LIBCACHE}/linc_stb/0.0.0/github/68c8d3e3ecfca9f773a2a87e77fb965709ce664b/
+# @install: lix --silent download "git:https://github.com/Aidan63/linc_stb#c748e73f002a45b12a6c3d3cdf13b5fe83c45115" into untitled/0.0.0/git/c748e73f002a45b12a6c3d3cdf13b5fe83c45115
+-cp ${HAXE_LIBCACHE}/untitled/0.0.0/git/c748e73f002a45b12a6c3d3cdf13b5fe83c45115/
+-D linc_stb=1.0.0

@@ -1,5 +1,6 @@
 package uk.aidanlee.flurry;
 
+import uk.aidanlee.flurry.api.gpu.GraphicsContext;
 import haxe.Exception;
 import hxrx.observer.Observer;
 import hxrx.schedulers.IScheduler;
@@ -10,8 +11,8 @@ import uk.aidanlee.flurry.api.display.Display;
 import uk.aidanlee.flurry.api.resources.ResourceSystem;
 import uk.aidanlee.flurry.api.schedulers.ThreadPoolScheduler;
 import uk.aidanlee.flurry.api.schedulers.MainThreadScheduler;
-import sys.io.abstractions.IFileSystem;
 
+using hxrx.observables.Observables;
 using Safety;
 
 class Flurry
@@ -20,11 +21,6 @@ class Flurry
      * Main events bus, engine components can fire events into this to communicate with each other.
      */
     public final events : FlurryEvents;
-
-    /**
-     * Abstracted access to the devices file system.
-     */
-    public var fileSystem (default, null) : IFileSystem;
 
     /**
      * User config file.
@@ -84,11 +80,10 @@ class Flurry
         flurryConfig = onConfig(_config);
     }
 
-    public final function ready(_fs, _renderer, _resources, _input, _display, _io)
+    public final function ready(_renderer, _resources, _input, _display, _io)
     {
         loaded = false;
 
-        fileSystem = _fs;
         renderer   = _renderer;
         resources  = _resources;
         input      = _input;
@@ -99,7 +94,7 @@ class Flurry
         {
             resources
                 .load(flurryConfig.resources.preload)
-                .subscribe(new Observer(null, onPreloadParcelError, onPreloadParcelComplete));
+                .subscribeFunction(null, onPreloadParcelError, onPreloadParcelComplete);
         }
         else
         {
@@ -110,7 +105,6 @@ class Flurry
     public final function tick(_dt : Float)
     {
         (cast mainThreadScheduler : MainThreadScheduler).dispatch();
-        (cast taskThreadScheduler : ThreadPoolScheduler).dispatch();
 
         onTick(_dt);
     }
@@ -120,15 +114,24 @@ class Flurry
         if (loaded)
         {
             onPreUpdate();
+
             onUpdate(_dt);
+
             onPostUpdate();
 
-            input.update();
-            renderer.queue();
-
             onPreRender();
-            renderer.submit();
+
+            final ctx = renderer.getGraphicsContext();
+
+            onRender(ctx);
+            
+            ctx.close();
+
             onPostRender();
+
+            renderer.present();
+
+            input.update();
         }
     }
 
@@ -174,6 +177,11 @@ class Flurry
         //
     }
 
+    function onRender(_ctx : GraphicsContext)
+    {
+        //
+    }
+
     function onPostRender()
     {
         //
@@ -195,6 +203,6 @@ class Flurry
 
     final function onPreloadParcelError(_error : Exception)
     {
-        trace('Error loading preload parcel : ${ _error.message }');
+        throw _error;
     }
 }

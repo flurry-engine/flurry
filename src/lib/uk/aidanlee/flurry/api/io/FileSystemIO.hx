@@ -1,7 +1,8 @@
 package uk.aidanlee.flurry.api.io;
 
+import sys.io.File;
+import sys.FileSystem;
 import uk.aidanlee.flurry.FlurryConfig.FlurryProjectConfig;
-import sys.io.abstractions.IFileSystem;
 import haxe.io.Path;
 import haxe.io.Bytes;
 import haxe.ds.Option;
@@ -16,14 +17,11 @@ class FileSystemIO implements IIO
 {
     final project : FlurryProjectConfig;
 
-    final fs : IFileSystem;
-
     final configDir : String;
 
-    public function new(_project, _fs)
+    public function new(_project)
     {
         project   = _project;
-        fs        = _fs;
         configDir = switch Sys.systemName()
         {
             case 'Windows' : Path.join([ Sys.getEnv('APPDATA'), project.author, project.name ]);
@@ -35,9 +33,9 @@ class FileSystemIO implements IIO
 
     public function preferencePath()
     {
-        if (!fs.directory.exist(configDir))
+        if (!FileSystem.exists(configDir))
         {
-            fs.directory.create(configDir);
+            FileSystem.createDirectory(configDir);
         }
 
         return configDir;
@@ -45,18 +43,18 @@ class FileSystemIO implements IIO
 
     public function has(_key : String)
     {
-        return fs.file.exists(Path.join([ preferencePath(), _key ]));
+        return FileSystem.exists(Path.join([ preferencePath(), _key ]));
     }
 
     public function remove(_key : String)
     {
-        fs.file.remove(Path.join([ preferencePath(), _key ]));
+        FileSystem.deleteFile(Path.join([ preferencePath(), _key ]));
     }
 
     public function getString(_key : String)
     {
         return if (has(_key))
-            Some(fs.file.getText(Path.join([ preferencePath(), _key ])))
+            Some(File.getContent(Path.join([ preferencePath(), _key ])))
         else
             None;
     }
@@ -64,18 +62,18 @@ class FileSystemIO implements IIO
     public function getBytes(_key : String)
     {
         return if (has(_key))
-            Some(fs.file.getBytes(Path.join([ preferencePath(), _key ])))
+            Some(File.getBytes(Path.join([ preferencePath(), _key ])))
         else
             None;
     }
 
     public function setString(_key : String, _val : String)
     {
-        fs.file.writeText(Path.join([ preferencePath(), _key ]), _val);
+        File.saveContent(Path.join([ preferencePath(), _key ]), _val);
     }
 
     public function setBytes(_key : String, _val : Bytes)
     {
-        fs.file.writeBytes(Path.join([ preferencePath(), _key ]), _val);
+        File.saveBytes(Path.join([ preferencePath(), _key ]), _val);
     }
 }

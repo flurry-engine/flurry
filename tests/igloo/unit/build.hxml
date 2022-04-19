@@ -1,0 +1,15 @@
+-p src
+-p ../../../src/igloo/src
+-L haxe-files
+-L json2object
+-L tink_cli
+-L bin-packing
+-L linc_stb
+-L safety
+-L format
+-L buddy
+-D analyzer-optimize
+-m Test
+--dce no
+--cpp bin
+--debug

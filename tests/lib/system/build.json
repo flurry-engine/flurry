@@ -1,0 +1,34 @@
+{
+    "app" : {
+        "name"      : "SystemTests",
+        "main"      : "Differ",
+        "output"    : "bin",
+        "codepaths" : [ "src", "../../src/lib" ],
+        "author"    : "Aidan Lee",
+        "backend"   : "Sdl"
+    },
+    "build" : {
+        "defines" : [
+            { "def" : "analyzer-optimize" }
+        ],
+        "dependencies" : [
+            "hxrx",
+            "haxe-concurrent",
+            "linc_directx",
+            "linc_opengl",
+            "linc_imgui",
+            "haxe-files",
+            "linc_stb",
+            "linc_sdl",
+            "safety",
+            "vector-math",
+            "format",
+            "hxcpp_extern_helpers"
+        ],
+        "macros" : [
+            "exclude(\"uk.aidanlee.flurry.macros\")",
+            "keep(\"d3d11\")"
+        ]
+    },
+    "parcels" : [ "assets/preload.json", "assets/assets.json" ]
+}

@@ -1,0 +1,20 @@
+-m Tests
+
+-p src
+-p ../../../src/lib
+
+-L buddy
+-L hxcpp
+-L haxe-concurrent
+-L safety
+-L format
+-L hxbit
+-L hxrx
+-L vector-math
+
+--dce full
+
+--macro nullSafety('uk.aidanlee.flurry.modules', Strict)
+--macro nullSafety('uk.aidanlee.flurry.api', Strict)
+--macro Safety.safeNavigation('uk.aidanlee.flurry')
+--macro Safety.safeNavigation('parcel')
